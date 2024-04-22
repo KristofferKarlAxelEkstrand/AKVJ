@@ -1,5 +1,34 @@
 export function akvj() {
-	const animations = {};
+	if (navigator.requestMIDIAccess) {
+		navigator.requestMIDIAccess().then(onMIDISuccess, onMIDIFailure);
+	}
+
+	function onMIDISuccess(midiAccess) {
+		for (var input of midiAccess.inputs.values())
+			input.onmidimessage = getMIDIMessage;
+
+		function getMIDIMessage(midiMessage) {
+			const [command, note, velocity] = midiMessage.data;
+			const noteName = note % 12;
+			const noteOctave = Math.floor(note / 12) - 1;
+
+			if (command === 144 && velocity > 0) {
+				console.log(`Note on: ${noteName} ${noteOctave}`);
+			} else if (command === 128 || velocity === 0) {
+				console.log(`Note off: ${noteName} ${noteOctave}`);
+			}
+		}
+	}
+
+	function onMIDIFailure() {}
+
+	const animations = {
+		none: {
+			play: function () {
+				return;
+			},
+		},
+	};
 	const animationsToLoad = ['numbers', 'lover', 'bg'];
 	const context = document.getElementById('akvj-canvas').getContext('2d');
 
