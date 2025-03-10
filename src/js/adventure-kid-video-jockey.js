@@ -187,6 +187,10 @@ class AdventureKidVideoJockey extends HTMLElement {
 	noteOn(channel, note, velocity) {
 		console.log(`NOTE ON: channel=${channel}, note=${note}, velocity=${velocity} ---------- `);
 
+		if (!this.animations[channel] || !this.animations[channel][note]) {
+			return;
+		}
+
 		const velocities = Object.keys(this.animations[channel][note])
 			.map(Number)
 			.sort((a, b) => a - b);
