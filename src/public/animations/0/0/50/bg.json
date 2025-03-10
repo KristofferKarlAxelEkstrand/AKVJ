@@ -4,6 +4,7 @@
 	"framesPerRow": 8,
 	"loop": true,
 	"src": "bg-two",
+	"retrigger": true,
 	"frameRatesForFrames": {
 		"0": 2
 	}

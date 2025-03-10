@@ -1,5 +1,11 @@
-import settings from './settings.js';
 import appState from './app-state.js';
+
+const settings = {
+	canvas: {
+		width: 240,
+		height: 135
+	}
+};
 
 class AnimationLayer {
 	constructor({ canvas2dContext, image, minVelocity, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 } }) {
@@ -74,6 +80,8 @@ class AnimationLayer {
 
 		this.canvas2dContext.drawImage(drawImageParams.image, drawImageParams.sourceX, drawImageParams.sourceY, drawImageParams.sourceWidth, drawImageParams.sourceHeight, drawImageParams.destX, drawImageParams.destY, drawImageParams.destWidth, drawImageParams.destHeight);
 	}
+
+	stop() {}
 }
 
 export default AnimationLayer;
