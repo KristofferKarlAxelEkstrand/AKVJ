@@ -177,7 +177,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	loop = () => {
 		this.canvas2dContext.fillRect(0, 0, 240, 135);
 		this.canvasLayers.forEach(layer => {
-			if (layer !== undefined || layer !== null) {
+			if (layer) {
 				layer.play();
 			}
 		});
