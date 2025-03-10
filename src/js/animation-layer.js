@@ -13,8 +13,8 @@ class AnimationLayer {
 		this.canvasHeight = animationInstance.canvasHeight;
 
 		// Scoped
-		this.CurrentFramePostionX = 0;
-		this.CurrentFramePostionY = 0;
+		this.CurrentFramePositionX = 0;
+		this.CurrentFramePositionY = 0;
 		this.frame = 0;
 		this.lastFrame = 0;
 		this.lastTime = 0;
@@ -42,12 +42,12 @@ class AnimationLayer {
 			this.frame++;
 			if (this.frame >= this.numberOfFrames) {
 				this.frame = 0;
-				this.CurrentFramePostionX = 0;
-				this.CurrentFramePostionY = 0;
+				this.CurrentFramePositionX = 0;
+				this.CurrentFramePositionY = 0;
 			}
 
-			this.CurrentFramePostionY = Math.floor(this.frame / this.framesPerRow);
-			this.CurrentFramePostionX = this.frame - this.CurrentFramePostionY * this.framesPerRow;
+			this.CurrentFramePositionY = Math.floor(this.frame / this.framesPerRow);
+			this.CurrentFramePositionX = this.frame - this.CurrentFramePositionY * this.framesPerRow;
 
 			this.lastTime = this.currentTime;
 		}
@@ -62,8 +62,8 @@ class AnimationLayer {
 			image: this.image,
 			sourceHeight: this.frameHeight,
 			sourceWidth: this.frameWidth,
-			sourceX: this.frameWidth * this.CurrentFramePostionX,
-			sourceY: this.frameHeight * this.CurrentFramePostionY
+			sourceX: this.frameWidth * this.CurrentFramePositionX,
+			sourceY: this.frameHeight * this.CurrentFramePositionY
 		};
 
 		this.canvas2dContext.drawImage(drawImageParams.image, drawImageParams.sourceX, drawImageParams.sourceY, drawImageParams.sourceWidth, drawImageParams.sourceHeight, drawImageParams.destX, drawImageParams.destY, drawImageParams.destWidth, drawImageParams.destHeight);

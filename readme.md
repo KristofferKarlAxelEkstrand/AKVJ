@@ -22,6 +22,80 @@ This project is a Vite-based application designed for AKVJ. It provides a founda
 
 hello
 
+### Animations
+
+Animations are basically a bit of meta and an image.
+
+#### Meta json
+
+```json
+{
+	"velocityLayers": [
+		{
+			"minVelocity": 0,
+			"numberOfFrames": 64,
+			"framesPerRow": 8,
+			"loop": true,
+			"src": "bg.png",
+			"frameRatesForFrames": {
+				"0": 2
+			}
+		},
+		{
+			"minVelocity": 6,
+			"numberOfFrames": 64,
+			"framesPerRow": 8,
+			"loop": true,
+			"src": "bg2.png",
+			"frameRatesForFrames": {
+				"0": 2
+			}
+		}
+	]
+}
+```
+
+#### Meta json: Velocity layers (velocityLayers)
+
+Each note can contain up to 13 animations, distributed across 13 different velocity layers. This allows for the grouping of animations within a single note. Velocity layers are created by assigning a value to the minVelocity integer, ranging from 0 to 13.
+
+If you utilize all 13 layers, it would look something like this:
+
+```mono
+| minVelocity | Velocity interval | Recomended velocity value |
+|-------------|-------------------|---------------------------|
+| 0           |   1 - 10          | 5                         |
+| 1           |  10 - 20          | 15                        |
+| 2           |  20 - 30          | 25                        |
+| 3           |  30 - 40          | 35                        |
+| 4           |  40 - 50          | 45                        |
+| 5           |  50 - 60          | 55                        |
+| 6           |  60 - 70          | 65                        |
+| 7           |  70 - 80          | 75                        |
+| 8           |  80 - 90          | 85                        |
+| 9           |  90 - 100         | 95                        |
+| 10          | 100 - 110         | 105                       |
+| 11          | 110 - 120         | 115                       |
+| 12          | 120 - 127         | 125                       |
+```
+
+This is how I would implement two velocity layers. The recommended velocity value becomes less significant due to the larger intervals. I personally use the 5 above minVelocity because it’s easy to remember.
+
+```mono
+| minVelocity | Velocity interval | Recomended velocity value |
+|-------------|-------------------|---------------------------|
+| 0           |  1 - 60           | 5                         |
+| 6           | 60 - 127          | 65                        |
+```
+
+If only one layer is present, it will occupy the entire velocity layer, and the minVelocity parameter will be ignored.
+
+```mono
+| minVelocity | Velocity interval | Recomended velocity value |
+|-------------|-------------------|---------------------------|
+| 0           | 1 - 127           | 5                         |
+```
+
 ## Installation
 
 The basic installation uses the standard npm install command. Additionally, I’ve added a few npm scripts to clean up and upgrade packages. Since this is meant to be run locally, for example, on a screen in a live setting, the packages should always be updated to the latest versions. There shouldn’t be any problems caused by this, as the dependencies are there to aid development.

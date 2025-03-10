@@ -1,4 +1,5 @@
 {
+	"minVelocity": 0,
 	"numberOfFrames": 64,
 	"framesPerRow": 8,
 	"loop": true,

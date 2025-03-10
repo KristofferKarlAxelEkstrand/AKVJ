@@ -1,0 +1,30 @@
+{
+   "0": [
+      {
+         "png": "bg-two.png",
+         "minVelocity": 0,
+         "numberOfFrames": 64,
+         "framesPerRow": 8,
+         "loop": true,
+         "frameRatesForFrames": {
+            "0": 2
+         }
+      },
+      {
+         "png": "bg.png",
+         "minVelocity": 6,
+         "numberOfFrames": 64,
+         "framesPerRow": 8,
+         "loop": true,
+         "src": "bg-two",
+         "frameRatesForFrames": {
+            "0": 2
+         }
+      }
+   ],
+   "1": [],
+   "2": [],
+   "3": [],
+   "4": [],
+   "5": []
+}

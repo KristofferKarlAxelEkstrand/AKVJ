@@ -1,0 +1,10 @@
+{
+	"minVelocity": 6,
+	"numberOfFrames": 64,
+	"framesPerRow": 8,
+	"loop": true,
+	"src": "bg-two",
+	"frameRatesForFrames": {
+		"0": 2
+	}
+}

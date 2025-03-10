@@ -1,11 +1,18 @@
 export function fullscreen(context) {
-	// Add event listener for 'Enter' key to toggle fullscreen mode
 	document.addEventListener(
 		'keydown',
 		e => {
 			if (e.key === 'Enter') {
 				toggleFullScreen();
 			}
+		},
+		{ capture: false, once: false }
+	);
+
+	document.addEventListener(
+		'dblclick',
+		() => {
+			toggleFullScreen();
 		},
 		{ capture: false, once: false }
 	);
