@@ -24,9 +24,13 @@ const generateAnimationsJson = () => {
 
 	for (const channel of channels) {
 		const channelPath = path.join(aniPath, channel);
-		obj[channel] = getSubfolders(channelPath);
+		obj[channel] = {};
+		const notes = getSubfolders(channelPath);
+		for (const note of notes) {
+			obj[channel][note] = {};
+		}
 
-		for (const note of obj[channel]) {
+		for (const note in obj[channel]) {
 			const notePath = path.join(channelPath, note);
 
 			const pngFile = fs.readdirSync(notePath).filter(file => path.extname(file) === '.png')[0];
@@ -40,9 +44,7 @@ const generateAnimationsJson = () => {
 				jsonContent = JSON.parse(jsonData);
 			}
 
-			const src = { png: pngFile, ...jsonContent };
-
-			obj[channel][note] = src;
+			obj[channel][note] = { png: pngFile, ...jsonContent };
 		}
 	}
 
