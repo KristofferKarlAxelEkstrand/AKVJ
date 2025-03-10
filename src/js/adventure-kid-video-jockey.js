@@ -8,8 +8,7 @@ const settings = {
 };
 
 class AnimationLayer {
-	constructor({ canvas2dContext, image, minVelocity, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 } }) {
-		// From animation instance
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
 		this.canvas2dContext = canvas2dContext;
 		this.image = image;
 		this.numberOfFrames = numberOfFrames;
@@ -18,9 +17,9 @@ class AnimationLayer {
 		this.frameWidth = this.image.width / this.framesPerRow;
 		this.frameHeight = this.image.height / Math.ceil(this.numberOfFrames / this.framesPerRow);
 		this.loop = loop;
+		this.retrigger = retrigger;
 		this.canvasWidth = settings.canvas.width;
 		this.canvasHeight = settings.canvas.height;
-		this.minVelocity = minVelocity;
 
 		// Scoped
 		this.CurrentFramePositionX = 0;
@@ -64,8 +63,6 @@ class AnimationLayer {
 
 		this.lastFrame = this.frame;
 
-		console.log(this.image, this.frameWidth, this.frameHeight, this.CurrentFramePositionX, this.CurrentFramePositionY, this.canvasWidth, this.canvasHeight);
-
 		const drawImageParams = {
 			destWidth: this.canvasWidth,
 			destHeight: this.canvasHeight,
@@ -81,10 +78,19 @@ class AnimationLayer {
 		this.canvas2dContext.drawImage(drawImageParams.image, drawImageParams.sourceX, drawImageParams.sourceY, drawImageParams.sourceWidth, drawImageParams.sourceHeight, drawImageParams.destX, drawImageParams.destY, drawImageParams.destWidth, drawImageParams.destHeight);
 	}
 
-	stop() {}
+	stop() {
+		if (this.retrigger) {
+			this.CurrentFramePositionX = 0;
+			this.CurrentFramePositionY = 0;
+			this.frame = 0;
+			this.lastFrame = 0;
+			this.lastTime = 0;
+			this.currentTime = 0;
+			this.interval = 0;
+			this.framesPerSecond = 1;
+		}
+	}
 }
-
-export default AnimationLayer;
 
 class AdventureKidVideoJockey extends HTMLElement {
 	constructor() {
@@ -142,16 +148,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 			};
 
 			Object.keys(jsonDataAnimations).forEach(channel => {
-				console.log('channel', jsonDataAnimations[channel]);
 				animations[channel] = {};
 
 				Object.keys(jsonDataAnimations[channel]).forEach(note => {
-					console.log('note', jsonDataAnimations[channel][note]);
 					animations[channel][note] = {};
 
 					Object.keys(jsonDataAnimations[channel][note]).forEach(velocityLayer => {
-						console.log('velocityLayer', jsonDataAnimations[channel][note][velocityLayer]);
-
 						loadImage(`/animations/${channel}/${note}/${velocityLayer}/${jsonDataAnimations[channel][note][velocityLayer].png}`)
 							.then(image => {
 								const animationInstance = new AnimationLayer({
@@ -160,7 +162,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 									numberOfFrames: jsonDataAnimations[channel][note][velocityLayer].numberOfFrames,
 									framesPerRow: jsonDataAnimations[channel][note][velocityLayer].framesPerRow,
 									loop: jsonDataAnimations[channel][note][velocityLayer].loop,
-									frameRatesForFrames: jsonDataAnimations[channel][note][velocityLayer].frameRatesForFrames
+									frameRatesForFrames: jsonDataAnimations[channel][note][velocityLayer].frameRatesForFrames,
+									retrigger: jsonDataAnimations[channel][note][velocityLayer].retrigger
 								});
 
 								animations[channel][note][velocityLayer] = animationInstance;
@@ -171,8 +174,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 					});
 				});
 			});
-
-			console.log('animations', animations);
 		});
 		return animations;
 	}
@@ -193,8 +194,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 	};
 
 	noteOn(channel, note, velocity) {
-		console.log(`NOTE ON: channel=${channel}, note=${note}, velocity=${velocity} ---------- `);
-
 		if (!this.animations[channel] || !this.animations[channel][note]) {
 			return;
 		}
@@ -216,8 +215,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.canvasLayers[channel] = this.animations[channel][note][selectedVelocity];
 	}
 
-	noteOff(channel, note) {
-		console.log(`NOTE OFF: channel=${channel}, note=${note}`);
+	noteOff(channel) {
+		this.canvasLayers[channel].stop();
 		this.canvasLayers[channel] = null;
 	}
 }

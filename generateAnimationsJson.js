@@ -27,19 +27,16 @@ const generateAnimationsJson = () => {
 		console.log('--- --- --- --- --- --- ---');
 		console.log('Channel           ', channel, ' ', ' ', ' ', channelPath);
 		outputObj[channel] = {};
-		console.log('outputObj', outputObj);
 
 		getSubfolders(channelPath).forEach(note => {
 			const notePath = path.join(aniPath, channel, note);
 			console.log('Note              ', channel, note, ' ', ' ', notePath);
 			outputObj[channel][note] = {};
-			console.log('outputObj', outputObj);
 
 			getSubfolders(notePath).forEach(velocityLayer => {
 				const velocityLayerPath = path.join(aniPath, channel, note, velocityLayer);
 				console.log('Velocity layer    ', channel, note, velocityLayer, ' ', velocityLayerPath);
 				outputObj[channel][note][velocityLayer] = {};
-				console.log('outputObj', outputObj);
 
 				const pngFile = getFilesWithExtension(velocityLayerPath, '.png')[0];
 				const jsonFile = getFilesWithExtension(velocityLayerPath, '.json')[0];
@@ -58,7 +55,7 @@ const generateAnimationsJson = () => {
 
 	const jsonContent = JSON.stringify(outputObj, null, 3);
 	fs.writeFileSync(outputFilePath, jsonContent, 'utf8');
-	console.log(`JSON file has been saved to ${outputFilePath}`);
+	console.log(`\nJSON file has been saved to ${outputFilePath}`);
 };
 
 // Run the function
