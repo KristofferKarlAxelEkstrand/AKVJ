@@ -1,17 +1,89 @@
 import settings from './settings.js';
 import appState from './app-state.js';
-import AnimationGroup from './animation-group.js';
-import AnimationLayer from './animation-layer.js';
-import AnimationInstance from './animation-instance.js';
+
+class AnimationLayer {
+	constructor({ canvas2dContext, image, minVelocity, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 } }) {
+		// From animation instance
+		this.canvas2dContext = canvas2dContext;
+		this.image = image;
+		this.numberOfFrames = numberOfFrames;
+		this.framesPerRow = framesPerRow;
+		this.frameRatesForFrames = frameRatesForFrames;
+		this.frameWidth = this.image.width / this.framesPerRow;
+		this.frameHeight = this.image.height / Math.ceil(this.numberOfFrames / this.framesPerRow);
+		this.loop = loop;
+		this.canvasWidth = settings.canvas.width;
+		this.canvasHeight = settings.canvas.height;
+		this.minVelocity = minVelocity;
+
+		// Scoped
+		this.CurrentFramePositionX = 0;
+		this.CurrentFramePositionY = 0;
+		this.frame = 0;
+		this.lastFrame = 0;
+		this.lastTime = 0;
+		this.currentTime = 0;
+		this.interval = 0;
+		this.framesPerSecond = 1;
+	}
+
+	play() {
+		this.currentTime = Date.now();
+
+		if (this.lastFrame >= this.numberOfFrames) {
+			this.lastFrame = 0;
+			this.frame = 0;
+			if (!this.loop) return;
+		}
+
+		if (this.frameRatesForFrames[`${this.lastFrame}`]) {
+			this.framesPerSecond = this.frameRatesForFrames[`${this.lastFrame}`];
+		}
+
+		this.interval = 1000 / this.framesPerSecond;
+
+		if (this.currentTime > this.lastTime + this.interval) {
+			this.frame++;
+			if (this.frame >= this.numberOfFrames) {
+				this.frame = 0;
+				this.CurrentFramePositionX = 0;
+				this.CurrentFramePositionY = 0;
+			}
+
+			this.CurrentFramePositionY = Math.floor(this.frame / this.framesPerRow);
+			this.CurrentFramePositionX = this.frame - this.CurrentFramePositionY * this.framesPerRow;
+
+			this.lastTime = this.currentTime;
+		}
+
+		this.lastFrame = this.frame;
+
+		console.log(this.image, this.frameWidth, this.frameHeight, this.CurrentFramePositionX, this.CurrentFramePositionY, this.canvasWidth, this.canvasHeight);
+
+		const drawImageParams = {
+			destWidth: this.canvasWidth,
+			destHeight: this.canvasHeight,
+			destX: 0,
+			destY: 0,
+			image: this.image,
+			sourceHeight: this.frameHeight,
+			sourceWidth: this.frameWidth,
+			sourceX: this.frameWidth * this.CurrentFramePositionX,
+			sourceY: this.frameHeight * this.CurrentFramePositionY
+		};
+
+		this.canvas2dContext.drawImage(drawImageParams.image, drawImageParams.sourceX, drawImageParams.sourceY, drawImageParams.sourceWidth, drawImageParams.sourceHeight, drawImageParams.destX, drawImageParams.destY, drawImageParams.destWidth, drawImageParams.destHeight);
+	}
+}
+
+export default AnimationLayer;
 
 class AdventureKidVideoJockey extends HTMLElement {
 	constructor() {
 		super();
 		this.animations = {};
-		this.animationsGroupLibrary = {};
 		this.canvas = document.createElement('canvas');
 		this.canvas2dContext = this.canvas.getContext('2d');
-		this.animationsGroupToLoad = [];
 		this.canvasLayers = [];
 	}
 
@@ -28,26 +100,29 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.init();
 	}
 
-	init() {
+	setUpAnimations(jsonUrl) {
+		let jsonDataAnimations = {};
+		let animations = {};
+
 		async function loadAnimationsJson() {
 			try {
-				const response = await fetch('/animations/animations.json');
+				const response = await fetch(jsonUrl);
 
 				if (!response.ok) {
 					throw new Error(`HTTP error! status: ${response.status}`);
 				}
 
 				const data = await response.json();
-				this.animationsGroupToLoad = data;
+				jsonDataAnimations = data;
 
-				console.log('Animations loaded successfully:', data);
+				console.log('JSON for animations loaded:', data);
 			} catch (error) {
 				console.error('Error fetching animations:', error);
 			}
 		}
 
 		loadAnimationsJson.call(this).then(() => {
-			console.log('loaded', this.animationsGroupToLoad);
+			console.log('Json Loaded', jsonDataAnimations);
 
 			const loadImage = src => {
 				return new Promise((resolve, reject) => {
@@ -58,107 +133,80 @@ class AdventureKidVideoJockey extends HTMLElement {
 				});
 			};
 
-			const loadAnimationGroups = this.animationsGroupToLoad.map(async animationGroupName => {
-				console.log('animationGroupName', animationGroupName);
+			Object.keys(jsonDataAnimations).forEach(channel => {
+				console.log('channel', jsonDataAnimations[channel]);
+				animations[channel] = {};
 
-				const animationGroupObject = new AnimationGroup({});
+				Object.keys(jsonDataAnimations[channel]).forEach(note => {
+					console.log('note', jsonDataAnimations[channel][note]);
+					animations[channel][note] = {};
 
-				this.animationsGroupLibrary[animationGroupName] = animationGroupObject;
+					Object.keys(jsonDataAnimations[channel][note]).forEach(velocityLayer => {
+						console.log('velocityLayer', jsonDataAnimations[channel][note][velocityLayer]);
 
-				const response = await fetch(`/animations/${animationGroupName}/meta.json`);
-				const animationGroup = await response.json();
-				console.log('animationGroup', animationGroup);
+						loadImage(`/animations/${channel}/${note}/${velocityLayer}/${jsonDataAnimations[channel][note][velocityLayer].png}`)
+							.then(image => {
+								const animationInstance = new AnimationLayer({
+									canvas2dContext: this.canvas2dContext,
+									image: image,
+									numberOfFrames: jsonDataAnimations[channel][note][velocityLayer].numberOfFrames,
+									framesPerRow: jsonDataAnimations[channel][note][velocityLayer].framesPerRow,
+									loop: jsonDataAnimations[channel][note][velocityLayer].loop,
+									frameRatesForFrames: jsonDataAnimations[channel][note][velocityLayer].frameRatesForFrames
+								});
 
-				const loadVelocityLayers = animationGroup.map(async velocityLayer => {
-					console.log('animationGroup', velocityLayer.src);
-
-					const image = await loadImage(`/animations/${animationGroupName}/${velocityLayer.src}.png`);
-
-					console.log('animationGroupName', animationGroupName);
-
-					const animationInstance = new AnimationInstance({
-						canvas2dContext: this.canvas2dContext,
-						image: image,
-						numberOfFrames: velocityLayer.numberOfFrames,
-						framesPerRow: velocityLayer.framesPerRow,
-						loop: velocityLayer.loop,
-						frameRatesForFrames: velocityLayer.frameRatesForFrames
+								animations[channel][note][velocityLayer] = animationInstance;
+							})
+							.catch(error => {
+								console.error('Error loading image:', error);
+							});
 					});
-
-					this.animationsGroupLibrary[animationGroupName].addAnimationInstance(animationInstance);
-				});
-
-				Promise.all(loadVelocityLayers).then(() => {
-					console.log('loaded all velocity layers', this.animationsGroupLibrary);
 				});
 			});
 
-			Promise.all(loadAnimationGroups).then(() => {
-				console.log('loaded all animations', this.animations);
-			});
+			console.log('animations', animations);
 		});
+		return animations;
+	}
 
-		/*
-			const loadImage = src => {
-				return new Promise((resolve, reject) => {
-					const img = new Image();
-					img.onload = () => resolve(img);
-					img.onerror = reject;
-					img.src = src;
-				});
-			};
-
-		const loadAnimations = this.animationsGroupToLoad.map(async animationGroupName => {
-			const image = await loadImage(`/animations/${animationGroupName}/frames.png`);
-			const response = await fetch(`/animations/${animationGroupName}/meta.json`);
-			const meta = await response.json();
-
-			this.animationLibrary[animationGroupName] = new AnimationInstance({
-				canvas2dContext: this.canvas2dContext,
-				image: image,
-				numberOfFrames: meta.numberOfFrames,
-				framesPerRow: meta.framesPerRow,
-				loop: meta.loop,
-				frameRatesForFrames: meta.frameRatesForFrames
-			});
-
-			this.animations[animationGroupName] = new AnimationLayer({
-				animationInstance: this.animationLibrary[animationGroupName]
-			});
-		});
-
-
-		Promise.all(loadAnimations).then(() => {
-			this.canvasLayers[0] = this.animations['bg'];
-			this.canvasLayers[1] = this.animations.numbers;
-
-			this.loop();
-		});
-
-		*/
+	init() {
+		this.animations = this.setUpAnimations('/animations/animations.json');
+		this.loop();
 	}
 
 	loop = () => {
 		this.canvas2dContext.fillRect(0, 0, 240, 135);
-
-		this.canvasLayers.forEach(layer => layer.play());
+		this.canvasLayers.forEach(layer => {
+			if (layer !== undefined || layer !== null) {
+				layer.play();
+			}
+		});
 		requestAnimationFrame(this.loop);
 	};
 
 	noteOn(channel, note, velocity) {
-		console.log(`xxx Note on: channel=${channel}, note=${note}, velocity=${velocity}`);
+		console.log(`NOTE ON: channel=${channel}, note=${note}, velocity=${velocity} ---------- `);
 
-		switch (channel) {
-			case 0:
-				console.log('Channel 0');
+		const velocities = Object.keys(this.animations[channel][note])
+			.map(Number)
+			.sort((a, b) => a - b);
+
+		let selectedVelocity = velocities[0];
+
+		for (let i = 0; i < velocities.length; i++) {
+			if (velocity >= velocities[i]) {
+				selectedVelocity = velocities[i];
+			} else {
 				break;
-			default:
-				break;
+			}
 		}
+
+		this.canvasLayers[channel] = this.animations[channel][note][selectedVelocity];
 	}
 
 	noteOff(channel, note) {
-		console.log(`Note off: channel=${channel}, note=${note}`);
+		console.log(`NOTE OFF: channel=${channel}, note=${note}`);
+		this.canvasLayers[channel] = null;
 	}
 }
 

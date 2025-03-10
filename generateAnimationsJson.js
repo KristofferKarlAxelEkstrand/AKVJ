@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { log } from 'console';
 
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
@@ -11,45 +12,51 @@ const aniPath = path.join(__dirname, './src/public/animations');
 const outputFilePath = path.join(__dirname, './src/public/animations/animations.json');
 
 // Function to get subfolders
-const getSubfolders = dir => {
-	return fs.readdirSync(dir).filter(file => {
-		return fs.statSync(path.join(dir, file)).isDirectory();
-	});
-};
+const getSubfolders = dir => fs.readdirSync(dir).filter(file => fs.statSync(path.join(dir, file)).isDirectory());
+
+// Function to get files with specific extension
+const getFilesWithExtension = (dir, ext) => fs.readdirSync(dir).filter(file => path.extname(file) === ext);
 
 // Generate JSON
 const generateAnimationsJson = () => {
-	const channels = getSubfolders(aniPath);
-	const obj = {};
+	console.log(`Building animation JSON file from ${aniPath}`);
+	const outputObj = {};
 
-	for (const channel of channels) {
+	getSubfolders(aniPath).forEach(channel => {
 		const channelPath = path.join(aniPath, channel);
-		obj[channel] = {};
-		const notes = getSubfolders(channelPath);
-		for (const note of notes) {
-			obj[channel][note] = {};
-		}
+		console.log('--- --- --- --- --- --- ---');
+		console.log('Channel           ', channel, ' ', ' ', ' ', channelPath);
+		outputObj[channel] = {};
+		console.log('outputObj', outputObj);
 
-		for (const note in obj[channel]) {
-			const notePath = path.join(channelPath, note);
+		getSubfolders(channelPath).forEach(note => {
+			const notePath = path.join(aniPath, channel, note);
+			console.log('Note              ', channel, note, ' ', ' ', notePath);
+			outputObj[channel][note] = {};
+			console.log('outputObj', outputObj);
 
-			const pngFile = fs.readdirSync(notePath).filter(file => path.extname(file) === '.png')[0];
-			const jsonFile = fs.readdirSync(notePath).filter(file => path.extname(file) === '.json')[0];
+			getSubfolders(notePath).forEach(velocityLayer => {
+				const velocityLayerPath = path.join(aniPath, channel, note, velocityLayer);
+				console.log('Velocity layer    ', channel, note, velocityLayer, ' ', velocityLayerPath);
+				outputObj[channel][note][velocityLayer] = {};
+				console.log('outputObj', outputObj);
 
-			let jsonContent = {};
+				const pngFile = getFilesWithExtension(velocityLayerPath, '.png')[0];
+				const jsonFile = getFilesWithExtension(velocityLayerPath, '.json')[0];
 
-			if (jsonFile) {
-				const jsonFilePath = path.join(notePath, jsonFile);
-				const jsonData = fs.readFileSync(jsonFilePath, 'utf8');
-				jsonContent = JSON.parse(jsonData);
-			}
+				let jsonContent = {};
+				if (jsonFile) {
+					const jsonFilePath = path.join(velocityLayerPath, jsonFile);
+					const jsonData = fs.readFileSync(jsonFilePath, 'utf8');
+					jsonContent = JSON.parse(jsonData);
+				}
 
-			obj[channel][note] = { png: pngFile, ...jsonContent };
-		}
-	}
+				outputObj[channel][note][velocityLayer] = { png: pngFile, ...jsonContent };
+			});
+		});
+	});
 
-	const jsonContent = JSON.stringify(obj, null, 3);
-
+	const jsonContent = JSON.stringify(outputObj, null, 3);
 	fs.writeFileSync(outputFilePath, jsonContent, 'utf8');
 	console.log(`JSON file has been saved to ${outputFilePath}`);
 };
