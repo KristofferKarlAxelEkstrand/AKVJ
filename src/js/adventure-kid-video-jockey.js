@@ -109,7 +109,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.canvas2dContext.webkitImageSmoothingEnabled = false;
 		this.canvas2dContext.mozImageSmoothingEnabled = false;
 		this.canvas2dContext.imageSmoothingQuality = 'low';
-		this.canvas2dContext.fillStyle = '#FFFFFF';
+		this.canvas2dContext.fillStyle = '#000000';
 		this.appendChild(this.canvas);
 		this.init();
 	}
@@ -186,9 +186,11 @@ class AdventureKidVideoJockey extends HTMLElement {
 	loop = () => {
 		this.canvas2dContext.fillRect(0, 0, 240, 135);
 		this.canvasLayers.forEach(layer => {
-			if (layer) {
-				layer.play();
-			}
+			layer.forEach(note => {
+				if (note) {
+					note.play();
+				}
+			});
 		});
 		requestAnimationFrame(this.loop);
 	};
@@ -212,12 +214,15 @@ class AdventureKidVideoJockey extends HTMLElement {
 			}
 		}
 
-		this.canvasLayers[channel] = this.animations[channel][note][selectedVelocity];
+		if (!this.canvasLayers[channel]) {
+			this.canvasLayers[channel] = [];
+		}
+		this.canvasLayers[channel][note] = this.animations[channel][note][selectedVelocity];
 	}
 
-	noteOff(channel) {
-		this.canvasLayers[channel].stop();
-		this.canvasLayers[channel] = null;
+	noteOff(channel, note) {
+		this.canvasLayers[channel][note].stop();
+		this.canvasLayers[channel][note] = null;
 	}
 }
 

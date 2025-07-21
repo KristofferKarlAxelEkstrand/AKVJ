@@ -13,10 +13,7 @@
 		"preview": "vite preview",
 		"format:stylelint": "stylelint \"**/*.css\" --fix",
 		"format:prettier": "prettier --write .",
-		"fix-install": "npm prune && npm install",
-		"fix-quick": "npm prune && npm audit fix --force && npm install",
-		"fix-upgrade": "npm prune && npm install && npm update && npm audit fix --force",
-		"fix-deep": "rm -rf node_modules package-lock.json && npm prune && npm install && npm update --force && npm audit fix --force && npm ci && npm prune"
+		"fix": "npx npm-check-updates -u && npm install && npm audit fix --force && npm prune && npm install && npm update"
 	},
 	"repository": {
 		"type": "git",
@@ -30,14 +27,14 @@
 	"license": "MIT",
 	"devDependencies": {
 		"chokidar-cli": "^3.0.0",
-		"eslint": "^8.57.0",
-		"eslint-config-prettier": "^9.1.0",
-		"eslint-plugin-prettier": "^5.1.3",
+		"eslint": "^9.31.0",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.3",
 		"npm-run-all": "^4.1.5",
-		"prettier": "3.2.5",
-		"stylelint": "^16.6.1",
-		"stylelint-config-recommended": "^14.0.0",
-		"stylelint-order": "^6.0.4",
-		"vite": "^5.4.8"
+		"prettier": "3.6.2",
+		"stylelint": "^16.22.0",
+		"stylelint-config-recommended": "^16.0.0",
+		"stylelint-order": "^7.0.0",
+		"vite": "^7.0.5"
 	}
 }

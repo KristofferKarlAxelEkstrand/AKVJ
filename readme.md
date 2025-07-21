@@ -6,13 +6,13 @@ AKVJ listens to MIDI notes from all inputs, using the channel number and note nu
 
 ## Table of Contents
 
--   [Introduction](#introduction)
--   [Usage](#usage)
--   [Installation](#installation)
--   [Development](#development)
--   [Build](#build)
--   [Scripts](#scripts)
--   [License](#license)
+- [Introduction](#introduction)
+- [Usage](#usage)
+- [Installation](#installation)
+- [Development](#development)
+- [Build](#build)
+- [Scripts](#scripts)
+- [License](#license)
 
 ## Introduction
 
