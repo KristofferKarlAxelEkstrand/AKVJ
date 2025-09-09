@@ -18,14 +18,15 @@ AKVJ (Adventure Kid Video Jockey) is a real-time VJ application focused on pixel
 
 ### MIDI Integration
 - Application listens to MIDI notes from all connected inputs
-- **Channel Numbers** (0-15): Each MIDI channel corresponds to a visual layer, with channel 0 being the background layer
+- **Channel Numbers**: Internally 0-15 (16 channels), displayed to users as 1-16. Each MIDI channel corresponds to a visual layer, with channel 0 being the background layer
 - **Note Numbers** (0-127): Each note triggers a specific animation
 - **Velocity** (1-127): Controls which velocity layer of an animation plays
 
 ### Animation System
 - Animations are PNG sprite sheets with accompanying JSON metadata
-- Each animation can have up to 13 **velocity layers** for different intensity levels
+- Each animation can have up to 13 **velocity layers** for different intensity levels (based on MIDI velocity ranges)
 - Velocity layers use `minVelocity` thresholds to determine which animation variant plays
+- MIDI velocity (0-127) is typically divided into ranges: 0-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80-89, 90-99, 100-109, 110-119, 120-127 (creating up to 12-13 layers)
 - Animations support looping, custom frame rates, and multiple frames per row
 
 ### Velocity Layer Structure
@@ -33,7 +34,7 @@ AKVJ (Adventure Kid Video Jockey) is a real-time VJ application focused on pixel
 {
   "velocityLayers": [
     {
-      "minVelocity": 0,        // Threshold for this layer (0-12)
+      "minVelocity": 0,        // MIDI velocity threshold for this layer (0-127)
       "numberOfFrames": 64,    // Total frames in sprite sheet
       "framesPerRow": 8,       // Sprite sheet layout
       "loop": true,            // Whether animation loops
@@ -72,9 +73,9 @@ AKVJ (Adventure Kid Video Jockey) is a real-time VJ application focused on pixel
 
 #### MIDI Event Handling
 - All MIDI events should be processed asynchronously
-- Use channel numbers for layer management (0 = background)
+- Use channel numbers for layer management (0-15 internally, displayed as 1-16 to users)
 - Map note numbers to animation indices
-- Use velocity for animation intensity/variant selection
+- Use velocity for animation intensity/variant selection with threshold-based layer selection
 
 #### Animation Management
 - Animations should be preloaded and cached
@@ -115,11 +116,20 @@ AKVJ (Adventure Kid Video Jockey) is a real-time VJ application focused on pixel
 ```javascript
 // Example MIDI note handling pattern
 function handleMidiNote(channel, note, velocity) {
-  const layer = channel; // Channel maps to visual layer
-  const animationIndex = note; // Note maps to animation
-  const intensityLayer = calculateVelocityLayer(velocity);
+  const layer = channel; // Channel maps to visual layer (0-15 internally, 1-16 in UI)
+  const animationIndex = note; // Note maps to animation (0-127)
   
-  triggerAnimation(layer, animationIndex, intensityLayer);
+  // Find the appropriate velocity layer based on thresholds
+  const velocityLayer = findVelocityLayer(velocity); // Uses minVelocity thresholds
+  
+  triggerAnimation(layer, animationIndex, velocityLayer);
+}
+
+// Velocity layer selection based on thresholds
+function findVelocityLayer(velocity) {
+  // Typical ranges: 0-19, 20-29, 30-39, etc. up to 120-127
+  // Returns the highest threshold the velocity meets or exceeds
+  return Math.floor(velocity / 10); // Simplified example
 }
 ```
 
