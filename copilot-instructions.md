@@ -26,7 +26,7 @@ AKVJ is a real-time VJ application for pixel graphics. Web app that responds to 
 - PNG sprite sheets with JSON metadata
 - Up to 13 velocity layers for different intensity levels
 - Velocity layers use `minVelocity` thresholds 
-- MIDI velocity (0-127) divided into ranges: 0-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80-89, 90-99, 100-109, 110-119, 120-127
+- MIDI velocity (0-127) divided into ranges: 0-9, 10-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80-89, 90-99, 100-109, 110-119, 120-127
 - Support looping, custom frame rates, multiple frames per row
 
 ### Velocity Layer Structure
@@ -123,7 +123,7 @@ function handleMidiNote(channel, note, velocity) {
 }
 
 function findVelocityLayer(velocity) {
-  // Ranges: 0-19, 20-29, 30-39, etc. up to 120-127
+  // Ranges: 0-9, 10-19, 20-29, etc. up to 120-127
   return Math.floor(velocity / 10);
 }
 ```
