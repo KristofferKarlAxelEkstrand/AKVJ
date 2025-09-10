@@ -63,31 +63,23 @@ class AnimationLayer {
 
 		this.lastFrame = this.frame;
 
-		const drawImageParams = {
-			destWidth: this.canvasWidth,
-			destHeight: this.canvasHeight,
-			destX: 0,
-			destY: 0,
-			image: this.image,
-			sourceHeight: this.frameHeight,
-			sourceWidth: this.frameWidth,
-			sourceX: this.frameWidth * this.CurrentFramePositionX,
-			sourceY: this.frameHeight * this.CurrentFramePositionY
-		};
-
-		this.canvas2dContext.drawImage(drawImageParams.image, drawImageParams.sourceX, drawImageParams.sourceY, drawImageParams.sourceWidth, drawImageParams.sourceHeight, drawImageParams.destX, drawImageParams.destY, drawImageParams.destWidth, drawImageParams.destHeight);
+		// Draw the current frame directly
+		this.canvas2dContext.drawImage(this.image, this.frameWidth * this.CurrentFramePositionX, this.frameHeight * this.CurrentFramePositionY, this.frameWidth, this.frameHeight, 0, 0, this.canvasWidth, this.canvasHeight);
 	}
 
 	stop() {
 		if (this.retrigger) {
-			this.CurrentFramePositionX = 0;
-			this.CurrentFramePositionY = 0;
-			this.frame = 0;
-			this.lastFrame = 0;
-			this.lastTime = 0;
-			this.currentTime = 0;
-			this.interval = 0;
-			this.framesPerSecond = 1;
+			// Reset all animation state in one go
+			Object.assign(this, {
+				CurrentFramePositionX: 0,
+				CurrentFramePositionY: 0,
+				frame: 0,
+				lastFrame: 0,
+				lastTime: 0,
+				currentTime: 0,
+				interval: 0,
+				framesPerSecond: 1
+			});
 		}
 	}
 }
@@ -184,7 +176,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	loop = () => {
-		this.canvas2dContext.fillRect(0, 0, 240, 135);
+		this.canvas2dContext.fillRect(0, 0, settings.canvas.width, settings.canvas.height);
 		this.canvasLayers.forEach(layer => {
 			layer.forEach(note => {
 				if (note) {
@@ -204,15 +196,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 			.map(Number)
 			.sort((a, b) => a - b);
 
-		let selectedVelocity = velocities[0];
-
-		for (let i = 0; i < velocities.length; i++) {
-			if (velocity >= velocities[i]) {
-				selectedVelocity = velocities[i];
-			} else {
-				break;
-			}
-		}
+		// Find the highest velocity layer that doesn't exceed the input velocity
+		const selectedVelocity = velocities.reverse().find(v => velocity >= v) || velocities[velocities.length - 1];
 
 		if (!this.canvasLayers[channel]) {
 			this.canvasLayers[channel] = [];
