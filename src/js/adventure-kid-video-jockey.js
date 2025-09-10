@@ -197,7 +197,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			.sort((a, b) => a - b);
 
 		// Find the highest velocity layer that doesn't exceed the input velocity
-		const foundVelocity = velocities.findLast(v => velocity <= v);
+		const foundVelocity = velocities.findLast(v => v <= velocity);
 		const selectedVelocity = foundVelocity ? foundVelocity : velocities[velocities.length - 1];
 
 		if (!this.canvasLayers[channel]) {
