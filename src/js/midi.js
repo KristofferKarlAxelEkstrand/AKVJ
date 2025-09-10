@@ -3,8 +3,14 @@ import appState from './app-state.js';
 class MIDI {
 	constructor() {
 		this.midiAccess = null;
+		this.adventureKidVideoJockey = null;
+
+		// Subscribe to state changes
+		appState.subscribe('adventureKidVideoJockeyChanged', event => {
+			this.adventureKidVideoJockey = event.detail.newValue;
+		});
+
 		this.init();
-		this.adventureKidVideoJockey = appState.adventureKidVideoJockey;
 	}
 
 	init() {
@@ -32,10 +38,12 @@ class MIDI {
 		console.log('This browser supports WebMIDI!');
 		console.log('MIDI Access Object:', midiAccess);
 		this.setupMIDIInputs(midiAccess);
+		appState.midiConnected = true;
 	}
 
 	onMIDIFailure(error) {
 		console.error('Failed to get MIDI access:', error);
+		appState.midiConnected = false;
 	}
 
 	setupMIDIInputs(midiAccess) {
@@ -52,6 +60,16 @@ class MIDI {
 		const channel = status & 0xf;
 		const note = data1;
 		const velocity = data2;
+
+		// Ensure we have a reference to the VJ component
+		if (!this.adventureKidVideoJockey) {
+			this.adventureKidVideoJockey = appState.adventureKidVideoJockey;
+		}
+
+		if (!this.adventureKidVideoJockey) {
+			console.warn('No adventure kid video jockey component available for MIDI');
+			return;
+		}
 
 		switch (command) {
 			case 9: // Note on
