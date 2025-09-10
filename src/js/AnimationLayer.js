@@ -19,8 +19,8 @@ class AnimationLayer {
 		this.canvasHeight = settings.canvas.height;
 
 		// Scoped
-		this.CurrentFramePositionX = 0;
-		this.CurrentFramePositionY = 0;
+		this.currentFramePositionX = 0;
+		this.currentFramePositionY = 0;
 		this.frame = 0;
 		this.lastFrame = 0;
 		this.lastTime = 0;
@@ -38,8 +38,8 @@ class AnimationLayer {
 			if (!this.loop) return;
 		}
 
-		if (this.frameRatesForFrames[`${this.lastFrame}`]) {
-			this.framesPerSecond = this.frameRatesForFrames[`${this.lastFrame}`];
+		if (this.frameRatesForFrames[this.lastFrame]) {
+			this.framesPerSecond = this.frameRatesForFrames[this.lastFrame];
 		}
 
 		this.interval = 1000 / this.framesPerSecond;
@@ -48,12 +48,12 @@ class AnimationLayer {
 			this.frame++;
 			if (this.frame >= this.numberOfFrames) {
 				this.frame = 0;
-				this.CurrentFramePositionX = 0;
-				this.CurrentFramePositionY = 0;
+				this.currentFramePositionX = 0;
+				this.currentFramePositionY = 0;
 			}
 
-			this.CurrentFramePositionY = Math.floor(this.frame / this.framesPerRow);
-			this.CurrentFramePositionX = this.frame - this.CurrentFramePositionY * this.framesPerRow;
+			this.currentFramePositionY = Math.floor(this.frame / this.framesPerRow);
+			this.currentFramePositionX = this.frame - this.currentFramePositionY * this.framesPerRow;
 
 			this.lastTime = this.currentTime;
 		}
@@ -61,15 +61,15 @@ class AnimationLayer {
 		this.lastFrame = this.frame;
 
 		// Draw the current frame directly
-		this.canvas2dContext.drawImage(this.image, this.frameWidth * this.CurrentFramePositionX, this.frameHeight * this.CurrentFramePositionY, this.frameWidth, this.frameHeight, 0, 0, this.canvasWidth, this.canvasHeight);
+		this.canvas2dContext.drawImage(this.image, this.frameWidth * this.currentFramePositionX, this.frameHeight * this.currentFramePositionY, this.frameWidth, this.frameHeight, 0, 0, this.canvasWidth, this.canvasHeight);
 	}
 
 	stop() {
 		if (this.retrigger) {
 			// Reset all animation state in one go
 			Object.assign(this, {
-				CurrentFramePositionX: 0,
-				CurrentFramePositionY: 0,
+				currentFramePositionX: 0,
+				currentFramePositionY: 0,
 				frame: 0,
 				lastFrame: 0,
 				lastTime: 0,

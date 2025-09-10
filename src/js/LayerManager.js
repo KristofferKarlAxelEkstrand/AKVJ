@@ -2,7 +2,6 @@
  * LayerManager - Manages state and updates for all visual layers
  * Extracted from adventure-kid-video-jockey.js for better separation of concerns
  */
-import settings from './settings.js';
 
 class LayerManager {
 	constructor() {

@@ -1,4 +1,4 @@
-export function fullscreen(context) {
+export function fullscreen() {
 	document.addEventListener(
 		'keydown',
 		e => {

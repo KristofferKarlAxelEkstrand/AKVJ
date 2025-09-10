@@ -48,8 +48,6 @@ class AnimationLoader {
 		const jsonDataAnimations = await this.loadAnimationsJson(jsonUrl);
 		const animations = {};
 
-		console.log('Json Loaded', jsonDataAnimations);
-
 		const loadPromises = [];
 
 		Object.keys(jsonDataAnimations).forEach(channel => {
