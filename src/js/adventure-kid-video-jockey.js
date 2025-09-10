@@ -45,8 +45,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	async init() {
-		await this.setUpAnimations(settings.performance.animationsJsonUrl);
-		this.renderer.start();
+		const animations = await this.setUpAnimations(settings.performance.animationsJsonUrl);
+		if (appState.animationsLoaded && animations && Object.keys(animations).length > 0) {
+			this.renderer.start();
+		} else {
+			console.error('Renderer not started: Animations failed to load.');
+		}
 	}
 
 	noteOn(channel, note, velocity) {
