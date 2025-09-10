@@ -1,7 +1,7 @@
 // Import styles
 import './css/adventure-kid-video-jockey.css';
 
-//Import elements
+// Import elements
 import './js/adventure-kid-video-jockey.js';
 
 // Import functions
