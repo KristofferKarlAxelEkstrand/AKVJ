@@ -46,7 +46,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	async init() {
 		const animations = await this.setUpAnimations(settings.performance.animationsJsonUrl);
-		if (animations && Object.keys(animations).length > 0) {
+		if (appState.animationsLoaded) {
 			this.renderer.start();
 		} else {
 			console.error('Renderer not started: Animations failed to load.');
