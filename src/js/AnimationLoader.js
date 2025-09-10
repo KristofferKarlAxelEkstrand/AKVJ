@@ -86,7 +86,7 @@ class AnimationLoader {
 		});
 
 		// Wait for all animations to load
-		await Promise.allSettled(loadPromises);
+		await Promise.all(loadPromises);
 		return animations;
 	}
 }
