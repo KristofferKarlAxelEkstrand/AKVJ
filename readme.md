@@ -13,6 +13,7 @@ AKVJ listens to MIDI notes from all inputs, using the channel number and note nu
 - [Build](#build)
 - [Scripts](#scripts)
 - [License](#license)
+- [AI Instructions](#ai-instructions)
 
 ## Introduction
 
@@ -161,3 +162,7 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 ### Animation Assets
 
 All animation assets (including all .png and .json files located in the `src/public/animations/` directory) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See the [LICENSE-ASSETS.md](src/public/animations/LICENSE-ASSETS.md) file for the full terms.
+
+## AI Instructions
+
+For comprehensive documentation designed specifically for AI assistants, GitHub Copilot, and modern development tools, see [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md). This file contains detailed information about the project architecture, MIDI-to-visual mapping logic, performance requirements, and guidelines for AI-assisted development.
