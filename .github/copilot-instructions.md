@@ -47,7 +47,7 @@ npm run watch:animations                 # Watch animation changes (runs continu
 ### Dependency Management
 
 ```bash
-npm run fix                              # Update all dependencies (CAUTION: modifies package.json)
+npm run fix                              # Updates all dependencies in package.json to their latest versions using npm-check-updates (ncu) and runs npm install. CAUTION: Modifies package.json and package-lock.json, may introduce breaking changes.
 ```
 
 **CRITICAL TIMING NOTES:**
