@@ -216,7 +216,7 @@ npm run watch:animations                 # Watch for animation changes
 ### Dependency Management
 
 ```bash
-npm run fix                              # Update all dependencies (use with caution)
+npm run fix                              # Update all dependencies (CAUTION: Modifies package.json and package-lock.json, may introduce breaking changes)
 ```
 
 
