@@ -155,7 +155,9 @@ npm run fix-deep
 This project is released under a dual-license model. The source code and the animation assets are governed by separate licenses.
 
 ### Source Code
+
 All source code in this repository (including .js, .html, .css, and .md files) is licensed under the **MIT License**. See the [LICENSE-CODE.md](LICENSE-CODE.md) file for more details.
 
 ### Animation Assets
+
 All animation assets (including all .png and .json files located in the `src/public/animations/` directory) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See the [LICENSE-ASSETS.md](src/public/animations/LICENSE-ASSETS.md) file for the full terms.
