@@ -91,7 +91,7 @@ npm run fix                              # Update all dependencies (CAUTION: mod
     npm run generate-animation-json-to-json # Must rebuild animation metadata
     ```
 
-    - Verify `/home/runner/work/AKVJ/AKVJ/src/public/animations/animations.json` is updated
+    - Verify `src/public/animations/animations.json` is updated
     - Check console output shows channel/note/velocity processing
 
 ### Manual Testing Scenarios
