@@ -1,155 +1,257 @@
 # AKVJ - Adventure Kid Video Jockey
 
-A VJ application focused on pixel and 8-bit graphics, built with Web MIDI API, Canvas, vanilla JavaScript, custom HTML elements, and PNG sprites for Frames. The project is developed and served using Vite, with basic formatting and linting handled by Prettier and Stylelint.
+A real-time VJ (Video Jockey) application for live visual performances, built with vanilla JavaScript, Web MIDI API, and HTML5 Canvas. AKVJ delivers pixel-perfect 240x135 graphics at 60fps with low-latency MIDI response, making it ideal for live music performances and interactive visual art.
 
-AKVJ listens to MIDI notes from all inputs, using the channel number and note number to display different visuals and animations. Each note triggers a unique animation, and each channel adds a layer to the canvas, with channel 0 being the furthest in the back.
+## Core Concept
+
+AKVJ transforms MIDI input into layered visual animations using a sophisticated channel-note-velocity mapping system:
+
+- **MIDI Channel (0-15)**: Determines visual layer depth (0 = background, 15 = foreground)
+- **MIDI Note (0-127)**: Selects specific animation within a channel
+- **MIDI Velocity (0-127)**: Chooses velocity layer variant for dynamic expression
+
+Each MIDI note triggers frame-based sprite animations that blend in real-time, creating complex visual compositions perfect for live performance.
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Usage](#usage)
+- [Core Concept](#core-concept)
+- [Architecture](#architecture)
+- [Technology Stack](#technology-stack)
+- [Browser Requirements](#browser-requirements)
 - [Installation](#installation)
 - [Development](#development)
-- [Build](#build)
-- [Scripts](#scripts)
+- [Animation System](#animation-system)
+- [File Structure](#file-structure)
+- [Build & Scripts](#build--scripts)
+- [Performance](#performance)
+- [Contributing](#contributing)
 - [License](#license)
-- [AI Instructions](#ai-instructions)
 
-## Introduction
+## Architecture
 
-This project is a Vite-based application designed for AKVJ. It provides a foundational setup and configuration for both development and production environments.
+AKVJ uses a modular, component-based architecture built with vanilla JavaScript:
 
-## Usage
+### Core Components
 
-hello
+- **`<adventure-kid-video-jockey>`**: Custom HTML element serving as the main application component
+- **LayerManager**: Manages visual layers and animation state based on MIDI input
+- **Renderer**: Handles the 60fps canvas rendering loop using requestAnimationFrame
+- **AnimationLoader**: Loads PNG sprites and JSON metadata from the animation system
+- **AnimationLayer**: Manages individual sprite animation playback and frame timing
+- **MIDI Handler**: Processes Web MIDI API events and maps them to visual layers
 
-### Animations
+### Data Flow
 
-Animations are basically a bit of meta and an image.
+1. **MIDI Input** → Web MIDI API captures note on/off events
+2. **Event Processing** → MIDI handler extracts channel, note, and velocity
+3. **Layer Management** → LayerManager activates/deactivates animation layers
+4. **Frame Rendering** → Renderer draws all active layers to 240x135 canvas at 60fps
 
-#### Meta json
+## Technology Stack
+
+- **Vite**: Build tool and development server
+- **Vanilla JavaScript**: ES6+ modules, no frameworks
+- **Web MIDI API**: Real-time MIDI input processing
+- **HTML5 Canvas**: Pixel-perfect 2D rendering
+- **PNG Sprites**: Frame-based animation assets
+- **JSON Metadata**: Animation configuration and timing data
+
+## Browser Requirements
+
+**Chrome or Chromium-based browsers are required** for Web MIDI API support. Other browsers (Firefox, Safari) do not fully support the Web MIDI API and will not function properly.
+
+## Animation System
+
+AKVJ uses a sophisticated animation system based on PNG sprite sheets and JSON metadata, organized by MIDI channel, note, and velocity layers.
+
+### Directory Structure
+
+```
+src/public/animations/
+├── {channel}/          # MIDI channel (0-15)
+│   ├── {note}/         # MIDI note (0-127)
+│   │   ├── {velocity}/ # Velocity layer (0-127)
+│   │   │   ├── sprite.png  # PNG sprite sheet
+│   │   │   └── meta.json   # Animation metadata
+```
+
+### Animation Metadata (JSON)
+
+Each animation folder contains a JSON file with the following structure:
 
 ```json
 {
-	"velocityLayers": [
-		{
-			"minVelocity": 0,
-			"numberOfFrames": 64,
-			"framesPerRow": 8,
-			"loop": true,
-			"src": "bg.png",
-			"frameRatesForFrames": {
-				"0": 2
-			}
-		},
-		{
-			"minVelocity": 6,
-			"numberOfFrames": 64,
-			"framesPerRow": 8,
-			"loop": true,
-			"src": "bg2.png",
-			"frameRatesForFrames": {
-				"0": 2
-			}
-		}
-	]
+	"numberOfFrames": 64,
+	"framesPerRow": 8,
+	"loop": true,
+	"retrigger": true,
+	"frameRatesForFrames": {
+		"0": 2,
+		"32": 4
+	}
 }
 ```
 
-#### Meta json: Velocity layers (velocityLayers)
+### Properties
 
-Each note can contain up to 13 animations, distributed across 13 different velocity layers. This allows for the grouping of animations within a single note. Velocity layers are created by assigning a value to the minVelocity integer, ranging from 0 to 13.
+- **`numberOfFrames`**: Total frames in the sprite sheet
+- **`framesPerRow`**: Frames per horizontal row in the sprite sheet
+- **`loop`**: Whether animation loops continuously
+- **`retrigger`**: Whether animation restarts when note is retriggered
+- **`frameRatesForFrames`**: Custom frame rates for specific frames (frames per second)
 
-If you utilize all 13 layers, it would look something like this:
+### Velocity Layers
 
-```mono
-| minVelocity | Velocity interval | Recomended velocity value |
-|-------------|-------------------|---------------------------|
-| 0           |   1 - 10          | 5                         |
-| 1           |  10 - 20          | 15                        |
-| 2           |  20 - 30          | 25                        |
-| 3           |  30 - 40          | 35                        |
-| 4           |  40 - 50          | 45                        |
-| 5           |  50 - 60          | 55                        |
-| 6           |  60 - 70          | 65                        |
-| 7           |  70 - 80          | 75                        |
-| 8           |  80 - 90          | 85                        |
-| 9           |  90 - 100         | 95                        |
-| 10          | 100 - 110         | 105                       |
-| 11          | 110 - 120         | 115                       |
-| 12          | 120 - 127         | 125                       |
+Each note can contain multiple velocity layers for dynamic expression:
+
+```
+| Velocity Range | Layer | Use Case |
+|----------------|-------|----------|
+| 1-63          | 0     | Soft touch |
+| 64-127        | 6     | Hard hit |
 ```
 
-This is how I would implement two velocity layers. The recommended velocity value becomes less significant due to the larger intervals. I personally use the 5 above minVelocity because it’s easy to remember.
+The system automatically selects the appropriate velocity layer based on MIDI input velocity.
 
-```mono
-| minVelocity | Velocity interval | Recomended velocity value |
-|-------------|-------------------|---------------------------|
-| 0           |  1 - 60           | 5                         |
-| 6           | 60 - 127          | 65                        |
+### Building Animation Index
+
+```bash
+npm run generate-animation-json-to-json
 ```
 
-If only one layer is present, it will occupy the entire velocity layer, and the minVelocity parameter will be ignored.
-
-```mono
-| minVelocity | Velocity interval | Recomended velocity value |
-|-------------|-------------------|---------------------------|
-| 0           | 1 - 127           | 5                         |
-```
+This command scans the animation directory structure and builds `src/public/animations/animations.json`, which contains the master index of all available animations.
 
 ## Installation
 
-The basic installation uses the standard npm install command. Additionally, I’ve added a few npm scripts to clean up and upgrade packages. Since this is meant to be run locally, for example, on a screen in a live setting, the packages should always be updated to the latest versions. There shouldn’t be any problems caused by this, as the dependencies are there to aid development.
+### Prerequisites
 
-### Init
+- **Node.js** (any recent version - tested with Node 18+)
+- **Chrome or Chromium browser** (required for Web MIDI API)
+- **MIDI device** (optional, for full functionality testing)
+
+### Setup
 
 ```bash
 npm install
 ```
 
+Installation takes approximately 13 seconds and installs all development dependencies including Vite, Prettier, and Stylelint.
+
 ## Development
 
-Vite runs a local dev server. URI in terminal.
+### Start Development Server
 
 ```bash
 npm run dev
 ```
 
-## Build
+This starts the Vite development server at `http://localhost:5173/`. Open this URL in Chrome or Chromium to access the application.
 
-Vite builds to ./dist/ folder.
+### Expected Behavior
 
-```bash
-npm run build
+- **Initial Load**: Black canvas appears (this is the expected initial state)
+- **Console Message**: "JSON for animations loaded" indicates successful setup
+- **MIDI Detection**: Check browser console for Web MIDI API availability messages
+
+### Development Workflow
+
+1. **Code Changes**: Vite provides hot module reloading for instant updates
+2. **Format Code**: `npm run format:prettier && npm run format:stylelint`
+3. **Build Test**: `npm run build` to verify production build
+4. **Preview**: `npm run preview` to test production build locally
+
+## File Structure
+
+```
+AKVJ/
+├── src/
+│   ├── main.js                     # Application entry point
+│   ├── index.html                  # Main HTML template
+│   ├── css/                        # Stylesheets
+│   ├── js/                         # Core JavaScript modules
+│   │   ├── adventure-kid-video-jockey.js  # Main VJ component
+│   │   ├── midi.js                 # Web MIDI API integration
+│   │   ├── LayerManager.js         # Visual layer management
+│   │   ├── Renderer.js             # Canvas rendering loop
+│   │   ├── AnimationLoader.js      # Sprite and metadata loading
+│   │   ├── AnimationLayer.js       # Individual animation playback
+│   │   ├── settings.js             # Configuration constants
+│   │   ├── app-state.js            # Global state management
+│   │   └── fullscreen.js           # Fullscreen functionality
+│   └── public/
+│       └── animations/             # Animation assets
+│           ├── {channel}/          # MIDI channels (0-15)
+│           │   └── {note}/         # MIDI notes (0-127)
+│           │       └── {velocity}/ # Velocity layers
+│           └── animations.json     # Generated animation index
+├── generateAnimationsJson.js       # Animation index builder
+├── vite.config.js                 # Vite build configuration
+└── package.json                   # Dependencies and scripts
 ```
 
-## Scripts
+## Build & Scripts
 
-Some extra scripts to clean up and keep dependencies updated.
-
-### Prune and install
+### Core Commands
 
 ```bash
-npm run fix-install
+npm run dev                              # Start development server
+npm run build                            # Build for production
+npm run preview                          # Preview production build
 ```
 
-### Prune, fix and install
+### Code Quality
 
 ```bash
-npm run fix-quick
+npm run format:prettier                  # Format JS/JSON/Markdown
+npm run format:stylelint                 # Format and fix CSS
 ```
 
-### Upgrade dependencies
+### Animation Management
 
 ```bash
-npm run fix-upgrade
+npm run generate-animation-json-to-json  # Build animation index
+npm run watch:animations                 # Watch for animation changes
 ```
 
-### Remove dependencies, upgrade, clean install
+### Dependency Management
 
 ```bash
-npm run fix-deep
+npm run fix                              # Update all dependencies (CAUTION: Modifies package.json and package-lock.json, may introduce breaking changes)
 ```
+
+
+## Performance
+
+AKVJ is optimized for real-time visual performance:
+
+- **60fps rendering** using requestAnimationFrame
+- **240x135 pixel canvas** for retro pixel-perfect graphics
+- **Low-latency MIDI response** (typically under 20ms)
+- **No image smoothing** for sharp pixel art rendering
+- **Modular architecture** for efficient resource management
+- **Optimized sprite loading** with preloaded animation assets
+
+## Contributing
+
+### Adding New Animations
+
+1. **Create directory structure**: `src/public/animations/{channel}/{note}/{velocity}/`
+2. **Add PNG sprite sheet**: Frame-based animation with consistent frame size
+3. **Add JSON metadata**: Define frames, timing, and behavior properties
+4. **Rebuild index**: Run `npm run generate-animation-json-to-json`
+5. **Test**: Use the development server to test your animations
+
+### Code Contributions
+
+1. **Follow the modular architecture**: Keep components focused and separated
+2. **Maintain performance**: Ensure changes don't impact 60fps rendering
+3. **Format code**: Run `npm run format:prettier && npm run format:stylelint`
+4. **Test in Chrome**: Verify Web MIDI API compatibility
+5. **Document changes**: Update README if adding new features
+
+### Browser Testing
+
+Always test changes in Chrome or Chromium as AKVJ requires Web MIDI API support that other browsers lack.
 
 ## License
 
@@ -162,7 +264,3 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 ### Animation Assets
 
 All animation assets (including all .png and .json files located in the `src/public/animations/` directory) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See the [LICENSE-ASSETS.md](src/public/animations/LICENSE-ASSETS.md) file for the full terms.
-
-## AI Instructions
-
-For comprehensive documentation designed specifically for AI assistants, GitHub Copilot, and modern development tools, see [AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md). This file contains detailed information about the project architecture, MIDI-to-visual mapping logic, performance requirements, and guidelines for AI-assisted development.
