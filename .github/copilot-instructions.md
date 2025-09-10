@@ -87,6 +87,7 @@ npm run fix                              # Updates all dependencies in package.j
     ```
 
 4. **Animation System Validation:**
+
     ```bash
     npm run generate-animation-json-to-json # Must rebuild animation metadata
     ```
