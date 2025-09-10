@@ -62,13 +62,6 @@ class AppState extends EventTarget {
 	}
 
 	/**
-	 * Emit a custom event for any component to listen to
-	 */
-	emit(eventName, detail = null) {
-		this.dispatchEvent(new CustomEvent(eventName, { detail }));
-	}
-
-	/**
 	 * Subscribe to state changes
 	 */
 	subscribe(eventName, callback) {
