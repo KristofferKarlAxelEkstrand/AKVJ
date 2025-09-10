@@ -62,10 +62,7 @@ class MIDI {
 		const velocity = data2;
 
 		// Ensure we have a reference to the VJ component
-		if (!this.adventureKidVideoJockey) {
-			this.adventureKidVideoJockey = appState.adventureKidVideoJockey;
-		}
-
+		this.adventureKidVideoJockey = this.adventureKidVideoJockey || appState.adventureKidVideoJockey;
 		if (!this.adventureKidVideoJockey) {
 			console.warn('No adventure kid video jockey component available for MIDI');
 			return;
