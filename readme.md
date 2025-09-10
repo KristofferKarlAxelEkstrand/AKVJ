@@ -219,7 +219,6 @@ npm run watch:animations                 # Watch for animation changes
 npm run fix                              # Update all dependencies (use with caution)
 ```
 
-**Note**: The README previously mentioned scripts like `fix-install`, `fix-quick`, `fix-upgrade`, and `fix-deep` that do not exist in the current package.json. Only the scripts listed above are available.
 
 ## Performance
 
