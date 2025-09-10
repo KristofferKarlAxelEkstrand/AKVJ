@@ -198,14 +198,14 @@ npm run fix                              # Updates all dependencies in package.j
 
 ## Script Discrepancies Warning
 
-**IMPORTANT:** The README.md mentions npm scripts that DO NOT exist in package.json:
+**IMPORTANT:** The README.md mentions some npm scripts that, at the time of writing, are not present in `package.json`:
 
-- `npm run fix-install` - DOES NOT EXIST
-- `npm run fix-quick` - DOES NOT EXIST
-- `npm run fix-upgrade` - DOES NOT EXIST
-- `npm run fix-deep` - DOES NOT EXIST
+- `npm run fix-install`
+- `npm run fix-quick`
+- `npm run fix-upgrade`
+- `npm run fix-deep`
 
-Only `npm run fix` exists and it updates ALL dependencies (use with caution).
+Please check your current `package.json` to confirm which scripts are available. As of the last update, only `npm run fix` exists and it updates ALL dependencies (use with caution).
 
 ## Browser Compatibility
 
