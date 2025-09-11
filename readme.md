@@ -219,7 +219,6 @@ npm run watch:animations                 # Watch for animation changes
 npm run fix                              # Update all dependencies (CAUTION: Modifies package.json and package-lock.json, may introduce breaking changes)
 ```
 
-
 ## Performance
 
 AKVJ is optimized for real-time visual performance:
