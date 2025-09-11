@@ -1,30 +1,13 @@
 /**
  * Event-based state management for AKVJ
  * Provides centralized state with event notifications for loose coupling
+ * Handles all inter-module communication without direct references
  */
 class AppState extends EventTarget {
 	constructor() {
 		super();
-		this._adventureKidVideoJockey = null;
 		this._midiConnected = false;
 		this._animationsLoaded = false;
-	}
-
-	set adventureKidVideoJockey(element) {
-		const oldValue = this._adventureKidVideoJockey;
-		this._adventureKidVideoJockey = element;
-
-		if (oldValue !== element) {
-			this.dispatchEvent(
-				new CustomEvent('adventureKidVideoJockeyChanged', {
-					detail: { oldValue, newValue: element }
-				})
-			);
-		}
-	}
-
-	get adventureKidVideoJockey() {
-		return this._adventureKidVideoJockey;
 	}
 
 	set midiConnected(connected) {
@@ -67,6 +50,40 @@ class AppState extends EventTarget {
 	subscribe(eventName, callback) {
 		this.addEventListener(eventName, callback);
 		return () => this.removeEventListener(eventName, callback);
+	}
+
+	/**
+	 * Dispatch MIDI note on event with parsed data
+	 * @param {number} channel - MIDI channel (0-15)
+	 * @param {number} note - MIDI note (0-127)
+	 * @param {number} velocity - MIDI velocity (0-127)
+	 */
+	dispatchMIDINoteOn(channel, note, velocity) {
+		this.dispatchEvent(
+			new CustomEvent('midiNoteOn', {
+				detail: { channel, note, velocity }
+			})
+		);
+	}
+
+	/**
+	 * Dispatch MIDI note off event with parsed data
+	 * @param {number} channel - MIDI channel (0-15)
+	 * @param {number} note - MIDI note (0-127)
+	 */
+	dispatchMIDINoteOff(channel, note) {
+		this.dispatchEvent(
+			new CustomEvent('midiNoteOff', {
+				detail: { channel, note }
+			})
+		);
+	}
+
+	/**
+	 * Notify that the video jockey component is ready
+	 */
+	notifyVideoJockeyReady() {
+		this.dispatchEvent(new CustomEvent('videoJockeyReady'));
 	}
 }
 

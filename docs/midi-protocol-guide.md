@@ -253,9 +253,7 @@ These are single-byte messages for timing:
 
 ```javascript
 // Start sequencer
-[0xfa][// Stop sequencer
-0xfc][// Timing clock (sent 24 times per quarter note)
-0xf8];
+[0xfa][0xfc][0xf8]; // Stop sequencer // Timing clock (sent 24 times per quarter note)
 ```
 
 ## MIDI Channels
