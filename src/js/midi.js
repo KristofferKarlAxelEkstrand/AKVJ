@@ -1,15 +1,12 @@
 import appState from './app-state.js';
 
+/**
+ * MIDI module - Handles Web MIDI API and device management only
+ * Dispatches parsed MIDI events through app state for loose coupling
+ */
 class MIDI {
 	constructor() {
 		this.midiAccess = null;
-		this.adventureKidVideoJockey = null;
-
-		// Subscribe to state changes
-		appState.subscribe('adventureKidVideoJockeyChanged', event => {
-			this.adventureKidVideoJockey = event.detail.newValue;
-		});
-
 		this.init();
 	}
 
@@ -61,21 +58,17 @@ class MIDI {
 		const note = data1;
 		const velocity = data2;
 
-		if (!this.adventureKidVideoJockey) {
-			console.warn('No adventure kid video jockey component available for MIDI');
-			return;
-		}
-
+		// Parse MIDI and dispatch events through app state
 		switch (command) {
 			case 9: // Note on
 				if (velocity > 0) {
-					this.adventureKidVideoJockey.noteOn(channel, note, velocity);
+					appState.dispatchMIDINoteOn(channel, note, velocity);
 				} else {
-					this.adventureKidVideoJockey.noteOff(channel, note);
+					appState.dispatchMIDINoteOff(channel, note);
 				}
 				break;
 			case 8: // Note off
-				this.adventureKidVideoJockey.noteOff(channel, note);
+				appState.dispatchMIDINoteOff(channel, note);
 				break;
 			default:
 				break;

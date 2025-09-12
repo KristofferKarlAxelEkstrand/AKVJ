@@ -4,6 +4,11 @@ import AnimationLoader from './AnimationLoader.js';
 import LayerManager from './LayerManager.js';
 import Renderer from './Renderer.js';
 
+/**
+ * Adventure Kid Video Jockey - Main rendering component
+ * Handles canvas rendering, animation management, and layer compositing only
+ * Receives pre-parsed MIDI events from app state
+ */
 class AdventureKidVideoJockey extends HTMLElement {
 	constructor() {
 		super();
@@ -16,10 +21,27 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.renderer = new Renderer(this.canvas2dContext, this.layerManager);
 
 		this.animations = {};
+
+		// Listen for MIDI events from app state
+		this.setupMIDIEventListeners();
+	}
+
+	/**
+	 * Set up event listeners for MIDI events from app state
+	 */
+	setupMIDIEventListeners() {
+		appState.subscribe('midiNoteOn', event => {
+			const { channel, note, velocity } = event.detail;
+			this.layerManager.noteOn(channel, note, velocity);
+		});
+
+		appState.subscribe('midiNoteOff', event => {
+			const { channel, note } = event.detail;
+			this.layerManager.noteOff(channel, note);
+		});
 	}
 
 	connectedCallback() {
-		appState.adventureKidVideoJockey = this;
 		this.canvas.width = settings.canvas.width;
 		this.canvas.height = settings.canvas.height;
 		this.canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
@@ -29,6 +51,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.canvas2dContext.fillStyle = settings.rendering.fillStyle;
 		this.appendChild(this.canvas);
 		this.init();
+
+		// Notify app state that video jockey is ready
+		appState.notifyVideoJockeyReady();
 	}
 
 	async setUpAnimations(jsonUrl) {
@@ -51,14 +76,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 		} else {
 			console.error('Renderer not started: Animations failed to load.');
 		}
-	}
-
-	noteOn(channel, note, velocity) {
-		this.layerManager.noteOn(channel, note, velocity);
-	}
-
-	noteOff(channel, note) {
-		this.layerManager.noteOff(channel, note);
 	}
 }
 
