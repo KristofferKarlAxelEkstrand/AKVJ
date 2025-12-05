@@ -4,17 +4,12 @@
  * Handles all inter-module communication without direct references
  */
 class AppState extends EventTarget {
-	constructor() {
-		super();
-		this._midiConnected = false;
-		this._animationsLoaded = false;
-	}
+	#midiConnected = false;
+	#animationsLoaded = false;
 
 	set midiConnected(connected) {
-		const oldValue = this._midiConnected;
-		this._midiConnected = connected;
-
-		if (oldValue !== connected) {
+		if (this.#midiConnected !== connected) {
+			this.#midiConnected = connected;
 			this.dispatchEvent(
 				new CustomEvent('midiConnectionChanged', {
 					detail: { connected }
@@ -24,14 +19,12 @@ class AppState extends EventTarget {
 	}
 
 	get midiConnected() {
-		return this._midiConnected;
+		return this.#midiConnected;
 	}
 
 	set animationsLoaded(loaded) {
-		const oldValue = this._animationsLoaded;
-		this._animationsLoaded = loaded;
-
-		if (oldValue !== loaded) {
+		if (this.#animationsLoaded !== loaded) {
+			this.#animationsLoaded = loaded;
 			this.dispatchEvent(
 				new CustomEvent('animationsLoadedChanged', {
 					detail: { loaded }
@@ -41,7 +34,7 @@ class AppState extends EventTarget {
 	}
 
 	get animationsLoaded() {
-		return this._animationsLoaded;
+		return this.#animationsLoaded;
 	}
 
 	/**
