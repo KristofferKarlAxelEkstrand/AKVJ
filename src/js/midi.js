@@ -45,7 +45,7 @@ class MIDI {
 
 	setupMIDIInputs(midiAccess) {
 		const inputs = midiAccess.inputs.values();
-		for (let input of inputs) {
+		for (const input of inputs) {
 			input.onmidimessage = this.handleMIDIMessage.bind(this);
 			console.log(`Connected to MIDI input: ${input.name}`);
 		}

@@ -70,7 +70,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	async init() {
-		const animations = await this.setUpAnimations(settings.performance.animationsJsonUrl);
+		await this.setUpAnimations(settings.performance.animationsJsonUrl);
 		if (appState.animationsLoaded) {
 			this.renderer.start();
 		} else {
