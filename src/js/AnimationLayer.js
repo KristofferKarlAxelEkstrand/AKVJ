@@ -35,7 +35,9 @@ class AnimationLayer {
 		if (this.lastFrame >= this.numberOfFrames) {
 			this.lastFrame = 0;
 			this.frame = 0;
-			if (!this.loop) return;
+			if (!this.loop) {
+				return;
+			}
 		}
 
 		if (this.frameRatesForFrames[this.lastFrame]) {

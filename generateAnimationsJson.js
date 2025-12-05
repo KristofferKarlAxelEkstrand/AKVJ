@@ -1,62 +1,63 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { log } from 'console';
 
-// Get the current file's directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const aniPath = path.join(__dirname, 'src/public/animations');
+const outputFilePath = path.join(aniPath, 'animations.json');
 
-const aniPath = path.join(__dirname, './src/public/animations');
-const outputFilePath = path.join(__dirname, './src/public/animations/animations.json');
-
-// Function to get subfolders
-const getSubfolders = dir => fs.readdirSync(dir).filter(file => fs.statSync(path.join(dir, file)).isDirectory());
-
-// Function to get files with specific extension
-const getFilesWithExtension = (dir, ext) => fs.readdirSync(dir).filter(file => path.extname(file) === ext);
-
-// Generate JSON
-const generateAnimationsJson = () => {
-	console.log(`Building animation JSON file from ${aniPath}`);
-	const outputObj = {};
-
-	getSubfolders(aniPath).forEach(channel => {
-		const channelPath = path.join(aniPath, channel);
-		console.log('--- --- --- --- --- --- ---');
-		console.log('Channel           ', channel, ' ', ' ', ' ', channelPath);
-		outputObj[channel] = {};
-
-		getSubfolders(channelPath).forEach(note => {
-			const notePath = path.join(aniPath, channel, note);
-			console.log('Note              ', channel, note, ' ', ' ', notePath);
-			outputObj[channel][note] = {};
-
-			getSubfolders(notePath).forEach(velocityLayer => {
-				const velocityLayerPath = path.join(aniPath, channel, note, velocityLayer);
-				console.log('Velocity layer    ', channel, note, velocityLayer, ' ', velocityLayerPath);
-				outputObj[channel][note][velocityLayer] = {};
-
-				const pngFile = getFilesWithExtension(velocityLayerPath, '.png')[0];
-				const jsonFile = getFilesWithExtension(velocityLayerPath, '.json')[0];
-
-				let jsonContent = {};
-				if (jsonFile) {
-					const jsonFilePath = path.join(velocityLayerPath, jsonFile);
-					const jsonData = fs.readFileSync(jsonFilePath, 'utf8');
-					jsonContent = JSON.parse(jsonData);
-				}
-
-				outputObj[channel][note][velocityLayer] = { png: pngFile, ...jsonContent };
-			});
-		});
-	});
-
-	const jsonContent = JSON.stringify(outputObj, null, 3);
-	fs.writeFileSync(outputFilePath, jsonContent, 'utf8');
-	console.log(`\nJSON file has been saved to ${outputFilePath}`);
+const getSubfolders = dir => {
+	try {
+		return fs.readdirSync(dir).filter(file => fs.statSync(path.join(dir, file)).isDirectory());
+	} catch {
+		return [];
+	}
 };
 
-// Run the function
+const getFilesWithExtension = (dir, ext) => {
+	try {
+		return fs.readdirSync(dir).filter(file => path.extname(file) === ext);
+	} catch {
+		return [];
+	}
+};
+
+const parseJsonFile = filePath => {
+	try {
+		return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+	} catch (err) {
+		console.error(`  Error parsing ${path.basename(filePath)}: ${err.message}`);
+		return {};
+	}
+};
+
+const generateAnimationsJson = () => {
+	console.log(`Building animations from ${aniPath}`);
+	const output = {};
+
+	for (const channel of getSubfolders(aniPath)) {
+		output[channel] = {};
+		console.log(`Channel ${channel}`);
+
+		for (const note of getSubfolders(path.join(aniPath, channel))) {
+			output[channel][note] = {};
+			console.log(`  Note ${note}`);
+
+			for (const velocity of getSubfolders(path.join(aniPath, channel, note))) {
+				const velocityPath = path.join(aniPath, channel, note, velocity);
+				const pngFile = getFilesWithExtension(velocityPath, '.png')[0];
+				const jsonFile = getFilesWithExtension(velocityPath, '.json')[0];
+
+				const metadata = jsonFile ? parseJsonFile(path.join(velocityPath, jsonFile)) : {};
+
+				output[channel][note][velocity] = { png: pngFile, ...metadata };
+				console.log(`    Velocity ${velocity}: ${pngFile}`);
+			}
+		}
+	}
+
+	fs.writeFileSync(outputFilePath, JSON.stringify(output, null, '\t'), 'utf8');
+	console.log(`\nSaved to ${outputFilePath}`);
+};
+
 generateAnimationsJson();

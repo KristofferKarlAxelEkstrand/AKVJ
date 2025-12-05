@@ -13,7 +13,7 @@ AKVJ is a real-time VJ (Video Jockey) application designed for live visual perfo
 - **Input**: Web MIDI API for MIDI controller integration
 - **Assets**: PNG sprite sheets for frame-based animations
 - **Build System**: Vite for development and production builds
-- **Code Quality**: Prettier for formatting, Stylelint for CSS
+- **Code Quality**: ESLint for linting, Prettier for formatting, Stylelint for CSS
 - **Target Browsers**: Modern browsers with Web MIDI API support (primarily Chrome/Chromium)
 
 ## Core MIDI-to-Visual Mapping Logic
@@ -354,9 +354,19 @@ npm run preview                          # Preview production build
 ### Code Quality
 
 ```bash
+npm run lint                             # Lint JavaScript with ESLint
+npm run lint:fix                         # Lint and auto-fix issues
 npm run format:prettier                  # Format JavaScript/JSON/Markdown
 npm run format:stylelint                 # Format and lint CSS
 ```
+
+### Git Hooks
+
+Husky and lint-staged automatically run on commit:
+
+- **JS files**: ESLint fix + Prettier
+- **CSS files**: Stylelint fix + Prettier
+- **JSON/MD files**: Prettier
 
 ### Animation Management
 
