@@ -4,79 +4,80 @@
  */
 
 class LayerManager {
-	constructor() {
-		this.canvasLayers = [];
-		this.animations = {};
-	}
+	#canvasLayers = [];
+	#animations = {};
 
 	/**
 	 * Set the loaded animations reference
 	 */
 	setAnimations(animations) {
-		this.animations = animations;
+		this.#animations = animations;
 	}
 
 	/**
 	 * Handle MIDI note on event - activate animation layer
 	 */
 	noteOn(channel, note, velocity) {
-		if (!this.animations[channel] || !this.animations[channel][note]) {
+		if (!this.#animations[channel]?.[note]) {
 			return;
 		}
 
-		const velocityLayer = this.findVelocityLayer(velocity, this.animations[channel][note]);
+		const velocityLayer = this.#findVelocityLayer(velocity, this.#animations[channel][note]);
 
-		if (!this.canvasLayers[channel]) {
-			this.canvasLayers[channel] = [];
+		if (velocityLayer === null) {
+			return;
 		}
 
-		this.canvasLayers[channel][note] = this.animations[channel][note][velocityLayer];
+		this.#canvasLayers[channel] ??= [];
+		this.#canvasLayers[channel][note] = this.#animations[channel][note][velocityLayer];
 	}
 
 	/**
 	 * Handle MIDI note off event - deactivate animation layer
 	 */
 	noteOff(channel, note) {
-		if (this.canvasLayers[channel] && this.canvasLayers[channel][note]) {
-			this.canvasLayers[channel][note].stop();
-			this.canvasLayers[channel][note] = null;
+		if (this.#canvasLayers[channel]?.[note]) {
+			this.#canvasLayers[channel][note].stop();
+			this.#canvasLayers[channel][note] = null;
 		}
 	}
 
 	/**
 	 * Find the appropriate velocity layer based on input velocity
+	 * @returns {number|null} The velocity layer key, or null if none available
 	 */
-	findVelocityLayer(velocity, channelNoteAnimations) {
+	#findVelocityLayer(velocity, channelNoteAnimations) {
 		const velocities = Object.keys(channelNoteAnimations)
 			.map(Number)
 			.sort((a, b) => a - b);
 
+		if (velocities.length === 0) {
+			return null;
+		}
+
 		// Find the highest velocity layer that doesn't exceed the input velocity
-		const foundVelocity = velocities.findLast(v => v <= velocity);
-		return foundVelocity ? foundVelocity : velocities[velocities.length - 1];
+		return velocities.findLast(v => v <= velocity) ?? velocities.at(-1);
 	}
 
 	/**
 	 * Get all active canvas layers for rendering
 	 */
 	getActiveLayers() {
-		return this.canvasLayers;
+		return this.#canvasLayers;
 	}
 
 	/**
 	 * Clear all active layers
 	 */
 	clearLayers() {
-		this.canvasLayers.forEach(layer => {
+		for (const layer of this.#canvasLayers) {
 			if (layer) {
-				layer.forEach(note => {
-					if (note) {
-						note.stop();
-					}
-				});
+				for (const note of layer) {
+					note?.stop();
+				}
 			}
-		});
-		this.canvasLayers = [];
+		}
+		this.#canvasLayers = [];
 	}
 
 	/**
@@ -84,15 +85,15 @@ class LayerManager {
 	 */
 	getLayerStats() {
 		let activeCount = 0;
-		this.canvasLayers.forEach(layer => {
+		for (const layer of this.#canvasLayers) {
 			if (layer) {
-				layer.forEach(note => {
+				for (const note of layer) {
 					if (note) {
 						activeCount++;
 					}
-				});
+				}
 			}
-		});
+		}
 		return { activeCount };
 	}
 }
