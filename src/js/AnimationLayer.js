@@ -5,81 +5,90 @@
 import settings from './settings.js';
 
 class AnimationLayer {
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
-		this.canvas2dContext = canvas2dContext;
-		this.image = image;
-		this.numberOfFrames = numberOfFrames;
-		this.framesPerRow = framesPerRow;
-		this.frameRatesForFrames = frameRatesForFrames;
-		this.frameWidth = this.image.width / this.framesPerRow;
-		this.frameHeight = this.image.height / Math.ceil(this.numberOfFrames / this.framesPerRow);
-		this.loop = loop;
-		this.retrigger = retrigger;
-		this.canvasWidth = settings.canvas.width;
-		this.canvasHeight = settings.canvas.height;
+	// Configuration (immutable after construction)
+	#canvas2dContext;
+	#image;
+	#numberOfFrames;
+	#framesPerRow;
+	#frameRatesForFrames;
+	#frameWidth;
+	#frameHeight;
+	#loop;
+	#retrigger;
+	#canvasWidth;
+	#canvasHeight;
 
-		// Scoped
-		this.currentFramePositionX = 0;
-		this.currentFramePositionY = 0;
-		this.frame = 0;
-		this.lastFrame = 0;
-		this.lastTime = 0;
-		this.currentTime = 0;
-		this.interval = 0;
-		this.framesPerSecond = 1;
+	// Animation state (mutable)
+	#currentFramePositionX = 0;
+	#currentFramePositionY = 0;
+	#frame = 0;
+	#lastFrame = 0;
+	#lastTime = 0;
+
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
+		this.#canvas2dContext = canvas2dContext;
+		this.#image = image;
+		this.#numberOfFrames = numberOfFrames;
+		this.#framesPerRow = framesPerRow;
+		this.#frameRatesForFrames = frameRatesForFrames;
+		this.#frameWidth = image.width / framesPerRow;
+		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
+		this.#loop = loop;
+		this.#retrigger = retrigger;
+		this.#canvasWidth = settings.canvas.width;
+		this.#canvasHeight = settings.canvas.height;
 	}
 
 	play() {
-		this.currentTime = Date.now();
+		const currentTime = performance.now();
 
-		if (this.lastFrame >= this.numberOfFrames) {
-			this.lastFrame = 0;
-			this.frame = 0;
-			if (!this.loop) {
+		// Check if animation completed (non-looping)
+		if (this.#lastFrame >= this.#numberOfFrames) {
+			this.#lastFrame = 0;
+			this.#frame = 0;
+			if (!this.#loop) {
 				return;
 			}
 		}
 
-		if (this.frameRatesForFrames[this.lastFrame]) {
-			this.framesPerSecond = this.frameRatesForFrames[this.lastFrame];
-		}
+		// Get frame rate for current frame
+		const framesPerSecond = this.#frameRatesForFrames[this.#lastFrame] ?? this.#frameRatesForFrames[0];
+		const interval = 1000 / framesPerSecond;
 
-		this.interval = 1000 / this.framesPerSecond;
-
-		if (this.currentTime > this.lastTime + this.interval) {
-			this.frame++;
-			if (this.frame >= this.numberOfFrames) {
-				this.frame = 0;
-				this.currentFramePositionX = 0;
-				this.currentFramePositionY = 0;
+		// Advance frame if enough time has passed
+		if (currentTime > this.#lastTime + interval) {
+			this.#frame++;
+			if (this.#frame >= this.#numberOfFrames) {
+				this.#frame = 0;
 			}
 
-			this.currentFramePositionY = Math.floor(this.frame / this.framesPerRow);
-			this.currentFramePositionX = this.frame - this.currentFramePositionY * this.framesPerRow;
-
-			this.lastTime = this.currentTime;
+			this.#updateFramePosition();
+			this.#lastTime = currentTime;
 		}
 
-		this.lastFrame = this.frame;
+		this.#lastFrame = this.#frame;
 
-		// Draw the current frame directly
-		this.canvas2dContext.drawImage(this.image, this.frameWidth * this.currentFramePositionX, this.frameHeight * this.currentFramePositionY, this.frameWidth, this.frameHeight, 0, 0, this.canvasWidth, this.canvasHeight);
+		// Draw the current frame
+		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * this.#currentFramePositionX, this.#frameHeight * this.#currentFramePositionY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
 
 	stop() {
-		if (this.retrigger) {
-			// Reset all animation state in one go
-			Object.assign(this, {
-				currentFramePositionX: 0,
-				currentFramePositionY: 0,
-				frame: 0,
-				lastFrame: 0,
-				lastTime: 0,
-				currentTime: 0,
-				interval: 0,
-				framesPerSecond: 1
-			});
+		if (this.#retrigger) {
+			this.#resetState();
 		}
+	}
+
+	#resetState() {
+		this.#currentFramePositionX = 0;
+		this.#currentFramePositionY = 0;
+		this.#frame = 0;
+		this.#lastFrame = 0;
+		this.#lastTime = 0;
+	}
+
+	#updateFramePosition() {
+		this.#currentFramePositionY = Math.floor(this.#frame / this.#framesPerRow);
+		this.#currentFramePositionX = this.#frame - this.#currentFramePositionY * this.#framesPerRow;
 	}
 }
 
