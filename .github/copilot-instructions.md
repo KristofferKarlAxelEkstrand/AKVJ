@@ -167,12 +167,13 @@ npm run fix                              # Updates all dependencies in package.j
 
 ### Code Quality
 
-- **Always run linting and formatting before commits:**
+- **Husky + lint-staged** - Pre-commit hooks automatically lint and format staged files
+- **ESLint flat config** - Uses `eslint.config.js` with recommended rules
+- **Follow existing code patterns** - match indentation and style conventions
+- Manual commands if needed:
     ```bash
     npm run lint && npm run format:prettier && npm run format:stylelint
     ```
-- **ESLint flat config** - Uses `eslint.config.js` with recommended rules
-- **Follow existing code patterns** - match indentation and style conventions
 
 ## Common Issues & Troubleshooting
 

@@ -208,6 +208,10 @@ npm run format:prettier                  # Format JS/JSON/Markdown
 npm run format:stylelint                 # Format and fix CSS
 ```
 
+### Git Hooks
+
+This project uses **Husky** and **lint-staged** to automatically run linting and formatting on staged files before each commit. No manual setup required after `npm install`.
+
 ### Animation Management
 
 ```bash

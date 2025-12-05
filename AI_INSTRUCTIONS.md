@@ -360,6 +360,14 @@ npm run format:prettier                  # Format JavaScript/JSON/Markdown
 npm run format:stylelint                 # Format and lint CSS
 ```
 
+### Git Hooks
+
+Husky and lint-staged automatically run on commit:
+
+- **JS files**: ESLint fix + Prettier
+- **CSS files**: Stylelint fix + Prettier
+- **JSON/MD files**: Prettier
+
 ### Animation Management
 
 ```bash
