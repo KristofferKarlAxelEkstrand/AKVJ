@@ -3,10 +3,12 @@ import appState from './app-state.js';
 /**
  * MIDI module - Handles Web MIDI API and device management only
  * Dispatches parsed MIDI events through app state for loose coupling
+ * Supports hot-plug: devices can be connected/disconnected at runtime
  */
 class MIDI {
 	constructor() {
 		this.midiAccess = null;
+		this.connectedInputs = new Map();
 		this.init();
 	}
 
@@ -32,10 +34,10 @@ class MIDI {
 	}
 
 	onMIDISuccess(midiAccess) {
-		console.log('This browser supports WebMIDI!');
-		console.log('MIDI Access Object:', midiAccess);
+		console.log('WebMIDI supported');
 		this.setupMIDIInputs(midiAccess);
-		appState.midiConnected = true;
+		this.setupStateChangeListener(midiAccess);
+		this.updateConnectionState();
 	}
 
 	onMIDIFailure(error) {
@@ -43,12 +45,72 @@ class MIDI {
 		appState.midiConnected = false;
 	}
 
+	/**
+	 * Listen for MIDI device connect/disconnect events
+	 */
+	setupStateChangeListener(midiAccess) {
+		midiAccess.onstatechange = event => {
+			const port = event.port;
+
+			if (port.type === 'input') {
+				if (port.state === 'connected') {
+					this.connectInput(port);
+				} else if (port.state === 'disconnected') {
+					this.disconnectInput(port);
+				}
+			}
+
+			this.updateConnectionState();
+		};
+	}
+
+	/**
+	 * Set up all currently available MIDI inputs
+	 */
 	setupMIDIInputs(midiAccess) {
-		const inputs = midiAccess.inputs.values();
-		for (const input of inputs) {
-			input.onmidimessage = this.handleMIDIMessage.bind(this);
-			console.log(`Connected to MIDI input: ${input.name}`);
+		for (const input of midiAccess.inputs.values()) {
+			this.connectInput(input);
 		}
+	}
+
+	/**
+	 * Connect a single MIDI input device
+	 */
+	connectInput(input) {
+		if (this.connectedInputs.has(input.id)) {
+			return; // Already connected
+		}
+
+		input.onmidimessage = this.handleMIDIMessage.bind(this);
+		this.connectedInputs.set(input.id, input);
+		console.log(`MIDI connected: ${input.name}`);
+	}
+
+	/**
+	 * Disconnect a single MIDI input device
+	 */
+	disconnectInput(input) {
+		if (!this.connectedInputs.has(input.id)) {
+			return; // Not connected
+		}
+
+		input.onmidimessage = null;
+		this.connectedInputs.delete(input.id);
+		console.log(`MIDI disconnected: ${input.name}`);
+	}
+
+	/**
+	 * Update app state based on connected devices
+	 */
+	updateConnectionState() {
+		appState.midiConnected = this.connectedInputs.size > 0;
+	}
+
+	/**
+	 * Get list of connected MIDI input names
+	 */
+	getConnectedDevices() {
+		return Array.from(this.connectedInputs.values()).map(input => input.name);
 	}
 
 	handleMIDIMessage(message) {
@@ -58,7 +120,6 @@ class MIDI {
 		const note = data1;
 		const velocity = data2;
 
-		// Parse MIDI and dispatch events through app state
 		switch (command) {
 			case 9: // Note on
 				if (velocity > 0) {
