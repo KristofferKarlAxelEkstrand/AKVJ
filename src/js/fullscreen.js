@@ -1,23 +1,6 @@
-export function fullscreen() {
-	document.addEventListener(
-		'keydown',
-		e => {
-			if (e.key === 'Enter') {
-				toggleFullScreen();
-			}
-		},
-		{ capture: false, once: false }
-	);
-
-	document.addEventListener(
-		'dblclick',
-		() => {
-			toggleFullScreen();
-		},
-		{ capture: false, once: false }
-	);
-}
-
+/**
+ * Toggle fullscreen mode on/off
+ */
 const toggleFullScreen = () => {
 	if (!document.fullscreenElement) {
 		document.documentElement.requestFullscreen().catch(err => {
@@ -29,3 +12,18 @@ const toggleFullScreen = () => {
 		});
 	}
 };
+
+/**
+ * Initialize fullscreen toggle listeners
+ * Enter key, Space bar, and double-click toggle fullscreen mode
+ */
+export function fullscreen() {
+	document.addEventListener('keydown', e => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			toggleFullScreen();
+		}
+	});
+
+	document.addEventListener('dblclick', toggleFullScreen);
+}
