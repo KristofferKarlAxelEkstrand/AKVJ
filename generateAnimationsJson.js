@@ -14,7 +14,22 @@ const getSubfolders = dir => {
 	}
 };
 
-const getFilesWithExtension = (dir, ext) => fs.readdirSync(dir).filter(file => path.extname(file) === ext);
+const getFilesWithExtension = (dir, ext) => {
+	try {
+		return fs.readdirSync(dir).filter(file => path.extname(file) === ext);
+	} catch {
+		return [];
+	}
+};
+
+const parseJsonFile = filePath => {
+	try {
+		return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+	} catch (err) {
+		console.error(`  Error parsing ${path.basename(filePath)}: ${err.message}`);
+		return {};
+	}
+};
 
 const generateAnimationsJson = () => {
 	console.log(`Building animations from ${aniPath}`);
@@ -33,14 +48,7 @@ const generateAnimationsJson = () => {
 				const pngFile = getFilesWithExtension(velocityPath, '.png')[0];
 				const jsonFile = getFilesWithExtension(velocityPath, '.json')[0];
 
-				let metadata = {};
-				if (jsonFile) {
-					try {
-						metadata = JSON.parse(fs.readFileSync(path.join(velocityPath, jsonFile), 'utf8'));
-					} catch (err) {
-						console.error(`  Error parsing ${jsonFile}: ${err.message}`);
-					}
-				}
+				const metadata = jsonFile ? parseJsonFile(path.join(velocityPath, jsonFile)) : {};
 
 				output[channel][note][velocity] = { png: pngFile, ...metadata };
 				console.log(`    Velocity ${velocity}: ${pngFile}`);
