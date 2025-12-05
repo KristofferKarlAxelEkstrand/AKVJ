@@ -202,6 +202,8 @@ npm run preview                          # Preview production build
 ### Code Quality
 
 ```bash
+npm run lint                             # Lint JavaScript with ESLint
+npm run lint:fix                         # Lint and auto-fix issues
 npm run format:prettier                  # Format JS/JSON/Markdown
 npm run format:stylelint                 # Format and fix CSS
 ```

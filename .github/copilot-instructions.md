@@ -33,6 +33,8 @@ npm run preview                          # Preview production build (http://loca
 ### Code Quality & Formatting
 
 ```bash
+npm run lint                             # Lint JavaScript with ESLint
+npm run lint:fix                         # Lint and auto-fix issues
 npm run format:prettier                  # Format JS/JSON/Markdown - takes ~1 second
 npm run format:stylelint                 # Format and lint CSS - takes <1 second
 ```
@@ -82,6 +84,7 @@ npm run fix                              # Updates all dependencies in package.j
 3. **Code Quality Validation:**
 
     ```bash
+    npm run lint                          # Must complete without errors
     npm run format:prettier               # Must complete without errors
     npm run format:stylelint              # Must complete without errors
     ```
@@ -164,11 +167,11 @@ npm run fix                              # Updates all dependencies in package.j
 
 ### Code Quality
 
-- **Always run formatting before commits:**
+- **Always run linting and formatting before commits:**
     ```bash
-    npm run format:prettier && npm run format:stylelint
+    npm run lint && npm run format:prettier && npm run format:stylelint
     ```
-- **No ESLint configuration exists** - rely on Prettier for consistency
+- **ESLint flat config** - Uses `eslint.config.js` with recommended rules
 - **Follow existing code patterns** - match indentation and style conventions
 
 ## Common Issues & Troubleshooting
@@ -227,10 +230,11 @@ Please check your current `package.json` to confirm which scripts are available.
 
 1. **Setup:** `npm install` (13 seconds, set 60+ second timeout)
 2. **Develop:** `npm run dev` → http://localhost:5173/
-3. **Format:** `npm run format:prettier && npm run format:stylelint`
-4. **Build:** `npm run build` (<1 second)
-5. **Test:** `npm run preview` → http://localhost:4173/
-6. **Validate:** Manual browser testing in Chrome/Chromium
+3. **Lint:** `npm run lint`
+4. **Format:** `npm run format:prettier && npm run format:stylelint`
+5. **Build:** `npm run build` (<1 second)
+6. **Test:** `npm run preview` → http://localhost:4173/
+7. **Validate:** Manual browser testing in Chrome/Chromium
 
 **NEVER CANCEL long-running operations** - all commands complete quickly except npm install which needs full time to complete.
 
