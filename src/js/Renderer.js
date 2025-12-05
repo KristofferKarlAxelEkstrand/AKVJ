@@ -5,20 +5,23 @@
 import settings from './settings.js';
 
 class Renderer {
+	#canvas2dContext;
+	#layerManager;
+	#isRunning = false;
+	#animationFrameId = null;
+
 	constructor(canvas2dContext, layerManager) {
-		this.canvas2dContext = canvas2dContext;
-		this.layerManager = layerManager;
-		this.isRunning = false;
-		this.animationFrameId = null;
+		this.#canvas2dContext = canvas2dContext;
+		this.#layerManager = layerManager;
 	}
 
 	/**
 	 * Start the rendering loop
 	 */
 	start() {
-		if (!this.isRunning) {
-			this.isRunning = true;
-			this.loop();
+		if (!this.#isRunning) {
+			this.#isRunning = true;
+			this.#loop();
 		}
 	}
 
@@ -26,46 +29,47 @@ class Renderer {
 	 * Stop the rendering loop
 	 */
 	stop() {
-		this.isRunning = false;
-		if (this.animationFrameId) {
-			cancelAnimationFrame(this.animationFrameId);
-			this.animationFrameId = null;
+		this.#isRunning = false;
+		if (this.#animationFrameId) {
+			cancelAnimationFrame(this.#animationFrameId);
+			this.#animationFrameId = null;
 		}
 	}
 
 	/**
 	 * Main rendering loop - clears canvas and renders all active layers
 	 */
-	loop = () => {
-		if (!this.isRunning) {
+	#loop = () => {
+		if (!this.#isRunning) {
 			return;
 		}
 
 		// Clear canvas with background color
-		this.canvas2dContext.fillRect(0, 0, settings.canvas.width, settings.canvas.height);
+		this.#canvas2dContext.fillRect(0, 0, settings.canvas.width, settings.canvas.height);
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
-		const activeLayers = this.layerManager.getActiveLayers();
-		activeLayers.forEach(layer => {
+		const activeLayers = this.#layerManager.getActiveLayers();
+		for (const layer of activeLayers) {
 			if (layer) {
-				layer.forEach(note => {
+				for (const note of layer) {
 					if (note) {
 						note.play();
 					}
-				});
+				}
 			}
-		});
+		}
 
-		this.animationFrameId = requestAnimationFrame(this.loop);
+		this.#animationFrameId = requestAnimationFrame(this.#loop);
 	};
 
 	/**
-	 * Get rendering statistics
+	 * Get rendering statistics for debugging
+	 * @returns {{isRunning: boolean, frameId: number|null}} Current renderer state
 	 */
 	getStats() {
 		return {
-			isRunning: this.isRunning,
-			frameId: this.animationFrameId
+			isRunning: this.#isRunning,
+			frameId: this.#animationFrameId
 		};
 	}
 }
