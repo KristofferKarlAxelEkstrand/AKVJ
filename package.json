@@ -1,7 +1,7 @@
 {
 	"name": "akvj",
 	"version": "0.0.0",
-	"description": "A Vite project for AKVJ",
+	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
 	"main": "main.js",
 	"type": "module",
 	"private": false,
