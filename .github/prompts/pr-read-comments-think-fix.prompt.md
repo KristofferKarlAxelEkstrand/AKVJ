@@ -52,6 +52,10 @@ Resolving review threads
 
 - Close the conversation only when the issue is fixed, sufficiently explained, or unreachable (documented rationale).
 - When resolving: append a short PR comment that references the commit(s) and briefly summarises the fix or rationale.
+- Important: Do NOT auto-resolve review threads on behalf of the PR author or other reviewers. Only mark a thread as resolved after one of the following:
+    1.  A verified commit addressing the issue has been added to the PR and CI checks pass, or
+    2.  The PR author or a reviewer explicitly confirms the issue is resolved.
+        If you made a change to address a comment, always leave a comment referencing the commit (or commit SHA) and wait for author confirmation before marking threads resolved.
 
 Post-check & Copilot step
 
