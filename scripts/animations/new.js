@@ -21,6 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
 
 const template = {
+	png: 'sprite.png',
 	numberOfFrames: 1,
 	framesPerRow: 1,
 	loop: true,

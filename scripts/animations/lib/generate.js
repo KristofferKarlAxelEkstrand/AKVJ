@@ -54,7 +54,14 @@ export async function generate(sourceDir, outputPath) {
 
 				const metadata = jsonFile ? await parseJsonFile(path.join(velocityDir, jsonFile)) : {};
 
-				output[channel][note][velocity] = { png: pngFile, ...metadata };
+				// Prefer metadata.png if present, otherwise use pngFile found in the dir
+				const finalPng = metadata.png ?? pngFile;
+				const entry = { ...metadata };
+				if (finalPng) {
+					entry.png = finalPng;
+				}
+
+				output[channel][note][velocity] = entry;
 				console.log(`    Velocity ${velocity}: ${pngFile || '(no png)'}`);
 			}
 		}

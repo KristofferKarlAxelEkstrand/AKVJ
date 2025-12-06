@@ -119,6 +119,7 @@ async function createSpriteSheet(inputDir, outputDir, options = {}) {
 
 	// Generate meta.json
 	const meta = {
+		png: 'sprite.png',
 		numberOfFrames: files.length,
 		framesPerRow,
 		loop: true,
