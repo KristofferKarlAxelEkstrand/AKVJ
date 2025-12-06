@@ -39,6 +39,10 @@ Applying fixes (details)
     - Implement the change, run the checks, and locally confirm no regressions.
     - Commit with a short message and push to the PR branch or a new branch (e.g., pr-<num>-patch) if you can't push to the PR branch.
     - Update the PR comment: "Done — fixed in <commit-sha>" and include a 1-line justification where appropriate.
+
+        Tip: If you can't push to the PR branch from your environment, it can be caused by an env-var authenticated token with restricted permissions.
+        Try unsetting the GitHub token (temporarily) and re-run your push, e.g.: `unset GITHUB_TOKEN`. If that doesn't help, use SSH or a personal access token with write permissions.
+
 - For each decline or partial accept:
     - Reply explaining tradeoffs and chosen approach.
     - If helpful, provide a short code snippet or alternative plan.
