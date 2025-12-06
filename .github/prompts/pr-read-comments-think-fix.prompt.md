@@ -60,6 +60,11 @@ Resolving review threads
         3. Allow the PR author or other reviewers to reopen or request clarification if they disagree.
     - If you made a partial change or accepted most of the suggestion but not all, prefer leaving the thread open until the original author confirms, or explicitly mark it as resolved and explain the partial acceptance.
 
+- Action required: Walk the PR's review threads and resolve conversations that you will not implement.
+    - For each thread you decide not to implement, use the Decline decision and provide a concise rationale (one or two lines) that justifies the decision.
+    - Ensure the comment includes any suggested alternatives or links to issues, and politely note that the author or reviewers may re-open the thread if they disagree.
+    - If you are unsure, prefer leaving the thread open and add a clarifying question instead of closing it.
+
 Post-check & Copilot step
 
 - After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
