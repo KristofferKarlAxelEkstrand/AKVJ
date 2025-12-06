@@ -50,7 +50,7 @@ Applying fixes (details)
 
 Resolving review threads
 
-- Close the conversation only when the issue is fixed, sufficiently explained, or unreachable (documented rationale).
+- Close a review thread when the issue is fixed, or when a decision has been made not to implement the requested change. If a thread is resolved because the change won't be implemented, add a concise rationale explaining why (compatibility, UX, duplication, risk, etc.) and suggest an alternative where appropriate. Resolving your own reply threads is acceptable when no further work is planned.
 - When resolving: append a short PR comment that references the commit(s) and briefly summarises the fix or rationale.
 - Important: Do NOT auto-resolve review threads on behalf of the PR author or other reviewers by default.
     - If you applied a verified fix in the PR (and CI checks have passed), it is OK to resolve the thread after leaving a comment with the commit SHA.
