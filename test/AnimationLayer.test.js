@@ -70,20 +70,10 @@ describe('AnimationLayer', () => {
 		});
 
 		it('returns early if canvas2dContext is null', () => {
-			// Create layer with valid context, then simulate context becoming invalid
-			const ctx = createMockContext();
-			// We don't need to create a layer with a valid context here because
-			// #canvas2dContext is private. Instead, construct a layer with a
-			// null context to verify no draw calls happen.
-
-			// Dispose clears image, so we need a different approach
-			// Since #canvas2dContext is private and set in constructor,
-			// we test by creating with null context
+			// Creating a layer with a null canvas context should return early
+			// (no errors and no drawing occurs).
 			const layerWithNullCtx = new AnimationLayer(defaultOptions({ canvas2dContext: null }));
-			layerWithNullCtx.play();
-
-			// No error thrown, and no drawImage called
-			expect(ctx.drawImage).not.toHaveBeenCalled();
+			expect(() => layerWithNullCtx.play()).not.toThrow();
 		});
 
 		it('draws frame 0 on first play call without skipping', () => {
