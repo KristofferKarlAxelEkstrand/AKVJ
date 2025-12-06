@@ -108,6 +108,11 @@ Resolving review threads
         Replace `PRRT_xxxx` with the thread's `id` from Step 1.
     - Tip: You can resolve multiple threads sequentially by chaining commands or looping over the thread IDs in a shell script.
 
+- When to resolve your own reply threads:
+    - If you created a reply thread (e.g., "Accepted — fixed in commit abc123") as part of addressing a reviewer's comment, and no further work is planned on that thread, resolve it yourself.
+    - This keeps the PR tidy and signals to reviewers that the conversation is complete.
+    - Only leave your own threads open if you expect follow-up discussion or additional changes.
+
 Post-check & Copilot step
 
 - After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
