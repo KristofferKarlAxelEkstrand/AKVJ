@@ -114,6 +114,10 @@ class LayerManager {
 			for (const note of channel) {
 				if (note) {
 					note.stop();
+					// Dispose of any image resources the layer may hold (no-op if not present)
+					if (typeof note.dispose === 'function') {
+						note.dispose();
+					}
 				}
 			}
 		}

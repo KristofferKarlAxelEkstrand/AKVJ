@@ -69,3 +69,28 @@ describe('LayerManager - velocity selection', () => {
 		expect(active[0][60]).toBe(fakeLayer80);
 	});
 });
+
+describe('LayerManager - clearLayers', () => {
+	test('clearLayers stops and disposes active layers', () => {
+		const lm = new LayerManager();
+		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
+
+		const animations = {
+			0: {
+				60: {
+					0: fakeLayer
+				}
+			}
+		};
+
+		lm.setAnimations(animations);
+		lm.noteOn(0, 60, 127);
+		const active = lm.getActiveLayers();
+		expect(active[0][60]).toBe(fakeLayer);
+
+		lm.clearLayers();
+		expect(fakeLayer.stop).toHaveBeenCalled();
+		expect(fakeLayer.dispose).toHaveBeenCalled();
+		expect(lm.getActiveLayers().length).toBe(0);
+	});
+});
