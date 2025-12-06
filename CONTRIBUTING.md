@@ -39,6 +39,19 @@ git checkout -b fix/your-bug-fix
 - Keep functions small and focused
 - Add comments for complex logic
 
+### Editor & Formatting
+
+We recommend using VS Code with the recommended extensions to automatically format and lint code on save. The project includes `.vscode/settings.json` and `.vscode/extensions.json` which configure:
+
+- `editor.formatOnSave` with Prettier as default formatter
+- `editor.codeActionsOnSave` enabled to allow ESLint auto-fix on save
+- A `pre-commit` Husky hook that runs `lint-staged` to auto-format and lint staged files
+
+Recommended extensions (already suggested in `.vscode/extensions.json`):
+
+- `esbenp.prettier-vscode` (Prettier)
+- `dbaeumer.vscode-eslint` (ESLint)
+
 ### 3. Test Your Changes
 
 ```bash
