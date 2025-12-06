@@ -174,17 +174,25 @@ node scripts/animations --clean  # Remove .cache and output
 
 ## Watch Mode
 
-Built-in watch with debouncing (no external chokidar dependency for the script):
+Use `chokidar` as a library (not CLI wrapper) for reliable cross-platform file watching:
 
 ```javascript
-import { watch } from 'fs';
+import chokidar from 'chokidar';
 
-let timeout;
-watch('animations/', { recursive: true }, () => {
-	clearTimeout(timeout);
-	timeout = setTimeout(() => run(), 100); // 100ms debounce
-});
+function debounce(fn, ms) {
+	let timeout;
+	return () => {
+		clearTimeout(timeout);
+		timeout = setTimeout(fn, ms);
+	};
+}
+
+const debouncedRun = debounce(() => run(), 100);
+
+chokidar.watch('animations/', { ignoreInitial: true }).on('all', debouncedRun);
 ```
+
+Note: `fs.watch` has inconsistent behavior across platforms. `chokidar` handles edge cases reliably.
 
 ## Implementation Order
 
@@ -243,7 +251,162 @@ Alternative CLI tool if needed: `pngquant --quality=80-100 --speed 1 input.png`
 - **Built-in watch mode** - Debounced, no external chokidar CLI wrapper needed
 - **Use `sharp`** - Faster, cross-platform, no external CLI dependencies
 
+## Additional Tools
+
+### Animation Preview Tool
+
+A standalone HTML page for previewing animations without the full app:
+
+```
+src/tools/
+  animation-preview/
+    index.html          # Preview UI
+    preview.js          # Animation playback logic
+    preview.css         # Minimal styling
+```
+
+**Features:**
+
+- Dropdowns to select channel/note/velocity
+- Plays animation with actual frame rates from `meta.json`
+- Shows animation info (frame count, dimensions, file size)
+- Pause/step through frames manually
+- No build step required - works with Vite dev server
+
+**Usage:**
+
+```bash
+npm run dev
+# Open http://localhost:5173/tools/animation-preview/
+```
+
+### Sprite Sheet Generator
+
+Combines individual frames into a sprite sheet:
+
+```bash
+node scripts/animations/spritesheet.js ./frames-folder ./output
+# Creates: output/sprite.png + output/meta.json
+
+# With options:
+node scripts/animations/spritesheet.js ./frames-folder ./output --frames-per-row 8 --frame-rate 12
+```
+
+**Input:** Folder with numbered frames (`frame001.png`, `frame002.png`, etc.)
+
+**Output:**
+
+- Single sprite sheet PNG (frames arranged in rows)
+- Auto-generated `meta.json` with correct `numberOfFrames` and `framesPerRow`
+
+```javascript
+// scripts/animations/spritesheet.js
+import sharp from 'sharp';
+import fs from 'fs/promises';
+import path from 'path';
+
+async function createSpriteSheet(inputDir, outputDir, options = {}) {
+	const { framesPerRow = 8, frameRate = 12 } = options;
+
+	// Find all frame images, sorted numerically
+	const files = (await fs.readdir(inputDir))
+		.filter(f => /\.(png|jpg)$/i.test(f))
+		.sort((a, b) => {
+			const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+			const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+			return numA - numB;
+		});
+
+	if (files.length === 0) {
+		throw new Error('No image files found');
+	}
+
+	// Get frame dimensions from first image
+	const firstImage = await sharp(path.join(inputDir, files[0])).metadata();
+	const frameWidth = firstImage.width;
+	const frameHeight = firstImage.height;
+
+	// Calculate sprite sheet dimensions
+	const cols = Math.min(files.length, framesPerRow);
+	const rows = Math.ceil(files.length / framesPerRow);
+
+	// Composite all frames into sprite sheet
+	const composites = await Promise.all(
+		files.map(async (file, i) => ({
+			input: await sharp(path.join(inputDir, file)).toBuffer(),
+			left: (i % framesPerRow) * frameWidth,
+			top: Math.floor(i / framesPerRow) * frameHeight
+		}))
+	);
+
+	await sharp({
+		create: {
+			width: cols * frameWidth,
+			height: rows * frameHeight,
+			channels: 4,
+			background: { r: 0, g: 0, b: 0, alpha: 0 }
+		}
+	})
+		.composite(composites)
+		.png()
+		.toFile(path.join(outputDir, 'sprite.png'));
+
+	// Generate meta.json
+	const meta = {
+		numberOfFrames: files.length,
+		framesPerRow,
+		loop: true,
+		retrigger: true,
+		frameRatesForFrames: { 0: frameRate }
+	};
+
+	await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, '\t'));
+
+	console.log(`Created sprite sheet: ${files.length} frames, ${cols}x${rows} grid`);
+}
+```
+
+### Animation Scaffolding
+
+Create new animation slots with a single command:
+
+```bash
+node scripts/animations/new.js 0 5 0
+# Creates: animations/0/5/0/meta.json (template)
+```
+
+```javascript
+// scripts/animations/new.js
+import fs from 'fs/promises';
+import path from 'path';
+
+const template = {
+	numberOfFrames: 1,
+	framesPerRow: 1,
+	loop: true,
+	retrigger: true,
+	frameRatesForFrames: { 0: 12 }
+};
+
+async function createAnimation(channel, note, velocity) {
+	const dir = `animations/${channel}/${note}/${velocity}`;
+
+	await fs.mkdir(dir, { recursive: true });
+	await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(template, null, '\t'));
+
+	console.log(`Created ${dir}/meta.json`);
+	console.log('Add your sprite.png and update meta.json');
+}
+
+const [, , channel, note, velocity] = process.argv;
+if (!channel || !note || !velocity) {
+	console.log('Usage: node scripts/animations/new.js <channel> <note> <velocity>');
+	process.exit(1);
+}
+createAnimation(channel, note, velocity);
+```
+
 ## Open Questions
 
-- Add animation preview/test tool?
 - Add `--dry-run` flag to show what would change?
+- Add size report after optimization?
