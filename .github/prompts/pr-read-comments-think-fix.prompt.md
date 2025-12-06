@@ -50,7 +50,7 @@ Applying fixes (details)
 
 Resolving review threads
 
-- Close the conversation only when the issue is fixed, sufficiently explained, or unreachable (documented rationale).
+- Close a review thread when the issue is fixed, or when a decision has been made not to implement the requested change. If a thread is resolved because the change won't be implemented, add a concise rationale explaining why (compatibility, UX, duplication, risk, etc.) and suggest an alternative where appropriate. Resolving your own reply threads is acceptable when no further work is planned.
 - When resolving: append a short PR comment that references the commit(s) and briefly summarises the fix or rationale.
 - Important: Do NOT auto-resolve review threads on behalf of the PR author or other reviewers by default.
     - If you applied a verified fix in the PR (and CI checks have passed), it is OK to resolve the thread after leaving a comment with the commit SHA.
@@ -72,12 +72,59 @@ Resolving review threads
         - If the thread is only superficially outdated (e.g., formatting changed), explicitly mention that and avoid dropping important issues silently.
         - If you are unsure, leave the thread open and ask a clarifying question instead of resolving it.
 
+- How to programmatically resolve review threads (GitHub GraphQL):
+    - The MCP tools do not expose a direct "resolve thread" action. Use the GitHub CLI (`gh`) with GraphQL mutations to resolve threads.
+    - Note: If your CLI or GraphQL request is blocked by token permissions (e.g., you see "Resource not accessible by integration"), try temporarily unsetting the environment token and re-run the command in the same shell session:
+        ```bash
+        unset GITHUB_TOKEN
+        ```
+        If that doesn't resolve the issue, re-authenticate using the GitHub CLI (`gh auth login`) or use an SSH remote / a personal access token with sufficient permissions.
+        - Step 1: Get the review thread IDs for the PR:
+            ```bash
+            gh api graphql -f query='
+              query($owner: String!, $repo: String!, $number: Int!) {
+                repository(owner: $owner, name: $repo) {
+                  pullRequest(number: $number) {
+                    reviewThreads(first: 50) {
+                      nodes {
+                        id
+                        isResolved
+                        comments(first: 1) {
+                          nodes { body }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ' -f owner=OWNER -f repo=REPO -F number=PR_NUMBER
+            ```
+            Replace `OWNER`, `REPO`, and `PR_NUMBER` with the actual values.
+        - Step 2: For each thread you want to resolve, call the `resolveReviewThread` mutation:
+            ```bash
+            gh api graphql -f query='
+              mutation($threadId: ID!) {
+                resolveReviewThread(input: {threadId: $threadId}) {
+                  thread { isResolved }
+                }
+              }
+            ' -f threadId="PRRT_xxxx"
+            ```
+            Replace `PRRT_xxxx` with the thread's `id` from Step 1.
+        - Tip: You can resolve multiple threads sequentially by chaining commands or looping over the thread IDs in a shell script.
+
+- When to resolve your own reply threads:
+    - If you created a reply thread (e.g., "Accepted — fixed in commit abc123") as part of addressing a reviewer's comment, and no further work is planned on that thread, resolve it yourself.
+    - This keeps the PR tidy and signals to reviewers that the conversation is complete.
+    - Only leave your own threads open if you expect follow-up discussion or additional changes.
+
 Post-check & Copilot step
 
 - After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
     - Post a final PR comment summarizing what was done and tagging @copilot (or the Copilot reviewer bot) asking for a final automated review.
     - If you have repository permissions, also request a GitHub review from Copilot via the MCP.
     - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
+    - If you pushed additional changes after addressing comments, re-request a Copilot review on the PR (either by tagging @copilot in a follow-up comment or re-requesting a review via the MCP tools) so Copilot can double-check any new edits.
 
 Examples (short, focused language):
 

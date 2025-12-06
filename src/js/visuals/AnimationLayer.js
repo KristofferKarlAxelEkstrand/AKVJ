@@ -20,7 +20,8 @@ class AnimationLayer {
 
 	// Animation state (mutable)
 	#frame = 0;
-	#lastTime = 0;
+	/** @type {number|null} Last timestamp from performance.now(), null if never played */
+	#lastTime = null;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 
 	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
@@ -54,7 +55,7 @@ class AnimationLayer {
 	 * Called every frame by the Renderer. Handles frame timing, looping, and canvas drawing.
 	 */
 	play() {
-		if (!this.#image) {
+		if (!this.#image || !this.#canvas2dContext) {
 			return;
 		}
 
@@ -64,6 +65,11 @@ class AnimationLayer {
 		}
 
 		const currentTime = performance.now();
+
+		// Initialize lastTime on first play to prevent skipping frame 0
+		if (this.#lastTime === null) {
+			this.#lastTime = currentTime;
+		}
 
 		// Get frame rate for current frame
 		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
@@ -108,7 +114,7 @@ class AnimationLayer {
 
 	#resetState() {
 		this.#frame = 0;
-		this.#lastTime = 0;
+		this.#lastTime = null;
 	}
 
 	/**

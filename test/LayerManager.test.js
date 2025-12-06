@@ -1,3 +1,4 @@
+import { describe, test, expect, vi } from 'vitest';
 import LayerManager from '../src/js/visuals/LayerManager.js';
 
 describe('LayerManager', () => {
@@ -67,5 +68,30 @@ describe('LayerManager - velocity selection', () => {
 		lm.noteOn(0, 60, 127);
 		active = lm.getActiveLayers();
 		expect(active[0][60]).toBe(fakeLayer80);
+	});
+});
+
+describe('LayerManager - clearLayers', () => {
+	test('clearLayers stops, disposes, and removes all active layers', () => {
+		const lm = new LayerManager();
+		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
+
+		const animations = {
+			0: {
+				60: {
+					0: fakeLayer
+				}
+			}
+		};
+
+		lm.setAnimations(animations);
+		lm.noteOn(0, 60, 127);
+		const active = lm.getActiveLayers();
+		expect(active[0][60]).toBe(fakeLayer);
+
+		lm.clearLayers();
+		expect(fakeLayer.stop).toHaveBeenCalled();
+		expect(fakeLayer.dispose).toHaveBeenCalled();
+		expect(lm.getActiveLayers().length).toBe(0);
 	});
 });
