@@ -76,3 +76,67 @@ animations/{channel}/{note}/{velocity}/
 - Use `const` over `let` where possible
 - Keep functions small and focused
 - Document complex logic with comments
+
+## Developer workflow
+
+This quick workflow provides a recommended starting point for development and debugging.
+
+1. Install and verify dependencies
+
+```bash
+git clone https://github.com/KristofferKarlAxelEkstrand/AKVJ.git
+cd AKVJ
+npm install
+```
+
+2. Start development server (HMR enabled)
+
+```bash
+npm run dev
+```
+
+3. Lint, format and test before committing
+
+```bash
+npm run format:prettier        # format code
+npm run lint:fix               # lint and auto-fix
+npm run test                   # run unit tests
+npm run build                  # ensure build succeeds
+```
+
+4. Pre-commit hooks and IDE tooling
+
+- A Husky pre-commit hook runs `lint-staged` to auto-format and lint staged files.
+- Workspace VS Code settings enable `editor.formatOnSave` and `editor.codeActionsOnSave` for quick formatting and fixing on save.
+
+## Troubleshooting
+
+Common issues and steps to investigate:
+
+- Web MIDI API not available
+    - The Web MIDI API is only supported in Chrome/Chromium. Ensure you run the app in Chrome.
+    - Check `navigator.requestMIDIAccess` in the console and ensure you have granted permission.
+    - Verify MIDI device is connected. Use `getConnectedDevices()` from the `midi` singleton to list device names.
+
+- Black canvas or animations not loading
+    - Confirm `src/public/animations/animations.json` exists and was generated: `npm run generate-animation-json-to-json`.
+    - Look for the console message: "JSON for animations loaded".
+    - Verify the build step was successful and static assets are present.
+
+- MIDI input not triggering visuals
+    - Check browser console for `WebMIDI supported` and connected input logs at boot.
+    - Ensure your device reports MIDI Note On/Off events (inspect input messages via the browser DevTools console or a MIDI monitor).
+    - If using a virtual MIDI device, ensure system-level drivers and routing are configured properly.
+
+- Performance issues / dropped frames
+    - Confirm you are not running CPU-heavy work in the render loop. Keep 60fps by profiling canvas draw operations.
+    - Monitor memory usage and remove unused animation layers via `LayerManager` to reduce memory churn.
+
+- Prettier/ESLint failing in CI
+    - Locally run `npm run format:prettier` and `npm run lint:fix` to auto-correct style issues.
+    - If CI fails on GitHub Action `npx prettier --check .`, run the same locally to get details.
+
+- Dev server port conflicts
+    - If port 5173 is in use, Vite may start on 5174. Use `--port` or set the `server.port` in `vite.config.js` to a fixed port.
+
+If you still have trouble, check the docs in `docs/`, review browser console logs and create an issue with relevant logs and reproduction steps.
