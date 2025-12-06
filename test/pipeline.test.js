@@ -28,6 +28,12 @@ describe('scripts/animations/index.js pipeline', () => {
 	});
 
 	test('validate-only returns without throwing', async () => {
-		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE, exitOnError: false })).resolves.not.toThrow();
+		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE, exitOnError: false })).resolves.toBeUndefined();
+	});
+
+	test('validate-only fails on invalid animations', async () => {
+		// Corrupt the meta.json to make validation fail
+		await fs.writeFile(path.join(FIXTURE_BASE, '0', '0', '0', 'meta.json'), '{ invalid json');
+		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE, exitOnError: false })).rejects.toThrow();
 	});
 });

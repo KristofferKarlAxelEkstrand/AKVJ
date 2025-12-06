@@ -58,9 +58,7 @@ async function createSpriteSheet(inputDir, outputDir, options = {}) {
 		const sharpModule = await import('sharp');
 		sharp = sharpModule.default;
 	} catch {
-		console.error('Error: sharp is required for sprite sheet generation.');
-		console.error('Run: npm install sharp');
-		process.exit(1);
+		throw new Error('sharp is required for sprite sheet generation. Run: npm install sharp');
 	}
 
 	// Find all frame images, sorted numerically
@@ -157,4 +155,7 @@ if (!options.inputDir || !options.outputDir) {
 	process.exit(1);
 }
 
-createSpriteSheet(options.inputDir, options.outputDir, options);
+createSpriteSheet(options.inputDir, options.outputDir, options).catch(err => {
+	console.error('Error creating sprite sheet:', err.message);
+	process.exit(1);
+});

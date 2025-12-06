@@ -35,10 +35,17 @@ export async function createAnimation(channel, note, velocity) {
 	// Check if already exists
 	try {
 		await fs.access(dir);
-		console.error(`Error: ${dir} already exists`);
-		process.exit(1);
-	} catch {
-		// Directory doesn't exist, good
+		throw new Error(`${dir} already exists`);
+	} catch (err) {
+		if (err.code === 'ENOENT') {
+			// Directory doesn't exist, good
+		} else if (err instanceof Error && err.message.includes('already exists')) {
+			// Re-throw
+			throw err;
+		} else {
+			// Unexpected error
+			throw err;
+		}
 	}
 
 	await fs.mkdir(dir, { recursive: true });
@@ -84,5 +91,8 @@ if (isCli) {
 	}
 }
 if (isCli) {
-	createAnimation(channel, note, velocity);
+	createAnimation(channel, note, velocity).catch(err => {
+		console.error('Failed to create animation:', err.message);
+		process.exit(1);
+	});
 }
