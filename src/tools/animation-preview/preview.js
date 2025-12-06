@@ -4,7 +4,8 @@
  * Loads and plays animations from the animations.json manifest.
  */
 
-const ANIMATIONS_PATH = '/animations/animations.json';
+// Allow overriding the animations path from the host page (useful in dev/proxy)
+const ANIMATIONS_PATH = (window && window.AKVJ_ANIMATIONS_PATH) || '/animations/animations.json';
 
 let animations = {};
 let currentMeta = null;
@@ -106,7 +107,8 @@ async function loadAnimation() {
 	}
 
 	// Load sprite image
-	const pngPath = `/animations/${channel}/${note}/${velocity}/${currentMeta.png}`;
+	const basePath = (window && window.AKVJ_ANIMATIONS_BASE) || '/animations';
+	const pngPath = `${basePath}/${channel}/${note}/${velocity}/${currentMeta.png}`;
 	spriteImage = new Image();
 	spriteImage.onload = () => {
 		setupCanvas();
@@ -119,6 +121,8 @@ async function loadAnimation() {
 	spriteImage.onerror = () => {
 		metaDisplay.textContent += `\n\nError loading: ${pngPath}`;
 	};
+	// Stop any previous animation frame while loading new image
+	stopAnimation();
 	spriteImage.src = pngPath;
 }
 
@@ -203,6 +207,33 @@ function animate() {
 	drawFrame();
 	animationId = requestAnimationFrame(animate);
 }
+
+/**
+ * Stop the animation frame loop.
+ */
+function stopAnimation() {
+	if (animationId) {
+		cancelAnimationFrame(animationId);
+		animationId = null;
+	}
+}
+
+// Pause/Resume on page visibility to avoid unnecessary CPU usage
+document.addEventListener('visibilitychange', () => {
+	if (document.hidden) {
+		stopAnimation();
+	} else {
+		if (currentMeta && !animationId) {
+			lastFrameTime = performance.now();
+			animate();
+		}
+	}
+});
+
+// Ensure animation loop is cleaned up on page unload
+window.addEventListener('beforeunload', () => {
+	stopAnimation();
+});
 
 // Event listeners
 channelSelect.addEventListener('change', populateNotes);

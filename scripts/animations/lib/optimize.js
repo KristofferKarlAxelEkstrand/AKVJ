@@ -49,25 +49,41 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 	if (sharp) {
 		// Try palette optimization first
 		const tempPath = cachePath + '.tmp';
-		await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(tempPath);
+		let tempExists = false;
+		try {
+			await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(tempPath);
+			tempExists = true;
 
-		const tempStats = await fs.stat(tempPath);
+			const tempStats = await fs.stat(tempPath);
 
-		// Only keep optimized version if it's smaller
-		if (tempStats.size < originalSize) {
-			await fs.rename(tempPath, cachePath);
-			optimizedSize = tempStats.size;
-		} else {
-			// Original is smaller, just copy it
-			await fs.unlink(tempPath);
+			// Only keep optimized version if it's smaller
+			if (tempStats.size < originalSize) {
+				await fs.rename(tempPath, cachePath);
+				optimizedSize = tempStats.size;
+			} else {
+				// Original is smaller, just copy it
+				await fs.unlink(tempPath);
+				await fs.copyFile(sourcePath, cachePath);
+			}
+		} catch (err) {
+			// If optimization fails, attempt to clean up temp file and copy original
+			try {
+				if (tempExists) {
+					await fs.unlink(tempPath);
+				}
+			} catch {
+				// Ignore cleanup errors
+			}
 			await fs.copyFile(sourcePath, cachePath);
+			// Re-throw to be handled by caller
+			throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	} else {
 		// No sharp available, just copy
 		await fs.copyFile(sourcePath, cachePath);
 	}
 
-	// Write hash sidecar
+	// Write hash sidecar; recompute source hash immediately after the copy
 	const sourceHash = await hashFile(sourcePath);
 	await writeHashFile(cachePath + '.hash', sourceHash);
 

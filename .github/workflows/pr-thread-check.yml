@@ -7,6 +7,9 @@ on:
 jobs:
     check-resolved-threads:
         runs-on: ubuntu-latest
+      permissions:
+        pull-requests: read
+        contents: read
         steps:
             - name: Checkout repo
               uses: actions/checkout@v4

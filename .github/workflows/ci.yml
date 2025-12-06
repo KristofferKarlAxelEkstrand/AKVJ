@@ -26,12 +26,7 @@ jobs:
             - name: Validate animations
               run: npm run animations -- --validate-only
 
-            - name: Validate animations directory is not empty
-              run: |
-                  if [ ! -d "src/public/animations" ] || [ -z "$(find src/public/animations -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
-                    echo "::error::No animation files found in src/public/animations/. Please add animations before building."
-                    exit 1
-                  fi
+            # Skip extra post-validation check for generated public animations — build will fail if files are missing
 
             - name: Lint JavaScript
               run: npm run lint

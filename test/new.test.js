@@ -1,10 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { describe, test, expect, afterEach } from 'vitest';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
-
-const execFileAsync = promisify(execFile);
+import { createAnimation } from '../scripts/animations/new.js';
 
 const ANIM_ROOT = path.join(process.cwd(), 'animations');
 
@@ -26,8 +23,8 @@ describe('scripts/animations/new.js', () => {
 		// Ensure it's gone first
 		await cleanup(path.join(ANIM_ROOT, channel));
 
-		// Run the scaffolding script
-		await execFileAsync('node', ['scripts/animations/new.js', channel, note, velocity]);
+		// Run the scaffolding function directly
+		await createAnimation(channel, note, velocity);
 
 		// Check meta.json exists and contains png property
 		const metaPath = path.join(dir, 'meta.json');

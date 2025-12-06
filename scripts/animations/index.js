@@ -76,7 +76,7 @@ Directories:
  * Run the full pipeline.
  * @param {Object} options - Pipeline options
  */
-async function run(options = {}) {
+export async function run(options = {}) {
 	const startTime = performance.now();
 
 	console.log('Animation Pipeline');
@@ -199,31 +199,36 @@ async function watchMode() {
 	chokidar.default.watch(SOURCE_DIR, { ignoreInitial: true }).on('all', rebuild);
 }
 
-// Main entry point
-const options = parseArgs();
+// Main entry point wrapped in async IIFE so we can await properly
+(async () => {
+	const options = parseArgs();
 
-if (options.help) {
-	printHelp();
-	process.exit(0);
-}
+	if (options.help) {
+		printHelp();
+		process.exit(0);
+	}
 
-if (options.clean) {
-	console.log('Cleaning cache and output...');
-	await clean(CACHE_DIR, PUBLIC_DIR);
-	console.log('Done');
-	process.exit(0);
-}
+	if (options.clean) {
+		console.log('Cleaning cache and output...');
+		await clean(CACHE_DIR, PUBLIC_DIR);
+		console.log('Done');
+		process.exit(0);
+	}
 
-if (options.watch) {
-	// watchMode returns a promise; add error handling to avoid unhandled rejections
-	// Run watch mode and report errors but don't exit the process — keep the watcher alive
-	watchMode().catch(err => {
-		console.error('Watch mode failed:', err);
-		// Do not exit here: keep watching and log errors only
-	});
-} else {
-	run(options).catch(err => {
-		console.error('Pipeline error:', err.message);
-		process.exit(1);
-	});
-}
+	if (options.watch) {
+		try {
+			// Await initial setup; error here should exit
+			await watchMode();
+		} catch (err) {
+			console.error('Watch mode failed:', err);
+			process.exit(1);
+		}
+	} else {
+		try {
+			await run(options);
+		} catch (err) {
+			console.error('Pipeline error:', err.message);
+			process.exit(1);
+		}
+	}
+})();

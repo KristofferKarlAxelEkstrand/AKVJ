@@ -29,7 +29,7 @@ const template = {
 	frameRatesForFrames: { 0: 12 }
 };
 
-async function createAnimation(channel, note, velocity) {
+export async function createAnimation(channel, note, velocity) {
 	const dir = path.join(ROOT, 'animations', channel, note, velocity);
 
 	// Check if already exists
@@ -53,6 +53,7 @@ async function createAnimation(channel, note, velocity) {
 }
 
 const [, , channel, note, velocity] = process.argv;
+const isCli = import.meta.url === `file://${process.argv[1]}` || (process.argv[1] && process.argv[1].endsWith('new.js'));
 
 if (!channel || !note || !velocity) {
 	console.log('Animation Scaffolding Tool');
@@ -62,20 +63,26 @@ if (!channel || !note || !velocity) {
 	console.log('Example:');
 	console.log('  node scripts/animations/new.js 0 5 0');
 	console.log('  Creates: animations/0/5/0/meta.json with template');
-	process.exit(1);
-}
-
-// Validate inputs are numbers
-for (const [name, value] of [
-	['channel', channel],
-	['note', note],
-	['velocity', velocity]
-]) {
-	const num = parseInt(value, 10);
-	if (isNaN(num) || num < 0) {
-		console.error(`Error: ${name} must be a non-negative number, got "${value}"`);
+	if (isCli) {
 		process.exit(1);
 	}
 }
 
-createAnimation(channel, note, velocity);
+// Validate inputs are numbers (only in CLI mode)
+if (isCli) {
+	for (const [name, value] of [
+		['channel', channel],
+		['note', note],
+		['velocity', velocity]
+	]) {
+		const num = parseInt(value, 10);
+		if (isNaN(num) || num < 0) {
+			const msg = `Error: ${name} must be a non-negative number, got "${value}"`;
+			console.error(msg);
+			process.exit(1);
+		}
+	}
+}
+if (isCli) {
+	createAnimation(channel, note, velocity);
+}
