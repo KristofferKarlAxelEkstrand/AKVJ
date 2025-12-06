@@ -124,6 +124,7 @@ Post-check & Copilot step
     - Post a final PR comment summarizing what was done and tagging @copilot (or the Copilot reviewer bot) asking for a final automated review.
     - If you have repository permissions, also request a GitHub review from Copilot via the MCP.
     - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
+    - If you pushed additional changes after addressing comments, re-request a Copilot review on the PR (either by tagging @copilot in a follow-up comment or re-requesting a review via the MCP tools) so Copilot can double-check any new edits.
 
 Examples (short, focused language):
 
