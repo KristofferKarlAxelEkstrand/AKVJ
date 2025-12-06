@@ -3,7 +3,12 @@
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 
+/**
+ * LayerManager - Manages state and updates for all visual layers
+ * @typedef {import('./AnimationLayer.js').default} AnimationLayer
+ */
 class LayerManager {
+	/** @type {Array<Array<AnimationLayer|null>>} */
 	#canvasLayers = [];
 	#animations = {};
 	#velocityCache = new Map(); // Map<channel, Map<note, number[]>>
@@ -107,11 +112,13 @@ class LayerManager {
 	 * Clear all active layers and stop their animations
 	 */
 	clearLayers() {
-		for (const channel of this.#canvasLayers) {
-			if (!channel) {
+		// Each entry in #canvasLayers is an array of layers for a MIDI channel
+		// channelLayers: Array<AnimationLayer|null>
+		for (const channelLayers of this.#canvasLayers) {
+			if (!channelLayers) {
 				continue;
 			}
-			for (const layer of channel) {
+			for (const layer of channelLayers) {
 				if (layer) {
 					layer.stop();
 					// Dispose of any image resources the layer may hold (no-op if not present)
@@ -129,9 +136,9 @@ class LayerManager {
 	 */
 	getLayerStats() {
 		let activeCount = 0;
-		for (const channel of this.#canvasLayers) {
-			if (channel) {
-				for (const layer of channel) {
+		for (const channelLayers of this.#canvasLayers) {
+			if (channelLayers) {
+				for (const layer of channelLayers) {
 					if (layer) {
 						activeCount++;
 					}
