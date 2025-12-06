@@ -99,6 +99,12 @@ async function loadAnimation() {
 
 	metaDisplay.textContent = JSON.stringify(currentMeta, null, 2);
 
+	// Validate png field exists
+	if (!currentMeta.png) {
+		metaDisplay.textContent += `\n\nError: currentMeta.png is missing for ${channel}/${note}/${velocity}`;
+		return;
+	}
+
 	// Load sprite image
 	const pngPath = `/animations/${channel}/${note}/${velocity}/${currentMeta.png}`;
 	spriteImage = new Image();
@@ -148,7 +154,11 @@ function getFrameRate() {
 
 	// Find the applicable frame rate (last defined rate <= current frame)
 	let rate = 12;
-	for (const [frame, r] of Object.entries(currentMeta.frameRatesForFrames)) {
+	const entries = Object.entries(currentMeta.frameRatesForFrames)
+		.map(([k, v]) => [Number(k), v])
+		.sort((a, b) => a[0] - b[0]);
+
+	for (const [frame, r] of entries) {
 		if (Number(frame) <= currentFrame) {
 			rate = r;
 		}

@@ -215,7 +215,11 @@ if (options.clean) {
 }
 
 if (options.watch) {
-	watchMode();
+	// watchMode returns a promise; add error handling to avoid unhandled rejections
+	watchMode().catch(err => {
+		console.error('Watch mode failed:', err);
+		process.exit(1);
+	});
 } else {
 	run(options).catch(err => {
 		console.error('Pipeline error:', err.message);

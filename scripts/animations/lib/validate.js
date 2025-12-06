@@ -93,7 +93,12 @@ async function validateAnimation(animationDir, animationPath) {
 				pngPath = path.join(animationDir, meta.png);
 			} else {
 				errors.push(`meta.json specifies png "${meta.png}" but file not found`);
-				pngPath = path.join(animationDir, pngFiles[0]);
+				// Use the found png as a fallback and update meta to reflect the used file
+				const fallback = pngFiles[0];
+				pngPath = path.join(animationDir, fallback);
+				if (meta) {
+					meta.png = fallback;
+				}
 			}
 		} else {
 			pngPath = path.join(animationDir, pngFiles[0]);
@@ -118,7 +123,7 @@ async function validateAnimation(animationDir, animationPath) {
 			errors.push('retrigger must be a boolean');
 		}
 
-		if (meta.frameRatesForFrames !== undefined) {
+		if (meta.frameRatesForFrames !== undefined && meta.frameRatesForFrames !== null) {
 			if (typeof meta.frameRatesForFrames !== 'object') {
 				errors.push('frameRatesForFrames must be an object');
 			} else {

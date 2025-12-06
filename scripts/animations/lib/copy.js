@@ -117,7 +117,8 @@ async function removeEmptyDirs(dir) {
 		// Check if directory is now empty
 		const remaining = await fs.readdir(dir);
 		if (remaining.length === 0) {
-			await fs.rmdir(dir);
+			// fs.rmdir is deprecated; use fs.rm
+			await fs.rm(dir);
 		}
 	} catch {
 		// Ignore errors
