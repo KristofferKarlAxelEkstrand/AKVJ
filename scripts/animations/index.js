@@ -216,9 +216,10 @@ if (options.clean) {
 
 if (options.watch) {
 	// watchMode returns a promise; add error handling to avoid unhandled rejections
+	// Run watch mode and report errors but don't exit the process — keep the watcher alive
 	watchMode().catch(err => {
 		console.error('Watch mode failed:', err);
-		process.exit(1);
+		// Do not exit here: keep watching and log errors only
 	});
 } else {
 	run(options).catch(err => {

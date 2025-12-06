@@ -48,8 +48,8 @@ export async function generate(sourceDir, outputPath) {
 				const pngFiles = await getFilesWithExtension(velocityDir, '.png');
 				const jsonFiles = await getFilesWithExtension(velocityDir, '.json');
 
-				// Skip hash files
-				const pngFile = pngFiles.find(f => !f.endsWith('.hash'));
+				// Use the first PNG file in the directory (getFilesWithExtension already filters by extension)
+				const pngFile = pngFiles[0];
 				const jsonFile = jsonFiles.find(f => f === 'meta.json') || jsonFiles.find(f => !f.endsWith('.hash'));
 
 				const metadata = jsonFile ? await parseJsonFile(path.join(velocityDir, jsonFile)) : {};
