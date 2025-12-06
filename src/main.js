@@ -6,7 +6,15 @@ import './js/adventure-kid-video-jockey.js';
 
 // Import functions
 import './js/midi.js';
-import { fullscreen } from './js/fullscreen.js';
+import Fullscreen from './js/fullscreen.js';
 
 // Enable fullscreen functionality
-fullscreen();
+const fullscreenManager = new Fullscreen();
+fullscreenManager.init();
+
+// Cleanup on hot module replacement (HMR)
+if (import.meta.hot) {
+	import.meta.hot.dispose(() => {
+		fullscreenManager.destroy();
+	});
+}
