@@ -40,6 +40,10 @@ class AnimationLayer {
 	}
 
 	play() {
+		if (!this.#image) {
+			return;
+		}
+
 		const currentTime = performance.now();
 
 		// Check if animation completed (non-looping)
@@ -89,6 +93,15 @@ class AnimationLayer {
 	#updateFramePosition() {
 		this.#currentFramePositionY = Math.floor(this.#frame / this.#framesPerRow);
 		this.#currentFramePositionX = this.#frame - this.#currentFramePositionY * this.#framesPerRow;
+	}
+
+	/**
+	 * Dispose of image resources to help garbage collection
+	 */
+	dispose() {
+		if (this.#image) {
+			this.#image = null;
+		}
 	}
 }
 

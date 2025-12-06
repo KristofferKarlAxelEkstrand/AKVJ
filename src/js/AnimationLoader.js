@@ -110,6 +110,32 @@ class AnimationLoader {
 
 		return animations;
 	}
+
+	/**
+	 * Clean up loaded image resources from animations object.
+	 * Iterates through all layers and calls dispose() to clear image references.
+	 *
+	 * @param {Object} animations - Nested object containing loaded animation layers.
+	 * Expected structure: { [channel]: { [note]: { [velocityLayer]: AnimationLayer } } }
+	 * Each AnimationLayer must have a dispose() method.
+	 */
+	cleanup(animations) {
+		if (!animations) {
+			return;
+		}
+
+		for (const channel of Object.values(animations)) {
+			for (const note of Object.values(channel)) {
+				for (const layer of Object.values(note)) {
+					try {
+						layer.dispose();
+					} catch (error) {
+						console.error('Failed to dispose animation layer:', error);
+					}
+				}
+			}
+		}
+	}
 }
 
 export default AnimationLoader;
