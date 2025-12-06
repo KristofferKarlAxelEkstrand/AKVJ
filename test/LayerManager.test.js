@@ -1,3 +1,4 @@
+import { describe, test, expect, vi } from 'vitest';
 import LayerManager from '../src/js/visuals/LayerManager.js';
 
 describe('LayerManager', () => {
@@ -71,7 +72,7 @@ describe('LayerManager - velocity selection', () => {
 });
 
 describe('LayerManager - clearLayers', () => {
-	test('clearLayers stops and disposes active layers', () => {
+	test('clearLayers stops, disposes, and removes all active layers', () => {
 		const lm = new LayerManager();
 		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
 

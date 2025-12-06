@@ -86,7 +86,7 @@ describe('AnimationLayer', () => {
 				})
 			);
 
-			// First play should draw frame 0
+			// First play call should render the initial frame without requiring time to elapse
 			layer.play();
 
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
