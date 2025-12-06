@@ -23,6 +23,11 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
+            - name: Validate animations
+              run: npm run animations -- --validate-only
+
+            # Skip extra post-validation check for generated public animations — build will fail if files are missing
+
             - name: Lint JavaScript
               run: npm run lint
 
@@ -39,8 +44,12 @@ jobs:
             - name: Run tests
               run: npm run test
 
-            - name: Build
-              run: npm run build
+            - name: Build (generate animations + vite build)
+              run: npm run build:full
 
-            - name: Generate animation metadata
-              run: npm run generate-animation-json-to-json
+            - name: Verify public animations generated
+              run: |
+                  if [ ! -d "src/public/animations" ] || [ -z "$(find src/public/animations -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
+                    echo "::error::No generated animation files found in src/public/animations/. Build step should generate these files."
+                    exit 1
+                  fi

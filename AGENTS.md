@@ -139,4 +139,38 @@ Common issues and steps to investigate:
 - Dev server port conflicts
     - If port 5173 is in use, Vite may start on 5174. Use `--port` or set the `server.port` in `vite.config.js` to a fixed port.
 
+### Git push / GITHUB_TOKEN issues
+
+If you encounter permission errors when trying to push commits from a dev container or remote environment (e.g., "403: The requested URL returned error: 403"), here are common causes and quick fixes.
+
+- Symptom: `git push` fails with 403/permission denied or the remote rejects the push.
+    - Cause: The environment has an exported `GITHUB_TOKEN` or other restricted token that the Git CLI uses with HTTPS remotes, and that token lacks write permission for the repository/branch.
+
+- Quick fixes (Bash):
+
+```bash
+# Unset an environment token temporarily for this shell session
+unset GITHUB_TOKEN
+
+# Verify remote URL — prefer SSH for pushing if you have an SSH key
+git remote -v
+
+# If using SSH, ensure SSH key is loaded and test:
+ssh -T git@github.com
+
+# Use GitHub CLI to log in with your user credentials (recommended)
+gh auth login
+
+# As a last resort (not recommended for security): push with an HTTPS PAT inline (avoid committing this):
+# git push https://<YOUR_PERSONAL_ACCESS_TOKEN>@github.com/OWNER/REPO.git
+```
+
+- Other tips:
+    - If you use a dev container or CI, the container may have `GITHUB_TOKEN` set by Actions or system configuration. Unset it and re-run push if your local credentials are configured.
+    - Use `gh auth login` to set up an authenticated session with the GitHub CLI; this will use the correct token or SSH under the hood.
+    - Confirm your GitHub account has write permissions on the repository and branch.
+    - If the remote is set using HTTPS but you wish to use SSH, change the remote: `git remote set-url origin git@github.com:OWNER/REPO.git`.
+
+If you still can't push, please capture the exact error and context (remote URL, `git remote -v`, and the output of `ssh -T git@github.com`), then create an issue with those details so a maintainer can assist.
+
 If you still have trouble, check the docs in `docs/`, review browser console logs and create an issue with relevant logs and reproduction steps.

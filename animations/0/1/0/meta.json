@@ -1,5 +1,5 @@
 {
-	"minVelocity": 0,
+	"png": "sprite.png",
 	"numberOfFrames": 64,
 	"framesPerRow": 8,
 	"loop": true,

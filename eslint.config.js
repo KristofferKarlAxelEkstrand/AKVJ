@@ -11,6 +11,7 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.browser,
+				...globals.node,
 				beforeEach: true,
 				afterEach: true,
 				beforeAll: true,
@@ -42,7 +43,7 @@ export default [
 	},
 	// Node config for build/dev tools
 	{
-		files: ['*.config.js', 'generateAnimationsJson.js'],
+		files: ['*.config.js', 'scripts/**/*.js'],
 		languageOptions: {
 			globals: {
 				...globals.node
