@@ -18,8 +18,10 @@ jobs:
               uses: actions/github-script@v7
               with:
                   github-token: ${{ secrets.GITHUB_TOKEN }}
-                  script: |
-                      // 'core' is injected by actions/github-script, do not re-import
+                    script: |
+                      // NOTE: `actions/github-script` injects helpers (core, github, context)
+                      // Do not `require('@actions/core')` inside this inline script —
+                      // re-declaring `core` will throw a SyntaxError.
                       try {
                       const owner = context.repo.owner;
                       const repo = context.repo.repo;
