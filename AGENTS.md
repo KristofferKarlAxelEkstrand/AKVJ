@@ -32,14 +32,15 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 ## Key Files
 
-| File                                     | Purpose                            |
-| ---------------------------------------- | ---------------------------------- |
-| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element) |
-| `src/js/midi-input/midi.js`              | Web MIDI API with hot-plug support |
-| `src/js/visuals/Renderer.js`             | 60fps canvas rendering loop        |
-| `src/js/visuals/LayerManager.js`         | Visual layer state management      |
-| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading        |
-| `src/js/visuals/AnimationLayer.js`       | Individual animation playback      |
+| File                                     | Purpose                                  |
+| ---------------------------------------- | ---------------------------------------- |
+| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)       |
+| `src/js/midi-input/midi.js`              | Web MIDI API with hot-plug support       |
+| `src/js/visuals/Renderer.js`             | 60fps canvas rendering loop              |
+| `src/js/visuals/LayerManager.js`         | Visual layer state management            |
+| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading              |
+| `src/js/visuals/AnimationLayer.js`       | Individual animation playback            |
+| `src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick) |
 
 ## Common Commands
 
@@ -48,6 +49,9 @@ npm run dev          # Start development server (localhost:5173)
 npm run build        # Production build (<1 second)
 npm run lint         # Check code quality
 npm run lint:fix     # Auto-fix lint issues
+npm run format:prettier # Format JS/JSON/Markdown
+npm run format:stylelint # Format & lint CSS
+npm run generate-animation-json-to-json # Rebuild animation metadata
 ```
 
 ## MIDI Mapping
