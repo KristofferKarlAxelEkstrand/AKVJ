@@ -11,6 +11,7 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.browser,
+				...globals.node,
 				beforeEach: true,
 				afterEach: true,
 				beforeAll: true,
