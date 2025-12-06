@@ -153,6 +153,32 @@ describe('AnimationLayer', () => {
 			// Verify no additional draw after completion
 			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
 		});
+
+		it('wraps back to frame 0 when looping is enabled', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 2,
+					framesPerRow: 2,
+					loop: true,
+					frameRatesForFrames: { 0: 1000 }
+				})
+			);
+
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+			layer.play(); // draw frame 0
+
+			mockNow.mockReturnValue(10);
+			layer.play(); // draw frame 1
+
+			mockNow.mockReturnValue(20);
+			layer.play(); // should wrap back to frame 0
+
+			// Verify last draw was frame 0
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+		});
 	});
 
 	describe('stop()', () => {
