@@ -52,6 +52,28 @@ Recommended extensions (already suggested in `.vscode/extensions.json`):
 - `esbenp.prettier-vscode` (Prettier)
 - `dbaeumer.vscode-eslint` (ESLint)
 
+#### Install recommended extensions
+
+To install the recommended extensions locally for this workspace, open the Extensions pane in VS Code and search for each one; OR run the following commands on machines with the VS Code `code` CLI installed:
+
+```bash
+code --install-extension esbenp.prettier-vscode
+code --install-extension dbaeumer.vscode-eslint
+```
+
+If you prefer to enable these settings globally rather than per-workspace, open **Preferences › Settings**, use the JSON editor, and add the following global settings:
+
+```json
+{
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll": true,
+		"source.fixAll.eslint": true
+	}
+}
+```
+
 ### 3. Test Your Changes
 
 ```bash

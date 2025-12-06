@@ -29,8 +29,11 @@ jobs:
             - name: Lint CSS
               run: npx stylelint "**/*.css"
 
-            - name: Check formatting
+            - name: Check formatting (prettier)
               run: npx prettier --check .
+
+            - name: Check formatting (npm script)
+              run: npm run format:prettier -- --check
 
             - name: Run tests
               run: npm run test
