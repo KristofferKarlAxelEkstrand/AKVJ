@@ -38,7 +38,7 @@ const settings = {
 		// Canvas rendering settings
 		imageSmoothingEnabled: false,
 		imageSmoothingQuality: 'low',
-		fillStyle: '#000000'
+		backgroundColor: '#000000'
 	}
 };
 

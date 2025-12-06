@@ -113,6 +113,12 @@ Each note can contain multiple velocity layers for dynamic expression:
 
 The system automatically selects the appropriate velocity layer based on MIDI input velocity.
 
+Velocity selection rules
+
+- The highest defined velocity layer that does not exceed the MIDI input velocity will be chosen (e.g., if layers are defined at 40 and 80, an input velocity of 60 will select 40).
+- If the input velocity is lower than the lowest defined velocity layer, the note will be ignored (no layer is activated).
+- To change this behavior (for example, to always fallback to the lowest layer), modify `src/js/visuals/LayerManager.js`'s `#findVelocityLayer` implementation.
+
 ### Building Animation Index
 
 ```bash
@@ -171,10 +177,10 @@ AKVJ/
 │   ├── js/                         # Core JavaScript modules
 │   │   ├── core/AdventureKidVideoJockey.js  # Main VJ component
 │   │   ├── midi.js                 # Web MIDI API integration
-│   │   ├── LayerManager.js         # Visual layer management
-│   │   ├── Renderer.js             # Canvas rendering loop
-│   │   ├── AnimationLoader.js      # Sprite and metadata loading
-│   │   ├── AnimationLayer.js       # Individual animation playback
+│   │   ├── visuals/LayerManager.js  # Visual layer management
+│   │   ├── visuals/Renderer.js      # Canvas rendering loop
+│   │   ├── visuals/AnimationLoader.js      # Sprite and metadata loading
+│   │   ├── visuals/AnimationLayer.js       # Individual animation playback
 │   │   ├── core/settings.js             # Configuration constants
 │   │   ├── core/AppState.js            # Global state management
 │   │   └── fullscreen.js           # Fullscreen functionality

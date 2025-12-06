@@ -36,10 +36,10 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 | ---------------------------------------- | ---------------------------------- |
 | `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element) |
 | `src/js/midi.js`                         | Web MIDI API with hot-plug support |
-| `src/js/Renderer.js`                     | 60fps canvas rendering loop        |
-| `src/js/LayerManager.js`                 | Visual layer state management      |
-| `src/js/AnimationLoader.js`              | Sprite and metadata loading        |
-| `src/js/AnimationLayer.js`               | Individual animation playback      |
+| `src/js/visuals/Renderer.js`             | 60fps canvas rendering loop        |
+| `src/js/visuals/LayerManager.js`         | Visual layer state management      |
+| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading        |
+| `src/js/visuals/AnimationLayer.js`       | Individual animation playback      |
 
 ## Common Commands
 

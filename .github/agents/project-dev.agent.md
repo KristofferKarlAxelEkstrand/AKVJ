@@ -27,15 +27,15 @@ AKVJ (Adventure Kid Video Jockey) is a real-time VJ application for live perform
 
 ### Core Classes (PascalCase filenames)
 
-| File                         | Class                     | Purpose                                            |
-| ---------------------------- | ------------------------- | -------------------------------------------------- |
-| `AdventureKidVideoJockey.js` | `AdventureKidVideoJockey` | Main custom element, orchestrates all modules      |
-| `AppState.js`                | `AppState`                | Event-based state management (extends EventTarget) |
-| `Fullscreen.js`              | `Fullscreen`              | Fullscreen toggle on Enter/Space/dblclick          |
-| `AnimationLayer.js`          | `AnimationLayer`          | Individual sprite animation playback               |
-| `AnimationLoader.js`         | `AnimationLoader`         | Load PNG sprites and JSON metadata                 |
-| `LayerManager.js`            | `LayerManager`            | Manage active animation layers by channel/note     |
-| `Renderer.js`                | `Renderer`                | 60fps requestAnimationFrame loop                   |
+| File                                | Class                     | Purpose                                            |
+| ----------------------------------- | ------------------------- | -------------------------------------------------- |
+| `AdventureKidVideoJockey.js`        | `AdventureKidVideoJockey` | Main custom element, orchestrates all modules      |
+| `AppState.js`                       | `AppState`                | Event-based state management (extends EventTarget) |
+| `Fullscreen.js`                     | `Fullscreen`              | Fullscreen toggle on Enter/Space/dblclick          |
+| `src/js/visuals/AnimationLayer.js`  | `AnimationLayer`          | Individual sprite animation playback               |
+| `src/js/visuals/AnimationLoader.js` | `AnimationLoader`         | Load PNG sprites and JSON metadata                 |
+| `src/js/visuals/LayerManager.js`    | `LayerManager`            | Manage active animation layers by channel/note     |
+| `src/js/visuals/Renderer.js`        | `Renderer`                | 60fps requestAnimationFrame loop                   |
 
 ### Non-Class Files (lowercase filenames)
 

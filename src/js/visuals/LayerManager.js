@@ -1,6 +1,6 @@
 /**
  * LayerManager - Manages state and updates for all visual layers
- * Extracted from adventure-kid-video-jockey.js for better separation of concerns
+ * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 
 class LayerManager {
@@ -56,7 +56,8 @@ class LayerManager {
 		}
 
 		// Find the highest velocity layer that doesn't exceed the input velocity
-		return velocities.findLast(v => v <= velocity) ?? velocities.at(-1);
+		// If none match (input velocity lower than lowest defined), return null
+		return velocities.findLast(v => v <= velocity) ?? null;
 	}
 
 	/**

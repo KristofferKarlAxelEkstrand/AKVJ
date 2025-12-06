@@ -1,8 +1,8 @@
 /**
  * Renderer - Contains the requestAnimationFrame loop and canvas drawing logic
- * Extracted from adventure-kid-video-jockey.js for better separation of concerns
+ * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
-import settings from './core/settings.js';
+import settings from '../core/settings.js';
 
 class Renderer {
 	#canvas2dContext;
@@ -13,6 +13,15 @@ class Renderer {
 	constructor(canvas2dContext, layerManager) {
 		this.#canvas2dContext = canvas2dContext;
 		this.#layerManager = layerManager;
+
+		// Configure canvas rendering quality and smoothing based on settings
+		try {
+			this.#canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
+			this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
+		} catch (err) {
+			// Some canvas contexts may not support imageSmoothingQuality - log a warning
+			console.warn('Image smoothing config not supported by this context:', err?.message ?? err);
+		}
 	}
 
 	/**
@@ -44,8 +53,11 @@ class Renderer {
 			return;
 		}
 
-		// Clear canvas with background color
+		// Clear the canvas background using settings.rendering.backgroundColor (restore fillStyle afterwards)
+		const previousFillStyle = this.#canvas2dContext.fillStyle;
+		this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
 		this.#canvas2dContext.fillRect(0, 0, settings.canvas.width, settings.canvas.height);
+		this.#canvas2dContext.fillStyle = previousFillStyle;
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
 		const activeLayers = this.#layerManager.getActiveLayers();

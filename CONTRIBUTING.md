@@ -92,12 +92,12 @@ Push your branch and open a PR against `main`.
 
 ### Key Files
 
-| File                        | Purpose               |
-| --------------------------- | --------------------- |
-| `src/js/midi.js`            | Web MIDI API handling |
-| `src/js/Renderer.js`        | 60fps canvas loop     |
-| `src/js/LayerManager.js`    | Visual layer state    |
-| `src/js/AnimationLoader.js` | Sprite loading        |
+| File                                | Purpose               |
+| ----------------------------------- | --------------------- |
+| `src/js/midi.js`                    | Web MIDI API handling |
+| `src/js/visuals/Renderer.js`        | 60fps canvas loop     |
+| `src/js/visuals/LayerManager.js`    | Visual layer state    |
+| `src/js/visuals/AnimationLoader.js` | Sprite loading        |
 
 ## Adding Animations
 
@@ -116,6 +116,10 @@ After adding animations:
 ```bash
 npm run generate-animation-json-to-json
 ```
+
+Notes on velocity layer behavior:
+
+- When creating velocity variants for a note, remember the runtime mapping selects the highest configured velocity layer that is <= incoming MIDI velocity. If an input is lower than the lowest configured velocity, the note will not activate any layer (the event is ignored). If you want the system to always select the closest or lowest velocity layer, update `LayerManager.#findVelocityLayer`.
 
 ## Questions?
 

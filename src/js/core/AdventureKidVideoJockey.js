@@ -1,8 +1,8 @@
 import appState from './AppState.js';
 import settings from './settings.js';
-import AnimationLoader from '../AnimationLoader.js';
-import LayerManager from '../LayerManager.js';
-import Renderer from '../Renderer.js';
+import AnimationLoader from '../visuals/AnimationLoader.js';
+import LayerManager from '../visuals/LayerManager.js';
+import Renderer from '../visuals/Renderer.js';
 
 /**
  * Adventure Kid Video Jockey - Main rendering component
@@ -65,7 +65,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#canvas2dContext.webkitImageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
 		this.#canvas2dContext.mozImageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
 		this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
-		this.#canvas2dContext.fillStyle = settings.rendering.fillStyle;
+		this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
 		this.appendChild(this.#canvas);
 
 		// Set up MIDI event listeners

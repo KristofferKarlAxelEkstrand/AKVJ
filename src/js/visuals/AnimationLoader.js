@@ -1,6 +1,6 @@
 /**
  * AnimationLoader - Handles loading and parsing of PNG sprites and JSON metadata
- * Extracted from adventure-kid-video-jockey.js for better separation of concerns
+ * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 import AnimationLayer from './AnimationLayer.js';
 
@@ -92,8 +92,15 @@ class AnimationLoader {
 		const jsonData = await this.#loadAnimationsJson(jsonUrl);
 		const animations = {};
 
-		// Collect all load promises
-		const loadPromises = Object.entries(jsonData).flatMap(([channel, notes]) => Object.entries(notes).flatMap(([note, velocities]) => Object.entries(velocities).map(([velocityLayer, animationData]) => this.#loadAnimation(channel, note, velocityLayer, animationData))));
+		// Collect all load promises (expanded to improve readability)
+		const loadPromises = [];
+		for (const [channel, notes] of Object.entries(jsonData)) {
+			for (const [note, velocities] of Object.entries(notes)) {
+				for (const [velocityLayer, animationData] of Object.entries(velocities)) {
+					loadPromises.push(this.#loadAnimation(channel, note, velocityLayer, animationData));
+				}
+			}
+		}
 
 		// Load all animations in parallel
 		const results = await Promise.all(loadPromises);

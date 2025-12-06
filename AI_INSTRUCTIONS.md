@@ -44,6 +44,12 @@ AKVJ is a real-time VJ (Video Jockey) application designed for live visual perfo
     - ...and so on up to velocity 127
 - Higher velocity = more intense/dramatic animation variation
 
+Velocity selection behavior
+
+- The system chooses the highest available velocity layer that does not exceed the incoming MIDI velocity. This allows coarse-grained velocity thresholds to drive variation without accidental selection of higher-intensity animations on softer input.
+- If no configured velocity layer is <= the incoming velocity (i.e. the input is lower than the lowest defined layer), the selection algorithm returns `null` and no animation is triggered for that note.
+- If you require alternative behavior (for example, falling back to the lowest defined layer), adjust `LayerManager.#findVelocityLayer` accordingly.
+
 ### Pipeline Flow
 
 ```
