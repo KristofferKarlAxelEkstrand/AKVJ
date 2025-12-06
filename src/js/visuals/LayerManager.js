@@ -10,6 +10,7 @@ class LayerManager {
 
 	/**
 	 * Set the loaded animations reference and build velocity cache
+	 * @param {Object} animations - Animation data keyed by channel/note/velocity
 	 */
 	setAnimations(animations) {
 		this.#animations = animations;
@@ -37,6 +38,9 @@ class LayerManager {
 
 	/**
 	 * Handle MIDI note on event - activate animation layer
+	 * @param {number} channel - MIDI channel (0-15)
+	 * @param {number} note - MIDI note (0-127)
+	 * @param {number} velocity - MIDI velocity (0-127)
 	 */
 	noteOn(channel, note, velocity) {
 		if (!this.#animations[channel]?.[note]) {
@@ -61,6 +65,8 @@ class LayerManager {
 
 	/**
 	 * Handle MIDI note off event - deactivate animation layer
+	 * @param {number} channel - MIDI channel (0-15)
+	 * @param {number} note - MIDI note (0-127)
 	 */
 	noteOff(channel, note) {
 		if (this.#canvasLayers[channel]?.[note]) {
