@@ -72,6 +72,42 @@ Resolving review threads
         - If the thread is only superficially outdated (e.g., formatting changed), explicitly mention that and avoid dropping important issues silently.
         - If you are unsure, leave the thread open and ask a clarifying question instead of resolving it.
 
+- How to programmatically resolve review threads (GitHub GraphQL):
+    - The MCP tools do not expose a direct "resolve thread" action. Use the GitHub CLI (`gh`) with GraphQL mutations to resolve threads.
+    - Step 1: Get the review thread IDs for the PR:
+        ```bash
+        gh api graphql -f query='
+          query($owner: String!, $repo: String!, $number: Int!) {
+            repository(owner: $owner, name: $repo) {
+              pullRequest(number: $number) {
+                reviewThreads(first: 50) {
+                  nodes {
+                    id
+                    isResolved
+                    comments(first: 1) {
+                      nodes { body }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ' -f owner=OWNER -f repo=REPO -F number=PR_NUMBER
+        ```
+        Replace `OWNER`, `REPO`, and `PR_NUMBER` with the actual values.
+    - Step 2: For each thread you want to resolve, call the `resolveReviewThread` mutation:
+        ```bash
+        gh api graphql -f query='
+          mutation($threadId: ID!) {
+            resolveReviewThread(input: {threadId: $threadId}) {
+              thread { isResolved }
+            }
+          }
+        ' -f threadId="PRRT_xxxx"
+        ```
+        Replace `PRRT_xxxx` with the thread's `id` from Step 1.
+    - Tip: You can resolve multiple threads sequentially by chaining commands or looping over the thread IDs in a shell script.
+
 Post-check & Copilot step
 
 - After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
