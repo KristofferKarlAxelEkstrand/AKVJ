@@ -61,20 +61,25 @@ class LayerManager {
 	}
 
 	/**
-	 * Get all active canvas layers for rendering
+	 * Get all active canvas layers for rendering.
+	 * Returns internal array reference for performance. Do not mutate externally.
+	 * @returns {Array} Active canvas layers indexed by [channel][note]
 	 */
 	getActiveLayers() {
 		return this.#canvasLayers;
 	}
 
 	/**
-	 * Clear all active layers
+	 * Clear all active layers and stop their animations
 	 */
 	clearLayers() {
-		for (const layer of this.#canvasLayers) {
-			if (layer) {
-				for (const note of layer) {
-					note?.stop();
+		for (const channel of this.#canvasLayers) {
+			if (!channel) {
+				continue;
+			}
+			for (const note of channel) {
+				if (note) {
+					note.stop();
 				}
 			}
 		}

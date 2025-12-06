@@ -161,44 +161,31 @@ class MIDI {
 	}
 
 	#handleMIDIMessage(message) {
+		if (!message?.data || message.data.length < this.#messageMinLength) {
+			return;
+		}
+
+		const [status, note, velocity] = message.data;
+		const command = status >> 4;
+		const channel = status & 0xf;
+
 		try {
-			if (!message?.data || message.data.length < this.#messageMinLength) {
-				console.debug(`Ignoring malformed MIDI message: expected length >= ${this.#messageMinLength} got ${message?.data?.length ?? 0}`);
-				return;
-			}
-
-			const [status, note, velocity] = message.data;
-			const command = status >> 4;
-			const channel = status & 0xf;
-
 			switch (command) {
 				case this.#commandNoteOn:
 					if (velocity > 0) {
-						try {
-							appState.dispatchMIDINoteOn(channel, note, velocity);
-						} catch (err) {
-							console.error('Error dispatching MIDI note on:', err);
-						}
+						appState.dispatchMIDINoteOn(channel, note, velocity);
 					} else {
-						try {
-							appState.dispatchMIDINoteOff(channel, note);
-						} catch (err) {
-							console.error('Error dispatching MIDI note off (velocity 0):', err);
-						}
+						appState.dispatchMIDINoteOff(channel, note);
 					}
 					break;
 				case this.#commandNoteOff:
-					try {
-						appState.dispatchMIDINoteOff(channel, note);
-					} catch (err) {
-						console.error('Error dispatching MIDI note off:', err);
-					}
+					appState.dispatchMIDINoteOff(channel, note);
 					break;
 				default:
 					break;
 			}
 		} catch (error) {
-			console.error('Unhandled error in MIDI message handler:', error);
+			console.error('Error dispatching MIDI event:', error);
 		}
 	}
 
@@ -213,44 +200,39 @@ class MIDI {
 	 * Safe to call multiple times. Used for teardown in tests and HMR.
 	 */
 	destroy() {
-		try {
-			for (const input of this.#connectedInputs.values()) {
-				try {
-					if (typeof input.removeEventListener === 'function') {
-						input.removeEventListener('midimessage', this.#boundHandleMIDIMessage);
-					} else {
-						input.onmidimessage = null;
-					}
-				} catch (error) {
-					console.warn('Failed to clear midimessage on input:', input?.id, error);
+		// Disconnect all inputs
+		for (const input of this.#connectedInputs.values()) {
+			try {
+				if (typeof input.removeEventListener === 'function') {
+					input.removeEventListener('midimessage', this.#boundHandleMIDIMessage);
+				} else {
+					input.onmidimessage = null;
 				}
+			} catch (error) {
+				console.warn('Failed to clear midimessage on input:', input?.id, error);
 			}
-			this.#connectedInputs.clear();
-		} catch (error) {
-			console.warn('Error during MIDI input cleanup:', error);
+		}
+		this.#connectedInputs.clear();
+
+		// Remove statechange listener from midiAccess
+		if (this.#midiAccess) {
+			try {
+				if (typeof this.#midiAccess.removeEventListener === 'function') {
+					this.#midiAccess.removeEventListener('statechange', this.#boundStateChange);
+				} else {
+					this.#midiAccess.onstatechange = null;
+				}
+			} catch (error) {
+				console.warn('Failed to remove statechange handler:', error);
+			}
+			this.#midiAccess = null;
 		}
 
-		try {
-			if (this.#midiAccess) {
-				try {
-					if (typeof this.#midiAccess.removeEventListener === 'function') {
-						this.#midiAccess.removeEventListener('statechange', this.#boundStateChange);
-					} else {
-						this.#midiAccess.onstatechange = null;
-					}
-				} catch (error) {
-					console.warn('Failed to remove statechange handler:', error);
-				}
-				this.#midiAccess = null;
-			}
-		} catch (error) {
-			console.warn('Error clearing midiAccess:', error);
-		}
-
+		// Reset connection state
 		try {
 			appState.midiConnected = false;
 		} catch (err) {
-			console.warn('Failed to set appState.midiConnected = false during MIDI cleanup:', err);
+			console.warn('Failed to reset appState.midiConnected during cleanup:', err);
 		}
 	}
 }

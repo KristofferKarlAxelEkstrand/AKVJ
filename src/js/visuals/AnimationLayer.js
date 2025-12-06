@@ -38,7 +38,8 @@ class AnimationLayer {
 		this.#retrigger = retrigger;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
-		this.#defaultFrameRate = this.#frameRatesForFrames[0] ?? Object.values(this.#frameRatesForFrames)[0] ?? 1;
+		// Cache the default frame rate - prefer frame 0, otherwise use first defined value
+		this.#defaultFrameRate = frameRatesForFrames[0] ?? frameRatesForFrames[Object.keys(frameRatesForFrames)[0]] ?? 1;
 	}
 
 	/**

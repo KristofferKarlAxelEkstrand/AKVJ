@@ -4,7 +4,7 @@ import './css/adventure-kid-video-jockey.css';
 // Import elements
 import './js/core/AdventureKidVideoJockey.js';
 
-// Import functions
+// Import and initialize MIDI singleton (side-effect: starts listening for devices)
 import midi from './js/midi-input/midi.js';
 import Fullscreen from './js/utils/Fullscreen.js';
 

@@ -1,7 +1,11 @@
 /**
- * Event-based state management for AKVJ
- * Provides centralized state with event notifications for loose coupling
- * Handles all inter-module communication without direct references
+ * AppState - Event-based state management for AKVJ
+ *
+ * Provides centralized state with event notifications for loose coupling.
+ * Handles all inter-module communication without direct references.
+ * Extends EventTarget for native event dispatching and subscription.
+ *
+ * @extends EventTarget
  */
 class AppState extends EventTarget {
 	#midiConnected = false;
