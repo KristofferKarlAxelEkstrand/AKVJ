@@ -6,12 +6,33 @@
 class LayerManager {
 	#canvasLayers = [];
 	#animations = {};
+	#velocityCache = new Map(); // Map<channel, Map<note, number[]>>
 
 	/**
-	 * Set the loaded animations reference
+	 * Set the loaded animations reference and build velocity cache
 	 */
 	setAnimations(animations) {
 		this.#animations = animations;
+		this.#buildVelocityCache(animations);
+	}
+
+	/**
+	 * Build cache of sorted velocity keys for each channel/note combination
+	 * Uses nested Maps to avoid string key allocation in hot path
+	 */
+	#buildVelocityCache(animations) {
+		this.#velocityCache.clear();
+		for (const [channel, notes] of Object.entries(animations)) {
+			const channelNum = Number(channel);
+			const noteMap = new Map();
+			for (const [note, velocities] of Object.entries(notes)) {
+				const sorted = Object.keys(velocities)
+					.map(Number)
+					.sort((a, b) => a - b);
+				noteMap.set(Number(note), sorted);
+			}
+			this.#velocityCache.set(channelNum, noteMap);
+		}
 	}
 
 	/**
@@ -22,14 +43,20 @@ class LayerManager {
 			return;
 		}
 
-		const velocityLayer = this.#findVelocityLayer(velocity, this.#animations[channel][note]);
+		const velocityLayer = this.#findVelocityLayer(velocity, channel, note);
 
 		if (velocityLayer === null) {
 			return;
 		}
 
+		const layer = this.#animations[channel][note][velocityLayer];
+		if (!layer) {
+			return;
+		}
+		layer.reset();
+
 		this.#canvasLayers[channel] ??= [];
-		this.#canvasLayers[channel][note] = this.#animations[channel][note][velocityLayer];
+		this.#canvasLayers[channel][note] = layer;
 	}
 
 	/**
@@ -44,14 +71,15 @@ class LayerManager {
 
 	/**
 	 * Find the appropriate velocity layer based on input velocity
+	 * @param {number} velocity - Input velocity (0-127)
+	 * @param {number} channel - MIDI channel
+	 * @param {number} note - MIDI note
 	 * @returns {number|null} The velocity layer key, or null if none available
 	 */
-	#findVelocityLayer(velocity, channelNoteAnimations) {
-		const velocities = Object.keys(channelNoteAnimations)
-			.map(Number)
-			.sort((a, b) => a - b);
+	#findVelocityLayer(velocity, channel, note) {
+		const velocities = this.#velocityCache.get(channel)?.get(note);
 
-		if (velocities.length === 0) {
+		if (!velocities || velocities.length === 0) {
 			return null;
 		}
 

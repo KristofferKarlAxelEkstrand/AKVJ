@@ -3,7 +3,7 @@ import LayerManager from '../src/js/visuals/LayerManager.js';
 describe('LayerManager', () => {
 	test('setAnimations and noteOn/noteOff behavior', () => {
 		const lm = new LayerManager();
-		const fakeLayer = { play: vi.fn(), stop: vi.fn() };
+		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
 
 		const animations = {
 			0: {
@@ -29,8 +29,8 @@ describe('LayerManager', () => {
 describe('LayerManager - velocity selection', () => {
 	test('selects correct velocity layer with low/mid/high velocities', () => {
 		const lm = new LayerManager();
-		const fakeLayer40 = { play: vi.fn(), stop: vi.fn() };
-		const fakeLayer80 = { play: vi.fn(), stop: vi.fn() };
+		const fakeLayer40 = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
+		const fakeLayer80 = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
 
 		const animations = {
 			0: {

@@ -17,16 +17,6 @@ class Renderer {
 		this.#layerManager = layerManager;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
-
-		// Configure canvas rendering quality and smoothing based on settings
-		try {
-			this.#canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
-			this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
-			this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
-		} catch (err) {
-			// Some canvas contexts may not support imageSmoothingQuality - log a warning
-			console.warn('Image smoothing config not supported by this context:', err?.message ?? err);
-		}
 	}
 
 	/**
@@ -63,17 +53,10 @@ class Renderer {
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
 		const activeLayers = this.#layerManager.getActiveLayers();
-		for (const layer of activeLayers) {
-			if (layer) {
-				for (const note of layer) {
-					if (note) {
-						try {
-							note.play();
-						} catch (error) {
-							// Prevent a single layer error from stopping the render loop
-							console.error('Error rendering note:', error);
-						}
-					}
+		for (const channel of activeLayers) {
+			if (channel) {
+				for (const animation of channel) {
+					animation?.play();
 				}
 			}
 		}
