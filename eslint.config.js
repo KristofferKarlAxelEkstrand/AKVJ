@@ -5,6 +5,24 @@ import globals from 'globals';
 export default [
 	js.configs.recommended,
 	prettier,
+	// Test files override - support test globals and browser globals
+	{
+		files: ['test/**', '**/*.test.js'],
+		languageOptions: {
+			globals: {
+				...globals.browser,
+				beforeEach: true,
+				afterEach: true,
+				beforeAll: true,
+				afterAll: true,
+				vi: true,
+				describe: true,
+				test: true,
+				expect: true
+			}
+		}
+	},
+	// Main JS config
 	{
 		languageOptions: {
 			ecmaVersion: 'latest',
@@ -22,6 +40,7 @@ export default [
 			curly: ['error', 'all']
 		}
 	},
+	// Node config for build/dev tools
 	{
 		files: ['*.config.js', 'generateAnimationsJson.js'],
 		languageOptions: {
@@ -30,6 +49,7 @@ export default [
 			}
 		}
 	},
+	// Ignore artifact folders
 	{
 		ignores: ['dist/**', 'node_modules/**', 'src/public/**']
 	}

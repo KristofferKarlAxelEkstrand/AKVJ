@@ -24,6 +24,7 @@ class AnimationLayer {
 	#frame = 0;
 	#lastFrame = 0;
 	#lastTime = 0;
+	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 
 	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
 		this.#canvas2dContext = canvas2dContext;
@@ -37,8 +38,13 @@ class AnimationLayer {
 		this.#retrigger = retrigger;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
+		this.#defaultFrameRate = this.#frameRatesForFrames[0] ?? Object.values(this.#frameRatesForFrames)[0] ?? 1;
 	}
 
+	/**
+	 * Render the current animation frame and advance to the next frame if enough time has passed.
+	 * Called every frame by the Renderer. Handles frame timing, looping, and canvas drawing.
+	 */
 	play() {
 		if (!this.#image) {
 			return;
@@ -56,7 +62,7 @@ class AnimationLayer {
 		}
 
 		// Get frame rate for current frame
-		const framesPerSecond = this.#frameRatesForFrames[this.#lastFrame] ?? this.#frameRatesForFrames[0];
+		const framesPerSecond = this.#frameRatesForFrames[this.#lastFrame] ?? this.#defaultFrameRate;
 		const interval = 1000 / framesPerSecond;
 
 		// Advance frame if enough time has passed
@@ -76,6 +82,10 @@ class AnimationLayer {
 		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * this.#currentFramePositionX, this.#frameHeight * this.#currentFramePositionY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
 
+	/**
+	 * Stop the animation and optionally reset to the first frame.
+	 * Called when a MIDI note off event is received for this layer.
+	 */
 	stop() {
 		if (this.#retrigger) {
 			this.#resetState();

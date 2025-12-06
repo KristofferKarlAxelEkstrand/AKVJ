@@ -53,7 +53,12 @@ class Renderer {
 			if (layer) {
 				for (const note of layer) {
 					if (note) {
-						note.play();
+						try {
+							note.play();
+						} catch (error) {
+							// Prevent a single layer error from stopping the render loop
+							console.error('Error rendering note:', error);
+						}
 					}
 				}
 			}

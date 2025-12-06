@@ -1,4 +1,4 @@
-import appState from './app-state.js';
+import appState from './AppState.js';
 import settings from './settings.js';
 import AnimationLoader from './AnimationLoader.js';
 import LayerManager from './LayerManager.js';
@@ -72,22 +72,30 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#setupMIDIEventListeners();
 
 		this.#init();
-
-		// Notify app state that video jockey is ready
-		appState.notifyVideoJockeyReady();
 	}
 
 	disconnectedCallback() {
 		try {
 			this.#teardownMIDIEventListeners();
+		} catch (error) {
+			console.error('Error tearing down MIDI listeners:', error);
+		}
+		try {
 			this.#renderer.stop();
+		} catch (error) {
+			console.error('Error stopping renderer:', error);
+		}
+		try {
 			this.#layerManager.clearLayers();
+		} catch (error) {
+			console.error('Error clearing layers:', error);
+		}
+		try {
 			this.#animationLoader.cleanup(this.#animations);
 		} catch (error) {
-			console.error('Error during cleanup:', error);
-		} finally {
-			this.#animations = {};
+			console.error('Error cleaning up animations:', error);
 		}
+		this.#animations = {};
 	}
 
 	async #setUpAnimations(jsonUrl) {
@@ -97,7 +105,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			appState.animationsLoaded = true;
 			return this.#animations;
 		} catch (error) {
-			console.error('Failed to set up animations:', error);
+			console.error(`Failed to set up animations from ${jsonUrl}:`, error);
 			appState.animationsLoaded = false;
 			return {};
 		}
@@ -110,6 +118,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 		} else {
 			console.error('Renderer not started: Animations failed to load.');
 		}
+		// Notify after animations are loaded (or failed to load)
+		appState.notifyVideoJockeyReady();
 	}
 }
 

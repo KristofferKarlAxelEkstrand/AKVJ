@@ -1,6 +1,7 @@
 ---
 name: 'AKVJ-Developer'
 description: 'AKVJ project development assistant focused on real-time VJ application development'
+model: Raptor mini (Preview)
 target: vscode
 tools: ['runCommands', 'runTasks', 'edit', 'runNotebooks', 'search', 'new', 'extensions', 'todos', 'runSubagent', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'githubRepo']
 ---
@@ -9,60 +10,157 @@ tools: ['runCommands', 'runTasks', 'edit', 'runNotebooks', 'search', 'new', 'ext
 
 This agent is designed for AKVJ project development. Provide concise, actionable responses focused on code quality, best practices, and project-specific conventions.
 
-## Project Context
+## Project Overview
+
+AKVJ (Adventure Kid Video Jockey) is a real-time VJ application for live performance visuals. It listens to MIDI input and triggers pixel-perfect sprite animations for live performance.
+
+### Key Characteristics
 
 - **Real-time VJ application** using vanilla JavaScript and HTML5 Canvas
 - **Web MIDI API integration** for live performance with hot-plug support
-- **60fps rendering** requirement with low-latency MIDI response
+- **60fps rendering** requirement with low-latency MIDI response (<20ms)
 - **Pixel-perfect animations** at 240x135 resolution
 - **Chrome/Chromium dependency** for Web MIDI support
+- **No frameworks** - vanilla JavaScript ES6+ only
 
-## Key Priorities
+## Architecture
 
-1. Maintain real-time performance (60fps)
-2. Keep MIDI latency under 20ms
-3. Follow vanilla JavaScript architecture
-4. Optimize canvas operations
-5. Ensure live performance stability
+### Core Classes (PascalCase filenames)
 
-## Core Architecture
+| File                         | Class                     | Purpose                                            |
+| ---------------------------- | ------------------------- | -------------------------------------------------- |
+| `AdventureKidVideoJockey.js` | `AdventureKidVideoJockey` | Main custom element, orchestrates all modules      |
+| `AppState.js`                | `AppState`                | Event-based state management (extends EventTarget) |
+| `Fullscreen.js`              | `Fullscreen`              | Fullscreen toggle on Enter/Space/dblclick          |
+| `AnimationLayer.js`          | `AnimationLayer`          | Individual sprite animation playback               |
+| `AnimationLoader.js`         | `AnimationLoader`         | Load PNG sprites and JSON metadata                 |
+| `LayerManager.js`            | `LayerManager`            | Manage active animation layers by channel/note     |
+| `Renderer.js`                | `Renderer`                | 60fps requestAnimationFrame loop                   |
 
-- **Custom Elements**: Use `<adventure-kid-video-jockey>` pattern
-- **Modular Design**: LayerManager, Renderer, AnimationLoader, AnimationLayer
-- **MIDI Mapping**: Channel (0-15) → Layer, Note (0-127) → Animation, Velocity → Layer variant
-- **MIDI Hot-plug**: Devices can be connected/disconnected at runtime
-- **Animation System**: PNG sprites with JSON metadata in `/animations/{channel}/{note}/{velocity}/`
+### Non-Class Files (lowercase filenames)
+
+| File          | Purpose                                                 |
+| ------------- | ------------------------------------------------------- |
+| `main.js`     | Entry point, imports and initializes modules            |
+| `midi.js`     | Web MIDI API with hot-plug support (side-effect module) |
+| `settings.js` | Centralized configuration object                        |
+
+### Design Patterns
+
+- **Custom Elements**: `<adventure-kid-video-jockey>` with proper lifecycle (`connectedCallback`, `disconnectedCallback`)
+- **Private Class Fields**: Use `#fieldName` for encapsulation
+- **Event-Based Communication**: `AppState` extends `EventTarget` for loose coupling
+- **Unsubscribe Pattern**: `subscribe()` returns unsubscribe function for cleanup
+
+### MIDI Mapping
+
+- **Channel (0-15)** → Layer selection
+- **Note (0-127)** → Animation selection
+- **Velocity (0-127)** → Animation variant/intensity
+
+### Animation Structure
+
+Animations live in `src/public/animations/` organized as:
+
+```
+animations/{channel}/{note}/{velocity}/
+  ├── meta.json       # Frame count, timing, loop settings
+  └── *.png           # Sprite sheet
+```
+
+## Code Conventions
+
+### JavaScript Style
+
+- **Private fields**: `#fieldName` for all internal state
+- **Private methods**: `#methodName()` for internal logic
+- **Modern syntax**: `for...of`, `?.`, `??`, `??=`, `.at(-1)`, `flatMap()`
+- **Timing**: Use `performance.now()` for animation timing
+- **Bound handlers**: Cache bound methods for event listeners (e.g., `#boundHandleKeydown`)
+
+### Error Handling
+
+- Individual try-catch blocks in cleanup methods with specific error messages
+- Guard clauses for null/undefined checks
+- Log errors with context (e.g., include URL that failed)
+
+### Documentation
+
+- JSDoc for public methods with `@param` and `@returns`
+- Keep comments concise and practical
+- Class-level JSDoc for module purpose
+
+## Development Commands
+
+```bash
+npm run dev              # Start Vite dev server (localhost:5173)
+npm run build            # Production build (<1 second)
+npm run preview          # Preview production build (localhost:4173)
+npm run lint             # Check code quality with ESLint
+npm run lint:fix         # Auto-fix lint issues
+npm run format:prettier  # Format JS/JSON/Markdown
+npm run format:stylelint # Format and lint CSS
+npm run generate-animation-json-to-json  # Rebuild animation metadata
+```
+
+### Timing Notes
+
+- `npm install`: ~13 seconds - never cancel
+- `npm run build`: <1 second
+- `npm run dev`: starts in ~200ms
 
 ## Technology Stack
 
 - **Build**: Vite 7
-- **Linting**: ESLint 9 (flat config)
+- **Linting**: ESLint 9 (flat config in `eslint.config.js`)
 - **Formatting**: Prettier, Stylelint
-- **Git Hooks**: Husky + lint-staged for pre-commit checks
+- **Git Hooks**: Husky + lint-staged (auto-runs on commit)
 
-## File Structure
+## Validation Checklist
 
-- `src/main.js` - Entry point
-- `src/js/midi.js` - Web MIDI API with hot-plug support
-- `src/js/adventure-kid-video-jockey.js` - Main VJ component
-- `src/js/LayerManager.js` - Visual layer state management
-- `src/js/Renderer.js` - 60fps canvas rendering loop
-- `src/js/AnimationLoader.js` - Sprite and metadata loading
-- `src/js/AnimationLayer.js` - Individual animation playback
-- `src/js/app-state.js` - Event-based state management
-- `src/js/settings.js` - Configuration
-- `eslint.config.js` - ESLint flat config
+After making changes, always verify:
 
-## Development Commands
+1. `npm run lint` - No errors
+2. `npm run build` - Builds successfully
+3. Browser console - No errors, "JSON for animations loaded" message
+4. Manual test in Chrome/Chromium
 
-- `npm run dev` - Start Vite development server
-- `npm run build` - Build for production
-- `npm run lint` - Lint JavaScript with ESLint
-- `npm run lint:fix` - Lint and auto-fix issues
-- `npm run format:prettier` - Format code with Prettier
-- `npm run format:stylelint` - Lint and fix CSS
+## Key Performance Requirements
 
-Pre-commit hooks automatically run ESLint and Prettier on staged files.
+- **60fps rendering** - No blocking operations in render loop
+- **<20ms MIDI latency** - MIDI input to visual output near-instant
+- **Memory management** - Proper cleanup in `disconnectedCallback` and `dispose()` methods
+- **Canvas operations** - Optimize for pixel-perfect 240x135 rendering
+
+## Cleanup Pattern
+
+```javascript
+disconnectedCallback() {
+    try {
+        this.#teardownMIDIEventListeners();
+    } catch (error) {
+        console.error('Error tearing down MIDI listeners:', error);
+    }
+    try {
+        this.#renderer.stop();
+    } catch (error) {
+        console.error('Error stopping renderer:', error);
+    }
+    // ... individual try-catch for each cleanup step
+}
+```
+
+## HMR Support
+
+Main entry point includes hot module replacement cleanup:
+
+```javascript
+if (import.meta.hot) {
+	import.meta.hot.dispose(() => {
+		fullscreenManager.destroy();
+	});
+}
+```
 
 ## Communication Style
 

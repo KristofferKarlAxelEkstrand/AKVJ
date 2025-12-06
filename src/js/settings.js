@@ -2,7 +2,7 @@
  * Centralized configuration for AKVJ
  * Contains all configurable settings for canvas, MIDI, and performance
  */
-export const settings = {
+const settings = {
 	canvas: {
 		width: 240,
 		height: 135
@@ -17,9 +17,15 @@ export const settings = {
 			min: 0,
 			max: 127
 		},
+		messageMinLength: 3,
 		velocity: {
 			min: 0,
 			max: 127
+		},
+		// MIDI command codes (upper nibble of status byte)
+		commands: {
+			noteOff: 8,
+			noteOn: 9
 		}
 	},
 	performance: {

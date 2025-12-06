@@ -1,4 +1,5 @@
-import appState from './app-state.js';
+import appState from './AppState.js';
+import settings from './settings.js';
 
 /**
  * MIDI module - Handles Web MIDI API and device management only
@@ -9,6 +10,10 @@ class MIDI {
 	#midiAccess = null;
 	#connectedInputs = new Map();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
+	#boundStateChange = this.#handleStateChange.bind(this);
+	#messageMinLength = settings.midi.messageMinLength;
+	#commandNoteOn = settings.midi.commands.noteOn;
+	#commandNoteOff = settings.midi.commands.noteOff;
 
 	constructor() {
 		this.#init();
@@ -34,7 +39,6 @@ class MIDI {
 			this.#onMIDIFailure(error);
 		}
 	}
-
 	#onMIDISuccess(midiAccess) {
 		console.log('WebMIDI supported');
 		this.#setupMIDIInputs(midiAccess);
@@ -44,26 +48,40 @@ class MIDI {
 
 	#onMIDIFailure(error) {
 		console.error('Failed to get MIDI access:', error);
-		appState.midiConnected = false;
+		try {
+			appState.midiConnected = false;
+		} catch (err) {
+			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', err);
+		}
 	}
 
 	/**
 	 * Listen for MIDI device connect/disconnect events
 	 */
 	#setupStateChangeListener(midiAccess) {
-		midiAccess.onstatechange = event => {
-			const { port } = event;
-
-			if (port.type === 'input') {
-				if (port.state === 'connected') {
-					this.#connectInput(port);
-				} else if (port.state === 'disconnected') {
-					this.#disconnectInput(port);
-				}
+		try {
+			if (typeof midiAccess.addEventListener === 'function') {
+				midiAccess.addEventListener('statechange', this.#boundStateChange);
+			} else {
+				midiAccess.onstatechange = this.#boundStateChange;
 			}
+		} catch (err) {
+			console.warn('Failed to set up statechange listener:', err);
+		}
+	}
 
-			this.#updateConnectionState();
-		};
+	#handleStateChange(event) {
+		const { port } = event;
+
+		if (port && port.type === 'input') {
+			if (port.state === 'connected') {
+				this.#connectInput(port);
+			} else if (port.state === 'disconnected') {
+				this.#disconnectInput(port);
+			}
+		}
+
+		this.#updateConnectionState();
 	}
 
 	/**
@@ -83,7 +101,15 @@ class MIDI {
 			return; // Already connected
 		}
 
-		input.onmidimessage = this.#boundHandleMIDIMessage;
+		try {
+			if (typeof input.addEventListener === 'function') {
+				input.addEventListener('midimessage', this.#boundHandleMIDIMessage);
+			} else {
+				input.onmidimessage = this.#boundHandleMIDIMessage;
+			}
+		} catch (error) {
+			console.warn('Failed to attach midimessage handler for input:', input?.id, error);
+		}
 		this.#connectedInputs.set(input.id, input);
 		console.log(`MIDI connected: ${input.name}`);
 	}
@@ -96,7 +122,15 @@ class MIDI {
 			return; // Not connected
 		}
 
-		input.onmidimessage = null;
+		try {
+			if (typeof input.removeEventListener === 'function') {
+				input.removeEventListener('midimessage', this.#boundHandleMIDIMessage);
+			} else {
+				input.onmidimessage = null;
+			}
+		} catch (error) {
+			console.warn('Failed to clear midimessage handler for input:', input?.id, error);
+		}
 		this.#connectedInputs.delete(input.id);
 		console.log(`MIDI disconnected: ${input.name}`);
 	}
@@ -105,7 +139,11 @@ class MIDI {
 	 * Update app state based on connected devices
 	 */
 	#updateConnectionState() {
-		appState.midiConnected = this.#connectedInputs.size > 0;
+		try {
+			appState.midiConnected = this.#connectedInputs.size > 0;
+		} catch (err) {
+			console.warn('Failed to update appState.midiConnected state:', err);
+		}
 	}
 
 	/**
@@ -123,23 +161,96 @@ class MIDI {
 	}
 
 	#handleMIDIMessage(message) {
-		const [status, note, velocity] = message.data;
-		const command = status >> 4;
-		const channel = status & 0xf;
+		try {
+			if (!message?.data || message.data.length < this.#messageMinLength) {
+				console.debug(`Ignoring malformed MIDI message: expected length >= ${this.#messageMinLength} got ${message?.data?.length ?? 0}`);
+				return;
+			}
 
-		switch (command) {
-			case 9: // Note on
-				if (velocity > 0) {
-					appState.dispatchMIDINoteOn(channel, note, velocity);
-				} else {
-					appState.dispatchMIDINoteOff(channel, note);
+			const [status, note, velocity] = message.data;
+			const command = status >> 4;
+			const channel = status & 0xf;
+
+			switch (command) {
+				case this.#commandNoteOn:
+					if (velocity > 0) {
+						try {
+							appState.dispatchMIDINoteOn(channel, note, velocity);
+						} catch (err) {
+							console.error('Error dispatching MIDI note on:', err);
+						}
+					} else {
+						try {
+							appState.dispatchMIDINoteOff(channel, note);
+						} catch (err) {
+							console.error('Error dispatching MIDI note off (velocity 0):', err);
+						}
+					}
+					break;
+				case this.#commandNoteOff:
+					try {
+						appState.dispatchMIDINoteOff(channel, note);
+					} catch (err) {
+						console.error('Error dispatching MIDI note off:', err);
+					}
+					break;
+				default:
+					break;
+			}
+		} catch (error) {
+			console.error('Unhandled error in MIDI message handler:', error);
+		}
+	}
+
+	/**
+	 * Clean up all MIDI event listeners and disconnect all inputs.
+	 *
+	 * @public
+	 * @returns {void}
+	 * @description
+	 * Removes midimessage handlers from all connected inputs, clears the
+	 * statechange listener from midiAccess, and resets appState.midiConnected.
+	 * Safe to call multiple times. Used for teardown in tests and HMR.
+	 */
+	destroy() {
+		try {
+			for (const input of this.#connectedInputs.values()) {
+				try {
+					if (typeof input.removeEventListener === 'function') {
+						input.removeEventListener('midimessage', this.#boundHandleMIDIMessage);
+					} else {
+						input.onmidimessage = null;
+					}
+				} catch (error) {
+					console.warn('Failed to clear midimessage on input:', input?.id, error);
 				}
-				break;
-			case 8: // Note off
-				appState.dispatchMIDINoteOff(channel, note);
-				break;
-			default:
-				break;
+			}
+			this.#connectedInputs.clear();
+		} catch (error) {
+			console.warn('Error during MIDI input cleanup:', error);
+		}
+
+		try {
+			if (this.#midiAccess) {
+				try {
+					if (typeof this.#midiAccess.removeEventListener === 'function') {
+						this.#midiAccess.removeEventListener('statechange', this.#boundStateChange);
+					} else {
+						this.#midiAccess.onstatechange = null;
+					}
+				} catch (error) {
+					console.warn('Failed to remove statechange handler:', error);
+				}
+				this.#midiAccess = null;
+			}
+		} catch (error) {
+			console.warn('Error clearing midiAccess:', error);
+		}
+
+		try {
+			appState.midiConnected = false;
+		} catch (err) {
+			console.warn('Failed to set appState.midiConnected = false during MIDI cleanup:', err);
 		}
 	}
 }
