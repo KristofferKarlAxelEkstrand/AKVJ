@@ -11,19 +11,18 @@ class Renderer {
 	#animationFrameId = null;
 	#canvasWidth;
 	#canvasHeight;
-	#backgroundColor;
 
 	constructor(canvas2dContext, layerManager) {
 		this.#canvas2dContext = canvas2dContext;
 		this.#layerManager = layerManager;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
-		this.#backgroundColor = settings.rendering.backgroundColor;
 
 		// Configure canvas rendering quality and smoothing based on settings
 		try {
 			this.#canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
 			this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
+			this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
 		} catch (err) {
 			// Some canvas contexts may not support imageSmoothingQuality - log a warning
 			console.warn('Image smoothing config not supported by this context:', err?.message ?? err);
@@ -60,7 +59,6 @@ class Renderer {
 		}
 
 		// Clear the canvas with background color using cached dimensions
-		this.#canvas2dContext.fillStyle = this.#backgroundColor;
 		this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
