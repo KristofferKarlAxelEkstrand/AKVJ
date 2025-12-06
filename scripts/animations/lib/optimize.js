@@ -47,12 +47,14 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 	let optimizedSize = originalSize;
 
 	if (sharp) {
-		// Try palette optimization first
+		// Try palette optimization first and ensure temp cleanup
 		const tempPath = cachePath + '.tmp';
 		let tempExists = false;
+		let cleanupNeeded = false;
 		try {
 			await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(tempPath);
 			tempExists = true;
+			cleanupNeeded = true;
 
 			const tempStats = await fs.stat(tempPath);
 
@@ -60,22 +62,29 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 			if (tempStats.size < originalSize) {
 				await fs.rename(tempPath, cachePath);
 				optimizedSize = tempStats.size;
+				cleanupNeeded = false;
 			} else {
 				// Original is smaller, just copy it
 				await fs.unlink(tempPath);
+				cleanupNeeded = false;
 				await fs.copyFile(sourcePath, cachePath);
 			}
 		} catch (err) {
-			// If optimization fails, attempt to clean up temp file and copy original
+			// If optimization fails, ensure temp cleanup and copy original
 			try {
-				if (tempExists) {
+				if (tempExists && cleanupNeeded) {
 					await fs.unlink(tempPath);
 				}
 			} catch {
 				// Ignore cleanup errors
 			}
-			await fs.copyFile(sourcePath, cachePath);
-			// Re-throw to be handled by caller
+			try {
+				await fs.copyFile(sourcePath, cachePath);
+			} catch (copyErr) {
+				// If copying fails, rethrow optimization error with additional context
+				throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}; copy failed: ${copyErr instanceof Error ? copyErr.message : String(copyErr)}`);
+			}
+			// Re-throw original error so caller records failure
 			throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}`);
 		}
 	} else {
@@ -83,9 +92,9 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 		await fs.copyFile(sourcePath, cachePath);
 	}
 
-	// Write hash sidecar; recompute source hash immediately after the copy
-	const sourceHash = await hashFile(sourcePath);
-	await writeHashFile(cachePath + '.hash', sourceHash);
+	// Write hash sidecar based on the cached file we just wrote (avoids a race where source may change)
+	const finalHash = await hashFile(cachePath);
+	await writeHashFile(cachePath + '.hash', finalHash);
 
 	return {
 		path: sourcePath,

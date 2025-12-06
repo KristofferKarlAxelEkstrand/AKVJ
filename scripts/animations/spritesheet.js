@@ -68,8 +68,11 @@ async function createSpriteSheet(inputDir, outputDir, options = {}) {
 	const files = allFiles
 		.filter(f => /\.(png|jpg|jpeg)$/i.test(f))
 		.sort((a, b) => {
-			const numA = parseInt(a.match(/\d+/)?.[0] || '0', 10);
-			const numB = parseInt(b.match(/\d+/)?.[0] || '0', 10);
+			const numA = parseInt(a.match(/\d+/)?.[0], 10);
+			const numB = parseInt(b.match(/\d+/)?.[0], 10);
+			if (isNaN(numA) || isNaN(numB)) {
+				return a.localeCompare(b);
+			}
 			return numA - numB;
 		});
 

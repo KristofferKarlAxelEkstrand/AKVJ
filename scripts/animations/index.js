@@ -83,8 +83,9 @@ export async function run(options = {}) {
 	console.log('==================\n');
 
 	// Step 1: Validate
-	console.log('Step 1: Validating animations...');
-	const { valid, errors } = await validate(SOURCE_DIR);
+	const sourceDir = options.sourceDir ?? SOURCE_DIR;
+	console.log(`Step 1: Validating animations from ${sourceDir}...`);
+	const { valid, errors } = await validate(sourceDir);
 
 	if (errors.length > 0) {
 		console.error('\nValidation errors:');
@@ -95,6 +96,9 @@ export async function run(options = {}) {
 			}
 		}
 		console.error(`\n${errors.length} animation(s) have errors`);
+		if (options.exitOnError === false) {
+			throw new Error('Validation failed');
+		}
 		process.exit(1);
 	}
 
@@ -143,7 +147,7 @@ export async function run(options = {}) {
 	await generate(CACHE_DIR, path.join(CACHE_DIR, 'animations.json'));
 
 	// Copy LICENSE file from source to cache if it exists
-	const licensePath = path.join(SOURCE_DIR, 'LICENSE-ASSETS.md');
+	const licensePath = path.join(sourceDir, 'LICENSE-ASSETS.md');
 	try {
 		await fs.access(licensePath);
 		await fs.copyFile(licensePath, path.join(CACHE_DIR, 'LICENSE-ASSETS.md'));
@@ -198,37 +202,42 @@ async function watchMode() {
 
 	chokidar.default.watch(SOURCE_DIR, { ignoreInitial: true }).on('all', rebuild);
 }
+export { watchMode };
 
-// Main entry point wrapped in async IIFE so we can await properly
-(async () => {
-	const options = parseArgs();
+// Execute the pipeline only when run as a CLI, not when imported as a module
+const isCli = import.meta.url === `file://${process.argv[1]}` || (process.argv[1] && process.argv[1].endsWith('index.js'));
 
-	if (options.help) {
-		printHelp();
-		process.exit(0);
-	}
+if (isCli) {
+	(async () => {
+		const options = parseArgs();
 
-	if (options.clean) {
-		console.log('Cleaning cache and output...');
-		await clean(CACHE_DIR, PUBLIC_DIR);
-		console.log('Done');
-		process.exit(0);
-	}
-
-	if (options.watch) {
-		try {
-			// Await initial setup; error here should exit
-			await watchMode();
-		} catch (err) {
-			console.error('Watch mode failed:', err);
-			process.exit(1);
+		if (options.help) {
+			printHelp();
+			process.exit(0);
 		}
-	} else {
-		try {
-			await run(options);
-		} catch (err) {
-			console.error('Pipeline error:', err.message);
-			process.exit(1);
+
+		if (options.clean) {
+			console.log('Cleaning cache and output...');
+			await clean(CACHE_DIR, PUBLIC_DIR);
+			console.log('Done');
+			process.exit(0);
 		}
-	}
-})();
+
+		if (options.watch) {
+			try {
+				// Await initial setup; error here should exit
+				await watchMode();
+			} catch (err) {
+				console.error('Watch mode failed:', err);
+				process.exit(1);
+			}
+		} else {
+			try {
+				await run(options);
+			} catch (err) {
+				console.error('Pipeline error:', err.message);
+				process.exit(1);
+			}
+		}
+	})();
+}

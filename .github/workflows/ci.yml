@@ -46,3 +46,10 @@ jobs:
 
             - name: Build
               run: npm run build
+
+            - name: Verify public animations generated
+              run: |
+                  if [ ! -d "src/public/animations" ] || [ -z "$(find src/public/animations -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
+                    echo "::error::No generated animation files found in src/public/animations/. Build step should generate these files."
+                    exit 1
+                  fi
