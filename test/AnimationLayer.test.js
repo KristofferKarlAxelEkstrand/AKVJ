@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import AnimationLayer from '../src/js/visuals/AnimationLayer.js';
 
 /**
@@ -39,27 +39,27 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('constructor', () => {
-		it('throws if numberOfFrames is missing or less than 1', () => {
+		test('throws if numberOfFrames is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: 0 }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: undefined }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
 		});
 
-		it('throws if framesPerRow is missing or less than 1', () => {
+		test('throws if framesPerRow is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ framesPerRow: 0 }))).toThrow('AnimationLayer requires framesPerRow >= 1');
 		});
 
-		it('throws if image dimensions result in invalid frame size', () => {
+		test('throws if image dimensions result in invalid frame size', () => {
 			expect(() => new AnimationLayer(defaultOptions({ image: { width: 0, height: 135 } }))).toThrow('AnimationLayer: Invalid image dimensions');
 		});
 
-		it('creates successfully with valid options', () => {
+		test('creates successfully with valid options', () => {
 			const layer = new AnimationLayer(defaultOptions());
 			expect(layer).toBeInstanceOf(AnimationLayer);
 		});
 	});
 
 	describe('play()', () => {
-		it('returns early if image is null (after dispose)', () => {
+		test('returns early if image is null (after dispose)', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
 
@@ -69,14 +69,14 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage).not.toHaveBeenCalled();
 		});
 
-		it('returns early if canvas2dContext is null', () => {
+		test('returns early if canvas2dContext is null', () => {
 			// Creating a layer with a null canvas context should return early
 			// (no errors and no drawing occurs).
 			const layerWithNullCtx = new AnimationLayer(defaultOptions({ canvas2dContext: null }));
 			expect(() => layerWithNullCtx.play()).not.toThrow();
 		});
 
-		it('draws frame 0 on first play call without skipping', () => {
+		test('draws frame 0 on first play call without skipping', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -97,7 +97,7 @@ describe('AnimationLayer', () => {
 			expect(callArgs[2]).toBe(0); // sy = 0 for frame 0
 		});
 
-		it('does not advance frame until interval has passed', () => {
+		test('does not advance frame until interval has passed', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -123,7 +123,7 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage.mock.calls[1][1]).toBe(0);
 		});
 
-		it('stops rendering non-looping animation after last frame', () => {
+		test('stops rendering non-looping animation after last frame', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -154,7 +154,7 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
 		});
 
-		it('wraps back to frame 0 when looping is enabled', () => {
+		test('wraps back to frame 0 when looping is enabled', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -182,7 +182,7 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('stop()', () => {
-		it('resets state when retrigger is enabled', () => {
+		test('resets state when retrigger is enabled', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -211,7 +211,7 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('reset()', () => {
-		it('resets to frame 0 when retrigger is enabled', () => {
+		test('resets to frame 0 when retrigger is enabled', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -238,7 +238,7 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('dispose()', () => {
-		it('clears image reference', () => {
+		test('clears image reference', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
 

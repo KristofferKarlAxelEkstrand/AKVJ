@@ -4,7 +4,6 @@
  */
 
 /**
- * LayerManager - Manages state and updates for all visual layers
  * @typedef {import('./AnimationLayer.js').default} AnimationLayer
  */
 class LayerManager {
