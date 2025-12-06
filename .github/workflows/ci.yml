@@ -41,6 +41,3 @@ jobs:
 
             - name: Build
               run: npm run build
-
-            - name: Generate animation metadata
-              run: npm run generate-animation-json-to-json
