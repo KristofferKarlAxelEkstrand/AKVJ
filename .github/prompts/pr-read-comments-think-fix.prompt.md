@@ -65,6 +65,13 @@ Resolving review threads
     - Ensure the comment includes any suggested alternatives or links to issues, and politely note that the author or reviewers may re-open the thread if they disagree.
     - If you are unsure, prefer leaving the thread open and add a clarifying question instead of closing it.
 
+- Outdated review threads:
+    - If a comment has become obsolete due to code changes (e.g., the file changed or the issue was addressed in a different way), you may mark the thread as resolved as "Outdated".
+    - When marking an outdated thread as resolved:
+        - Leave a brief comment identifying the commit SHA(s) that made the conversation obsolete and explain why it no longer applies (one line).
+        - If the thread is only superficially outdated (e.g., formatting changed), explicitly mention that and avoid dropping important issues silently.
+        - If you are unsure, leave the thread open and ask a clarifying question instead of resolving it.
+
 Post-check & Copilot step
 
 - After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
