@@ -32,8 +32,9 @@ jobs:
             - name: Check formatting (prettier)
               run: npx prettier --check .
 
-            - name: Check formatting (npm script)
-              run: npm run format:prettier -- --check
+            # The `format:prettier` script runs Prettier with `--write` which is not compatible
+            # with `--check`. We already validate formatting with `npx prettier --check .` above,
+            # so remove the redundant/incorrect script invocation.
 
             - name: Run tests
               run: npm run test
