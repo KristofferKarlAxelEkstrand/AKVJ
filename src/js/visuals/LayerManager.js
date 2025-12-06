@@ -111,12 +111,12 @@ class LayerManager {
 			if (!channel) {
 				continue;
 			}
-			for (const note of channel) {
-				if (note) {
-					note.stop();
+			for (const layer of channel) {
+				if (layer) {
+					layer.stop();
 					// Dispose of any image resources the layer may hold (no-op if not present)
-					if (typeof note.dispose === 'function') {
-						note.dispose();
+					if (typeof layer.dispose === 'function') {
+						layer.dispose();
 					}
 				}
 			}
@@ -129,10 +129,10 @@ class LayerManager {
 	 */
 	getLayerStats() {
 		let activeCount = 0;
-		for (const layer of this.#canvasLayers) {
-			if (layer) {
-				for (const note of layer) {
-					if (note) {
+		for (const channel of this.#canvasLayers) {
+			if (channel) {
+				for (const layer of channel) {
+					if (layer) {
 						activeCount++;
 					}
 				}
