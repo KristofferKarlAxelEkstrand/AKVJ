@@ -19,14 +19,18 @@ class AnimationLayer {
 	#canvasHeight;
 
 	// Animation state (mutable)
-	#currentFramePositionX = 0;
-	#currentFramePositionY = 0;
 	#frame = 0;
-	#lastFrame = 0;
 	#lastTime = 0;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 
 	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
+		if (!numberOfFrames || numberOfFrames < 1) {
+			throw new Error('AnimationLayer requires numberOfFrames >= 1');
+		}
+		if (!framesPerRow || framesPerRow < 1) {
+			throw new Error('AnimationLayer requires framesPerRow >= 1');
+		}
+
 		this.#canvas2dContext = canvas2dContext;
 		this.#image = image;
 		this.#numberOfFrames = numberOfFrames;
@@ -34,6 +38,9 @@ class AnimationLayer {
 		this.#frameRatesForFrames = frameRatesForFrames;
 		this.#frameWidth = image.width / framesPerRow;
 		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
+		if (!this.#frameWidth || !this.#frameHeight) {
+			throw new Error('AnimationLayer: Invalid image dimensions');
+		}
 		this.#loop = loop;
 		this.#retrigger = retrigger;
 		this.#canvasWidth = settings.canvas.width;
@@ -51,36 +58,32 @@ class AnimationLayer {
 			return;
 		}
 
-		const currentTime = performance.now();
-
-		// Check if animation completed (non-looping)
-		if (this.#lastFrame >= this.#numberOfFrames) {
-			this.#lastFrame = 0;
-			this.#frame = 0;
-			if (!this.#loop) {
-				return;
-			}
+		// Non-looping animation completed - stop rendering
+		if (!this.#loop && this.#frame >= this.#numberOfFrames) {
+			return;
 		}
 
+		const currentTime = performance.now();
+
 		// Get frame rate for current frame
-		const framesPerSecond = this.#frameRatesForFrames[this.#lastFrame] ?? this.#defaultFrameRate;
+		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
 		const interval = 1000 / framesPerSecond;
 
 		// Advance frame if enough time has passed
 		if (currentTime > this.#lastTime + interval) {
 			this.#frame++;
+			// Wrap frame for looping animations
 			if (this.#frame >= this.#numberOfFrames) {
-				this.#frame = 0;
+				this.#frame = this.#loop ? 0 : this.#numberOfFrames;
 			}
-
-			this.#updateFramePosition();
 			this.#lastTime = currentTime;
 		}
 
-		this.#lastFrame = this.#frame;
-
-		// Draw the current frame
-		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * this.#currentFramePositionX, this.#frameHeight * this.#currentFramePositionY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+		// Draw the current frame (use clamped frame index for drawing)
+		const drawFrame = Math.min(this.#frame, this.#numberOfFrames - 1);
+		const posY = Math.floor(drawFrame / this.#framesPerRow);
+		const posX = drawFrame - posY * this.#framesPerRow;
+		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
 
 	/**
@@ -93,26 +96,26 @@ class AnimationLayer {
 		}
 	}
 
-	#resetState() {
-		this.#currentFramePositionX = 0;
-		this.#currentFramePositionY = 0;
-		this.#frame = 0;
-		this.#lastFrame = 0;
-		this.#lastTime = 0;
+	/**
+	 * Reset animation to first frame if retrigger is enabled.
+	 * Called when a MIDI note on event activates this layer.
+	 */
+	reset() {
+		if (this.#retrigger) {
+			this.#resetState();
+		}
 	}
 
-	#updateFramePosition() {
-		this.#currentFramePositionY = Math.floor(this.#frame / this.#framesPerRow);
-		this.#currentFramePositionX = this.#frame - this.#currentFramePositionY * this.#framesPerRow;
+	#resetState() {
+		this.#frame = 0;
+		this.#lastTime = 0;
 	}
 
 	/**
 	 * Dispose of image resources to help garbage collection
 	 */
 	dispose() {
-		if (this.#image) {
-			this.#image = null;
-		}
+		this.#image = null;
 	}
 }
 

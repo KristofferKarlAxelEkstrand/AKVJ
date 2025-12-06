@@ -62,8 +62,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#canvas.width = settings.canvas.width;
 		this.#canvas.height = settings.canvas.height;
 		this.#canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
-		this.#canvas2dContext.webkitImageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
-		this.#canvas2dContext.mozImageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
 		this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
 		this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
 		this.appendChild(this.#canvas);

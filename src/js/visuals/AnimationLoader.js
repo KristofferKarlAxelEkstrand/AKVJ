@@ -18,7 +18,7 @@ class AnimationLoader {
 		const response = await fetch(jsonUrl);
 
 		if (!response.ok) {
-			throw new Error(`HTTP error! status: ${response.status}`);
+			throw new Error(`HTTP error! status: ${response.status} for ${jsonUrl}`);
 		}
 
 		const data = await response.json();
@@ -33,19 +33,7 @@ class AnimationLoader {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
 			img.onload = () => resolve(img);
-			img.onerror = event => {
-				let eventMsg;
-				if (event && event.message) {
-					eventMsg = event.message;
-				} else {
-					// Extract useful properties from the event object
-					const type = event?.type || 'unknown';
-					const targetSrc = event?.target?.src || src;
-					const errorObj = event?.error ? ` error: ${event.error}` : '';
-					eventMsg = `type: ${type}, src: ${targetSrc}${errorObj}`;
-				}
-				reject(new Error(`Failed to load image: ${src}. Error: ${eventMsg}`));
-			};
+			img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
 			img.src = src;
 		});
 	}
