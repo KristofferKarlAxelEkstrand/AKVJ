@@ -2,7 +2,7 @@
  * AnimationLayer - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  */
-import settings from './settings.js';
+import settings from './core/settings.js';
 
 class AnimationLayer {
 	// Configuration (immutable after construction)

@@ -169,14 +169,14 @@ AKVJ/
 │   ├── index.html                  # Main HTML template
 │   ├── css/                        # Stylesheets
 │   ├── js/                         # Core JavaScript modules
-│   │   ├── adventure-kid-video-jockey.js  # Main VJ component
+│   │   ├── core/AdventureKidVideoJockey.js  # Main VJ component
 │   │   ├── midi.js                 # Web MIDI API integration
 │   │   ├── LayerManager.js         # Visual layer management
 │   │   ├── Renderer.js             # Canvas rendering loop
 │   │   ├── AnimationLoader.js      # Sprite and metadata loading
 │   │   ├── AnimationLayer.js       # Individual animation playback
-│   │   ├── settings.js             # Configuration constants
-│   │   ├── app-state.js            # Global state management
+│   │   ├── core/settings.js             # Configuration constants
+│   │   ├── core/AppState.js            # Global state management
 │   │   └── fullscreen.js           # Fullscreen functionality
 │   └── public/
 │       └── animations/             # Animation assets

@@ -13,7 +13,7 @@ describe('MIDI', () => {
 
 		// Reset modules to get fresh singleton instances with the fake MIDI environment
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		await import('../src/js/midi.js');
 
 		// Wait for event from AppState
@@ -35,7 +35,7 @@ describe('MIDI', () => {
 		const env = recreateEnv([{ id: 'fake-2', name: 'Fake MIDI Input 2' }]);
 
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		await import('../src/js/midi.js');
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-2');
@@ -50,7 +50,7 @@ describe('MIDI', () => {
 		const env = recreateEnv([{ id: 'fake-3', name: 'Fake MIDI Input 3' }]);
 
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		await import('../src/js/midi.js');
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-3');
@@ -65,7 +65,7 @@ describe('MIDI', () => {
 		const env = recreateEnv([{ id: 'fake-4', name: 'Fake MIDI Input 4' }]);
 
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		await import('../src/js/midi.js');
 
 		const fakeInput = env.getInputById('fake-4');
@@ -98,7 +98,7 @@ describe('MIDI', () => {
 		const env = recreateEnv([{ id: 'fake-5', name: 'Fake MIDI Input 5' }]);
 
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		const midi = (await import('../src/js/midi.js')).default;
 
 		// MIDI connection is set during module import - check state directly
@@ -124,7 +124,7 @@ describe('MIDI', () => {
 		const env = recreateEnv([]);
 
 		vi.resetModules();
-		const { default: appState } = await import('../src/js/AppState.js');
+		const { default: appState } = await import('../src/js/core/AppState.js');
 		const midi = (await import('../src/js/midi.js')).default;
 
 		// Initially no devices

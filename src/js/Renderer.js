@@ -2,7 +2,7 @@
  * Renderer - Contains the requestAnimationFrame loop and canvas drawing logic
  * Extracted from adventure-kid-video-jockey.js for better separation of concerns
  */
-import settings from './settings.js';
+import settings from './core/settings.js';
 
 class Renderer {
 	#canvas2dContext;

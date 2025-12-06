@@ -1,8 +1,8 @@
 import appState from './AppState.js';
 import settings from './settings.js';
-import AnimationLoader from './AnimationLoader.js';
-import LayerManager from './LayerManager.js';
-import Renderer from './Renderer.js';
+import AnimationLoader from '../AnimationLoader.js';
+import LayerManager from '../LayerManager.js';
+import Renderer from '../Renderer.js';
 
 /**
  * Adventure Kid Video Jockey - Main rendering component

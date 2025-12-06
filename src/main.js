@@ -2,7 +2,7 @@
 import './css/adventure-kid-video-jockey.css';
 
 // Import elements
-import './js/AdventureKidVideoJockey.js';
+import './js/core/AdventureKidVideoJockey.js';
 
 // Import functions
 import midi from './js/midi.js';

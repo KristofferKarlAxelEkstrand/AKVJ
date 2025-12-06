@@ -1,4 +1,4 @@
-import appState from '../src/js/AppState.js';
+import appState from '../src/js/core/AppState.js';
 import { waitForEvent } from './utils/wait-for-event.js';
 
 describe('AppState', () => {
