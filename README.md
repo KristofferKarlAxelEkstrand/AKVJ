@@ -183,7 +183,7 @@ AKVJ/
 │   │   ├── visuals/AnimationLayer.js       # Individual animation playback
 │   │   ├── core/settings.js             # Configuration constants
 │   │   ├── core/AppState.js            # Global state management
-│   │   └── fullscreen.js           # Fullscreen functionality
+│   │   └── utils/Fullscreen.js         # Fullscreen functionality
 │   └── public/
 │       └── animations/             # Animation assets
 │           ├── {channel}/          # MIDI channels (0-15)

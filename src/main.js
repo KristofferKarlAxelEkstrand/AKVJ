@@ -6,7 +6,7 @@ import './js/core/AdventureKidVideoJockey.js';
 
 // Import functions
 import midi from './js/midi-input/midi.js';
-import Fullscreen from './js/Fullscreen.js';
+import Fullscreen from './js/utils/Fullscreen.js';
 
 // Enable fullscreen functionality
 const fullscreenManager = new Fullscreen();

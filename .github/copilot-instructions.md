@@ -128,7 +128,7 @@ npm run fix                              # Updates all dependencies in package.j
   -- **`src/js/midi-input/midi.js`** - Web MIDI API integration
   -- **`src/js/core/AppState.js`** - Global state management
   -- **`src/js/core/settings.js`** - Configuration constants
-- **`src/js/fullscreen.js`** - Fullscreen functionality
+- **`src/js/utils/Fullscreen.js`** - Fullscreen functionality
 
 ### Animation System
 
