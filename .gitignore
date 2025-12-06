@@ -35,5 +35,9 @@ dist-ssr/
 tmp/
 temp/
 
+# Animation pipeline
+.cache/
+src/public/animations/
+
 # System files
 Thumbs.db

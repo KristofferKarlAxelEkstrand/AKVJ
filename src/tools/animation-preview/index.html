@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Animation Preview - AKVJ</title>
+		<link rel="stylesheet" href="preview.css" />
+	</head>
+	<body>
+		<div class="container">
+			<h1>Animation Preview</h1>
+
+			<div class="controls">
+				<label>
+					Channel:
+					<select id="channel"></select>
+				</label>
+				<label>
+					Note:
+					<select id="note"></select>
+				</label>
+				<label>
+					Velocity:
+					<select id="velocity"></select>
+				</label>
+				<button id="reload">Reload</button>
+			</div>
+
+			<div class="preview-area">
+				<canvas id="canvas"></canvas>
+			</div>
+
+			<div class="playback-controls">
+				<button id="play-pause">Pause</button>
+				<button id="prev-frame">◀ Prev</button>
+				<button id="next-frame">Next ▶</button>
+				<span id="frame-info">Frame: 0 / 0</span>
+			</div>
+
+			<div class="info">
+				<h2>Animation Info</h2>
+				<pre id="meta-display"></pre>
+			</div>
+		</div>
+
+		<script type="module" src="preview.js"></script>
+	</body>
+</html>
