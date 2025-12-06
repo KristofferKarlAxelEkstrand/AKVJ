@@ -94,7 +94,7 @@ Push your branch and open a PR against `main`.
 
 | File                                | Purpose               |
 | ----------------------------------- | --------------------- |
-| `src/js/midi.js`                    | Web MIDI API handling |
+| `src/js/midi-input/midi.js`         | Web MIDI API handling |
 | `src/js/visuals/Renderer.js`        | 60fps canvas loop     |
 | `src/js/visuals/LayerManager.js`    | Visual layer state    |
 | `src/js/visuals/AnimationLoader.js` | Sprite loading        |

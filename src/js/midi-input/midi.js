@@ -1,5 +1,5 @@
-import appState from './core/AppState.js';
-import settings from './core/settings.js';
+import appState from '../core/AppState.js';
+import settings from '../core/settings.js';
 
 /**
  * MIDI module - Handles Web MIDI API and device management only

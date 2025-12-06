@@ -5,7 +5,7 @@ import './css/adventure-kid-video-jockey.css';
 import './js/core/AdventureKidVideoJockey.js';
 
 // Import functions
-import midi from './js/midi.js';
+import midi from './js/midi-input/midi.js';
 import Fullscreen from './js/Fullscreen.js';
 
 // Enable fullscreen functionality

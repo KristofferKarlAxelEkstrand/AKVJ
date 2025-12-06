@@ -125,7 +125,7 @@ npm run fix                              # Updates all dependencies in package.j
 - **`src/main.js`** - Application entry point
 - **`src/index.html`** - Main HTML template
   -- **`src/js/core/AdventureKidVideoJockey.js`** - Main VJ component (custom element)
-  -- **`src/js/midi.js`** - Web MIDI API integration
+  -- **`src/js/midi-input/midi.js`** - Web MIDI API integration
   -- **`src/js/core/AppState.js`** - Global state management
   -- **`src/js/core/settings.js`** - Configuration constants
 - **`src/js/fullscreen.js`** - Fullscreen functionality

@@ -112,7 +112,7 @@ src/public/animations/
 - **`src/main.js`** - Application entry point, module initialization
 - **`src/index.html`** - Main HTML template
 - **`src/js/core/AdventureKidVideoJockey.js`** - Main VJ component (custom element)
-- **`src/js/midi.js`** - Web MIDI API integration and event handling
+- **`src/js/midi-input/midi.js`** - Web MIDI API integration and event handling
 - **`src/js/core/AppState.js`** - Global application state management
 - **`src/js/core/settings.js`** - Configuration constants and settings
 - **`src/js/Fullscreen.js`** - Fullscreen functionality for live performance

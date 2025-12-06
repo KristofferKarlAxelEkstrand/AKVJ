@@ -14,7 +14,7 @@ describe('MIDI', () => {
 		// Reset modules to get fresh singleton instances with the fake MIDI environment
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi.js');
+		await import('../src/js/midi-input/midi.js');
 
 		// Wait for event from AppState
 		const promise = waitForEvent(appState, 'midiNoteOn');
@@ -36,7 +36,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi.js');
+		await import('../src/js/midi-input/midi.js');
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-2');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x90, 60, 0]) }); // velocity 0 -> Note Off
@@ -51,7 +51,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi.js');
+		await import('../src/js/midi-input/midi.js');
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-3');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x80, 60, 127]) }); // Note Off command
@@ -66,7 +66,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi.js');
+		await import('../src/js/midi-input/midi.js');
 
 		const fakeInput = env.getInputById('fake-4');
 
@@ -99,7 +99,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi.js')).default;
+		const midi = (await import('../src/js/midi-input/midi.js')).default;
 
 		// MIDI connection is set during module import - check state directly
 		expect(appState.midiConnected).toBe(true);
@@ -125,7 +125,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi.js')).default;
+		const midi = (await import('../src/js/midi-input/midi.js')).default;
 
 		// Initially no devices
 		expect(appState.midiConnected).toBe(false);
