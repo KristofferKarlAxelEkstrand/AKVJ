@@ -67,7 +67,9 @@ class Renderer {
 		}
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
-		const activeLayers = this.#layerManager.getActiveLayers();
+		// Guard in case the layer manager was destroyed while a requestAnimationFrame
+		// callback was pending to avoid null reference errors.
+		const activeLayers = this.#layerManager?.getActiveLayers();
 		// Quick path: if there are no active layers, skip rendering loop to save CPU
 		if (!activeLayers || activeLayers.length === 0) {
 			this.#animationFrameId = requestAnimationFrame(this.#loop);

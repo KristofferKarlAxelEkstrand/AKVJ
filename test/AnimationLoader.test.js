@@ -5,14 +5,17 @@ import settings from '../src/js/core/settings.js';
 describe('AnimationLoader', () => {
 	let originalFetch;
 	let originalImage;
+	let originalConcurrency;
 
 	beforeEach(() => {
 		originalFetch = globalThis.fetch;
 		originalImage = globalThis.Image;
+		originalConcurrency = settings.performance.maxConcurrentAnimationLoads;
 	});
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 		globalThis.Image = originalImage;
+		settings.performance.maxConcurrentAnimationLoads = originalConcurrency;
 	});
 
 	test('setUpAnimations loads images using configured concurrency setting', async () => {

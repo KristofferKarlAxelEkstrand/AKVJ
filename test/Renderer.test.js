@@ -44,4 +44,41 @@ describe('Renderer', () => {
 		renderer.destroy();
 		expect(stopSpy).toHaveBeenCalled();
 	});
+
+	test('skips rendering loop when no active layers present', () => {
+		const ctx = createMockContext();
+		const layerManager = { getActiveLayers: () => [] };
+
+		const rafMock = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+		const renderer = new Renderer(ctx, layerManager);
+		renderer.start();
+
+		expect(ctx.fillRect).toHaveBeenCalled();
+		// No layers to play -> nothing should call any play method
+		rafMock.mockRestore();
+		renderer.destroy();
+	});
+
+	test('handles pending frame after destroy without throwing', () => {
+		const ctx = createMockContext();
+		const layer = createMockLayer();
+		const layerManager = { getActiveLayers: () => [[layer]] };
+
+		let frameCallback = null;
+		const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
+			frameCallback = cb;
+			return 1;
+		});
+		const cafSpy = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const renderer = new Renderer(ctx, layerManager);
+		renderer.start();
+		// Destroy while a frame callback is pending
+		renderer.destroy();
+
+		expect(() => frameCallback && frameCallback()).not.toThrow();
+
+		rafSpy.mockRestore();
+		cafSpy.mockRestore();
+	});
 });
