@@ -95,8 +95,8 @@ describe('AnimationLayer', () => {
 			mockNow.mockReturnValue(1);
 			layer.play();
 			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
-			// Verify second draw is for frame 1 (sx=frameWidth)
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
+			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
 			mockNow.mockRestore();
 		});
 

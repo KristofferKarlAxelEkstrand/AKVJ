@@ -71,7 +71,7 @@ After addressing review feedback and pushing your changes locally, please push y
     git push origin YOUR_BRANCH
     ```
 - Request Copilot review via MCP (example pseudo-call):
-  `js
-mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
-`
-  Confirm CI passes before marking the PR ready for merge.
+    ```js
+    mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
+    ```
+    Confirm CI passes before marking the PR ready for merge.
