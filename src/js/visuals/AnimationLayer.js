@@ -75,6 +75,10 @@ class AnimationLayer {
 
 		// Get frame rate for current frame and ensure a valid positive FPS
 		let framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
+		// Defensive check: ensure the value is numeric and positive. While the constructor
+		// guarantees `#defaultFrameRate` is valid, frame rates stored in
+		// `#frameRatesForFrames` could be mutated at runtime (e.g., by tests or other
+		// consumers). This guard prevents a runtime division by zero or negative interval.
 		if (typeof framesPerSecond !== 'number' || framesPerSecond <= 0) {
 			framesPerSecond = this.#defaultFrameRate;
 		}
