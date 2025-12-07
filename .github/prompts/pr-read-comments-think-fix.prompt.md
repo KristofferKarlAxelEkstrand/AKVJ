@@ -51,6 +51,28 @@ After all changes pass validation:
 - Request Copilot review: `mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)`
 - Confirm CI passes before marking ready for merge
 
+## Troubleshooting git push
+
+- If you see errors when pushing (403, 302 redirects, or authentication failures) while working in a workspace or CI, it's often caused by an existing GITHUB_TOKEN or other token in the environment that takes precedence over your personal credentials. You can resolve this by unsetting the token for the session and pushing again using your usual credentials:
+
+```bash
+# Unset the token for this terminal session
+unset GITHUB_TOKEN
+
+# Verify your remote is correct, and push (or use `gh auth login` to reauthenticate)
+git remote -v
+git push origin YOUR_BRANCH
+```
+
+- Alternative: switch to an SSH remote and push using your SSH key:
+
+```bash
+git remote set-url origin git@github.com:OWNER/REPO.git
+git push origin YOUR_BRANCH
+```
+
+- If a re-push still fails, log in with `gh auth login` or open a PR in the GitHub web interface. If you must use a token, prefer a PAT set as a local credential rather than the environment GITHUB_TOKEN set by a CI or workspace process.
+
 ## Repo Constraints
 
 - Vanilla JS only, no frameworks
