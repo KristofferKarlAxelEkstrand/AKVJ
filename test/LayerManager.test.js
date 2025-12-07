@@ -119,3 +119,21 @@ describe('LayerManager - destroy', () => {
 		expect(() => lm.destroy()).not.toThrow();
 	});
 });
+
+describe('LayerManager - clearLayers defensive behavior', () => {
+	test('clearLayers handles layers without dispose method', () => {
+		const lm = new LayerManager();
+		const layerWithoutDispose = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
+		// Note: no dispose method
+
+		const animations = {
+			0: { 60: { 0: layerWithoutDispose } }
+		};
+
+		lm.setAnimations(animations);
+		lm.noteOn(0, 60, 127);
+
+		expect(() => lm.clearLayers()).not.toThrow();
+		expect(layerWithoutDispose.stop).toHaveBeenCalled();
+	});
+});

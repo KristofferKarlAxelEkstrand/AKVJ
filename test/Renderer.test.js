@@ -83,4 +83,21 @@ describe('Renderer', () => {
 		// No new frame should be scheduled after destroy
 		expect(rafSpy).not.toHaveBeenCalled();
 	});
+
+	test('destroy is idempotent and safe to call multiple times', () => {
+		const ctx = createMockContext();
+		const layerManager = { getActiveLayers: () => [] };
+		const renderer = new Renderer(ctx, layerManager);
+
+		renderer.destroy();
+		expect(() => renderer.destroy()).not.toThrow();
+	});
+
+	test('destroy before start does not throw', () => {
+		const ctx = createMockContext();
+		const layerManager = { getActiveLayers: () => [] };
+		const renderer = new Renderer(ctx, layerManager);
+
+		expect(() => renderer.destroy()).not.toThrow();
+	});
 });

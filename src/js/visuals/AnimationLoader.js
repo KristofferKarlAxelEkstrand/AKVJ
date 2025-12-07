@@ -13,16 +13,19 @@ class AnimationLoader {
 	}
 
 	/**
-	 * Sanitize animation file name - prevents path traversal and ensures a safe filename
+	 * Sanitize animation file name - prevents path traversal and ensures a safe filename.
+	 * Only allows alphanumeric names with valid image extensions; prevents edge cases
+	 * like '..png' or '-.png'.
 	 */
 	#sanitizeFileName(filename) {
 		if (!filename || typeof filename !== 'string') {
 			return '';
 		}
-		// Only allow safe characters and file extension; basic whitelist to prevent `../` paths
-		const match = filename.match(/^([a-zA-Z0-9._-]+)$/);
+		// Only allow alphanumeric names with valid image extension
+		// Name must start and end with alphanumeric characters
+		const match = filename.match(/^([a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?\.(png|jpg|jpeg|gif))$/i);
 		if (!match) {
-			console.warn('AnimationLoader: invalid file name, sanitizing to empty string', filename);
+			console.warn('AnimationLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
 			return '';
 		}
 		return match[1];
@@ -118,6 +121,11 @@ class AnimationLoader {
 		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets.
 		// Process animations in batches of CONCURRENCY size; the final batch may be smaller if the
 		// total count is not evenly divisible. This is handled correctly by slice().
+		//
+		// Note: A pooling pattern (starting new loads immediately when one completes) could provide
+		// marginally faster load times. For typical animation counts (< 50) the difference is minimal,
+		// and the batching approach is simpler to maintain and reason about. If load performance
+		// becomes critical for large asset libraries, consider refactoring to a concurrency pool.
 		const CONCURRENCY = settings.performance?.maxConcurrentAnimationLoads ?? 8;
 		const results = [];
 		for (let i = 0; i < loadFuncs.length; i += CONCURRENCY) {
