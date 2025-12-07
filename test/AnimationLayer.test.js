@@ -207,12 +207,7 @@ describe('AnimationLayer', () => {
 	describe('stop()', () => {
 		test('resets state when retrigger is enabled', () => {
 			const ctx = createMockContext();
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					retrigger: true
-				})
-			);
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -236,12 +231,7 @@ describe('AnimationLayer', () => {
 	describe('reset()', () => {
 		test('resets to frame 0 when retrigger is enabled', () => {
 			const ctx = createMockContext();
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					retrigger: true
-				})
-			);
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
