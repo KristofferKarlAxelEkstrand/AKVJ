@@ -95,3 +95,27 @@ describe('LayerManager - clearLayers', () => {
 		expect(lm.getActiveLayers().length).toBe(0);
 	});
 });
+
+describe('LayerManager - destroy', () => {
+	test('destroy clears layers and resets internal state', () => {
+		const lm = new LayerManager();
+		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
+
+		const animations = {
+			0: {
+				60: {
+					0: fakeLayer
+				}
+			}
+		};
+
+		lm.setAnimations(animations);
+		lm.noteOn(0, 60, 127);
+		expect(lm.getActiveLayers()[0][60]).toBe(fakeLayer);
+
+		lm.destroy();
+		expect(lm.getActiveLayers().length).toBe(0);
+		// Calling destroy again should be a no-op and not throw
+		expect(() => lm.destroy()).not.toThrow();
+	});
+});

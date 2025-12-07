@@ -57,10 +57,13 @@ class Renderer {
 			return;
 		}
 
-		// Clear the canvas for the next frame (clears alpha + pixel data)
-		// Use clearRect for performance and to avoid accidental persistent artifacts
-		if (this.#canvas2dContext && typeof this.#canvas2dContext.clearRect === 'function') {
-			this.#canvas2dContext.clearRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		// Clear the canvas for the next frame with the configured background color.
+		// Use fillRect to keep the black background semantics rather than making the
+		// canvas transparent. Keep the check simple - if a valid context exists,
+		// it will provide the drawing API (CanvasRenderingContext2D).
+		if (this.#canvas2dContext) {
+			this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
+			this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 		}
 
 		// Render all active layers (channel 0 = background, 15 = foreground)

@@ -32,7 +32,9 @@ const settings = {
 		// Target frame rate for animations
 		targetFPS: 60,
 		// Animation JSON URL
-		animationsJsonUrl: '/animations/animations.json'
+		animationsJsonUrl: '/animations/animations.json',
+		// Maximum number of concurrent animation image loads to run at once
+		maxConcurrentAnimationLoads: 8
 	},
 	rendering: {
 		// Canvas rendering settings

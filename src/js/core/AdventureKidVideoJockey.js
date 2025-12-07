@@ -44,6 +44,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#setupMIDIEventListeners() {
 		this.#unsubscribers.push(
 			appState.subscribe('midiNoteOn', event => {
+				if (!this.#layerManager) {
+					return;
+				}
 				const { channel, note, velocity } = event.detail;
 				this.#layerManager.noteOn(channel, note, velocity);
 			})
@@ -51,6 +54,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		this.#unsubscribers.push(
 			appState.subscribe('midiNoteOff', event => {
+				if (!this.#layerManager) {
+					return;
+				}
 				const { channel, note } = event.detail;
 				this.#layerManager.noteOff(channel, note);
 			})
@@ -92,20 +98,16 @@ class AdventureKidVideoJockey extends HTMLElement {
 			console.error('Error tearing down MIDI listeners:', error);
 		}
 		try {
-			if (this.#renderer && typeof this.#renderer.stop === 'function') {
+			if (this.#renderer) {
 				this.#renderer.stop();
-			}
-			if (this.#renderer && typeof this.#renderer.destroy === 'function') {
 				this.#renderer.destroy();
 			}
 		} catch (error) {
 			console.error('Error stopping renderer:', error);
 		}
 		try {
-			if (this.#layerManager && typeof this.#layerManager.clearLayers === 'function') {
+			if (this.#layerManager) {
 				this.#layerManager.clearLayers();
-			}
-			if (this.#layerManager && typeof this.#layerManager.destroy === 'function') {
 				this.#layerManager.destroy();
 			}
 		} catch (error) {

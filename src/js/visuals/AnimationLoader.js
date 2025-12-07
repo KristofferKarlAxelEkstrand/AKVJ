@@ -3,6 +3,7 @@
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 import AnimationLayer from './AnimationLayer.js';
+import settings from '../core/settings.js';
 
 class AnimationLoader {
 	#canvas2dContext;
@@ -91,7 +92,8 @@ class AnimationLoader {
 		}
 
 		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets
-		const CONCURRENCY = 8;
+		// Make concurrency configurable through settings.performance.maxConcurrentAnimationLoads
+		const CONCURRENCY = settings.performance?.maxConcurrentAnimationLoads ?? 8;
 		const results = [];
 		for (let i = 0; i < loadFuncs.length; i += CONCURRENCY) {
 			const chunk = loadFuncs.slice(i, i + CONCURRENCY).map(fn => fn());
