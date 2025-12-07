@@ -65,6 +65,17 @@ describe('AnimationLayer', () => {
 			consoleWarnSpy.mockRestore();
 		});
 
+		test('skips invalid frame rate keys and logs warnings', () => {
+			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+			// Keys: '-1' (negative), '999' (>= numberOfFrames), '1.5' (non-integer)
+			new AnimationLayer(defaultOptions({ frameRatesForFrames: { '-1': 10, 999: 20, 1.5: 30, 1: 60 } }));
+
+			// Three invalid keys should have caused warnings
+			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+			consoleWarnSpy.mockRestore();
+		});
+
 		test('falls back to default frame rate when all rates invalid', () => {
 			const ctx = createMockContext();
 			const mockNow = vi.spyOn(performance, 'now');
@@ -82,6 +93,23 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('play()', () => {
+		test('coerces numeric string keys to numeric indices', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// Use string keys to ensure coercion happens
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			// t=0 -> initial draw
+			mockNow.mockReturnValue(0);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// t=1ms (exactly interval) -> should advance to next frame
+			mockNow.mockReturnValue(1);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
+			mockNow.mockRestore();
+		});
 		test('advances frame when exactly on interval boundary', () => {
 			const ctx = createMockContext();
 			const mockNow = vi.spyOn(performance, 'now');

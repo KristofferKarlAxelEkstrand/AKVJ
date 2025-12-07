@@ -90,6 +90,8 @@ class AnimationLayer {
 			return;
 		}
 
+		// Non-looping animation completed - stop rendering
+
 		// Initialize lastTime on first play to prevent skipping frame 0
 		if (this.#lastTime === null) {
 			this.#lastTime = timestamp;
@@ -180,9 +182,11 @@ class AnimationLayer {
 	 * Dispose of image resources to help garbage collection
 	 */
 	dispose() {
-		// Clear both image and canvas references so GC can reclaim memory.
+		// Only clear image reference so GC can reclaim memory but leave the
+		// canvas2dContext intact. Clearing the context is a breaking change;
+		// if a layer is disposed while still referenced by the renderer, we
+		// should still allow play() to return early safely.
 		this.#image = null;
-		this.#canvas2dContext = null;
 	}
 }
 
