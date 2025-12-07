@@ -114,7 +114,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 			console.error('Error clearing layers:', error);
 		}
 		try {
-			this.#animationLoader.cleanup(this.#animations);
+			if (this.#animationLoader) {
+				this.#animationLoader.cleanup(this.#animations);
+			}
 		} catch (error) {
 			console.error('Error cleaning up animations:', error);
 		}
