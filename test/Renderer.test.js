@@ -50,14 +50,13 @@ describe('Renderer', () => {
 		const ctx = createMockContext();
 		const layerManager = { getActiveLayers: () => [] };
 
-		const rafMock = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
+		rafSpy.mockClear();
 		const renderer = new Renderer(ctx, layerManager);
 		renderer.start();
 
 		expect(ctx.fillRect).toHaveBeenCalled();
 		// Loop continues even when there are no active layers; ensure RAF was scheduled
-		expect(rafMock).toHaveBeenCalled();
-		rafMock.mockRestore();
+		expect(rafSpy).toHaveBeenCalled();
 		renderer.destroy();
 	});
 
@@ -67,11 +66,10 @@ describe('Renderer', () => {
 		const layerManager = { getActiveLayers: () => [[layer]] };
 
 		let frameCallback = null;
-		const rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(cb => {
+		rafSpy.mockImplementation(cb => {
 			frameCallback = cb;
 			return 1;
 		});
-		const cafSpy = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
 
 		const renderer = new Renderer(ctx, layerManager);
 		renderer.start();
@@ -79,9 +77,10 @@ describe('Renderer', () => {
 		renderer.destroy();
 
 		expect(frameCallback).toBeDefined();
+		// Clear spy and invoke to verify no new RAF scheduled after destroy
+		rafSpy.mockClear();
 		expect(() => frameCallback()).not.toThrow();
-
-		rafSpy.mockRestore();
-		cafSpy.mockRestore();
+		// No new frame should be scheduled after destroy
+		expect(rafSpy).not.toHaveBeenCalled();
 	});
 });

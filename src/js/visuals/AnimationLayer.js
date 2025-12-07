@@ -1,4 +1,4 @@
-/*
+/**
  * AnimationLayer - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  */

@@ -162,3 +162,5 @@ class AdventureKidVideoJockey extends HTMLElement {
 if (!customElements.get('adventure-kid-video-jockey')) {
 	customElements.define('adventure-kid-video-jockey', AdventureKidVideoJockey);
 }
+
+export default AdventureKidVideoJockey;

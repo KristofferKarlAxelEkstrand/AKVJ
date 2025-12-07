@@ -151,9 +151,6 @@ class AnimationLoader {
 			return;
 		}
 
-		// cleanup does not need to reference the sanitizer here; it stays as a class
-		// private helper placed outside the cleanup function.
-
 		for (const channel of Object.values(animations)) {
 			for (const note of Object.values(channel)) {
 				for (const layer of Object.values(note)) {
