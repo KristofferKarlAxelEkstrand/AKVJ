@@ -2,6 +2,50 @@
 
 **ALWAYS follow these instructions first** and only fallback to additional search and context gathering if the information in these instructions is incomplete or found to be in error.
 
+## Quick Start for Copilot Coding Agent
+
+When assigned a task for this repository:
+
+1. **Read this entire file** before starting work
+2. **Install dependencies**: `npm install` (takes ~13 seconds, never cancel)
+3. **Start development**: `npm run dev` for local testing at http://localhost:5173/
+4. **Make minimal changes**: Focus on surgical, precise modifications
+5. **Validate frequently**: Run `npm run lint && npm run build` after changes
+6. **Test in Chrome/Chromium**: Web MIDI API requires Chrome/Chromium browser
+7. **Review custom agents**: Check `.github/agents/` for specialized helpers (MIDI expert, project dev)
+
+### Best Tasks for This Repository
+
+✅ **Well-suited tasks:**
+
+- Bug fixes in MIDI handling, canvas rendering, or animation loading
+- Performance optimizations for real-time rendering
+- Code refactoring while maintaining vanilla JavaScript architecture
+- Documentation updates and code comments
+- Adding/improving unit tests
+
+⚠️ **Requires careful review:**
+
+- Changes to core rendering loop (60fps requirement)
+- MIDI event processing (low latency critical)
+- Memory management and cleanup logic
+
+❌ **Not recommended:**
+
+- Introducing frameworks or libraries (vanilla JS only)
+- Major architectural changes without human oversight
+- Modifying pixel-perfect rendering logic without testing
+
+### Custom Agents Available
+
+This repository has specialized agents in `.github/agents/`:
+
+- **midi-web-api-expert.agent.md**: MIDI integration and debugging specialist
+- **project-dev.agent.md**: AKVJ-specific development conventions and workflow
+- **github-and-ai-agent-expert.agent.md**: GitHub and AI tooling expertise
+
+Use these agents for domain-specific guidance when working on complex tasks.
+
 ## Project Overview
 
 AKVJ is a real-time VJ (Video Jockey) application built with Vite, vanilla JavaScript, Web MIDI API, and HTML5 Canvas. It listens to MIDI input and triggers pixel-perfect sprite animations for live performance visuals. The application uses a 240x135 pixel canvas with frame-based animations organized by MIDI channel, note, and velocity layers.
@@ -238,6 +282,31 @@ Please check your current `package.json` to confirm which scripts are available.
 7. **Validate:** Manual browser testing in Chrome/Chromium
 
 **NEVER CANCEL long-running operations** - all commands complete quickly except npm install which needs full time to complete.
+
+## Working with Pull Requests
+
+When creating or updating pull requests:
+
+1. **Commit frequently**: Use clear, descriptive commit messages
+2. **Request reviews**: Tag `@copilot` in PR comments for iterations
+3. **Respond to feedback**: Address review comments systematically
+4. **Test thoroughly**: Ensure all validation steps pass before requesting merge
+5. **Keep PRs focused**: One feature/fix per PR for easier review
+
+### Iteration Workflow
+
+- Use PR comments to request specific changes or improvements
+- Copilot can refine code based on review feedback
+- Break complex changes into multiple PRs if needed
+- Always validate changes don't break existing functionality
+
+## Additional Resources
+
+- **AI_INSTRUCTIONS.md**: Detailed AI development guidelines and architecture
+- **AGENTS.md**: Documentation about custom agents and their usage
+- **README.md**: Project overview and setup instructions for humans
+- **CONTRIBUTING.md**: Contribution guidelines and coding standards
+- **PROJECT-SPECIFICATION.md**: Detailed project specifications
 
 ---
 
