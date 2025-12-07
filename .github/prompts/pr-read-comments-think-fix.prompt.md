@@ -32,6 +32,7 @@ Review PR comments, decide what to fix, apply changes, and respond.
 
 ## Resolving Threads
 
+- Resolving conversations is a good thing — resolve threads when possible: either the change is implemented or the comment is not a valid/important issue.
 - Resolve after fixing (with commit SHA) or declining (with rationale)
 - Leave open if awaiting clarification or partial fix needs confirmation
 - For outdated threads: resolve with brief note on why obsolete
