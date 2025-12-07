@@ -34,6 +34,57 @@ Implementation Guidelines
 - If a suggested change is invasive (high risk), open a follow-up PR or ask for clarification rather than making a risky change without approval.
 - Where a comment suggests adding a new feature (e.g., CI check), prefer small, isolated additions and include tests if applicable.
 
+CI Troubleshooting & Automation suggestions
+
+- Quickly inspect PR checks and failures using the GitHub CLI:
+
+    ```bash
+    # Show checks for a PR
+    gh pr checks <PR_NUMBER> --repo <OWNER/REPO>
+    # List recent workflow runs on the branch
+    gh run list --branch <BRANCH> --repo <OWNER/REPO> --limit 10
+    # View logs for a specific run
+    gh run view <RUN_ID> --log --repo <OWNER/REPO>
+    # Rerun a failed job (requires write permissions on repo)
+    gh run rerun <RUN_ID> --repo <OWNER/REPO>
+    ```
+
+- Download logs or artifacts from a run for deeper inspection:
+
+    ```bash
+    # Get logs as a ZIP file (download & unzip locally)
+    gh api repos/<OWNER>/<REPO>/actions/runs/<RUN_ID>/logs --jq '.' --repo <OWNER/REPO>
+    # Or use `gh run view --log` to stream logs
+    ```
+
+- Reproduce CI failures locally (most common cases):
+
+    ```bash
+    # Use a fresh install similar to CI
+    npm ci
+    # Reproduce lint issues
+    npm run lint
+    # Reproduce unit tests (vitest)
+    npm test
+    # Reproduce build errors
+    npm run build
+    # For animation pipeline failures
+    npm run generate-animation-json-to-json
+    # If CI uses a particular Node version (matrix), install and use that version with nvm
+    nvm install <NODE_VERSION> && nvm use <NODE_VERSION>
+    # Or run in a matching container (Docker)
+    docker run --rm -v $PWD:/work -w /work node:<NODE_VERSION> bash -lc "npm ci && npm run build && npm test"
+    ```
+
+- Tips when investigating failures:
+    - If a job shows a flaky or non-deterministic test, reproduce it locally by running the single test or adding a `--run` or `-t` filter for your test runner (e.g., `npx vitest -t <name>`).
+    - For missing environment variables or secrets, inspect workflow YAML for `env` or `secrets` and check whether CI injects additional environment variables.
+    - When a job fails only on certain OS or Node versions, use the same matrix values locally (or replicate via Docker) to reproduce.
+    - If a test depends on external state (like a network resource), consider stubbing or adding a local fixture to make it hermetic for CI.
+    - If the failure is in a compiled native dependency, consider running the same CI runner image locally or documenting the required build steps for a follow-up PR.
+
+If CI problems are complex or require infra changes, create a follow-up issue documenting the failure, reproduction steps, and suggested remediation before making invasive changes in the PR.
+
 Applying fixes (details)
 
 - For each accepted change:
