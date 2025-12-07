@@ -140,14 +140,14 @@ Changes continuous controllers like volume, modulation, etc.
 ```javascript
 // Volume (Controller 7)
 [0xb0, 7, 100][ // Set channel 1 volume to 100
-	// Modulation (Controller 1)
-	(0xb0, 1, 64)
+    // Modulation (Controller 1)
+    (0xb0, 1, 64)
 ][ // Set modulation to middle position
-	// Pan (Controller 10)
-	(0xb0, 10, 64)
+    // Pan (Controller 10)
+    (0xb0, 10, 64)
 ][ // Center pan position
-	// Sustain Pedal (Controller 64)
-	(0xb0, 64, 127)
+    // Sustain Pedal (Controller 64)
+    (0xb0, 64, 127)
 ][(0xb0, 64, 0)]; // Sustain pedal pressed // Sustain pedal released
 ```
 
@@ -162,8 +162,8 @@ Changes the instrument/patch.
 ```javascript
 // Change to Grand Piano (program 0) on channel 1
 [0xc0, 0][
-	// Change to Electric Guitar (program 27) on channel 1
-	(0xc0, 27)
+    // Change to Electric Guitar (program 27) on channel 1
+    (0xc0, 27)
 ];
 ```
 
@@ -179,11 +179,11 @@ Bends the pitch of notes.
 ```javascript
 // No pitch bend
 [0xe0, 0, 64][ // 8192 = 0 + (64 << 7)
-	// Maximum bend up
-	(0xe0, 127, 127)
+    // Maximum bend up
+    (0xe0, 127, 127)
 ][ // 16383
-	// Maximum bend down
-	(0xe0, 0, 0)
+    // Maximum bend down
+    (0xe0, 0, 0)
 ]; // 0
 ```
 
@@ -272,11 +272,11 @@ MIDI supports 16 channels (0-15, often labeled 1-16 for users).
 ```javascript
 // Channel assignments for a band setup
 const CHANNELS = {
-	BASS: 0, // Channel 1
-	PIANO: 1, // Channel 2
-	GUITAR: 2, // Channel 3
-	STRINGS: 3, // Channel 4
-	DRUMS: 15 // Channel 16
+    BASS: 0, // Channel 1
+    PIANO: 1, // Channel 2
+    GUITAR: 2, // Channel 3
+    STRINGS: 3, // Channel 4
+    DRUMS: 15 // Channel 16
 };
 ```
 
@@ -300,29 +300,29 @@ MIDI note numbers range from 0-127:
 // Middle C = C4 = Note 60
 
 const NOTES = {
-	'C-1': 0, // Lowest MIDI note
-	C4: 60, // Middle C
-	A4: 69, // Concert A (440 Hz)
-	G9: 127 // Highest MIDI note
+    'C-1': 0, // Lowest MIDI note
+    C4: 60, // Middle C
+    A4: 69, // Concert A (440 Hz)
+    G9: 127 // Highest MIDI note
 };
 
 function noteNameToMIDI(noteName, octave) {
-	const noteOffsets = {
-		C: 0,
-		'C#': 1,
-		D: 2,
-		'D#': 3,
-		E: 4,
-		F: 5,
-		'F#': 6,
-		G: 7,
-		'G#': 8,
-		A: 9,
-		'A#': 10,
-		B: 11
-	};
+    const noteOffsets = {
+        C: 0,
+        'C#': 1,
+        D: 2,
+        'D#': 3,
+        E: 4,
+        F: 5,
+        'F#': 6,
+        G: 7,
+        'G#': 8,
+        A: 9,
+        'A#': 10,
+        B: 11
+    };
 
-	return (octave + 1) * 12 + noteOffsets[noteName];
+    return (octave + 1) * 12 + noteOffsets[noteName];
 }
 
 // Examples
@@ -350,23 +350,23 @@ Standard controller assignments:
 
 ```javascript
 const CONTROLLERS = {
-	BANK_SELECT_MSB: 0,
-	MODULATION: 1,
-	BREATH_CONTROLLER: 2,
-	FOOT_CONTROLLER: 4,
-	PORTAMENTO_TIME: 5,
-	DATA_ENTRY_MSB: 6,
-	VOLUME: 7,
-	BALANCE: 8,
-	PAN: 10,
-	EXPRESSION: 11,
-	BANK_SELECT_LSB: 32,
-	SUSTAIN_PEDAL: 64,
-	PORTAMENTO: 65,
-	SOSTENUTO: 66,
-	SOFT_PEDAL: 67,
-	REVERB_SEND: 91,
-	CHORUS_SEND: 93
+    BANK_SELECT_MSB: 0,
+    MODULATION: 1,
+    BREATH_CONTROLLER: 2,
+    FOOT_CONTROLLER: 4,
+    PORTAMENTO_TIME: 5,
+    DATA_ENTRY_MSB: 6,
+    VOLUME: 7,
+    BALANCE: 8,
+    PAN: 10,
+    EXPRESSION: 11,
+    BANK_SELECT_LSB: 32,
+    SUSTAIN_PEDAL: 64,
+    PORTAMENTO: 65,
+    SOSTENUTO: 66,
+    SOFT_PEDAL: 67,
+    REVERB_SEND: 91,
+    CHORUS_SEND: 93
 };
 ```
 
@@ -381,9 +381,9 @@ const CONTROLLERS = {
 ```javascript
 // Calculate MIDI clock from BPM
 function calculateClockInterval(bpm) {
-	const millisecondsPerBeat = 60000 / bpm;
-	const millisecondsPerClock = millisecondsPerBeat / 24;
-	return millisecondsPerClock;
+    const millisecondsPerBeat = 60000 / bpm;
+    const millisecondsPerClock = millisecondsPerBeat / 24;
+    return millisecondsPerClock;
 }
 
 // 120 BPM = 20.83ms between clock pulses
@@ -396,9 +396,9 @@ Indicates playback position in MIDI beats (16th notes):
 
 ```javascript
 function setSongPosition(sixteenthNotes) {
-	const lsb = sixteenthNotes & 0x7f;
-	const msb = (sixteenthNotes >> 7) & 0x7f;
-	return [0xf2, lsb, msb];
+    const lsb = sixteenthNotes & 0x7f;
+    const msb = (sixteenthNotes >> 7) & 0x7f;
+    return [0xf2, lsb, msb];
 }
 
 // Position at measure 5, beat 1 (assuming 4/4 time)
@@ -415,8 +415,8 @@ MIDI optimization that omits repeated status bytes:
 ```javascript
 // Without running status:
 [0x90, 60, 100][(0x90, 64, 100)][(0x90, 67, 100)][ // Note On C4 // Note On E4 // Note On G4
-	// With running status:
-	(0x90, 60, 100)
+    // With running status:
+    (0x90, 60, 100)
 ][(64, 100)][(67, 100)]; // Note On C4 // Note On E4 (status byte omitted) // Note On G4 (status byte omitted)
 ```
 
@@ -427,11 +427,11 @@ System Exclusive messages for transport control:
 ```javascript
 // MMC Stop command
 [0xf0, 0x7f, 0x7f, 0x06, 0x01, 0xf7][
-	// MMC Play command
-	(0xf0, 0x7f, 0x7f, 0x06, 0x02, 0xf7)
+    // MMC Play command
+    (0xf0, 0x7f, 0x7f, 0x06, 0x02, 0xf7)
 ][
-	// MMC Record command
-	(0xf0, 0x7f, 0x7f, 0x06, 0x06, 0xf7)
+    // MMC Record command
+    (0xf0, 0x7f, 0x7f, 0x06, 0x06, 0xf7)
 ];
 ```
 
@@ -441,25 +441,25 @@ Standardized instrument mapping:
 
 ```javascript
 const GM_INSTRUMENTS = {
-	// Piano Family
-	ACOUSTIC_GRAND_PIANO: 0,
-	BRIGHT_ACOUSTIC_PIANO: 1,
-	ELECTRIC_GRAND_PIANO: 2,
-	HONKY_TONK_PIANO: 3,
+    // Piano Family
+    ACOUSTIC_GRAND_PIANO: 0,
+    BRIGHT_ACOUSTIC_PIANO: 1,
+    ELECTRIC_GRAND_PIANO: 2,
+    HONKY_TONK_PIANO: 3,
 
-	// Organ Family
-	DRAWBAR_ORGAN: 16,
-	PERCUSSIVE_ORGAN: 17,
-	ROCK_ORGAN: 18,
+    // Organ Family
+    DRAWBAR_ORGAN: 16,
+    PERCUSSIVE_ORGAN: 17,
+    ROCK_ORGAN: 18,
 
-	// Guitar Family
-	ACOUSTIC_GUITAR_NYLON: 24,
-	ACOUSTIC_GUITAR_STEEL: 25,
-	ELECTRIC_GUITAR_JAZZ: 26,
-	ELECTRIC_GUITAR_CLEAN: 27,
+    // Guitar Family
+    ACOUSTIC_GUITAR_NYLON: 24,
+    ACOUSTIC_GUITAR_STEEL: 25,
+    ELECTRIC_GUITAR_JAZZ: 26,
+    ELECTRIC_GUITAR_CLEAN: 27,
 
-	// Drum Kit (Channel 16)
-	STANDARD_DRUM_KIT: 0 // On channel 15 (16th channel)
+    // Drum Kit (Channel 16)
+    STANDARD_DRUM_KIT: 0 // On channel 15 (16th channel)
 };
 ```
 
@@ -479,44 +479,44 @@ Next-generation MIDI with enhanced capabilities:
 
 ```javascript
 class MIDINotePlayer {
-	constructor(output) {
-		this.output = output;
-		this.channel = 0;
-		this.activeNotes = new Set();
-	}
+    constructor(output) {
+        this.output = output;
+        this.channel = 0;
+        this.activeNotes = new Set();
+    }
 
-	playNote(note, velocity = 100, duration = 1000) {
-		// Send Note On
-		this.output.send([0x90 | this.channel, note, velocity]);
-		this.activeNotes.add(note);
+    playNote(note, velocity = 100, duration = 1000) {
+        // Send Note On
+        this.output.send([0x90 | this.channel, note, velocity]);
+        this.activeNotes.add(note);
 
-		// Schedule Note Off
-		setTimeout(() => {
-			this.stopNote(note);
-		}, duration);
-	}
+        // Schedule Note Off
+        setTimeout(() => {
+            this.stopNote(note);
+        }, duration);
+    }
 
-	stopNote(note) {
-		if (this.activeNotes.has(note)) {
-			this.output.send([0x80 | this.channel, note, 0]);
-			this.activeNotes.delete(note);
-		}
-	}
+    stopNote(note) {
+        if (this.activeNotes.has(note)) {
+            this.output.send([0x80 | this.channel, note, 0]);
+            this.activeNotes.delete(note);
+        }
+    }
 
-	stopAllNotes() {
-		for (const note of this.activeNotes) {
-			this.output.send([0x80 | this.channel, note, 0]);
-		}
-		this.activeNotes.clear();
-	}
+    stopAllNotes() {
+        for (const note of this.activeNotes) {
+            this.output.send([0x80 | this.channel, note, 0]);
+        }
+        this.activeNotes.clear();
+    }
 
-	setInstrument(program) {
-		this.output.send([0xc0 | this.channel, program]);
-	}
+    setInstrument(program) {
+        this.output.send([0xc0 | this.channel, program]);
+    }
 
-	setVolume(volume) {
-		this.output.send([0xb0 | this.channel, 7, volume]);
-	}
+    setVolume(volume) {
+        this.output.send([0xb0 | this.channel, 7, volume]);
+    }
 }
 ```
 
@@ -524,74 +524,74 @@ class MIDINotePlayer {
 
 ```javascript
 class MIDIMessageParser {
-	static parse(data) {
-		if (data.length === 0) return null;
+    static parse(data) {
+        if (data.length === 0) return null;
 
-		const status = data[0];
-		const messageType = status & 0xf0;
-		const channel = status & 0x0f;
+        const status = data[0];
+        const messageType = status & 0xf0;
+        const channel = status & 0x0f;
 
-		switch (messageType) {
-			case 0x80: // Note Off
-				return {
-					type: 'noteOff',
-					channel,
-					note: data[1],
-					velocity: data[2]
-				};
+        switch (messageType) {
+            case 0x80: // Note Off
+                return {
+                    type: 'noteOff',
+                    channel,
+                    note: data[1],
+                    velocity: data[2]
+                };
 
-			case 0x90: // Note On
-				return {
-					type: data[2] === 0 ? 'noteOff' : 'noteOn',
-					channel,
-					note: data[1],
-					velocity: data[2]
-				};
+            case 0x90: // Note On
+                return {
+                    type: data[2] === 0 ? 'noteOff' : 'noteOn',
+                    channel,
+                    note: data[1],
+                    velocity: data[2]
+                };
 
-			case 0xb0: // Control Change
-				return {
-					type: 'controlChange',
-					channel,
-					controller: data[1],
-					value: data[2]
-				};
+            case 0xb0: // Control Change
+                return {
+                    type: 'controlChange',
+                    channel,
+                    controller: data[1],
+                    value: data[2]
+                };
 
-			case 0xc0: // Program Change
-				return {
-					type: 'programChange',
-					channel,
-					program: data[1]
-				};
+            case 0xc0: // Program Change
+                return {
+                    type: 'programChange',
+                    channel,
+                    program: data[1]
+                };
 
-			case 0xe0: // Pitch Bend
-				const pitchBend = data[1] | (data[2] << 7);
-				return {
-					type: 'pitchBend',
-					channel,
-					value: pitchBend - 8192 // Center at 0
-				};
+            case 0xe0: // Pitch Bend
+                const pitchBend = data[1] | (data[2] << 7);
+                return {
+                    type: 'pitchBend',
+                    channel,
+                    value: pitchBend - 8192 // Center at 0
+                };
 
-			default:
-				return {
-					type: 'unknown',
-					data: Array.from(data)
-				};
-		}
-	}
+            default:
+                return {
+                    type: 'unknown',
+                    data: Array.from(data)
+                };
+        }
+    }
 
-	static getControllerName(controller) {
-		const names = {
-			1: 'Modulation',
-			7: 'Volume',
-			10: 'Pan',
-			11: 'Expression',
-			64: 'Sustain Pedal',
-			91: 'Reverb Send',
-			93: 'Chorus Send'
-		};
+    static getControllerName(controller) {
+        const names = {
+            1: 'Modulation',
+            7: 'Volume',
+            10: 'Pan',
+            11: 'Expression',
+            64: 'Sustain Pedal',
+            91: 'Reverb Send',
+            93: 'Chorus Send'
+        };
 
-		return names[controller] || `Controller ${controller}`;
-	}
+        return names[controller] || `Controller ${controller}`;
+    }
 }
 
 // Usage
@@ -603,69 +603,69 @@ console.log(message); // { type: 'noteOn', channel: 0, note: 60, velocity: 100 }
 
 ```javascript
 class MIDIClockGenerator {
-	constructor(output) {
-		this.output = output;
-		this.bpm = 120;
-		this.isRunning = false;
-		this.clockInterval = null;
-		this.clockCount = 0;
-	}
+    constructor(output) {
+        this.output = output;
+        this.bpm = 120;
+        this.isRunning = false;
+        this.clockInterval = null;
+        this.clockCount = 0;
+    }
 
-	start() {
-		if (this.isRunning) return;
+    start() {
+        if (this.isRunning) return;
 
-		this.isRunning = true;
-		this.clockCount = 0;
+        this.isRunning = true;
+        this.clockCount = 0;
 
-		// Send start message
-		this.output.send([0xfa]);
+        // Send start message
+        this.output.send([0xfa]);
 
-		// Start clock
-		this.startClock();
-	}
+        // Start clock
+        this.startClock();
+    }
 
-	stop() {
-		if (!this.isRunning) return;
+    stop() {
+        if (!this.isRunning) return;
 
-		this.isRunning = false;
+        this.isRunning = false;
 
-		// Send stop message
-		this.output.send([0xfc]);
+        // Send stop message
+        this.output.send([0xfc]);
 
-		// Stop clock
-		if (this.clockInterval) {
-			clearInterval(this.clockInterval);
-			this.clockInterval = null;
-		}
-	}
+        // Stop clock
+        if (this.clockInterval) {
+            clearInterval(this.clockInterval);
+            this.clockInterval = null;
+        }
+    }
 
-	setBPM(bpm) {
-		this.bpm = bpm;
+    setBPM(bpm) {
+        this.bpm = bpm;
 
-		if (this.isRunning) {
-			this.stop();
-			this.start();
-		}
-	}
+        if (this.isRunning) {
+            this.stop();
+            this.start();
+        }
+    }
 
-	startClock() {
-		const interval = (60 / this.bpm / 24) * 1000; // 24 clocks per beat
+    startClock() {
+        const interval = (60 / this.bpm / 24) * 1000; // 24 clocks per beat
 
-		this.clockInterval = setInterval(() => {
-			this.output.send([0xf8]); // Clock pulse
-			this.clockCount++;
+        this.clockInterval = setInterval(() => {
+            this.output.send([0xf8]); // Clock pulse
+            this.clockCount++;
 
-			// Optional: trigger events on beat boundaries
-			if (this.clockCount % 24 === 0) {
-				this.onBeat();
-			}
-		}, interval);
-	}
+            // Optional: trigger events on beat boundaries
+            if (this.clockCount % 24 === 0) {
+                this.onBeat();
+            }
+        }, interval);
+    }
 
-	onBeat() {
-		// Override in subclass for beat-based events
-		console.log('Beat:', this.clockCount / 24);
-	}
+    onBeat() {
+        // Override in subclass for beat-based events
+        console.log('Beat:', this.clockCount / 24);
+    }
 }
 ```
 
@@ -676,25 +676,25 @@ class MIDIClockGenerator {
 ```javascript
 // Good: Minimize redundant messages
 class EfficientMIDISender {
-	constructor(output) {
-		this.output = output;
-		this.lastProgram = new Array(16).fill(-1);
-		this.lastController = new Array(16).fill(new Array(128).fill(-1));
-	}
+    constructor(output) {
+        this.output = output;
+        this.lastProgram = new Array(16).fill(-1);
+        this.lastController = new Array(16).fill(new Array(128).fill(-1));
+    }
 
-	sendProgramChange(channel, program) {
-		if (this.lastProgram[channel] !== program) {
-			this.output.send([0xc0 | channel, program]);
-			this.lastProgram[channel] = program;
-		}
-	}
+    sendProgramChange(channel, program) {
+        if (this.lastProgram[channel] !== program) {
+            this.output.send([0xc0 | channel, program]);
+            this.lastProgram[channel] = program;
+        }
+    }
 
-	sendControlChange(channel, controller, value) {
-		if (this.lastController[channel][controller] !== value) {
-			this.output.send([0xb0 | channel, controller, value]);
-			this.lastController[channel][controller] = value;
-		}
-	}
+    sendControlChange(channel, controller, value) {
+        if (this.lastController[channel][controller] !== value) {
+            this.output.send([0xb0 | channel, controller, value]);
+            this.lastController[channel][controller] = value;
+        }
+    }
 }
 ```
 
@@ -702,30 +702,30 @@ class EfficientMIDISender {
 
 ```javascript
 function safeMIDISend(output, data) {
-	try {
-		// Validate data
-		if (!Array.isArray(data) || data.length === 0) {
-			throw new Error('Invalid MIDI data');
-		}
+    try {
+        // Validate data
+        if (!Array.isArray(data) || data.length === 0) {
+            throw new Error('Invalid MIDI data');
+        }
 
-		// Check status byte
-		if (data[0] < 0x80 || data[0] > 0xff) {
-			throw new Error('Invalid status byte');
-		}
+        // Check status byte
+        if (data[0] < 0x80 || data[0] > 0xff) {
+            throw new Error('Invalid status byte');
+        }
 
-		// Check data bytes
-		for (let i = 1; i < data.length; i++) {
-			if (data[i] < 0 || data[i] > 127) {
-				throw new Error(`Invalid data byte at index ${i}: ${data[i]}`);
-			}
-		}
+        // Check data bytes
+        for (let i = 1; i < data.length; i++) {
+            if (data[i] < 0 || data[i] > 127) {
+                throw new Error(`Invalid data byte at index ${i}: ${data[i]}`);
+            }
+        }
 
-		output.send(data);
-		return true;
-	} catch (error) {
-		console.error('MIDI send error:', error);
-		return false;
-	}
+        output.send(data);
+        return true;
+    } catch (error) {
+        console.error('MIDI send error:', error);
+        return false;
+    }
 }
 ```
 
@@ -733,27 +733,27 @@ function safeMIDISend(output, data) {
 
 ```javascript
 class MIDIPerformanceMonitor {
-	constructor() {
-		this.messageCount = 0;
-		this.startTime = performance.now();
-		this.lastLogTime = this.startTime;
-	}
+    constructor() {
+        this.messageCount = 0;
+        this.startTime = performance.now();
+        this.lastLogTime = this.startTime;
+    }
 
-	recordMessage(messageData) {
-		this.messageCount++;
+    recordMessage(messageData) {
+        this.messageCount++;
 
-		const now = performance.now();
-		const timeSinceLastLog = now - this.lastLogTime;
+        const now = performance.now();
+        const timeSinceLastLog = now - this.lastLogTime;
 
-		// Log stats every 5 seconds
-		if (timeSinceLastLog > 5000) {
-			const totalTime = now - this.startTime;
-			const messagesPerSecond = (this.messageCount / totalTime) * 1000;
+        // Log stats every 5 seconds
+        if (timeSinceLastLog > 5000) {
+            const totalTime = now - this.startTime;
+            const messagesPerSecond = (this.messageCount / totalTime) * 1000;
 
-			console.log(`MIDI Performance: ${messagesPerSecond.toFixed(2)} msg/sec`);
-			this.lastLogTime = now;
-		}
-	}
+            console.log(`MIDI Performance: ${messagesPerSecond.toFixed(2)} msg/sec`);
+            this.lastLogTime = now;
+        }
+    }
 }
 ```
 
@@ -766,14 +766,14 @@ class MIDIPerformanceMonitor {
 ```javascript
 // Solution: All Notes Off message
 function allNotesOff(output, channel) {
-	output.send([0xb0 | channel, 123, 0]);
+    output.send([0xb0 | channel, 123, 0]);
 }
 
 // Or send individual Note Off for active notes
 function forceNotesOff(output, channel, activeNotes) {
-	activeNotes.forEach(note => {
-		output.send([0x80 | channel, note, 0]);
-	});
+    activeNotes.forEach(note => {
+        output.send([0x80 | channel, note, 0]);
+    });
 }
 ```
 
@@ -782,17 +782,17 @@ function forceNotesOff(output, channel, activeNotes) {
 ```javascript
 // Solution: Ensure Program Change sent before notes
 function playMelodyWithInstrument(output, channel, program, notes) {
-	// Set instrument first
-	output.send([0xc0 | channel, program]);
+    // Set instrument first
+    output.send([0xc0 | channel, program]);
 
-	// Small delay to ensure program change is processed
-	setTimeout(() => {
-		notes.forEach((note, index) => {
-			setTimeout(() => {
-				output.send([0x90 | channel, note, 100]);
-			}, index * 500);
-		});
-	}, 10);
+    // Small delay to ensure program change is processed
+    setTimeout(() => {
+        notes.forEach((note, index) => {
+            setTimeout(() => {
+                output.send([0x90 | channel, note, 100]);
+            }, index * 500);
+        });
+    }, 10);
 }
 ```
 
@@ -801,21 +801,21 @@ function playMelodyWithInstrument(output, channel, program, notes) {
 ```javascript
 // Solution: Use high-precision timestamps
 class PrecisionMIDIScheduler {
-	constructor(output) {
-		this.output = output;
-		this.startTime = performance.now();
-	}
+    constructor(output) {
+        this.output = output;
+        this.startTime = performance.now();
+    }
 
-	scheduleNote(note, velocity, startTime, duration) {
-		const absoluteStartTime = this.startTime + startTime;
-		const absoluteEndTime = absoluteStartTime + duration;
+    scheduleNote(note, velocity, startTime, duration) {
+        const absoluteStartTime = this.startTime + startTime;
+        const absoluteEndTime = absoluteStartTime + duration;
 
-		// Note On
-		this.output.send([0x90, note, velocity], absoluteStartTime);
+        // Note On
+        this.output.send([0x90, note, velocity], absoluteStartTime);
 
-		// Note Off
-		this.output.send([0x80, note, 0], absoluteEndTime);
-	}
+        // Note Off
+        this.output.send([0x80, note, 0], absoluteEndTime);
+    }
 }
 ```
 
@@ -824,19 +824,19 @@ class PrecisionMIDIScheduler {
 ```javascript
 // MIDI message logger
 function createMIDILogger(input, name) {
-	input.onmidimessage = event => {
-		const timestamp = event.timeStamp.toFixed(2);
-		const data = Array.from(event.data);
-		const hex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
+    input.onmidimessage = event => {
+        const timestamp = event.timeStamp.toFixed(2);
+        const data = Array.from(event.data);
+        const hex = data.map(b => b.toString(16).padStart(2, '0')).join(' ');
 
-		console.log(`[${timestamp}] ${name}: [${hex}] ${data}`);
+        console.log(`[${timestamp}] ${name}: [${hex}] ${data}`);
 
-		// Parse and log human-readable format
-		const parsed = MIDIMessageParser.parse(data);
-		if (parsed) {
-			console.log(`  → ${JSON.stringify(parsed)}`);
-		}
-	};
+        // Parse and log human-readable format
+        const parsed = MIDIMessageParser.parse(data);
+        if (parsed) {
+            console.log(`  → ${JSON.stringify(parsed)}`);
+        }
+    };
 }
 ```
 

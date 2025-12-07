@@ -81,14 +81,14 @@ Each animation folder contains a JSON file with the following structure:
 
 ```json
 {
-	"numberOfFrames": 64,
-	"framesPerRow": 8,
-	"loop": true,
-	"retrigger": true,
-	"frameRatesForFrames": {
-		"0": 2,
-		"32": 4
-	}
+    "numberOfFrames": 64,
+    "framesPerRow": 8,
+    "loop": true,
+    "retrigger": true,
+    "frameRatesForFrames": {
+        "0": 2,
+        "32": 4
+    }
 }
 ```
 

@@ -69,20 +69,20 @@ MIDI Controller → Web MIDI API → Channel/Note/Velocity → Animation Selecti
 
 ```json
 {
-	"velocityLayers": [
-		{
-			"minVelocity": 0, // Velocity threshold (0-127)
-			"numberOfFrames": 64, // Total frames in sprite sheet
-			"framesPerRow": 8, // Grid layout (8 frames per row)
-			"loop": true, // Whether animation repeats
-			"src": "sprite.png", // PNG sprite sheet filename
-			"frameRatesForFrames": {
-				// Custom timing per frame
-				"0": 2, // Frame 0 displays for 2 render ticks
-				"32": 4 // Frame 32 displays for 4 render ticks
-			}
-		}
-	]
+    "velocityLayers": [
+        {
+            "minVelocity": 0, // Velocity threshold (0-127)
+            "numberOfFrames": 64, // Total frames in sprite sheet
+            "framesPerRow": 8, // Grid layout (8 frames per row)
+            "loop": true, // Whether animation repeats
+            "src": "sprite.png", // PNG sprite sheet filename
+            "frameRatesForFrames": {
+                // Custom timing per frame
+                "0": 2, // Frame 0 displays for 2 render ticks
+                "32": 4 // Frame 32 displays for 4 render ticks
+            }
+        }
+    ]
 }
 ```
 
@@ -310,19 +310,19 @@ noteOn(channel, note, velocity) {
 
 ```javascript
 loop = () => {
-	// Clear canvas
-	this.canvas2dContext.fillRect(0, 0, 240, 135);
+    // Clear canvas
+    this.canvas2dContext.fillRect(0, 0, 240, 135);
 
-	// Render all active layers (channel 0 = background)
-	this.canvasLayers.forEach(layer => {
-		layer.forEach(note => {
-			if (note) {
-				note.play(); // Render current frame
-			}
-		});
-	});
+    // Render all active layers (channel 0 = background)
+    this.canvasLayers.forEach(layer => {
+        layer.forEach(note => {
+            if (note) {
+                note.play(); // Render current frame
+            }
+        });
+    });
 
-	requestAnimationFrame(this.loop);
+    requestAnimationFrame(this.loop);
 };
 ```
 
