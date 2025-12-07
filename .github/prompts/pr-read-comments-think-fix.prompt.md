@@ -59,11 +59,59 @@ Resolving threads should be intentional — it signals that the issue is handled
 Best practices when resolving threads:
 
 - Be concise and specific: State the reason and cite commits (SHA) for implemented changes.
-- Don't resolve others' threads unilaterally: If you close a reviewer’s thread, ensure you explain why and involve them if it's not obvious.
+- Don't resolve others' threads unilaterally: If you close a reviewer's thread, ensure you explain why and involve them if it's not obvious.
 - Use the GitHub UI to mark threads as resolved, or use the GraphQL `resolveReviewThread` mutation (if you do this programmatically make sure you're the author of the fix or authorized). Avoid programmatic resolving without a visible reason in the thread.
 - When you close with "Won't fix" or "Decline", prefer to reference an open issue or give a clear reason to avoid confusion.
 
 If in doubt, leave a small follow-up message asking for clarification. When a reviewer replies that they're OK, resolve the thread and continue.
+
+### How to Resolve a Thread via GraphQL
+
+MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`:
+
+1. **Get the thread ID** — Find the `threadId` from PR review comments (visible in MCP or via `gh api`).
+
+2. **Resolve the thread** using the `resolveReviewThread` mutation:
+
+```bash
+gh api graphql -f query='
+  mutation {
+    resolveReviewThread(input: { threadId: "PRRT_kwDONSbCH85XXXXXXX" }) {
+      thread {
+        isResolved
+      }
+    }
+  }
+'
+```
+
+Replace `PRRT_kwDONSbCH85XXXXXXX` with the actual thread ID.
+
+3. **Find thread IDs** — List review threads for a PR:
+
+```bash
+gh api graphql -f query='
+  query {
+    repository(owner: "KristofferKarlAxelEkstrand", name: "AKVJ") {
+      pullRequest(number: 34) {
+        reviewThreads(first: 50) {
+          nodes {
+            id
+            isResolved
+            comments(first: 1) {
+              nodes {
+                body
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+'
+```
+
+This returns thread IDs (`id`) and a preview of each comment so you can match them to specific discussions.
 
 ## CI Failures
 
