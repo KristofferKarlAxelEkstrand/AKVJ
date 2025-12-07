@@ -95,20 +95,16 @@ describe('AnimationLayer', () => {
 	describe('play()', () => {
 		test('coerces numeric string keys to numeric indices', () => {
 			const ctx = createMockContext();
-			const mockNow = vi.spyOn(performance, 'now');
 			// Use string keys to ensure coercion happens (JSON always parses keys as strings)
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
-			mockNow.mockReturnValue(0);
-			layer.play();
+			layer.play(0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 			// t=1ms (exactly interval) -> should advance to next frame
-			mockNow.mockReturnValue(1);
-			layer.play();
+			layer.play(1);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
-			mockNow.mockRestore();
 		});
 		test('advances frame when exactly on interval boundary', () => {
 			const ctx = createMockContext();
