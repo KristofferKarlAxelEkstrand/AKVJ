@@ -85,14 +85,8 @@ class AnimationLayer {
 			this.#lastTime = currentTime;
 		}
 
-		// Get frame rate for current frame and ensure a valid positive FPS
-		let framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
-		// Defensive check: ensure the value is numeric and positive. While the constructor
-		// already validated input, keep this small runtime guard to protect tests or
-		// non-standard usage that might mutate the private field.
-		if (typeof framesPerSecond !== 'number' || framesPerSecond <= 0) {
-			framesPerSecond = this.#defaultFrameRate;
-		}
+		// Get frame rate for current frame (guaranteed positive by constructor validation)
+		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
 		const interval = 1000 / framesPerSecond;
 
 		// Advance frame if enough time has passed

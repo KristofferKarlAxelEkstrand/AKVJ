@@ -115,8 +115,9 @@ class AnimationLoader {
 			}
 		}
 
-		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets
-		// Make concurrency configurable through settings.performance.maxConcurrentAnimationLoads
+		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets.
+		// Process animations in batches of CONCURRENCY size; the final batch may be smaller if the
+		// total count is not evenly divisible. This is handled correctly by slice().
 		const CONCURRENCY = settings.performance?.maxConcurrentAnimationLoads ?? 8;
 		const results = [];
 		for (let i = 0; i < loadFuncs.length; i += CONCURRENCY) {
