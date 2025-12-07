@@ -34,6 +34,7 @@ dist-ssr/
 # Temporary files
 tmp/
 temp/
+tmp-*.js
 
 # Animation pipeline
 .cache/
