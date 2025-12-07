@@ -118,13 +118,17 @@ Resolving review threads
     - This keeps the PR tidy and signals to reviewers that the conversation is complete.
     - Only leave your own threads open if you expect follow-up discussion or additional changes.
 
-Post-check & Copilot step
+Post-check & Copilot review step
 
-- After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
-    - Post a final PR comment summarizing what was done and tagging @copilot (or the Copilot reviewer bot) asking for a final automated review.
-    - If you have repository permissions, also request a GitHub review from Copilot via the MCP.
+- After all changes and replies have been made and validations pass, request a code review from Copilot:
+    - Use the MCP tool `request_copilot_review` to formally request a GitHub Copilot code review on the PR. This triggers Copilot to provide fast, actionable feedback before human reviewers.
+      Example MCP call (pseudo):
+        ```
+        mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)
+        ```
+    - Optionally, post a final PR comment summarizing what was done. Avoid tagging @copilot in the comment body, as that may invoke the coding agent instead of requesting a review.
     - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
-    - If you pushed additional changes after addressing comments, re-request a Copilot review on the PR (either by tagging @copilot in a follow-up comment or re-requesting a review via the MCP tools) so Copilot can double-check any new edits.
+    - If you pushed additional changes after addressing comments, re-request a Copilot review using the MCP tool so Copilot can review any new edits.
 
 Examples (short, focused language):
 
