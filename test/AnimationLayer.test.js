@@ -180,6 +180,14 @@ describe('AnimationLayer', () => {
 			const lastCall = ctx.drawImage.mock.calls.at(-1);
 			const frameWidth = 240 / 10;
 			expect(lastCall[1]).toBe(frameWidth * 3);
+
+			// t=400ms -> the 50ms leftover should be preserved, so elapsed becomes 100ms and
+			// exactly one more frame should be advanced
+			mockNow.mockReturnValue(400);
+			layer.play();
+			const secondCall = ctx.drawImage.mock.calls.at(-1);
+			expect(secondCall[1]).toBe(frameWidth * 4);
+
 			mockNow.mockRestore();
 		});
 
