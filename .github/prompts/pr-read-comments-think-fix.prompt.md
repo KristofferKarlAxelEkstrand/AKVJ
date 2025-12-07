@@ -79,7 +79,15 @@ If complex, open a follow-up issue rather than making risky fixes.
 
 After all changes pass validation:
 
-- Request Copilot review: `mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)`
+- Push your updated branch to the PR remote so CI and reviewers can verify the changes:
+    ```bash
+    git push origin YOUR_BRANCH
+    ```
+- Request Copilot review via MCP using the tool `mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)`
+    - Example pseudo-call (adapt to your MCP tool):
+        ```js
+        mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
+        ```
 - Confirm CI passes before marking ready for merge
 
 ## Troubleshooting git push
