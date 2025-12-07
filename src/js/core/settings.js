@@ -33,7 +33,12 @@ const settings = {
 		targetFPS: 60,
 		// Animation JSON URL
 		animationsJsonUrl: '/animations/animations.json',
-		// Maximum number of concurrent animation image loads to run at once
+		/**
+		 * Maximum number of concurrent animation image loads to run at once.
+		 * Recommended range: 4-16. Larger values improve load speed at the cost of higher
+		 * memory usage and potentially increased network saturation. This is used by
+		 * `AnimationLoader` for batching image load requests.
+		 */
 		maxConcurrentAnimationLoads: 8
 	},
 	rendering: {

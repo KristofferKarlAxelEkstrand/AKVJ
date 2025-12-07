@@ -62,7 +62,8 @@ class Renderer {
 		// canvas transparent. Keep the check simple - if a valid context exists,
 		// it will provide the drawing API (CanvasRenderingContext2D).
 		if (this.#canvas2dContext) {
-			this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
+			// Use fillRect for consistent background color. The canvas fillStyle is initialized
+			// in `AdventureKidVideoJockey.connectedCallback()` to avoid redundant per-frame writes.
 			this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 		}
 
