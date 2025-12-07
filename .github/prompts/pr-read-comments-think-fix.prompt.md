@@ -69,32 +69,14 @@ If in doubt, leave a small follow-up message asking for clarification. When a re
 
 MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`:
 
-1. **Get the thread ID** — Find the `threadId` from PR review comments (visible in MCP or via `gh api`).
-
-2. **Resolve the thread** using the `resolveReviewThread` mutation:
-
-```bash
-gh api graphql -f query='
-  mutation {
-    resolveReviewThread(input: { threadId: "PRRT_kwDONSbCH85XXXXXXX" }) {
-      thread {
-        isResolved
-      }
-    }
-  }
-'
-```
-
-Replace `PRRT_kwDONSbCH85XXXXXXX` with the actual thread ID.
-
-3. **Find thread IDs** — List review threads for a PR:
+#### 1. List unresolved threads for a PR
 
 ```bash
 gh api graphql -f query='
   query {
-    repository(owner: "KristofferKarlAxelEkstrand", name: "AKVJ") {
-      pullRequest(number: 34) {
-        reviewThreads(first: 50) {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
           nodes {
             id
             isResolved
@@ -111,7 +93,78 @@ gh api graphql -f query='
 '
 ```
 
-This returns thread IDs (`id`) and a preview of each comment so you can match them to specific discussions.
+Filter to unresolved only with `jq`:
+
+```bash
+gh api graphql -f query='...' | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)]'
+```
+
+#### 2. Resolve a single thread
+
+```bash
+gh api graphql -f query='
+  mutation {
+    resolveReviewThread(input: { threadId: "PRRT_kwDOA2KbxM5XXXXXXX" }) {
+      thread {
+        isResolved
+      }
+    }
+  }
+'
+```
+
+The response confirms success:
+
+```json
+{
+	"data": {
+		"resolveReviewThread": {
+			"thread": {
+				"isResolved": true
+			}
+		}
+	}
+}
+```
+
+#### 3. Resolve multiple threads in a loop
+
+```bash
+# Get all unresolved thread IDs
+THREAD_IDS=$(gh api graphql -f query='
+  query {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
+          nodes { id isResolved }
+        }
+      }
+    }
+  }
+' | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
+
+# Resolve each thread
+for THREAD_ID in $THREAD_IDS; do
+  echo "Resolving $THREAD_ID..."
+  gh api graphql -f query="mutation { resolveReviewThread(input: { threadId: \"$THREAD_ID\" }) { thread { isResolved } } }"
+done
+```
+
+#### 4. Unresolve a thread (if needed)
+
+```bash
+gh api graphql -f query='
+  mutation {
+    unresolveReviewThread(input: { threadId: "PRRT_kwDOA2KbxM5XXXXXXX" }) {
+      thread {
+        isResolved
+      }
+    }
+  }
+'
+```
+
+**Important**: Always leave a comment explaining why you're resolving the thread before resolving it programmatically. This maintains transparency in the review conversation.
 
 ## CI Failures
 
