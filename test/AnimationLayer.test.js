@@ -82,6 +82,24 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('play()', () => {
+		test('advances frame when exactly on interval boundary', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// Set frame rate so interval is 1ms for easy testing
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			// t=0 -> initial draw
+			mockNow.mockReturnValue(0);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// t=1ms (exactly interval) -> should advance to next frame
+			mockNow.mockReturnValue(1);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			// Verify second draw is for frame 1 (sx=frameWidth)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
+			mockNow.mockRestore();
+		});
+
 		test('returns early if image is null (after dispose)', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));

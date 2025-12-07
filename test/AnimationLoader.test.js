@@ -53,6 +53,6 @@ describe('AnimationLoader', () => {
 		const loader = new AnimationLoader(ctx);
 		const animations = await loader.setUpAnimations('/fake.json');
 		expect(animations).toBeTruthy();
-		expect(animations[0]['60']).toBeDefined();
+		expect(animations[0][60]).toBeDefined();
 	});
 });
