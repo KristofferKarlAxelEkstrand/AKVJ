@@ -53,8 +53,9 @@ class AnimationLoader {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
 			// Use crossOrigin from settings if present. If null/undefined, do not set.
+			// Empty string is valid (equivalent to 'anonymous'), so check explicitly.
 			const cross = settings.performance?.imageCrossOrigin;
-			if (cross) {
+			if (cross !== null && cross !== undefined) {
 				img.crossOrigin = cross;
 			}
 			img.onload = () => resolve(img);
@@ -83,9 +84,16 @@ class AnimationLoader {
 	 */
 	async #loadAnimation(channel, note, velocityLayer, animationData) {
 		// Construct image path using configurable base path to support subpath deployments
-		const base = settings.performance?.animationsBasePath ?? import.meta.env.BASE_URL ?? '/';
+		const base = settings.performance.animationsBasePath;
 		const sanitizedFile = this.#sanitizeFileName(animationData.png);
-		const imagePath = `${base}animations/${channel}/${note}/${velocityLayer}/${sanitizedFile}`;
+		// Early return with clear error if filename was invalid/sanitized to empty
+		if (!sanitizedFile) {
+			console.error(`Invalid filename for animation ${channel}/${note}/${velocityLayer}: ${animationData.png}`);
+			return null;
+		}
+		// Normalize base path to avoid double slashes in the constructed URL
+		const normalizedBase = base.replace(/\/$/, '');
+		const imagePath = `${normalizedBase}/animations/${channel}/${note}/${velocityLayer}/${sanitizedFile}`;
 
 		try {
 			const image = await this.#loadImage(imagePath);

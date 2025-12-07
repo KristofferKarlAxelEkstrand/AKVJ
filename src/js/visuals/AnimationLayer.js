@@ -85,7 +85,7 @@ class AnimationLayer {
 			this.#lastTime = currentTime;
 		}
 
-		// Get frame rate for current frame (guaranteed positive by constructor validation)
+		// Get frame rate for current frame; falls back to defaultFrameRate (guaranteed positive) if undefined
 		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
 		const interval = 1000 / framesPerSecond;
 
