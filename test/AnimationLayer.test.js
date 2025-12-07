@@ -56,6 +56,29 @@ describe('AnimationLayer', () => {
 			const layer = new AnimationLayer(defaultOptions());
 			expect(layer).toBeInstanceOf(AnimationLayer);
 		});
+
+		test('filters invalid frame rates and logs warnings', () => {
+			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			new AnimationLayer(defaultOptions({ frameRatesForFrames: { 0: -1, 1: 0, 2: 'invalid', 3: 60 } }));
+			// Should have logged a warning for the three invalid values
+			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+			consoleWarnSpy.mockRestore();
+		});
+
+		test('falls back to default frame rate when all rates invalid', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
+			// Play once at t=0
+			layer.play();
+			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
+			mockNow.mockReturnValue(1000);
+			// Should not throw due to invalid frame rates
+			expect(() => layer.play()).not.toThrow();
+			mockNow.mockRestore();
+		});
 	});
 
 	describe('play()', () => {
