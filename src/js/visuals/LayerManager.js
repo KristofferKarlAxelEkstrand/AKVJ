@@ -131,6 +131,15 @@ class LayerManager {
 	}
 
 	/**
+	 * Destroy active layer manager and release references
+	 */
+	destroy() {
+		this.clearLayers();
+		this.#animations = {};
+		this.#velocityCache.clear();
+	}
+
+	/**
 	 * Get statistics about active layers
 	 */
 	getLayerStats() {

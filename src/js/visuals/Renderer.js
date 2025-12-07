@@ -41,6 +41,15 @@ class Renderer {
 	}
 
 	/**
+	 * Destroy renderer and release references for GC
+	 */
+	destroy() {
+		this.stop();
+		this.#canvas2dContext = null;
+		this.#layerManager = null;
+	}
+
+	/**
 	 * Main rendering loop - clears canvas and renders all active layers
 	 */
 	#loop = () => {
@@ -48,11 +57,19 @@ class Renderer {
 			return;
 		}
 
-		// Clear the canvas with background color using cached dimensions
-		this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		// Clear the canvas for the next frame (clears alpha + pixel data)
+		// Use clearRect for performance and to avoid accidental persistent artifacts
+		if (this.#canvas2dContext && typeof this.#canvas2dContext.clearRect === 'function') {
+			this.#canvas2dContext.clearRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		}
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
 		const activeLayers = this.#layerManager.getActiveLayers();
+		// Quick path: if there are no active layers, skip rendering loop to save CPU
+		if (!activeLayers || activeLayers.length === 0) {
+			this.#animationFrameId = requestAnimationFrame(this.#loop);
+			return;
+		}
 		for (const channel of activeLayers) {
 			if (channel) {
 				for (const animation of channel) {

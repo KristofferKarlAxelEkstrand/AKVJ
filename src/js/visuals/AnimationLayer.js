@@ -47,7 +47,9 @@ class AnimationLayer {
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
 		// Cache the default frame rate - prefer frame 0, otherwise use first defined value
-		this.#defaultFrameRate = frameRatesForFrames[0] ?? frameRatesForFrames[Object.keys(frameRatesForFrames)[0]] ?? 1;
+		const maybeDefault = frameRatesForFrames[0] ?? frameRatesForFrames[Object.keys(frameRatesForFrames)[0]] ?? 1;
+		// Ensure the default frame rate is a positive number > 0
+		this.#defaultFrameRate = typeof maybeDefault === 'number' && maybeDefault > 0 ? maybeDefault : 1;
 	}
 
 	/**
@@ -71,8 +73,11 @@ class AnimationLayer {
 			this.#lastTime = currentTime;
 		}
 
-		// Get frame rate for current frame
-		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
+		// Get frame rate for current frame and ensure a valid positive FPS
+		let framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
+		if (typeof framesPerSecond !== 'number' || framesPerSecond <= 0) {
+			framesPerSecond = this.#defaultFrameRate;
+		}
 		const interval = 1000 / framesPerSecond;
 
 		// Advance frame if enough time has passed

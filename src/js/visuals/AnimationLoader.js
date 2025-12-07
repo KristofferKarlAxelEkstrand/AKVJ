@@ -80,18 +80,24 @@ class AnimationLoader {
 		const jsonData = await this.#loadAnimationsJson(jsonUrl);
 		const animations = {};
 
-		// Collect all load promises (expanded to improve readability)
-		const loadPromises = [];
+		// Collect all load functions for each animation so we can control concurrency
+		const loadFuncs = [];
 		for (const [channel, notes] of Object.entries(jsonData)) {
 			for (const [note, velocities] of Object.entries(notes)) {
 				for (const [velocityLayer, animationData] of Object.entries(velocities)) {
-					loadPromises.push(this.#loadAnimation(channel, note, velocityLayer, animationData));
+					loadFuncs.push(() => this.#loadAnimation(channel, note, velocityLayer, animationData));
 				}
 			}
 		}
 
-		// Load all animations in parallel
-		const results = await Promise.all(loadPromises);
+		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets
+		const CONCURRENCY = 8;
+		const results = [];
+		for (let i = 0; i < loadFuncs.length; i += CONCURRENCY) {
+			const chunk = loadFuncs.slice(i, i + CONCURRENCY).map(fn => fn());
+			const chunkResults = await Promise.all(chunk);
+			results.push(...chunkResults);
+		}
 
 		// Build the animations object from successful loads
 		for (const result of results) {
@@ -123,7 +129,9 @@ class AnimationLoader {
 			for (const note of Object.values(channel)) {
 				for (const layer of Object.values(note)) {
 					try {
-						layer.dispose();
+						if (layer && typeof layer.dispose === 'function') {
+							layer.dispose();
+						}
 					} catch (error) {
 						console.error('Failed to dispose animation layer:', error);
 					}
