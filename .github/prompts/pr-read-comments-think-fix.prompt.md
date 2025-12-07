@@ -15,20 +15,23 @@ Review PR comments, decide what to fix, apply changes, and respond.
 ## Workflow
 
 1. **Fetch context**: Use MCP to get PR details, changed files, review comments, and CI status
-2. **Decide per comment**:
+2. **Categorize all comments first**: Before implementing anything, read through all comments and sort them into categories (accept, partial, decline, already-resolved). This prevents context-switching and helps batch related fixes.
+3. **Decide per comment**:
     - **Accept**: Apply fix, explain briefly why it improves the code
     - **Partial**: Apply modified fix, explain variance
     - **Decline**: Explain why (risk, compat, duplicate) and suggest alternative
+    - **Already resolved**: Prior commits in the PR already addressed this — note the commit SHA and resolve
     - **Avoid creating a new PR for these changes**: Prefer updating the existing branch/PR to keep review history and the conversation focused. If a change is truly large or out of scope, document the rationale and open a follow-up issue or PR and link it from this PR.
-3. **Prioritize**: Blocking issues (security, correctness) first, then style
-4. **Implement**: Small commits, run checks, push
-5. **Respond**: Reply to each comment with decision and commit SHA if fixed
+4. **Prioritize**: Blocking issues (security, correctness) first, then style
+5. **Implement**: Small commits, run checks, push
+6. **Respond**: Reply to each comment with decision and commit SHA if fixed
 
 ## Reply Format
 
 - Accept: `"Done — <what changed>. Commit: abc123."`
 - Partial: `"Partial — <what was done>, <what was skipped and why>. Commit: abc123."`
 - Decline: `"Decline — <reason>. Alternative: <suggestion>."`
+- Already resolved: `"Already addressed in commit abc123 — <brief note>."`
 
 ## Resolving Threads
 
@@ -46,6 +49,9 @@ Resolving threads should be intentional — it signals that the issue is handled
 
 - Resolved because the comment is outdated: If rebase/HMR/refactor or another change made the comment irrelevant, resolve the thread and explain why it's no longer applicable. Example:
     - "Resolve — Outdated after refactor in commit b6fb1e3; the change moved into `LayerManager`"
+
+- Resolved because a prior commit already addressed it: Many review comments get addressed by earlier commits in the same PR before you review them. Check the current code state — if it already implements the suggestion, resolve with the commit SHA. Example:
+    - "Already addressed in commit b6fb1e3 — null guard added as suggested"
 
 - Resolved because it will not be worked on: If the suggestion is valuable but out of scope or a deliberate design decision was made, resolve the thread and explain the decision and next steps (open issue or follow-up PR if necessary):
     - "Decline — Out-of-scope for this PR; opening a follow-up issue to track the improvement"
@@ -67,7 +73,17 @@ If in doubt, leave a small follow-up message asking for clarification. When a re
 
 ### How to Resolve a Thread via GraphQL
 
-MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`:
+MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`.
+
+#### Quick Reference
+
+```bash
+# Resolve a single thread
+gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "PRRT_xxx" }) { thread { isResolved } } }'
+
+# Unresolve a thread
+gh api graphql -f query='mutation { unresolveReviewThread(input: { threadId: "PRRT_xxx" }) { thread { isResolved } } }'
+```
 
 #### 0. Resolve all outdated threads first (recommended)
 
