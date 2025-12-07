@@ -10,6 +10,7 @@ Review PR comments, decide what to fix, apply changes, and respond.
 - Push to PR branch only (never main)
 - When unsure, ask instead of guessing
 - MCP tooling can sometimes update PR content, but to avoid unexpected credential issues and maintain clear authoring and traceability, prefer a local git workflow (commit, push, PR) or the GitHub web UI/CLI for making code changes. Do not rely on MCP tools to push changes from the workspace; they should be used primarily for reading PR context, comments, and statuses.
+- DO NOT create a separate or follow-up PR to address the comments on this PR unless there's a strong, documented reason — focus on this PR. The goal is to address or discard all review comments here so the end result is a single, well-reviewed PR with excellent code.
 
 ## Workflow
 
@@ -18,6 +19,7 @@ Review PR comments, decide what to fix, apply changes, and respond.
     - **Accept**: Apply fix, explain briefly why it improves the code
     - **Partial**: Apply modified fix, explain variance
     - **Decline**: Explain why (risk, compat, duplicate) and suggest alternative
+    - **Avoid creating a new PR for these changes**: Prefer updating the existing branch/PR to keep review history and the conversation focused. If a change is truly large or out of scope, document the rationale and open a follow-up issue or PR and link it from this PR.
 3. **Prioritize**: Blocking issues (security, correctness) first, then style
 4. **Implement**: Small commits, run checks, push
 5. **Respond**: Reply to each comment with decision and commit SHA if fixed
