@@ -46,9 +46,8 @@ describe('Renderer', () => {
 		expect(stopSpy).toHaveBeenCalled();
 	});
 
-	test('skips rendering loop when no active layers present', () => {
+	test('continues rendering loop when no active layers present', () => {
 		const ctx = createMockContext();
-		const playSpy = vi.fn();
 		const layerManager = { getActiveLayers: () => [] };
 
 		const rafMock = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
@@ -56,8 +55,8 @@ describe('Renderer', () => {
 		renderer.start();
 
 		expect(ctx.fillRect).toHaveBeenCalled();
-		// No layers to play -> nothing should call any play method
-		expect(playSpy).not.toHaveBeenCalled();
+		// Loop continues even when there are no active layers; ensure RAF was scheduled
+		expect(rafMock).toHaveBeenCalled();
 		rafMock.mockRestore();
 		renderer.destroy();
 	});

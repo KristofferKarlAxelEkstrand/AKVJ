@@ -202,6 +202,7 @@ describe('AnimationLayer', () => {
 			// Verify last draw was frame 0
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 		});
+
 	});
 
 	describe('stop()', () => {

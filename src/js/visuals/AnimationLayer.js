@@ -1,4 +1,4 @@
-/**
+/*
  * AnimationLayer - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  */
@@ -96,7 +96,10 @@ class AnimationLayer {
 		const interval = 1000 / framesPerSecond;
 
 		// Advance frame if enough time has passed
-		if (currentTime > this.#lastTime + interval) {
+		// Advance frame when the interval has elapsed or when exactly on the
+		// interval boundary. Using >= ensures we don't miss frames due to
+		// precise timing where currentTime === lastTime + interval.
+		if (currentTime >= this.#lastTime + interval) {
 			this.#frame++;
 			// Wrap frame for looping animations
 			if (this.#frame >= this.#numberOfFrames) {
