@@ -112,7 +112,7 @@ export async function run(options = {}) {
 	// Step 2: Optimize
 	if (!options.noOptimize) {
 		console.log('Step 2: Optimizing PNGs...');
-		const { results, sharp } = await optimize(valid, CACHE_DIR);
+		const { results, sharp, bitmaskCount } = await optimize(valid, CACHE_DIR);
 
 		const optimized = results.filter(r => r.optimized).length;
 		const skipped = results.filter(r => r.skipped).length;
@@ -122,6 +122,9 @@ export async function run(options = {}) {
 			const totalSaved = results.filter(r => r.optimized && r.originalSize && r.optimizedSize).reduce((acc, r) => acc + (r.originalSize - r.optimizedSize), 0);
 
 			console.log(`  Optimized: ${optimized}, Skipped: ${skipped}, Failed: ${failed}`);
+			if (bitmaskCount > 0) {
+				console.log(`  Bitmasks (1-bit): ${bitmaskCount}`);
+			}
 			if (totalSaved > 0) {
 				console.log(`  Total size saved: ${(totalSaved / 1024).toFixed(1)} KB`);
 			}

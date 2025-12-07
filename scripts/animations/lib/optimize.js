@@ -3,11 +3,18 @@ import path from 'path';
 import { hashFile, writeHashFile, isCacheValid } from './hash.js';
 
 /**
+ * Channel number for bitmask/mixer animations.
+ * Animations in this channel are converted to 1-bit (black & white).
+ */
+const BITMASK_CHANNEL = 4;
+
+/**
  * Optimization result for a single file.
  * @typedef {Object} OptimizeResult
  * @property {string} path - Animation path
  * @property {boolean} skipped - True if file was unchanged
  * @property {boolean} optimized - True if file was optimized
+ * @property {boolean} [isBitmask] - True if processed as 1-bit bitmask
  * @property {number} [originalSize] - Original file size in bytes
  * @property {number} [optimizedSize] - Optimized file size in bytes
  * @property {string} [error] - Error message if optimization failed
@@ -27,16 +34,27 @@ async function loadSharp() {
 }
 
 /**
+ * Check if an animation path is a bitmask (channel 4).
+ * @param {string} animationPath - Path like "4/0/0"
+ * @returns {boolean}
+ */
+function isBitmaskAnimation(animationPath) {
+	const channel = parseInt(animationPath.split('/')[0], 10);
+	return channel === BITMASK_CHANNEL;
+}
+
+/**
  * Optimize a single PNG file if it has changed.
  * @param {string} sourcePath - Path to source PNG
  * @param {string} cachePath - Path to output cached PNG
  * @param {import('sharp')|null} sharp - Sharp module or null to skip optimization
+ * @param {boolean} [isBitmask=false] - If true, convert to 1-bit black & white
  * @returns {Promise<OptimizeResult>}
  */
-async function optimizeFile(sourcePath, cachePath, sharp) {
+async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
 	// Check if cache is valid
 	if (await isCacheValid(sourcePath, cachePath)) {
-		return { path: sourcePath, skipped: true, optimized: false };
+		return { path: sourcePath, skipped: true, optimized: false, isBitmask };
 	}
 
 	// Ensure cache directory exists
@@ -52,14 +70,30 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 		let tempExists = false;
 		let cleanupNeeded = false;
 		try {
-			await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(tempPath);
+			let pipeline = sharp(sourcePath);
+
+			if (isBitmask) {
+				// Convert to 1-bit: grayscale, threshold at 128, then 1-bit palette
+				pipeline = pipeline.grayscale().threshold(128).png({
+					palette: true,
+					quality: 100,
+					colors: 2, // Black and white only
+					effort: 10
+				});
+			} else {
+				// Standard palette optimization
+				pipeline = pipeline.png({ palette: true, quality: 80, effort: 10 });
+			}
+
+			await pipeline.toFile(tempPath);
 			tempExists = true;
 			cleanupNeeded = true;
 
 			const tempStats = await fs.stat(tempPath);
 
-			// Only keep optimized version if it's smaller
-			if (tempStats.size < originalSize) {
+			// For bitmasks, always use the converted version (correctness over size)
+			// For regular images, only keep optimized version if it's smaller
+			if (isBitmask || tempStats.size < originalSize) {
 				await fs.rename(tempPath, cachePath);
 				optimizedSize = tempStats.size;
 				cleanupNeeded = false;
@@ -107,6 +141,7 @@ async function optimizeFile(sourcePath, cachePath, sharp) {
 
 /**
  * Optimize all PNG files from validated animations.
+ * Bitmask animations (channel 4) are converted to 1-bit black & white.
  * @param {Array<{path: string, dir: string, pngPath: string|null, meta: Object}>} animations - Validated animations
  * @param {string} cacheDir - Cache output directory
  * @returns {Promise<{results: OptimizeResult[], sharp: boolean}>}
@@ -120,6 +155,7 @@ export async function optimize(animations, cacheDir) {
 	}
 
 	const results = [];
+	let bitmaskCount = 0;
 
 	for (const animation of animations) {
 		if (!animation.pngPath) {
@@ -130,9 +166,14 @@ export async function optimize(animations, cacheDir) {
 		const relativePath = animation.path;
 		const pngName = path.basename(animation.pngPath);
 		const cachePath = path.join(cacheDir, relativePath, pngName);
+		const isBitmask = isBitmaskAnimation(relativePath);
+
+		if (isBitmask) {
+			bitmaskCount++;
+		}
 
 		try {
-			const result = await optimizeFile(animation.pngPath, cachePath, sharp);
+			const result = await optimizeFile(animation.pngPath, cachePath, sharp, isBitmask);
 			result.animationPath = relativePath;
 			results.push(result);
 		} catch (error) {
@@ -141,6 +182,7 @@ export async function optimize(animations, cacheDir) {
 				animationPath: relativePath,
 				skipped: false,
 				optimized: false,
+				isBitmask,
 				error: error.message
 			});
 		}
@@ -157,5 +199,5 @@ export async function optimize(animations, cacheDir) {
 		}
 	}
 
-	return { results, sharp: !!sharp };
+	return { results, sharp: !!sharp, bitmaskCount };
 }
