@@ -9,7 +9,7 @@ Review PR comments, decide what to fix, apply changes, and respond.
 - For animation changes, also run `npm run generate-animation-json-to-json`
 - Push to PR branch only (never main)
 - When unsure, ask instead of guessing
-- Never use MCP tools to push changes or update repository files directly; always use a local git workflow (commit, push, PR) or the GitHub web UI/CLI with appropriate user credentials. MCP can fetch PR context and comments but must not be used to modify repo content.
+- MCP tooling can sometimes update PR content, but to avoid unexpected credential issues and maintain clear authoring and traceability, prefer a local git workflow (commit, push, PR) or the GitHub web UI/CLI for making code changes. Do not rely on MCP tools to push changes from the workspace; they should be used primarily for reading PR context, comments, and statuses.
 
 ## Workflow
 
