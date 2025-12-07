@@ -158,13 +158,13 @@ The response confirms success:
 
 ```json
 {
-	"data": {
-		"resolveReviewThread": {
-			"thread": {
-				"isResolved": true
-			}
-		}
-	}
+    "data": {
+        "resolveReviewThread": {
+            "thread": {
+                "isResolved": true
+            }
+        }
+    }
 }
 ```
 

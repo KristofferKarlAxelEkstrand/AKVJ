@@ -36,14 +36,14 @@ Then add your `sprite.png` to the same folder and update `meta.json`.
 
 ```json
 {
-	"png": "sprite.png",
-	"numberOfFrames": 64,
-	"framesPerRow": 8,
-	"loop": true,
-	"retrigger": true,
-	"frameRatesForFrames": {
-		"0": 12
-	}
+    "png": "sprite.png",
+    "numberOfFrames": 64,
+    "framesPerRow": 8,
+    "loop": true,
+    "retrigger": true,
+    "frameRatesForFrames": {
+        "0": 12
+    }
 }
 ```
 
@@ -69,10 +69,10 @@ The `frameRatesForFrames` object maps frame indices to frame rates. The rate app
 
 ```json
 {
-	"frameRatesForFrames": {
-		"0": 12,
-		"32": 24
-	}
+    "frameRatesForFrames": {
+        "0": 12,
+        "32": 24
+    }
 }
 ```
 

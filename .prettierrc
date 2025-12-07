@@ -9,5 +9,13 @@
 	"bracketSameLine": false,
 	"arrowParens": "avoid",
 	"endOfLine": "auto",
-	"proseWrap": "preserve"
+	"proseWrap": "preserve",
+	"overrides": [
+		{
+			"files": "*.md",
+			"options": {
+				"useTabs": false
+			}
+		}
+	]
 }

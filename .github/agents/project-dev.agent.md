@@ -156,9 +156,9 @@ Main entry point includes hot module replacement cleanup:
 
 ```javascript
 if (import.meta.hot) {
-	import.meta.hot.dispose(() => {
-		fullscreenManager.destroy();
-	});
+    import.meta.hot.dispose(() => {
+        fullscreenManager.destroy();
+    });
 }
 ```
 

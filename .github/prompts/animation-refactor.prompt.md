@@ -55,18 +55,18 @@ import { generate } from './lib/generate.js';
 import { copyToPublic } from './lib/copy.js';
 
 async function run(options = {}) {
-	const animations = await validate('animations/');
+    const animations = await validate('animations/');
 
-	if (animations.errors.length > 0) {
-		console.error('Validation failed:', animations.errors);
-		process.exit(1);
-	}
+    if (animations.errors.length > 0) {
+        console.error('Validation failed:', animations.errors);
+        process.exit(1);
+    }
 
-	const optimized = await optimize(animations.valid, '.cache/animations/');
-	await generate(optimized, '.cache/animations/animations.json');
-	await copyToPublic('.cache/animations/', 'src/public/animations/');
+    const optimized = await optimize(animations.valid, '.cache/animations/');
+    await generate(optimized, '.cache/animations/animations.json');
+    await copyToPublic('.cache/animations/', 'src/public/animations/');
 
-	console.log(`Processed ${optimized.length} animations`);
+    console.log(`Processed ${optimized.length} animations`);
 }
 ```
 
@@ -119,17 +119,17 @@ import sharp from 'sharp';
 import { createHash } from 'crypto';
 
 async function optimizeIfChanged(sourcePath, cachePath) {
-	const sourceHash = await hashFile(sourcePath);
-	const cachedHash = await readHashFile(cachePath + '.hash').catch(() => null);
+    const sourceHash = await hashFile(sourcePath);
+    const cachedHash = await readHashFile(cachePath + '.hash').catch(() => null);
 
-	if (sourceHash === cachedHash) {
-		return { skipped: true };
-	}
+    if (sourceHash === cachedHash) {
+        return { skipped: true };
+    }
 
-	await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(cachePath);
+    await sharp(sourcePath).png({ palette: true, quality: 80, effort: 10 }).toFile(cachePath);
 
-	await writeFile(cachePath + '.hash', sourceHash);
-	return { optimized: true };
+    await writeFile(cachePath + '.hash', sourceHash);
+    return { optimized: true };
 }
 ```
 
@@ -164,11 +164,11 @@ node scripts/animations --clean  # Remove .cache and output
 
 ```json
 {
-	"scripts": {
-		"animations": "node scripts/animations",
-		"animations:watch": "node scripts/animations --watch",
-		"animations:clean": "node scripts/animations --clean"
-	}
+    "scripts": {
+        "animations": "node scripts/animations",
+        "animations:watch": "node scripts/animations --watch",
+        "animations:clean": "node scripts/animations --clean"
+    }
 }
 ```
 
@@ -180,11 +180,11 @@ Use `chokidar` as a library (not CLI wrapper) for reliable cross-platform file w
 import chokidar from 'chokidar';
 
 function debounce(fn, ms) {
-	let timeout;
-	return () => {
-		clearTimeout(timeout);
-		timeout = setTimeout(fn, ms);
-	};
+    let timeout;
+    return () => {
+        clearTimeout(timeout);
+        timeout = setTimeout(fn, ms);
+    };
 }
 
 const debouncedRun = debounce(() => run(), 100);
@@ -320,63 +320,63 @@ import fs from 'fs/promises';
 import path from 'path';
 
 async function createSpriteSheet(inputDir, outputDir, options = {}) {
-	const { framesPerRow = 8, frameRate = 12 } = options;
+    const { framesPerRow = 8, frameRate = 12 } = options;
 
-	// Find all frame images, sorted numerically
-	const files = (await fs.readdir(inputDir))
-		.filter(f => /\.(png|jpg)$/i.test(f))
-		.sort((a, b) => {
-			const numA = parseInt(a.match(/\d+/)?.[0] || '0');
-			const numB = parseInt(b.match(/\d+/)?.[0] || '0');
-			return numA - numB;
-		});
+    // Find all frame images, sorted numerically
+    const files = (await fs.readdir(inputDir))
+        .filter(f => /\.(png|jpg)$/i.test(f))
+        .sort((a, b) => {
+            const numA = parseInt(a.match(/\d+/)?.[0] || '0');
+            const numB = parseInt(b.match(/\d+/)?.[0] || '0');
+            return numA - numB;
+        });
 
-	if (files.length === 0) {
-		throw new Error('No image files found');
-	}
+    if (files.length === 0) {
+        throw new Error('No image files found');
+    }
 
-	// Get frame dimensions from first image
-	const firstImage = await sharp(path.join(inputDir, files[0])).metadata();
-	const frameWidth = firstImage.width;
-	const frameHeight = firstImage.height;
+    // Get frame dimensions from first image
+    const firstImage = await sharp(path.join(inputDir, files[0])).metadata();
+    const frameWidth = firstImage.width;
+    const frameHeight = firstImage.height;
 
-	// Calculate sprite sheet dimensions
-	const cols = Math.min(files.length, framesPerRow);
-	const rows = Math.ceil(files.length / framesPerRow);
+    // Calculate sprite sheet dimensions
+    const cols = Math.min(files.length, framesPerRow);
+    const rows = Math.ceil(files.length / framesPerRow);
 
-	// Composite all frames into sprite sheet
-	const composites = await Promise.all(
-		files.map(async (file, i) => ({
-			input: await sharp(path.join(inputDir, file)).toBuffer(),
-			left: (i % framesPerRow) * frameWidth,
-			top: Math.floor(i / framesPerRow) * frameHeight
-		}))
-	);
+    // Composite all frames into sprite sheet
+    const composites = await Promise.all(
+        files.map(async (file, i) => ({
+            input: await sharp(path.join(inputDir, file)).toBuffer(),
+            left: (i % framesPerRow) * frameWidth,
+            top: Math.floor(i / framesPerRow) * frameHeight
+        }))
+    );
 
-	await sharp({
-		create: {
-			width: cols * frameWidth,
-			height: rows * frameHeight,
-			channels: 4,
-			background: { r: 0, g: 0, b: 0, alpha: 0 }
-		}
-	})
-		.composite(composites)
-		.png()
-		.toFile(path.join(outputDir, 'sprite.png'));
+    await sharp({
+        create: {
+            width: cols * frameWidth,
+            height: rows * frameHeight,
+            channels: 4,
+            background: { r: 0, g: 0, b: 0, alpha: 0 }
+        }
+    })
+        .composite(composites)
+        .png()
+        .toFile(path.join(outputDir, 'sprite.png'));
 
-	// Generate meta.json
-	const meta = {
-		numberOfFrames: files.length,
-		framesPerRow,
-		loop: true,
-		retrigger: true,
-		frameRatesForFrames: { 0: frameRate }
-	};
+    // Generate meta.json
+    const meta = {
+        numberOfFrames: files.length,
+        framesPerRow,
+        loop: true,
+        retrigger: true,
+        frameRatesForFrames: { 0: frameRate }
+    };
 
-	await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, '\t'));
+    await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, '\t'));
 
-	console.log(`Created sprite sheet: ${files.length} frames, ${cols}x${rows} grid`);
+    console.log(`Created sprite sheet: ${files.length} frames, ${cols}x${rows} grid`);
 }
 ```
 
@@ -395,27 +395,27 @@ import fs from 'fs/promises';
 import path from 'path';
 
 const template = {
-	numberOfFrames: 1,
-	framesPerRow: 1,
-	loop: true,
-	retrigger: true,
-	frameRatesForFrames: { 0: 12 }
+    numberOfFrames: 1,
+    framesPerRow: 1,
+    loop: true,
+    retrigger: true,
+    frameRatesForFrames: { 0: 12 }
 };
 
 async function createAnimation(channel, note, velocity) {
-	const dir = `animations/${channel}/${note}/${velocity}`;
+    const dir = `animations/${channel}/${note}/${velocity}`;
 
-	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(template, null, '\t'));
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify(template, null, '\t'));
 
-	console.log(`Created ${dir}/meta.json`);
-	console.log('Add your sprite.png and update meta.json');
+    console.log(`Created ${dir}/meta.json`);
+    console.log('Add your sprite.png and update meta.json');
 }
 
 const [, , channel, note, velocity] = process.argv;
 if (!channel || !note || !velocity) {
-	console.log('Usage: node scripts/animations/new.js <channel> <note> <velocity>');
-	process.exit(1);
+    console.log('Usage: node scripts/animations/new.js <channel> <note> <velocity>');
+    process.exit(1);
 }
 createAnimation(channel, note, velocity);
 ```
