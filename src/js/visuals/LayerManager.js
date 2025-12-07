@@ -95,7 +95,15 @@ class LayerManager {
 
 		// Find the highest velocity layer that doesn't exceed the input velocity
 		// If none match (input velocity lower than lowest defined), return null
-		return velocities.findLast(v => v <= velocity) ?? null;
+		// `findLast` is a relatively new method. Use explicit reverse loop for
+		// compatibility and to avoid depending on polyfills.
+		for (let i = velocities.length - 1; i >= 0; i--) {
+			const v = velocities[i];
+			if (v <= velocity) {
+				return v;
+			}
+		}
+		return null;
 	}
 
 	/**

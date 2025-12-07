@@ -158,4 +158,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 }
 
-customElements.define('adventure-kid-video-jockey', AdventureKidVideoJockey);
+// Guard definition to avoid `customElements.define` error if re-evaluated during HMR
+if (!customElements.get('adventure-kid-video-jockey')) {
+	customElements.define('adventure-kid-video-jockey', AdventureKidVideoJockey);
+}

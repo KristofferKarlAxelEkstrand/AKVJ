@@ -13,6 +13,22 @@ class AnimationLoader {
 	}
 
 	/**
+	 * Sanitize animation file name - prevents path traversal and ensures a safe filename
+	 */
+	#sanitizeFileName(filename) {
+		if (!filename || typeof filename !== 'string') {
+			return '';
+		}
+		// Only allow safe characters and file extension; basic whitelist to prevent `../` paths
+		const match = filename.match(/^([a-zA-Z0-9._-]+)$/);
+		if (!match) {
+			console.warn('AnimationLoader: invalid file name, sanitizing to empty string', filename);
+			return '';
+		}
+		return match[1];
+	}
+
+	/**
 	 * Load and parse animation data from JSON URL
 	 */
 	async #loadAnimationsJson(jsonUrl) {
@@ -33,6 +49,11 @@ class AnimationLoader {
 	#loadImage(src) {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
+			// Use crossOrigin from settings if present. If null/undefined, do not set.
+			const cross = settings.performance?.imageCrossOrigin;
+			if (cross) {
+				img.crossOrigin = cross;
+			}
 			img.onload = () => resolve(img);
 			img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
 			img.src = src;
@@ -58,7 +79,10 @@ class AnimationLoader {
 	 * Load a single animation and return its placement info
 	 */
 	async #loadAnimation(channel, note, velocityLayer, animationData) {
-		const imagePath = `/animations/${channel}/${note}/${velocityLayer}/${animationData.png}`;
+		// Construct image path using configurable base path to support subpath deployments
+		const base = settings.performance?.animationsBasePath ?? import.meta.env.BASE_URL ?? '/';
+		const sanitizedFile = this.#sanitizeFileName(animationData.png);
+		const imagePath = `${base}animations/${channel}/${note}/${velocityLayer}/${sanitizedFile}`;
 
 		try {
 			const image = await this.#loadImage(imagePath);
@@ -126,6 +150,9 @@ class AnimationLoader {
 		if (!animations) {
 			return;
 		}
+
+		// cleanup does not need to reference the sanitizer here; it stays as a class
+		// private helper placed outside the cleanup function.
 
 		for (const channel of Object.values(animations)) {
 			for (const note of Object.values(channel)) {

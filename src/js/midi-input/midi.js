@@ -157,7 +157,7 @@ class MIDI {
 	 * internal state or device objects.
 	 */
 	getConnectedDevices() {
-		return Array.from(this.#connectedInputs.values()).map(input => input.name);
+		return Array.from(this.#connectedInputs.values()).map(input => input.name ?? input.id ?? 'unknown');
 	}
 
 	#handleMIDIMessage(message) {
