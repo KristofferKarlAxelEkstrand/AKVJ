@@ -164,6 +164,25 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage.mock.calls[1][1]).toBe(0);
 		});
 
+		test('advances multiple frames when elapsed covers several intervals', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// Set a low FPS so interval is large for easy testing (10 fps = 100ms)
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
+			// t=0 -> initial draw
+			mockNow.mockReturnValue(0);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// t=350ms -> should advance 3 frames (floor(350/100)=3)
+			mockNow.mockReturnValue(350);
+			layer.play();
+			// Check last drawn frame (frame index should be 3)
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			const frameWidth = 240 / 10;
+			expect(lastCall[1]).toBe(frameWidth * 3);
+			mockNow.mockRestore();
+		});
+
 		test('stops rendering non-looping animation after last frame', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
