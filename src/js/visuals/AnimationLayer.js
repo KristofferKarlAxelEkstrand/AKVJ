@@ -22,6 +22,7 @@ class AnimationLayer {
 	#frame = 0;
 	/** @type {number|null} Last timestamp from performance.now(), null if never played */
 	#lastTime = null;
+	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 
 	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
@@ -74,7 +75,7 @@ class AnimationLayer {
 		}
 
 		// Non-looping animation completed - stop rendering
-		if (!this.#loop && this.#frame >= this.#numberOfFrames) {
+		if (this.#isFinished) {
 			return;
 		}
 
@@ -85,28 +86,59 @@ class AnimationLayer {
 			this.#lastTime = currentTime;
 		}
 
-		// Get frame rate for current frame; falls back to defaultFrameRate (guaranteed positive) if undefined
-		const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
-		const interval = 1000 / framesPerSecond;
+		// Use a delta-based approach that advances the frame by a number of
+		// steps proportional to the elapsed time. This avoids drift and
+		// ensures that if many intervals have passed (due to GC or blocking
+		// work) we advance by the right number of frames instead of only one.
+		let elapsed = currentTime - this.#lastTime;
 
-		// Advance frame if enough time has passed
-		// Advance frame when the interval has elapsed or when exactly on the
-		// interval boundary. Using >= ensures we don't miss frames due to
-		// precise timing where currentTime === lastTime + interval.
-		if (currentTime >= this.#lastTime + interval) {
-			this.#frame++;
-			// Wrap frame for looping animations
-			if (this.#frame >= this.#numberOfFrames) {
-				this.#frame = this.#loop ? 0 : this.#numberOfFrames;
+		// Loop and advance while we have accumulated enough time for the
+		// current frame. Because frame rates may vary per frame, recompute
+		// interval for each advanced frame.
+		while (elapsed > 0) {
+			const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
+			const interval = 1000 / framesPerSecond;
+
+			if (elapsed < interval) {
+				break;
 			}
-			this.#lastTime = currentTime;
+
+			// Consume one interval worth of elapsed time and advance.
+			elapsed -= interval;
+			this.#frame++;
+
+			// Handle wrapping / completion for the advanced frame
+			if (this.#frame >= this.#numberOfFrames) {
+				if (this.#loop) {
+					this.#frame %= this.#numberOfFrames;
+				} else {
+					// Non-looping animations are considered finished; keep
+					// a state that indicates a completed animation.
+					this.#frame = this.#numberOfFrames;
+					this.#isFinished = true;
+					break;
+				}
+			}
 		}
+
+		// Preserve leftover fractional elapsed time so frames stay consistent
+		// across calls; next tick will start from currentTime - leftover.
+		this.#lastTime = currentTime - Math.max(0, elapsed);
 
 		// Draw the current frame (use clamped frame index for drawing)
 		const drawFrame = Math.min(this.#frame, this.#numberOfFrames - 1);
 		const posY = Math.floor(drawFrame / this.#framesPerRow);
 		const posX = drawFrame - posY * this.#framesPerRow;
 		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+	}
+
+	/**
+	 * Whether this animation is completed and won't draw anymore.
+	 * Useful for external managers or renderers to clear finished layers.
+	 * @returns {boolean}
+	 */
+	get isFinished() {
+		return this.#isFinished;
 	}
 
 	/**
@@ -132,6 +164,7 @@ class AnimationLayer {
 	#resetState() {
 		this.#frame = 0;
 		this.#lastTime = null;
+		this.#isFinished = false;
 	}
 
 	/**

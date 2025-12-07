@@ -81,8 +81,17 @@ class Renderer {
 		}
 		for (const channel of activeLayers) {
 			if (channel) {
-				for (const animation of channel) {
-					animation?.play();
+				for (let i = 0; i < channel.length; i++) {
+					const animation = channel[i];
+					if (!animation) {
+						continue;
+					}
+					// If the animation finished (non-looping), clear the reference
+					if (animation.isFinished) {
+						channel[i] = null;
+						continue;
+					}
+					animation.play();
 				}
 			}
 		}

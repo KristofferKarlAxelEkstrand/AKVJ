@@ -46,6 +46,20 @@ describe('Renderer', () => {
 		expect(stopSpy).toHaveBeenCalled();
 	});
 
+	test('clears finished non-looping layers from active layer array', () => {
+		const ctx = createMockContext();
+		const finishedLayer = { play: vi.fn(), isFinished: true };
+		const layers = [[finishedLayer]];
+		const layerManager = { getActiveLayers: () => layers };
+
+		const renderer = new Renderer(ctx, layerManager);
+		renderer.start();
+
+		// finished layer should not have its play() invoked and should be cleared from layer list
+		expect(finishedLayer.play).not.toHaveBeenCalled();
+		expect(layers[0][0]).toBeNull();
+	});
+
 	test('continues rendering loop when no active layers present', () => {
 		const ctx = createMockContext();
 		const layerManager = { getActiveLayers: () => [] };
