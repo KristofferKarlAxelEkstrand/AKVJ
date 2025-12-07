@@ -34,6 +34,34 @@ Review PR comments, decide what to fix, apply changes, and respond.
 - Leave open if awaiting clarification or partial fix needs confirmation
 - For outdated threads: resolve with brief note on why obsolete
 
+### How to Resolve Conversations (Practical Guidance)
+
+Resolving threads should be intentional — it signals that the issue is handled or doesn't need further action. Follow these guidelines when deciding to resolve a review thread:
+
+- Resolved because change is implemented: If you've implemented the requested change or applied an alternate fix, resolve the thread and include the commit SHA or a short explanation and the commit message. Example:
+    - "Done — Applied change and added tests. Commit: b6fb1e3"
+
+- Resolved because the comment is outdated: If rebase/HMR/refactor or another change made the comment irrelevant, resolve the thread and explain why it's no longer applicable. Example:
+    - "Resolve — Outdated after refactor in commit b6fb1e3; the change moved into `LayerManager`"
+
+- Resolved because it will not be worked on: If the suggestion is valuable but out of scope or a deliberate design decision was made, resolve the thread and explain the decision and next steps (open issue or follow-up PR if necessary):
+    - "Decline — Out-of-scope for this PR; opening a follow-up issue to track the improvement"
+
+- Resolved because it's not worth doing: If a comment suggests a micro-optimization or stylistic preference that doesn't deliver value and the change would harm readability or cause churn, explain the reasoning and resolve. Example:
+    - "Decline — Not worth the change; current behavior preserves clarity and keeps API stable"
+
+- Resolved because the issue is outside repo ownership: If a thread asks for a large or risky change (e.g. migrating frameworks), explain constraints and suggest a follow-up issue or alternative. Example:
+    - "Decline — Large migration; suggest opening an issue to discuss approach"
+
+Best practices when resolving threads:
+
+- Be concise and specific: State the reason and cite commits (SHA) for implemented changes.
+- Don't resolve others' threads unilaterally: If you close a reviewer’s thread, ensure you explain why and involve them if it's not obvious.
+- Use the GitHub UI to mark threads as resolved, or use the GraphQL `resolveReviewThread` mutation (if you do this programmatically make sure you're the author of the fix or authorized). Avoid programmatic resolving without a visible reason in the thread.
+- When you close with "Won't fix" or "Decline", prefer to reference an open issue or give a clear reason to avoid confusion.
+
+If in doubt, leave a small follow-up message asking for clarification. When a reviewer replies that they're OK, resolve the thread and continue.
+
 ## CI Failures
 
 ```bash
