@@ -81,33 +81,33 @@ Resolving review threads
         If that doesn't resolve the issue, re-authenticate using the GitHub CLI (`gh auth login`) or use an SSH remote / a personal access token with sufficient permissions.
         - Step 1: Get the review thread IDs for the PR:
             ```bash
-            gh api graphql -f query='
-              query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    reviewThreads(first: 50) {
-                      nodes {
-                        id
-                        isResolved
-                        comments(first: 1) {
-                          nodes { body }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+            gh api graphql -f query='\
+              query($owner: String!, $repo: String!, $number: Int!) {\
+                repository(owner: $owner, name: $repo) {\
+                  pullRequest(number: $number) {\
+                    reviewThreads(first: 50) {\
+                      nodes {\
+                        id\
+                        isResolved\
+                        comments(first: 1) {\
+                          nodes { body }\
+                        }\
+                      }\
+                    }\
+                  }\
+                }\
+              }\
             ' -f owner=OWNER -f repo=REPO -F number=PR_NUMBER
             ```
             Replace `OWNER`, `REPO`, and `PR_NUMBER` with the actual values.
         - Step 2: For each thread you want to resolve, call the `resolveReviewThread` mutation:
             ```bash
-            gh api graphql -f query='
-              mutation($threadId: ID!) {
-                resolveReviewThread(input: {threadId: $threadId}) {
-                  thread { isResolved }
-                }
-              }
+            gh api graphql -f query='\
+              mutation($threadId: ID!) {\
+                resolveReviewThread(input: {threadId: $threadId}) {\
+                  thread { isResolved }\
+                }\
+              }\
             ' -f threadId="PRRT_xxxx"
             ```
             Replace `PRRT_xxxx` with the thread's `id` from Step 1.
@@ -120,15 +120,16 @@ Resolving review threads
 
 Post-check & Copilot review step
 
-- After all changes and replies have been made and validations pass, request a code review from Copilot:
-    - Use the MCP tool `request_copilot_review` to formally request a GitHub Copilot code review on the PR. This triggers Copilot to provide fast, actionable feedback before human reviewers.
-      Example MCP call (pseudo):
-        ```
-        mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)
-        ```
-    - Optionally, post a final PR comment summarizing what was done. Avoid tagging @copilot in the comment body, as that may invoke the coding agent instead of requesting a review.
-    - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
-    - If you pushed additional changes after addressing comments, re-request a Copilot review using the MCP tool so Copilot can review any new edits.
+After all changes and replies have been made and validations pass, request a code review from Copilot:
+- Use the MCP tool `mcp_io_github_git_request_copilot_review` to request a GitHub Copilot code review on the PR. This triggers Copilot to provide fast, actionable feedback before human reviewers.
+  - Note: The following is a pseudo-call example — adapt to your MCP tooling signature if it differs.
+    ```
+    // Pseudo-call; adapt parameters to your MCP client
+    mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)
+    ```
+  - Optionally, post a final PR comment summarizing what was done. Avoid tagging @copilot in the comment body, as that may invoke the coding agent instead of requesting a review.
+  - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
+  - If you pushed additional changes after addressing comments, re-request a Copilot review using the MCP tool so Copilot can review any new edits.
 
 Examples (short, focused language):
 
