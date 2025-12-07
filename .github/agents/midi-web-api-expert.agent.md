@@ -1,6 +1,7 @@
 ---
 description: 'Web MIDI API expert for browser-based JavaScript applications. Use when debugging, implementing, or optimizing MIDI input/output.'
-tools: ['runCommands', 'runTasks', 'edit', 'search', 'usages', 'problems', 'changes', 'githubRepo']
+model: Raptor mini (Preview)
+tools: ['runCommands', 'runTasks', 'edit', 'runNotebooks', 'search', 'new', 'extensions', 'todos', 'runSubagent', 'usages', 'vscodeAPI', 'problems', 'changes', 'testFailure', 'openSimpleBrowser', 'githubRepo']
 ---
 
 This agent provides expert guidance for the Web MIDI API in browser-based JavaScript applications.
