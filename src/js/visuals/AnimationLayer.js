@@ -42,8 +42,13 @@ class AnimationLayer {
 		// and to fail-fast on invalid animation metadata.
 		this.#frameRatesForFrames = {};
 		for (const [k, v] of Object.entries(frameRatesForFrames)) {
+			const idx = Number(k);
+			if (!Number.isInteger(idx) || idx < 0 || idx >= numberOfFrames) {
+				console.warn(`AnimationLayer: frame rate key ${k} is not a valid frame index; skipping`);
+				continue;
+			}
 			if (typeof v === 'number' && v > 0) {
-				this.#frameRatesForFrames[k] = v;
+				this.#frameRatesForFrames[idx] = v;
 			} else {
 				// If invalid, log and skip - constructor enforces valid metadata
 				console.warn(`AnimationLayer: invalid frame rate for frame ${k}: ${v}; skipping`);
@@ -69,7 +74,13 @@ class AnimationLayer {
 	 * Render the current animation frame and advance to the next frame if enough time has passed.
 	 * Called every frame by the Renderer. Handles frame timing, looping, and canvas drawing.
 	 */
-	play() {
+	/**
+	 * Render the current animation frame and advance to the next frame if enough time has passed.
+	 * Accepts an optional timestamp (from requestAnimationFrame) to use as timing source, which
+	 * improves determinism during rendering and tests.
+	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
+	 */
+	play(timestamp = performance.now()) {
 		if (!this.#image || !this.#canvas2dContext) {
 			return;
 		}
@@ -79,18 +90,16 @@ class AnimationLayer {
 			return;
 		}
 
-		const currentTime = performance.now();
-
 		// Initialize lastTime on first play to prevent skipping frame 0
 		if (this.#lastTime === null) {
-			this.#lastTime = currentTime;
+			this.#lastTime = timestamp;
 		}
 
 		// Use a delta-based approach that advances the frame by a number of
 		// steps proportional to the elapsed time. This avoids drift and
 		// ensures that if many intervals have passed (due to GC or blocking
 		// work) we advance by the right number of frames instead of only one.
-		let elapsed = currentTime - this.#lastTime;
+		let elapsed = timestamp - this.#lastTime;
 
 		// Loop and advance while we have accumulated enough time for the
 		// current frame. Because frame rates may vary per frame, recompute
@@ -122,8 +131,8 @@ class AnimationLayer {
 		}
 
 		// Preserve leftover fractional elapsed time so frames stay consistent
-		// across calls; next tick will start from currentTime - leftover.
-		this.#lastTime = currentTime - Math.max(0, elapsed);
+		// across calls; next tick will start from timestamp - leftover.
+		this.#lastTime = timestamp - Math.max(0, elapsed);
 
 		// Draw the current frame (use clamped frame index for drawing)
 		const drawFrame = Math.min(this.#frame, this.#numberOfFrames - 1);
@@ -171,7 +180,9 @@ class AnimationLayer {
 	 * Dispose of image resources to help garbage collection
 	 */
 	dispose() {
+		// Clear both image and canvas references so GC can reclaim memory.
 		this.#image = null;
+		this.#canvas2dContext = null;
 	}
 }
 
