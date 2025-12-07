@@ -290,8 +290,8 @@ After completing a pipeline change and validating behavior (lint, tests, build),
     ```
 - Request Copilot review (example pseudo-call):
   `js
-	mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
-	`
+mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
+`
   Confirm CI passes before marking PR ready to merge.
 
 ### Sprite Sheet Generator
