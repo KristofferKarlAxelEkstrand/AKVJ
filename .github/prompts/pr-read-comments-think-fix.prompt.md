@@ -63,12 +63,12 @@ CI Troubleshooting & Automation suggestions
     # Use a fresh install similar to CI
     npm ci
     # Reproduce lint issues
-    npm run lint
-    # Reproduce unit tests (vitest)
-    npm test
-    # Reproduce build errors
-    npm run build
-    # For animation pipeline failures
+    - npm run lint
+    - npm run test
+    - npm run build
+    - If animation assets or pipeline changes: npm run animations (optionally --validate-only)
+      - If CI checks for the PR fail (lint, tests, build, or other checks), try to reproduce the failing job locally, examine logs, and fix the root cause. Prioritize fixes that unblock merging (lint/test/build). If a fix is invasive or requires additional discussion, open a follow-up issue/PR with the reproduction steps and suggested remediation.
+    - If a suggested change is invasive (high risk), open a follow-up PR or ask for clarification rather
     npm run generate-animation-json-to-json
     # If CI uses a particular Node version (matrix), install and use that version with nvm
     nvm install <NODE_VERSION> && nvm use <NODE_VERSION>

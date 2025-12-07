@@ -36,7 +36,18 @@ class AnimationLayer {
 		this.#image = image;
 		this.#numberOfFrames = numberOfFrames;
 		this.#framesPerRow = framesPerRow;
-		this.#frameRatesForFrames = frameRatesForFrames;
+		// Make a defensive shallow copy and validate the provided frame rates.
+		// Ensure we only store positive numeric values to avoid division by zero
+		// and to fail-fast on invalid animation metadata.
+		this.#frameRatesForFrames = {};
+		for (const [k, v] of Object.entries(frameRatesForFrames)) {
+			if (typeof v === 'number' && v > 0) {
+				this.#frameRatesForFrames[k] = v;
+			} else {
+				// If invalid, log and skip - constructor enforces valid metadata
+				console.warn(`AnimationLayer: invalid frame rate for frame ${k}: ${v}; skipping`);
+			}
+		}
 		this.#frameWidth = image.width / framesPerRow;
 		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
 		if (!this.#frameWidth || !this.#frameHeight) {
@@ -47,7 +58,8 @@ class AnimationLayer {
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
 		// Cache the default frame rate - prefer frame 0, otherwise use first defined value
-		const maybeDefault = frameRatesForFrames[0] ?? frameRatesForFrames[Object.keys(frameRatesForFrames)[0]] ?? 1;
+		const keys = Object.keys(this.#frameRatesForFrames);
+		const maybeDefault = this.#frameRatesForFrames[0] ?? (keys.length ? this.#frameRatesForFrames[keys[0]] : undefined) ?? 1;
 		// Ensure the default frame rate is a positive number > 0
 		this.#defaultFrameRate = typeof maybeDefault === 'number' && maybeDefault > 0 ? maybeDefault : 1;
 	}
@@ -76,9 +88,8 @@ class AnimationLayer {
 		// Get frame rate for current frame and ensure a valid positive FPS
 		let framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
 		// Defensive check: ensure the value is numeric and positive. While the constructor
-		// guarantees `#defaultFrameRate` is valid, frame rates stored in
-		// `#frameRatesForFrames` could be mutated at runtime (e.g., by tests or other
-		// consumers). This guard prevents a runtime division by zero or negative interval.
+		// already validated input, keep this small runtime guard to protect tests or
+		// non-standard usage that might mutate the private field.
 		if (typeof framesPerSecond !== 'number' || framesPerSecond <= 0) {
 			framesPerSecond = this.#defaultFrameRate;
 		}

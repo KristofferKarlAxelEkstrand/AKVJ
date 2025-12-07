@@ -48,6 +48,7 @@ describe('Renderer', () => {
 
 	test('skips rendering loop when no active layers present', () => {
 		const ctx = createMockContext();
+		const playSpy = vi.fn();
 		const layerManager = { getActiveLayers: () => [] };
 
 		const rafMock = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => 1);
@@ -56,6 +57,7 @@ describe('Renderer', () => {
 
 		expect(ctx.fillRect).toHaveBeenCalled();
 		// No layers to play -> nothing should call any play method
+		expect(playSpy).not.toHaveBeenCalled();
 		rafMock.mockRestore();
 		renderer.destroy();
 	});
@@ -77,7 +79,8 @@ describe('Renderer', () => {
 		// Destroy while a frame callback is pending
 		renderer.destroy();
 
-		expect(() => frameCallback && frameCallback()).not.toThrow();
+		expect(frameCallback).toBeDefined();
+		expect(() => frameCallback()).not.toThrow();
 
 		rafSpy.mockRestore();
 		cafSpy.mockRestore();
