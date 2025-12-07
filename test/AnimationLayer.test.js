@@ -183,6 +183,22 @@ describe('AnimationLayer', () => {
 			mockNow.mockRestore();
 		});
 
+		test('handles variable frame rates when advancing multiple frames', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// frame 0 = 10fps (100ms), frame 1 = 20fps (50ms) so 130ms should advance 1 frame
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
+			mockNow.mockReturnValue(0);
+			layer.play();
+			mockNow.mockReturnValue(130);
+			layer.play();
+			// After advancing, we should be on frame 1
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			const frameWidth = 240 / 4;
+			expect(lastCall[1]).toBe(frameWidth * 1);
+			mockNow.mockRestore();
+		});
+
 		test('stops rendering non-looping animation after last frame', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
@@ -205,13 +221,19 @@ describe('AnimationLayer', () => {
 			mockNow.mockReturnValue(20);
 			layer.play(); // Advances to frame 2 (>= numberOfFrames), draws clamped frame 1
 
-			// Now #frame === 2 which is >= numberOfFrames, so next play() returns early
+			// Now #frame === 2 which is >= numberOfFrames, and the layer should be marked finished
+			expect(layer.isFinished).toBe(true);
+
+			// next play() returns early
 			const callCount = ctx.drawImage.mock.calls.length;
 			mockNow.mockReturnValue(30);
 			layer.play(); // Should return early without drawing
 
 			// Verify no additional draw after completion
 			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
+			// Resetting should clear isFinished
+			layer.reset();
+			expect(layer.isFinished).toBe(false);
 		});
 
 		test('wraps back to frame 0 when looping is enabled', () => {

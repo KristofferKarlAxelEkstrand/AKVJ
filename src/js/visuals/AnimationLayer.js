@@ -22,6 +22,7 @@ class AnimationLayer {
 	#frame = 0;
 	/** @type {number|null} Last timestamp from performance.now(), null if never played */
 	#lastTime = null;
+	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 
 	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
@@ -74,7 +75,7 @@ class AnimationLayer {
 		}
 
 		// Non-looping animation completed - stop rendering
-		if (!this.#loop && this.#frame >= this.#numberOfFrames) {
+		if (this.#isFinished) {
 			return;
 		}
 
@@ -114,6 +115,7 @@ class AnimationLayer {
 					// Non-looping animations are considered finished; keep
 					// a state that indicates a completed animation.
 					this.#frame = this.#numberOfFrames;
+					this.#isFinished = true;
 					break;
 				}
 			}
@@ -128,6 +130,15 @@ class AnimationLayer {
 		const posY = Math.floor(drawFrame / this.#framesPerRow);
 		const posX = drawFrame - posY * this.#framesPerRow;
 		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+	}
+
+	/**
+	 * Whether this animation is completed and won't draw anymore.
+	 * Useful for external managers or renderers to clear finished layers.
+	 * @returns {boolean}
+	 */
+	get isFinished() {
+		return this.#isFinished;
 	}
 
 	/**
@@ -153,6 +164,7 @@ class AnimationLayer {
 	#resetState() {
 		this.#frame = 0;
 		this.#lastTime = null;
+		this.#isFinished = false;
 	}
 
 	/**
