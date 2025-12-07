@@ -72,10 +72,6 @@ class AnimationLayer {
 
 	/**
 	 * Render the current animation frame and advance to the next frame if enough time has passed.
-	 * Called every frame by the Renderer. Handles frame timing, looping, and canvas drawing.
-	 */
-	/**
-	 * Render the current animation frame and advance to the next frame if enough time has passed.
 	 * Accepts an optional timestamp (from requestAnimationFrame) to use as timing source, which
 	 * improves determinism during rendering and tests.
 	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
@@ -89,8 +85,6 @@ class AnimationLayer {
 		if (this.#isFinished) {
 			return;
 		}
-
-		// Non-looping animation completed - stop rendering
 
 		// Initialize lastTime on first play to prevent skipping frame 0
 		if (this.#lastTime === null) {
