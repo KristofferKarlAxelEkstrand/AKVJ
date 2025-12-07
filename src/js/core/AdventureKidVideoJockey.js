@@ -139,9 +139,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 	async #init() {
 		// If we do not have a context, skip loading visuals but still notify readiness
 		if (!this.#animationLoader) {
+			// If we do not have an animation loader (no 2D context available),
+			// notify that the Video Jockey is ready and bail out early. No value
+			// is returned because callers do not use the result of `#init()`.
 			appState.animationsLoaded = false;
 			appState.notifyVideoJockeyReady();
-			return {};
+			return;
 		}
 
 		await this.#setUpAnimations(settings.performance.animationsJsonUrl);
