@@ -14,7 +14,7 @@ Constraints & Principles
 
 Procedure (for each PR)
 
-1. Fetch PR context (MCP): title, description, author, changed files, statuses, commits, review comments, and any CI results.
+1. Fetch PR context (MCP): title, description, author, changed files, statuses, commits, review comments, and any CI results. Also check the PR's CI status (e.g., GitHub Actions) and identify any failing checks.
 2. Gather all review comments / review threads. List them grouped by file.
 3. For each comment, decide and record a concise decision:
     - Accept (apply a fix): explain why this improves code quality/readability/security/perf.
@@ -30,6 +30,7 @@ Implementation Guidelines
     - npm run test
     - npm run build
     - If animation assets or pipeline changes: npm run animations (optionally --validate-only)
+        - If CI checks for the PR fail (lint, tests, build, or other checks), try to reproduce the failing job locally, examine logs, and fix the root cause. Prioritize fixes that unblock merging (lint/test/build). If a fix is invasive or requires additional discussion, open a follow-up issue/PR with the reproduction steps and suggested remediation.
 - If a suggested change is invasive (high risk), open a follow-up PR or ask for clarification rather than making a risky change without approval.
 - Where a comment suggests adding a new feature (e.g., CI check), prefer small, isolated additions and include tests if applicable.
 
@@ -121,15 +122,16 @@ Resolving review threads
 Post-check & Copilot review step
 
 After all changes and replies have been made and validations pass, request a code review from Copilot:
+
 - Use the MCP tool `mcp_io_github_git_request_copilot_review` to request a GitHub Copilot code review on the PR. This triggers Copilot to provide fast, actionable feedback before human reviewers.
-  - Note: The following is a pseudo-call example — adapt to your MCP tooling signature if it differs.
-    ```
-    // Pseudo-call; adapt parameters to your MCP client
-    mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)
-    ```
-  - Optionally, post a final PR comment summarizing what was done. Avoid tagging @copilot in the comment body, as that may invoke the coding agent instead of requesting a review.
-  - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
-  - If you pushed additional changes after addressing comments, re-request a Copilot review using the MCP tool so Copilot can review any new edits.
+    - Note: The following is a pseudo-call example — adapt to your MCP tooling signature if it differs.
+        ```
+        // Pseudo-call; adapt parameters to your MCP client
+        mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)
+        ```
+    - Optionally, post a final PR comment summarizing what was done. Avoid tagging @copilot in the comment body, as that may invoke the coding agent instead of requesting a review.
+    - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
+    - If you pushed additional changes after addressing comments, re-request a Copilot review using the MCP tool so Copilot can review any new edits.
 
 Examples (short, focused language):
 
