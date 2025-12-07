@@ -4,7 +4,8 @@ import Renderer from '../src/js/visuals/Renderer.js';
 function createMockContext() {
 	return {
 		fillRect: vi.fn(),
-		drawImage: vi.fn()
+		drawImage: vi.fn(),
+		fillStyle: '#000000'
 	};
 }
 
