@@ -280,6 +280,20 @@ npm run dev
 # Open http://localhost:5173/tools/animation-preview/
 ```
 
+## Final Step
+
+After completing a pipeline change and validating behavior (lint, tests, build), push your branch and request a Copilot review via MCP:
+
+- Push your changes:
+    ```bash
+    git push origin YOUR_BRANCH
+    ```
+- Request Copilot review (example pseudo-call):
+  `js
+	mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
+	`
+  Confirm CI passes before marking PR ready to merge.
+
 ### Sprite Sheet Generator
 
 Combines individual frames into a sprite sheet:
