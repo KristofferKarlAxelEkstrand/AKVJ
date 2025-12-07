@@ -46,6 +46,32 @@ describe('Renderer', () => {
 		expect(stopSpy).toHaveBeenCalled();
 	});
 
+	test('passes RAF timestamp to animation play method', () => {
+		const ctx = createMockContext();
+		let receivedTimestamp = null;
+		const layer = {
+			play: t => {
+				receivedTimestamp = t;
+			}
+		};
+		const layerManager = { getActiveLayers: () => [[layer]] };
+
+		// Set up RAF to immediately invoke the callback with a timestamp
+		let called = false;
+		rafSpy.mockImplementation(cb => {
+			if (!called) {
+				called = true;
+				cb(12345);
+			}
+			return 1;
+		});
+
+		const renderer = new Renderer(ctx, layerManager);
+		renderer.start();
+		expect(receivedTimestamp).toBe(12345);
+		renderer.destroy();
+	});
+
 	test('clears finished non-looping layers from active layer array', () => {
 		const ctx = createMockContext();
 		const finishedLayer = { play: vi.fn(), isFinished: true };

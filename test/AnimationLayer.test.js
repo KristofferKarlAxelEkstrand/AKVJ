@@ -244,6 +244,20 @@ describe('AnimationLayer', () => {
 			expect(layer.isFinished).toBe(false);
 		});
 
+		test('accepts explicit timestamp argument and advances accordingly', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
+			// Explicitly pass timestamps instead of mocking performance.now
+			layer.play(0);
+			// 350ms should advance 3 frames (10fps = 100ms)
+			layer.play(350);
+			const frameWidth = 240 / 10;
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(frameWidth * 3);
+			// 400ms should advance one more frame due to preserved leftover
+			layer.play(400);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(frameWidth * 4);
+		});
+
 		test('wraps back to frame 0 when looping is enabled', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
@@ -330,6 +344,466 @@ describe('AnimationLayer', () => {
 			layer.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('timing and delta behavior (catch-up)', () => {
+		/**
+		 * Helper to extract the current frame index from drawImage call args.
+		 * Frame index = (sx / frameWidth) + (sy / frameHeight) * framesPerRow
+		 * For a simple single-row setup: frame = sx / frameWidth
+		 */
+		function getDrawnFrameIndex(ctx, frameWidth, framesPerRow, frameHeight) {
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			if (!lastCall) {
+				return -1;
+			}
+			const sx = lastCall[1];
+			const sy = lastCall[2];
+			const col = sx / frameWidth;
+			const row = sy / frameHeight;
+			return row * framesPerRow + col;
+		}
+
+		test('preserves fractional elapsed time across calls (no drift)', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 10 fps = 100ms per frame
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 10 }
+				})
+			);
+
+			const frameWidth = 240 / 10;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Advance 75ms (< 100ms interval), should stay on frame 0
+			mockNow.mockReturnValue(75);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			// Advance another 50ms (total elapsed from last anchor: 75ms leftover becomes 125ms)
+			// Should advance 1 frame, with 25ms leftover
+			mockNow.mockReturnValue(125);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(1);
+
+			// Advance another 75ms (leftover 25 + 75 = 100ms exactly)
+			// Should advance 1 frame to frame 2
+			mockNow.mockReturnValue(200);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(2);
+
+			// Verify no drift: after exactly 500ms from start, should be on frame 5
+			mockNow.mockReturnValue(500);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(5);
+
+			mockNow.mockRestore();
+		});
+
+		test('catches up multiple frames after a long blocking delay', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 20 fps = 50ms per frame
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 20,
+					framesPerRow: 20,
+					frameRatesForFrames: { 0: 20 }
+				})
+			);
+
+			const frameWidth = 240 / 20;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Simulate a 275ms GC pause or blocking operation
+			// Should catch up: floor(275 / 50) = 5 frames
+			mockNow.mockReturnValue(275);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 20, 135)).toBe(5);
+
+			// Leftover should be 25ms; advance another 30ms (total 55ms from anchor)
+			// Should advance 1 more frame
+			mockNow.mockReturnValue(305);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 20, 135)).toBe(6);
+
+			mockNow.mockRestore();
+		});
+
+		test('handles looping wrap-around during catch-up', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 10 fps = 100ms per frame, 4 frames total
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					loop: true,
+					frameRatesForFrames: { 0: 10 }
+				})
+			);
+
+			const frameWidth = 240 / 4;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Advance 550ms = 5.5 intervals
+			// Should advance 5 frames and wrap: (0 + 5) % 4 = 1
+			mockNow.mockReturnValue(550);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 4, 135)).toBe(1);
+
+			// Advance another 300ms (leftover 50 + 300 = 350ms = 3 frames)
+			// (1 + 3) % 4 = 0
+			mockNow.mockReturnValue(850);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 4, 135)).toBe(0);
+
+			mockNow.mockRestore();
+		});
+
+		test('non-looping animation stops at last frame during catch-up', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 10 fps = 100ms per frame, 4 frames total, non-looping
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					loop: false,
+					frameRatesForFrames: { 0: 10 }
+				})
+			);
+
+			const frameWidth = 240 / 4;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Advance 1000ms = 10 intervals, but only 4 frames exist
+			// Should stop at frame 3 (last valid frame index) and mark finished
+			mockNow.mockReturnValue(1000);
+			layer.play();
+			// The draw uses clamped frame: min(frame, numberOfFrames - 1) = 3
+			expect(getDrawnFrameIndex(ctx, frameWidth, 4, 135)).toBe(3);
+			expect(layer.isFinished).toBe(true);
+
+			// Subsequent plays should not draw
+			const callCount = ctx.drawImage.mock.calls.length;
+			mockNow.mockReturnValue(2000);
+			layer.play();
+			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
+
+			mockNow.mockRestore();
+		});
+
+		test('variable frame rates are respected during catch-up', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// Frame 0: 10fps (100ms), Frame 1: 5fps (200ms), Frame 2: 20fps (50ms)
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					loop: true,
+					frameRatesForFrames: { 0: 10, 1: 5, 2: 20 }
+				})
+			);
+
+			const frameWidth = 240 / 10;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// After 100ms: advance past frame 0 (100ms interval) -> frame 1
+			mockNow.mockReturnValue(100);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(1);
+
+			// After 300ms total: frame 1 needs 200ms, so 300-100=200ms elapsed
+			// Should advance to frame 2
+			mockNow.mockReturnValue(300);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(2);
+
+			// After 350ms total: frame 2 needs 50ms, 350-300=50ms elapsed
+			// Should advance to frame 3 (uses default rate from frame 0 = 100ms)
+			mockNow.mockReturnValue(350);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(3);
+
+			mockNow.mockRestore();
+		});
+
+		test('catches up correctly with mixed variable rates in one delta', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// Frame 0: 10fps (100ms), Frame 1: 20fps (50ms), Frame 2: 10fps (100ms)
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					loop: true,
+					frameRatesForFrames: { 0: 10, 1: 20, 2: 10 }
+				})
+			);
+
+			const frameWidth = 240 / 10;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Jump 250ms in one go:
+			// - Frame 0 consumes 100ms -> elapsed 150ms, frame 1
+			// - Frame 1 consumes 50ms -> elapsed 100ms, frame 2
+			// - Frame 2 consumes 100ms -> elapsed 0ms, frame 3
+			mockNow.mockReturnValue(250);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(3);
+
+			mockNow.mockRestore();
+		});
+
+		test('reset clears timing state and restarts from frame 0', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 10 }, // 100ms per frame
+					retrigger: true
+				})
+			);
+
+			const frameWidth = 240 / 10;
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			mockNow.mockReturnValue(350);
+			layer.play(); // frame 3
+
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(3);
+
+			// Reset mid-animation
+			layer.reset();
+
+			// Play after reset should start from frame 0, ignoring previous time
+			mockNow.mockReturnValue(400);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			// Subsequent timing should work from new anchor
+			mockNow.mockReturnValue(500); // 100ms from reset
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(1);
+
+			mockNow.mockRestore();
+		});
+
+		test('stop clears timing state when retrigger enabled', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 10 },
+					retrigger: true
+				})
+			);
+
+			const frameWidth = 240 / 10;
+
+			mockNow.mockReturnValue(0);
+			layer.play();
+
+			mockNow.mockReturnValue(250);
+			layer.play(); // frame 2
+
+			layer.stop();
+
+			// After stop, next play restarts from frame 0
+			mockNow.mockReturnValue(300);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			mockNow.mockRestore();
+		});
+
+		test('elapsed time is exactly zero on first play (no skip)', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 10 }
+				})
+			);
+
+			// First play at arbitrary time should draw frame 0
+			mockNow.mockReturnValue(12345);
+			layer.play();
+
+			const frameWidth = 240 / 10;
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			mockNow.mockRestore();
+		});
+
+		test('handles very high frame rates without issues', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 1000 fps = 1ms per frame
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 100,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 1000 }
+				})
+			);
+
+			mockNow.mockReturnValue(0);
+			layer.play();
+
+			// After 50ms, should be on frame 50
+			mockNow.mockReturnValue(50);
+			layer.play();
+
+			const frameWidth = 240 / 10;
+			const frameHeight = 135 / 10;
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, frameHeight)).toBe(50);
+
+			mockNow.mockRestore();
+		});
+
+		test('handles sub-millisecond precision timing', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// Use 50fps = exactly 20ms per frame to avoid floating-point issues
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 50 }
+				})
+			);
+
+			const frameWidth = 240 / 10;
+			// 50fps = 20ms per frame (exact)
+
+			mockNow.mockReturnValue(0);
+			layer.play(); // frame 0
+
+			// Just under one interval - should stay on frame 0
+			mockNow.mockReturnValue(19);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			// Exactly one interval - should advance to frame 1
+			mockNow.mockReturnValue(20);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(1);
+
+			// Exactly 6 intervals from start (120ms)
+			mockNow.mockReturnValue(120);
+			layer.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(6);
+
+			// Test 60fps separately: verify behavior around interval boundaries
+			const layer60 = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 10,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 60 }
+				})
+			);
+
+			ctx.drawImage.mockClear();
+			mockNow.mockReturnValue(0);
+			layer60.play(); // frame 0
+
+			// 60fps = ~16.667ms per frame
+			// At 16ms, should still be frame 0
+			mockNow.mockReturnValue(16);
+			layer60.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(0);
+
+			// At 17ms, should advance to frame 1
+			mockNow.mockReturnValue(17);
+			layer60.play();
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, 135)).toBe(1);
+
+			mockNow.mockRestore();
+		});
+
+		test('stress test: many rapid play() calls maintain correct frame', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+
+			// 30 fps = ~33.33ms per frame
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 100,
+					framesPerRow: 10,
+					frameRatesForFrames: { 0: 30 }
+				})
+			);
+
+			const frameWidth = 240 / 10;
+			const frameHeight = 135 / 10;
+			const interval = 1000 / 30;
+
+			mockNow.mockReturnValue(0);
+			layer.play();
+
+			// Simulate 60fps render loop (16.67ms between calls) for 1 second
+			for (let t = 16.67; t <= 1000; t += 16.67) {
+				mockNow.mockReturnValue(t);
+				layer.play();
+			}
+
+			// After 1000ms at 30fps, should be on frame 30
+			const expectedFrame = Math.floor(1000 / interval);
+			expect(getDrawnFrameIndex(ctx, frameWidth, 10, frameHeight)).toBe(expectedFrame);
+
+			mockNow.mockRestore();
 		});
 	});
 });

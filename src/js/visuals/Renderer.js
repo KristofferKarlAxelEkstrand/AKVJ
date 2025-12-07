@@ -52,7 +52,7 @@ class Renderer {
 	/**
 	 * Main rendering loop - clears canvas and renders all active layers
 	 */
-	#loop = () => {
+	#loop = (timestamp = performance.now()) => {
 		if (!this.#isRunning) {
 			return;
 		}
@@ -91,7 +91,7 @@ class Renderer {
 						channel[i] = null;
 						continue;
 					}
-					animation.play();
+					animation.play(timestamp);
 				}
 			}
 		}
