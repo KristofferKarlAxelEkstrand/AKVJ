@@ -71,7 +71,10 @@ class Renderer {
 		// Guard in case the layer manager was destroyed while a requestAnimationFrame
 		// callback was pending to avoid null reference errors.
 		const activeLayers = this.#layerManager?.getActiveLayers();
-		// Quick path: if there are no active layers, skip rendering loop to save CPU
+		// Quick path: if there are no active layers, skip layer rendering but continue
+		// the requestAnimationFrame loop. We keep the loop running so the background
+		// remains updated and the renderer can quickly resume if layers become
+		// active again. This avoids scheduling/tearing down RAF continuously.
 		if (!activeLayers || activeLayers.length === 0) {
 			this.#animationFrameId = requestAnimationFrame(this.#loop);
 			return;
