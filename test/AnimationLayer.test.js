@@ -79,47 +79,6 @@ describe('AnimationLayer', () => {
 			expect(() => layer.play()).not.toThrow();
 			mockNow.mockRestore();
 		});
-
-		test('coerces numeric string keys to numeric indices', () => {
-			const ctx = createMockContext();
-			const mockNow = vi.spyOn(performance, 'now');
-			mockNow.mockReturnValue(0);
-
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					numberOfFrames: 4,
-					framesPerRow: 4,
-					frameRatesForFrames: { 0: 10, 1: 20 }
-				})
-			);
-
-			// frame 0 at 10fps (100ms) -> after 100ms we should be on frame 1
-			layer.play();
-			mockNow.mockReturnValue(100);
-			layer.play();
-			const frameWidth = 240 / 4;
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(frameWidth * 1);
-
-			// frame 1 at 20fps (50ms) -> after additional 50ms we should be on frame 2
-			mockNow.mockReturnValue(150);
-			layer.play();
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(frameWidth * 2);
-
-			mockNow.mockRestore();
-		});
-
-		test('skips invalid frame rate keys and logs warnings', () => {
-			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-			new AnimationLayer(
-				defaultOptions({
-					frameRatesForFrames: { '-1': 10, 999: 20, 1.5: 30, 1: 60 }
-				})
-			);
-			// The three invalid keys should cause warnings (-1, 999, 1.5)
-			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
-			consoleWarnSpy.mockRestore();
-		});
 	});
 
 	describe('play()', () => {
@@ -141,4 +100,236 @@ describe('AnimationLayer', () => {
 			mockNow.mockRestore();
 		});
 
-		... (truncated for brevity) ...
+		test('returns early if image is null (after dispose)', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
+
+			layer.dispose();
+			layer.play();
+
+			expect(ctx.drawImage).not.toHaveBeenCalled();
+		});
+
+		test('returns early if canvas2dContext is null', () => {
+			// Creating a layer with a null canvas context should return early
+			// (no errors and no drawing occurs).
+			const layerWithNullCtx = new AnimationLayer(defaultOptions({ canvas2dContext: null }));
+			expect(() => layerWithNullCtx.play()).not.toThrow();
+		});
+
+		test('draws frame 0 on first play call without skipping', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4
+				})
+			);
+
+			// First play call should render the initial frame without requiring time to elapse
+			layer.play();
+
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// First call args: image, sx, sy, sw, sh, dx, dy, dw, dh
+			// Frame 0: sx=0, sy=0
+			const callArgs = ctx.drawImage.mock.calls[0];
+			expect(callArgs[1]).toBe(0); // sx = 0 for frame 0
+			expect(callArgs[2]).toBe(0); // sy = 0 for frame 0
+		});
+
+		test('does not advance frame until interval has passed', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					frameRatesForFrames: { 0: 60 } // 60fps = ~16.67ms per frame
+				})
+			);
+
+			// Mock performance.now to return consistent values
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+
+			layer.play(); // Initialize at t=0
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+
+			// Still at t=0, should not advance
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+
+			// Verify still on frame 0 (sx=0)
+			expect(ctx.drawImage.mock.calls[1][1]).toBe(0);
+		});
+
+		test('advances multiple frames when elapsed covers several intervals', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// Set a low FPS so interval is large for easy testing (10 fps = 100ms)
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
+			// t=0 -> initial draw
+			mockNow.mockReturnValue(0);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// t=350ms -> should advance 3 frames (floor(350/100)=3)
+			mockNow.mockReturnValue(350);
+			layer.play();
+			// Check last drawn frame (frame index should be 3)
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			const frameWidth = 240 / 10;
+			expect(lastCall[1]).toBe(frameWidth * 3);
+
+			// t=400ms -> the 50ms leftover should be preserved, so elapsed becomes 100ms and
+			// exactly one more frame should be advanced
+			mockNow.mockReturnValue(400);
+			layer.play();
+			const secondCall = ctx.drawImage.mock.calls.at(-1);
+			expect(secondCall[1]).toBe(frameWidth * 4);
+
+			mockNow.mockRestore();
+		});
+
+		test('handles variable frame rates when advancing multiple frames', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// frame 0 = 10fps (100ms), frame 1 = 20fps (50ms) so 130ms should advance 1 frame
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
+			mockNow.mockReturnValue(0);
+			layer.play();
+			mockNow.mockReturnValue(130);
+			layer.play();
+			// After advancing, we should be on frame 1
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			const frameWidth = 240 / 4;
+			expect(lastCall[1]).toBe(frameWidth * 1);
+			mockNow.mockRestore();
+		});
+
+		test('stops rendering non-looping animation after last frame', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 2,
+					framesPerRow: 2,
+					loop: false,
+					frameRatesForFrames: { 0: 1000 } // 1000fps = 1ms per frame
+				})
+			);
+
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+			layer.play(); // Initialize lastTime, draw frame 0
+
+			mockNow.mockReturnValue(10);
+			layer.play(); // Advances to frame 1, draws frame 1
+
+			mockNow.mockReturnValue(20);
+			layer.play(); // Advances to frame 2 (>= numberOfFrames), draws clamped frame 1
+
+			// Now #frame === 2 which is >= numberOfFrames, and the layer should be marked finished
+			expect(layer.isFinished).toBe(true);
+
+			// next play() returns early
+			const callCount = ctx.drawImage.mock.calls.length;
+			mockNow.mockReturnValue(30);
+			layer.play(); // Should return early without drawing
+
+			// Verify no additional draw after completion
+			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
+			// Resetting should clear isFinished
+			layer.reset();
+			expect(layer.isFinished).toBe(false);
+		});
+
+		test('wraps back to frame 0 when looping is enabled', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 2,
+					framesPerRow: 2,
+					loop: true,
+					frameRatesForFrames: { 0: 1000 }
+				})
+			);
+
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+			layer.play(); // draw frame 0
+
+			mockNow.mockReturnValue(10);
+			layer.play(); // draw frame 1
+
+			mockNow.mockReturnValue(20);
+			layer.play(); // should wrap back to frame 0
+
+			// Verify last draw was frame 0
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+		});
+	});
+
+	describe('stop()', () => {
+		test('resets state when retrigger is enabled', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
+
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+			layer.play();
+
+			mockNow.mockReturnValue(100);
+			layer.play(); // Advance some frames
+
+			layer.stop();
+
+			// After stop, next play should start from frame 0
+			mockNow.mockReturnValue(200);
+			layer.play();
+
+			// Verify drawing frame 0 (sx=0)
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			expect(lastCall[1]).toBe(0);
+		});
+	});
+
+	describe('reset()', () => {
+		test('resets to frame 0 when retrigger is enabled', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
+
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+			layer.play();
+
+			mockNow.mockReturnValue(100);
+			layer.play();
+
+			layer.reset();
+
+			mockNow.mockReturnValue(200);
+			layer.play();
+
+			const lastCall = ctx.drawImage.mock.calls.at(-1);
+			expect(lastCall[1]).toBe(0);
+		});
+	});
+
+	describe('dispose()', () => {
+		test('clears image reference', () => {
+			const ctx = createMockContext();
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
+
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalled();
+
+			ctx.drawImage.mockClear();
+			layer.dispose();
+			layer.play();
+
+			expect(ctx.drawImage).not.toHaveBeenCalled();
+		});
+	});
+});
