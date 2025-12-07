@@ -96,7 +96,7 @@ describe('AnimationLayer', () => {
 		test('coerces numeric string keys to numeric indices', () => {
 			const ctx = createMockContext();
 			const mockNow = vi.spyOn(performance, 'now');
-			// Use string keys to ensure coercion happens
+			// Use string keys to ensure coercion happens (JSON always parses keys as strings)
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
