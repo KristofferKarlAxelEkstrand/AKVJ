@@ -69,6 +69,31 @@ If in doubt, leave a small follow-up message asking for clarification. When a re
 
 MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`:
 
+#### 0. Resolve all outdated threads first (recommended)
+
+Start by clearing outdated threads to focus on active issues:
+
+```bash
+# Get IDs of outdated unresolved threads
+OUTDATED=$(gh api graphql -f query='
+  query {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
+          nodes { id isResolved isOutdated }
+        }
+      }
+    }
+  }
+' | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false and .isOutdated == true) | .id')
+
+# Resolve each outdated thread
+for THREAD_ID in $OUTDATED; do
+  echo "Resolving outdated: $THREAD_ID"
+  gh api graphql -f query="mutation { resolveReviewThread(input: { threadId: \"$THREAD_ID\" }) { thread { isResolved } } }" --silent
+done
+```
+
 #### 1. List unresolved threads for a PR
 
 ```bash
