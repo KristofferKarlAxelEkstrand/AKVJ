@@ -41,6 +41,15 @@ class Renderer {
 	}
 
 	/**
+	 * Destroy renderer and release references for GC
+	 */
+	destroy() {
+		this.stop();
+		this.#canvas2dContext = null;
+		this.#layerManager = null;
+	}
+
+	/**
 	 * Main rendering loop - clears canvas and renders all active layers
 	 */
 	#loop = () => {
@@ -48,11 +57,28 @@ class Renderer {
 			return;
 		}
 
-		// Clear the canvas with background color using cached dimensions
-		this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		// Clear the canvas for the next frame with the configured background color.
+		// Use fillRect to keep the black background semantics rather than making the
+		// canvas transparent. Keep the check simple - if a valid context exists,
+		// it will provide the drawing API (CanvasRenderingContext2D).
+		if (this.#canvas2dContext) {
+			// Use fillRect for consistent background color. The canvas fillStyle is initialized
+			// in `AdventureKidVideoJockey.connectedCallback()` to avoid redundant per-frame writes.
+			this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		}
 
 		// Render all active layers (channel 0 = background, 15 = foreground)
-		const activeLayers = this.#layerManager.getActiveLayers();
+		// Guard in case the layer manager was destroyed while a requestAnimationFrame
+		// callback was pending to avoid null reference errors.
+		const activeLayers = this.#layerManager?.getActiveLayers();
+		// Quick path: if there are no active layers, skip layer rendering but continue
+		// the requestAnimationFrame loop. We keep the loop running so the background
+		// remains updated and the renderer can quickly resume if layers become
+		// active again. This avoids scheduling/tearing down RAF continuously.
+		if (!activeLayers || activeLayers.length === 0) {
+			this.#animationFrameId = requestAnimationFrame(this.#loop);
+			return;
+		}
 		for (const channel of activeLayers) {
 			if (channel) {
 				for (const animation of channel) {

@@ -32,7 +32,21 @@ const settings = {
 		// Target frame rate for animations
 		targetFPS: 60,
 		// Animation JSON URL
-		animationsJsonUrl: '/animations/animations.json'
+		animationsJsonUrl: '/animations/animations.json',
+		// Optional base path for animation assets. For apps served under a subpath
+		// this should include a trailing slash, e.g. '/subpath/'. Falls back to
+		// `import.meta.env.BASE_URL` or '/'.
+		animationsBasePath: import.meta.env?.BASE_URL ?? '/',
+		// Cross origin policy to apply to loaded animation images. Set to null to
+		// disable crossOrigin attribute.
+		imageCrossOrigin: 'anonymous',
+		/**
+		 * Maximum number of concurrent animation image loads to run at once.
+		 * Recommended range: 4-16. Larger values improve load speed at the cost of higher
+		 * memory usage and potentially increased network saturation. This is used by
+		 * `AnimationLoader` for batching image load requests.
+		 */
+		maxConcurrentAnimationLoads: 8
 	},
 	rendering: {
 		// Canvas rendering settings

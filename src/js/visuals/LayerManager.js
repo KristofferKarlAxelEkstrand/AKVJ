@@ -3,7 +3,11 @@
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 
+/**
+ * @typedef {import('./AnimationLayer.js').default} AnimationLayer
+ */
 class LayerManager {
+	/** @type {Array<Array<AnimationLayer|null>>} */
 	#canvasLayers = [];
 	#animations = {};
 	#velocityCache = new Map(); // Map<channel, Map<note, number[]>>
@@ -91,7 +95,15 @@ class LayerManager {
 
 		// Find the highest velocity layer that doesn't exceed the input velocity
 		// If none match (input velocity lower than lowest defined), return null
-		return velocities.findLast(v => v <= velocity) ?? null;
+		// `findLast` is a relatively new method. Use explicit reverse loop for
+		// compatibility and to avoid depending on polyfills.
+		for (let i = velocities.length - 1; i >= 0; i--) {
+			const v = velocities[i];
+			if (v <= velocity) {
+				return v;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -107,16 +119,18 @@ class LayerManager {
 	 * Clear all active layers and stop their animations
 	 */
 	clearLayers() {
-		for (const channel of this.#canvasLayers) {
-			if (!channel) {
+		// Each entry in #canvasLayers is an array of layers for a MIDI channel
+		// channelLayers: Array<AnimationLayer|null>
+		for (const channelLayers of this.#canvasLayers) {
+			if (!channelLayers) {
 				continue;
 			}
-			for (const note of channel) {
-				if (note) {
-					note.stop();
+			for (const layer of channelLayers) {
+				if (layer) {
+					layer.stop();
 					// Dispose of any image resources the layer may hold (no-op if not present)
-					if (typeof note.dispose === 'function') {
-						note.dispose();
+					if (typeof layer.dispose === 'function') {
+						layer.dispose();
 					}
 				}
 			}
@@ -125,14 +139,23 @@ class LayerManager {
 	}
 
 	/**
+	 * Destroy active layer manager and release references
+	 */
+	destroy() {
+		this.clearLayers();
+		this.#animations = {};
+		this.#velocityCache.clear();
+	}
+
+	/**
 	 * Get statistics about active layers
 	 */
 	getLayerStats() {
 		let activeCount = 0;
-		for (const layer of this.#canvasLayers) {
-			if (layer) {
-				for (const note of layer) {
-					if (note) {
+		for (const channelLayers of this.#canvasLayers) {
+			if (channelLayers) {
+				for (const layer of channelLayers) {
+					if (layer) {
 						activeCount++;
 					}
 				}

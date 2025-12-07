@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import AnimationLayer from '../src/js/visuals/AnimationLayer.js';
 
 /**
@@ -39,27 +39,68 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('constructor', () => {
-		it('throws if numberOfFrames is missing or less than 1', () => {
+		test('throws if numberOfFrames is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: 0 }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: undefined }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
 		});
 
-		it('throws if framesPerRow is missing or less than 1', () => {
+		test('throws if framesPerRow is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ framesPerRow: 0 }))).toThrow('AnimationLayer requires framesPerRow >= 1');
 		});
 
-		it('throws if image dimensions result in invalid frame size', () => {
+		test('throws if image dimensions result in invalid frame size', () => {
 			expect(() => new AnimationLayer(defaultOptions({ image: { width: 0, height: 135 } }))).toThrow('AnimationLayer: Invalid image dimensions');
 		});
 
-		it('creates successfully with valid options', () => {
+		test('creates successfully with valid options', () => {
 			const layer = new AnimationLayer(defaultOptions());
 			expect(layer).toBeInstanceOf(AnimationLayer);
+		});
+
+		test('filters invalid frame rates and logs warnings', () => {
+			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+			new AnimationLayer(defaultOptions({ frameRatesForFrames: { 0: -1, 1: 0, 2: 'invalid', 3: 60 } }));
+			// Should have logged a warning for the three invalid values
+			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
+			consoleWarnSpy.mockRestore();
+		});
+
+		test('falls back to default frame rate when all rates invalid', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
+			// Play once at t=0
+			layer.play();
+			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
+			mockNow.mockReturnValue(1000);
+			// Should not throw due to invalid frame rates
+			expect(() => layer.play()).not.toThrow();
+			mockNow.mockRestore();
 		});
 	});
 
 	describe('play()', () => {
-		it('returns early if image is null (after dispose)', () => {
+		test('advances frame when exactly on interval boundary', () => {
+			const ctx = createMockContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			// Set frame rate so interval is 1ms for easy testing
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			// t=0 -> initial draw
+			mockNow.mockReturnValue(0);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			// t=1ms (exactly interval) -> should advance to next frame
+			mockNow.mockReturnValue(1);
+			layer.play();
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
+			mockNow.mockRestore();
+		});
+
+		test('returns early if image is null (after dispose)', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
 
@@ -69,14 +110,14 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage).not.toHaveBeenCalled();
 		});
 
-		it('returns early if canvas2dContext is null', () => {
+		test('returns early if canvas2dContext is null', () => {
 			// Creating a layer with a null canvas context should return early
 			// (no errors and no drawing occurs).
 			const layerWithNullCtx = new AnimationLayer(defaultOptions({ canvas2dContext: null }));
 			expect(() => layerWithNullCtx.play()).not.toThrow();
 		});
 
-		it('draws frame 0 on first play call without skipping', () => {
+		test('draws frame 0 on first play call without skipping', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -97,7 +138,7 @@ describe('AnimationLayer', () => {
 			expect(callArgs[2]).toBe(0); // sy = 0 for frame 0
 		});
 
-		it('does not advance frame until interval has passed', () => {
+		test('does not advance frame until interval has passed', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -123,7 +164,7 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage.mock.calls[1][1]).toBe(0);
 		});
 
-		it('stops rendering non-looping animation after last frame', () => {
+		test('stops rendering non-looping animation after last frame', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -154,7 +195,7 @@ describe('AnimationLayer', () => {
 			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
 		});
 
-		it('wraps back to frame 0 when looping is enabled', () => {
+		test('wraps back to frame 0 when looping is enabled', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(
 				defaultOptions({
@@ -182,14 +223,9 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('stop()', () => {
-		it('resets state when retrigger is enabled', () => {
+		test('resets state when retrigger is enabled', () => {
 			const ctx = createMockContext();
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					retrigger: true
-				})
-			);
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -211,14 +247,9 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('reset()', () => {
-		it('resets to frame 0 when retrigger is enabled', () => {
+		test('resets to frame 0 when retrigger is enabled', () => {
 			const ctx = createMockContext();
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					retrigger: true
-				})
-			);
+			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -238,7 +269,7 @@ describe('AnimationLayer', () => {
 	});
 
 	describe('dispose()', () => {
-		it('clears image reference', () => {
+		test('clears image reference', () => {
 			const ctx = createMockContext();
 			const layer = new AnimationLayer(defaultOptions({ canvas2dContext: ctx }));
 

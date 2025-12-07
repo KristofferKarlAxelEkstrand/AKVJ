@@ -1,147 +1,261 @@
-PR Read / Comments -> Think, Fix, Respond (MCP-enabled)
+# PR Review & Fix
 
-Purpose
+Review PR comments, decide what to fix, apply changes, and respond.
 
-- This prompt guides a PR reviewer using the repository's MCP to: fetch all PR context, evaluate each comment, decide what to implement, apply and test changes, and reply to PR comments concisely.
+## Principles
 
-Constraints & Principles
+- Short, focused commits with clear messages
+- Run `npm run lint && npm run test && npm run build` after changes
+- For animation changes, also run `npm run generate-animation-json-to-json`
+- Push to PR branch only (never main)
+- When unsure, ask instead of guessing
+- MCP tooling can sometimes update PR content, but to avoid unexpected credential issues and maintain clear authoring and traceability, prefer a local git workflow (commit, push, PR) or the GitHub web UI/CLI for making code changes. Do not rely on MCP tools to push changes from the workspace; they should be used primarily for reading PR context, comments, and statuses.
+- DO NOT create a separate or follow-up PR to address the comments on this PR unless there's a strong, documented reason — focus on this PR. The goal is to address or discard all review comments here so the end result is a single, well-reviewed PR with excellent code.
 
-- Be short, concise, and down-to-earth.
-- Prioritize safety, correctness, readability, and maintainability.
-- Favor minimal, well-scoped changes and small commits.
-- Always run lint, tests, and the build (plus any repo-specific validations) after edits.
-- Do not push to main. Push only to the PR branch or a dedicated patch branch.
+## Workflow
 
-Procedure (for each PR)
+1. **Fetch context**: Use MCP to get PR details, changed files, review comments, and CI status
+2. **Categorize all comments first**: Before implementing anything, read through all comments and sort them into categories (accept, partial, decline, already-resolved). This prevents context-switching and helps batch related fixes.
+3. **Decide per comment**:
+    - **Accept**: Apply fix, explain briefly why it improves the code
+    - **Partial**: Apply modified fix, explain variance
+    - **Decline**: Explain why (risk, compat, duplicate) and suggest alternative
+    - **Already resolved**: Prior commits in the PR already addressed this — note the commit SHA and resolve
+    - **Avoid creating a new PR for these changes**: Prefer updating the existing branch/PR to keep review history and the conversation focused. If a change is truly large or out of scope, document the rationale and open a follow-up issue or PR and link it from this PR.
+4. **Prioritize**: Blocking issues (security, correctness) first, then style
+5. **Implement**: Small commits, run checks, push
+6. **Respond**: Reply to each comment with decision and commit SHA if fixed
 
-1. Fetch PR context (MCP): title, description, author, changed files, statuses, commits, review comments, and any CI results.
-2. Gather all review comments / review threads. List them grouped by file.
-3. For each comment, decide and record a concise decision:
-    - Accept (apply a fix): explain why this improves code quality/readability/security/perf.
-    - Modify (partial accept): explain what will be done and why some variance is chosen.
-    - Decline (won't fix): provide a short reason (compatibility, UX, no-op, duplication, risky), and propose alternative if needed.
-4. Prioritize fixes by risk and value. Prefer addressing blocking issues first (security, correctness, tests), then style and minor improvements.
+## Reply Format
 
-Implementation Guidelines
+- Accept: `"Done — <what changed>. Commit: abc123."`
+- Partial: `"Partial — <what was done>, <what was skipped and why>. Commit: abc123."`
+- Decline: `"Decline — <reason>. Alternative: <suggestion>."`
+- Already resolved: `"Already addressed in commit abc123 — <brief note>."`
 
-- Make code changes in small, focused commits with clear messages (e.g., "fix(animations): update generator to only include png when present").
-- Run these checks locally after each change or batch:
-    - npm run lint
-    - npm run test
-    - npm run build
-    - If animation assets or pipeline changes: npm run animations (optionally --validate-only)
-- If a suggested change is invasive (high risk), open a follow-up PR or ask for clarification rather than making a risky change without approval.
-- Where a comment suggests adding a new feature (e.g., CI check), prefer small, isolated additions and include tests if applicable.
+## Resolving Threads
 
-Applying fixes (details)
+- Resolving conversations is a good thing — resolve threads when possible: either the change is implemented or the comment is not a valid/important issue.
+- Resolve after fixing (with commit SHA) or declining (with rationale)
+- Leave open if awaiting clarification or partial fix needs confirmation
+- For outdated threads: resolve with brief note on why obsolete
 
-- For each accepted change:
-    - Implement the change, run the checks, and locally confirm no regressions.
-    - Commit with a short message and push to the PR branch or a new branch (e.g., pr-<num>-patch) if you can't push to the PR branch.
-    - Update the PR comment: "Done — fixed in <commit-sha>" and include a 1-line justification where appropriate.
+### How to Resolve Conversations (Practical Guidance)
 
-        Tip: If you can't push to the PR branch from your environment, it can be caused by an env-var authenticated token with restricted permissions.
-        Try unsetting the GitHub token (temporarily) and re-run your push, e.g.: `unset GITHUB_TOKEN`. If that doesn't help, use SSH or a personal access token with write permissions.
+Resolving threads should be intentional — it signals that the issue is handled or doesn't need further action. Follow these guidelines when deciding to resolve a review thread:
 
-- For each decline or partial accept:
-    - Reply explaining tradeoffs and chosen approach.
-    - If helpful, provide a short code snippet or alternative plan.
-    - If clarification is required, add a short comment and do not act until clarified.
+- Resolved because change is implemented: If you've implemented the requested change or applied an alternate fix, resolve the thread and include the commit SHA or a short explanation and the commit message. Example:
+    - "Done — Applied change and added tests. Commit: b6fb1e3"
 
-Resolving review threads
+- Resolved because the comment is outdated: If rebase/HMR/refactor or another change made the comment irrelevant, resolve the thread and explain why it's no longer applicable. Example:
+    - "Resolve — Outdated after refactor in commit b6fb1e3; the change moved into `LayerManager`"
 
-- Close a review thread when the issue is fixed, or when a decision has been made not to implement the requested change. If a thread is resolved because the change won't be implemented, add a concise rationale explaining why (compatibility, UX, duplication, risk, etc.) and suggest an alternative where appropriate. Resolving your own reply threads is acceptable when no further work is planned.
-- When resolving: append a short PR comment that references the commit(s) and briefly summarises the fix or rationale.
-- Important: Do NOT auto-resolve review threads on behalf of the PR author or other reviewers by default.
-    - If you applied a verified fix in the PR (and CI checks have passed), it is OK to resolve the thread after leaving a comment with the commit SHA.
-    - If you decide a comment is not valid or you choose to decline the suggested change ("Decline — won't fix"), you may resolve the thread, but you MUST:
-        1. Leave a brief explanation that justifies why the change is declined (compatibility, UX, duplicate, risk, etc.), and
-        2. Suggest an alternative solution or link to an issue if applicable, and
-        3. Allow the PR author or other reviewers to reopen or request clarification if they disagree.
-    - If you made a partial change or accepted most of the suggestion but not all, prefer leaving the thread open until the original author confirms, or explicitly mark it as resolved and explain the partial acceptance.
+- Resolved because a prior commit already addressed it: Many review comments get addressed by earlier commits in the same PR before you review them. Check the current code state — if it already implements the suggestion, resolve with the commit SHA. Example:
+    - "Already addressed in commit b6fb1e3 — null guard added as suggested"
 
-- Action required: Walk the PR's review threads and resolve conversations that you will not implement.
-    - For each thread you decide not to implement, use the Decline decision and provide a concise rationale (one or two lines) that justifies the decision.
-    - Ensure the comment includes any suggested alternatives or links to issues, and politely note that the author or reviewers may re-open the thread if they disagree.
-    - If you are unsure, prefer leaving the thread open and add a clarifying question instead of closing it.
+- Resolved because it will not be worked on: If the suggestion is valuable but out of scope or a deliberate design decision was made, resolve the thread and explain the decision and next steps (open issue or follow-up PR if necessary):
+    - "Decline — Out-of-scope for this PR; opening a follow-up issue to track the improvement"
 
-- Outdated review threads:
-    - If a comment has become obsolete due to code changes (e.g., the file changed or the issue was addressed in a different way), you may mark the thread as resolved as "Outdated".
-    - When marking an outdated thread as resolved:
-        - Leave a brief comment identifying the commit SHA(s) that made the conversation obsolete and explain why it no longer applies (one line).
-        - If the thread is only superficially outdated (e.g., formatting changed), explicitly mention that and avoid dropping important issues silently.
-        - If you are unsure, leave the thread open and ask a clarifying question instead of resolving it.
+- Resolved because it's not worth doing: If a comment suggests a micro-optimization or stylistic preference that doesn't deliver value and the change would harm readability or cause churn, explain the reasoning and resolve. Example:
+    - "Decline — Not worth the change; current behavior preserves clarity and keeps API stable"
 
-- How to programmatically resolve review threads (GitHub GraphQL):
-    - The MCP tools do not expose a direct "resolve thread" action. Use the GitHub CLI (`gh`) with GraphQL mutations to resolve threads.
-    - Note: If your CLI or GraphQL request is blocked by token permissions (e.g., you see "Resource not accessible by integration"), try temporarily unsetting the environment token and re-run the command in the same shell session:
-        ```bash
-        unset GITHUB_TOKEN
+- Resolved because the issue is outside repo ownership: If a thread asks for a large or risky change (e.g. migrating frameworks), explain constraints and suggest a follow-up issue or alternative. Example:
+    - "Decline — Large migration; suggest opening an issue to discuss approach"
+
+Best practices when resolving threads:
+
+- Be concise and specific: State the reason and cite commits (SHA) for implemented changes.
+- Don't resolve others' threads unilaterally: If you close a reviewer's thread, ensure you explain why and involve them if it's not obvious.
+- Use the GitHub UI to mark threads as resolved, or use the GraphQL `resolveReviewThread` mutation (if you do this programmatically make sure you're the author of the fix or authorized). Avoid programmatic resolving without a visible reason in the thread.
+- When you close with "Won't fix" or "Decline", prefer to reference an open issue or give a clear reason to avoid confusion.
+
+If in doubt, leave a small follow-up message asking for clarification. When a reviewer replies that they're OK, resolve the thread and continue.
+
+### How to Resolve a Thread via GraphQL
+
+MCP does not currently support resolving PR review threads directly. Use the GitHub GraphQL API with `gh api graphql`.
+
+#### Quick Reference
+
+```bash
+# Resolve a single thread
+gh api graphql -f query='mutation { resolveReviewThread(input: { threadId: "PRRT_xxx" }) { thread { isResolved } } }'
+
+# Unresolve a thread
+gh api graphql -f query='mutation { unresolveReviewThread(input: { threadId: "PRRT_xxx" }) { thread { isResolved } } }'
+```
+
+#### 0. Resolve all outdated threads first (recommended)
+
+Start by clearing outdated threads to focus on active issues:
+
+```bash
+# Get IDs of outdated unresolved threads
+OUTDATED=$(gh api graphql -f query='
+  query {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
+          nodes { id isResolved isOutdated }
+        }
+      }
+    }
+  }
+' | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false and .isOutdated == true) | .id')
+
+# Resolve each outdated thread
+for THREAD_ID in $OUTDATED; do
+  echo "Resolving outdated: $THREAD_ID"
+  gh api graphql -f query="mutation { resolveReviewThread(input: { threadId: \"$THREAD_ID\" }) { thread { isResolved } } }" --silent
+done
+```
+
+#### 1. List unresolved threads for a PR
+
+```bash
+gh api graphql -f query='
+  query {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
+          nodes {
+            id
+            isResolved
+            comments(first: 1) {
+              nodes {
+                body
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+'
+```
+
+Filter to unresolved only with `jq`:
+
+```bash
+gh api graphql -f query='...' | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)]'
+```
+
+#### 2. Resolve a single thread
+
+```bash
+gh api graphql -f query='
+  mutation {
+    resolveReviewThread(input: { threadId: "PRRT_kwDOA2KbxM5XXXXXXX" }) {
+      thread {
+        isResolved
+      }
+    }
+  }
+'
+```
+
+The response confirms success:
+
+```json
+{
+	"data": {
+		"resolveReviewThread": {
+			"thread": {
+				"isResolved": true
+			}
+		}
+	}
+}
+```
+
+#### 3. Resolve multiple threads in a loop
+
+```bash
+# Get all unresolved thread IDs
+THREAD_IDS=$(gh api graphql -f query='
+  query {
+    repository(owner: "OWNER", name: "REPO") {
+      pullRequest(number: PR_NUMBER) {
+        reviewThreads(first: 100) {
+          nodes { id isResolved }
+        }
+      }
+    }
+  }
+' | jq -r '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | .id')
+
+# Resolve each thread
+for THREAD_ID in $THREAD_IDS; do
+  echo "Resolving $THREAD_ID..."
+  gh api graphql -f query="mutation { resolveReviewThread(input: { threadId: \"$THREAD_ID\" }) { thread { isResolved } } }"
+done
+```
+
+#### 4. Unresolve a thread (if needed)
+
+```bash
+gh api graphql -f query='
+  mutation {
+    unresolveReviewThread(input: { threadId: "PRRT_kwDOA2KbxM5XXXXXXX" }) {
+      thread {
+        isResolved
+      }
+    }
+  }
+'
+```
+
+**Important**: Always leave a comment explaining why you're resolving the thread before resolving it programmatically. This maintains transparency in the review conversation.
+
+## CI Failures
+
+```bash
+gh pr checks <PR_NUMBER>           # Check status
+gh run view <RUN_ID> --log         # View logs
+npm ci && npm run lint && npm test # Reproduce locally
+```
+
+If complex, open a follow-up issue rather than making risky fixes.
+
+## Final Step
+
+After all changes pass validation:
+
+- Push your updated branch to the PR remote so CI and reviewers can verify the changes:
+    ```bash
+    git push origin YOUR_BRANCH
+    ```
+- Request Copilot review via MCP using the tool `mcp_io_github_git_request_copilot_review(owner, repo, pullNumber)`
+    - Example pseudo-call (adapt to your MCP tool):
+        ```js
+        mcp_io_github_git_request_copilot_review({ owner: 'KristofferKarlAxelEkstrand', repo: 'AKVJ', pullNumber: 34 });
         ```
-        If that doesn't resolve the issue, re-authenticate using the GitHub CLI (`gh auth login`) or use an SSH remote / a personal access token with sufficient permissions.
-        - Step 1: Get the review thread IDs for the PR:
-            ```bash
-            gh api graphql -f query='
-              query($owner: String!, $repo: String!, $number: Int!) {
-                repository(owner: $owner, name: $repo) {
-                  pullRequest(number: $number) {
-                    reviewThreads(first: 50) {
-                      nodes {
-                        id
-                        isResolved
-                        comments(first: 1) {
-                          nodes { body }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            ' -f owner=OWNER -f repo=REPO -F number=PR_NUMBER
-            ```
-            Replace `OWNER`, `REPO`, and `PR_NUMBER` with the actual values.
-        - Step 2: For each thread you want to resolve, call the `resolveReviewThread` mutation:
-            ```bash
-            gh api graphql -f query='
-              mutation($threadId: ID!) {
-                resolveReviewThread(input: {threadId: $threadId}) {
-                  thread { isResolved }
-                }
-              }
-            ' -f threadId="PRRT_xxxx"
-            ```
-            Replace `PRRT_xxxx` with the thread's `id` from Step 1.
-        - Tip: You can resolve multiple threads sequentially by chaining commands or looping over the thread IDs in a shell script.
+- Confirm CI passes before marking ready for merge
 
-- When to resolve your own reply threads:
-    - If you created a reply thread (e.g., "Accepted — fixed in commit abc123") as part of addressing a reviewer's comment, and no further work is planned on that thread, resolve it yourself.
-    - This keeps the PR tidy and signals to reviewers that the conversation is complete.
-    - Only leave your own threads open if you expect follow-up discussion or additional changes.
+## Troubleshooting git push
 
-Post-check & Copilot step
+- If you see errors when pushing (403, 302 redirects, or authentication failures) while working in a workspace or CI, it's often caused by an existing GITHUB_TOKEN or other token in the environment that takes precedence over your personal credentials. You can resolve this by unsetting the token for the session and pushing again using your usual credentials:
 
-- After all changes and replies have been made and validations pass, request a code review by Copilot (and optionally other reviewers):
-    - Post a final PR comment summarizing what was done and tagging @copilot (or the Copilot reviewer bot) asking for a final automated review.
-    - If you have repository permissions, also request a GitHub review from Copilot via the MCP.
-    - Confirm that the PR's required CI checks (status checks) are passing before marking the PR ready for merge.
-    - If you pushed additional changes after addressing comments, re-request a Copilot review on the PR (either by tagging @copilot in a follow-up comment or re-requesting a review via the MCP tools) so Copilot can double-check any new edits.
+```bash
+# Unset the token for this terminal session
+unset GITHUB_TOKEN
 
-Examples (short, focused language):
+# Verify your remote is correct, and push (or use `gh auth login` to reauthenticate)
+git remote -v
+git push origin YOUR_BRANCH
+```
 
-- "Done — replaced `fs.rmdir` with `fs.rm` (compatibility). Local lint/test/build OK. Commit: abc123."
-- "Decline — changing API signature here would break existing callers. Alternative: deprecate and follow-up PR."
-- "Partial — improved validation logic; left performance optimization for later if needed. Commit: def456."
+- Alternative: switch to an SSH remote and push using your SSH key:
 
-Notes
+```bash
+git remote set-url origin git@github.com:OWNER/REPO.git
+git push origin YOUR_BRANCH
+```
 
-- Keep all code changes under the repo style and architecture constraints (vanilla JS, no frameworks, use event-based `AppState`, private fields where appropriate, etc.).
-- Be conservative about adding 3rd-party dependencies (e.g., `sharp`): only add if CI/workflow supports native modules and the benefit outweighs maintenance complexity.
-- When in doubt, open a short discussion in the PR instead of guessing.
+- If a re-push still fails, log in with `gh auth login` or open a PR in the GitHub web interface. If you must use a token, prefer a PAT set as a local credential rather than the environment GITHUB_TOKEN set by a CI or workspace process.
 
-Acceptable outputs for the MCP agent
+## Repo Constraints
 
-- A list of decisions per comment (Accept / Partial / Decline) with short justification.
-- A list of commits/patches applied and confirmation of CI checks passing.
-- PR replies posted for each fixed/resolved comment, and new PR comment summarizing all work.
-
-Tone: Keep it short and confident. Answer precisely and justify briefly if you decide not to apply a suggestion.
+- Vanilla JS only, no frameworks
+- Follow existing patterns (event-based AppState, private fields)
+- Avoid new dependencies unless clearly justified

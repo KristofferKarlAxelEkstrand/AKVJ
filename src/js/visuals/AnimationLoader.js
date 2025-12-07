@@ -3,12 +3,32 @@
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
 import AnimationLayer from './AnimationLayer.js';
+import settings from '../core/settings.js';
 
 class AnimationLoader {
 	#canvas2dContext;
 
 	constructor(canvas2dContext) {
 		this.#canvas2dContext = canvas2dContext;
+	}
+
+	/**
+	 * Sanitize animation file name - prevents path traversal and ensures a safe filename.
+	 * Only allows alphanumeric names with valid image extensions; prevents edge cases
+	 * like '..png' or '-.png'.
+	 */
+	#sanitizeFileName(filename) {
+		if (!filename || typeof filename !== 'string') {
+			return '';
+		}
+		// Only allow alphanumeric names with valid image extension
+		// Name must start and end with alphanumeric characters
+		const match = filename.match(/^([a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?\.(png|jpg|jpeg|gif))$/i);
+		if (!match) {
+			console.warn('AnimationLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
+			return '';
+		}
+		return match[1];
 	}
 
 	/**
@@ -32,6 +52,12 @@ class AnimationLoader {
 	#loadImage(src) {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
+			// Use crossOrigin from settings if present. If null/undefined, do not set.
+			// Empty string is valid (equivalent to 'anonymous'), so check explicitly.
+			const cross = settings.performance?.imageCrossOrigin;
+			if (cross !== null && cross !== undefined) {
+				img.crossOrigin = cross;
+			}
 			img.onload = () => resolve(img);
 			img.onerror = () => reject(new Error(`Failed to load image: ${src}`));
 			img.src = src;
@@ -57,7 +83,17 @@ class AnimationLoader {
 	 * Load a single animation and return its placement info
 	 */
 	async #loadAnimation(channel, note, velocityLayer, animationData) {
-		const imagePath = `/animations/${channel}/${note}/${velocityLayer}/${animationData.png}`;
+		// Construct image path using configurable base path to support subpath deployments
+		const base = settings.performance.animationsBasePath;
+		const sanitizedFile = this.#sanitizeFileName(animationData.png);
+		// Early return with clear error if filename was invalid/sanitized to empty
+		if (!sanitizedFile) {
+			console.error(`Invalid filename for animation ${channel}/${note}/${velocityLayer}: ${animationData.png}`);
+			return null;
+		}
+		// Normalize base path to avoid double slashes in the constructed URL
+		const normalizedBase = base.replace(/\/$/, '');
+		const imagePath = `${normalizedBase}/animations/${channel}/${note}/${velocityLayer}/${sanitizedFile}`;
 
 		try {
 			const image = await this.#loadImage(imagePath);
@@ -80,18 +116,31 @@ class AnimationLoader {
 		const jsonData = await this.#loadAnimationsJson(jsonUrl);
 		const animations = {};
 
-		// Collect all load promises (expanded to improve readability)
-		const loadPromises = [];
+		// Collect all load functions for each animation so we can control concurrency
+		const loadFuncs = [];
 		for (const [channel, notes] of Object.entries(jsonData)) {
 			for (const [note, velocities] of Object.entries(notes)) {
 				for (const [velocityLayer, animationData] of Object.entries(velocities)) {
-					loadPromises.push(this.#loadAnimation(channel, note, velocityLayer, animationData));
+					loadFuncs.push(() => this.#loadAnimation(channel, note, velocityLayer, animationData));
 				}
 			}
 		}
 
-		// Load all animations in parallel
-		const results = await Promise.all(loadPromises);
+		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets.
+		// Process animations in batches of CONCURRENCY size; the final batch may be smaller if the
+		// total count is not evenly divisible. This is handled correctly by slice().
+		//
+		// Note: A pooling pattern (starting new loads immediately when one completes) could provide
+		// marginally faster load times. For typical animation counts (< 50) the difference is minimal,
+		// and the batching approach is simpler to maintain and reason about. If load performance
+		// becomes critical for large asset libraries, consider refactoring to a concurrency pool.
+		const CONCURRENCY = settings.performance?.maxConcurrentAnimationLoads ?? 8;
+		const results = [];
+		for (let i = 0; i < loadFuncs.length; i += CONCURRENCY) {
+			const chunk = loadFuncs.slice(i, i + CONCURRENCY).map(fn => fn());
+			const chunkResults = await Promise.all(chunk);
+			results.push(...chunkResults);
+		}
 
 		// Build the animations object from successful loads
 		for (const result of results) {
@@ -123,7 +172,9 @@ class AnimationLoader {
 			for (const note of Object.values(channel)) {
 				for (const layer of Object.values(note)) {
 					try {
-						layer.dispose();
+						if (layer && typeof layer.dispose === 'function') {
+							layer.dispose();
+						}
 					} catch (error) {
 						console.error('Failed to dispose animation layer:', error);
 					}
