@@ -3,7 +3,7 @@
  * Manages frame-based animations with customizable frame rates and loop behavior
  *
  * Supports two timing modes:
- * 1. frameRatesForFrames (legacy) - Frame timing in frames-per-second
+ * 1. frameRatesForFrames (FPS) - Frame timing in frames-per-second (default)
  * 2. beatsPerFrame (BPM sync) - Frame timing in beats, synced to current BPM
  */
 import settings from '../core/settings.js';
@@ -212,7 +212,7 @@ class AnimationLayer {
 			return (beats * 60000) / bpm;
 		}
 
-		// Legacy FPS mode
+		// FPS mode (default when BPM sync is not used)
 		const framesPerSecond = this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate;
 		return 1000 / framesPerSecond;
 	}
