@@ -75,6 +75,7 @@ class AnimationLoader {
 			framesPerRow: animationData.framesPerRow,
 			loop: animationData.loop,
 			frameRatesForFrames: animationData.frameRatesForFrames,
+			beatsPerFrame: animationData.beatsPerFrame ?? null,
 			retrigger: animationData.retrigger
 		});
 	}

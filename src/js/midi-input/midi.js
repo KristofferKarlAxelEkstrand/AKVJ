@@ -14,6 +14,11 @@ class MIDI {
 	#messageMinLength = settings.midi.messageMinLength;
 	#commandNoteOn = settings.midi.commands.noteOn;
 	#commandNoteOff = settings.midi.commands.noteOff;
+	#commandControlChange = settings.midi.commands.controlChange;
+	#systemClock = settings.midi.systemRealTime.clock;
+	#systemStart = settings.midi.systemRealTime.start;
+	#systemContinue = settings.midi.systemRealTime.continue;
+	#systemStop = settings.midi.systemRealTime.stop;
 
 	constructor() {
 		this.#init();
@@ -161,11 +166,45 @@ class MIDI {
 	}
 
 	#handleMIDIMessage(message) {
-		if (!message?.data || message.data.length < this.#messageMinLength) {
+		if (!message?.data || message.data.length === 0) {
 			return;
 		}
 
-		const [status, note, velocity] = message.data;
+		const status = message.data[0];
+
+		// Handle System Real-Time messages (single-byte, no channel)
+		// These are high-priority timing messages and should be processed first
+		if (status >= 0xf8) {
+			try {
+				switch (status) {
+					case this.#systemClock:
+						appState.dispatchMIDIClock(performance.now());
+						break;
+					case this.#systemStart:
+						appState.dispatchMIDIStart();
+						break;
+					case this.#systemContinue:
+						appState.dispatchMIDIContinue();
+						break;
+					case this.#systemStop:
+						appState.dispatchMIDIStop();
+						break;
+					default:
+						// Other system real-time messages (0xFE Active Sensing, 0xFF Reset)
+						break;
+				}
+			} catch (error) {
+				console.error('Error dispatching System Real-Time event:', error);
+			}
+			return;
+		}
+
+		// Channel messages require at least 3 bytes (for Note and CC)
+		if (message.data.length < this.#messageMinLength) {
+			return;
+		}
+
+		const [, note, velocity] = message.data;
 		const command = status >> 4;
 		const channel = status & 0xf;
 
@@ -180,6 +219,10 @@ class MIDI {
 					break;
 				case this.#commandNoteOff:
 					appState.dispatchMIDINoteOff(channel, note);
+					break;
+				case this.#commandControlChange:
+					// note = controller number, velocity = value
+					appState.dispatchMIDIControlChange(channel, note, velocity);
 					break;
 				default:
 					break;

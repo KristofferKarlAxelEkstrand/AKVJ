@@ -1,3 +1,16 @@
+import settings from './settings.js';
+
+/**
+ * Convert a MIDI CC value (0-127) to BPM using the configured range
+ * @param {number} ccValue - CC value (0-127)
+ * @returns {number} BPM value within configured min/max range
+ */
+function ccToBPM(ccValue) {
+	const { min, max } = settings.bpm;
+	const range = max - min;
+	return min + (ccValue / 127) * range;
+}
+
 /**
  * AppState - Event-based state management for AKVJ
  *
@@ -10,6 +23,16 @@
 class AppState extends EventTarget {
 	#midiConnected = false;
 	#animationsLoaded = false;
+
+	// BPM state
+	#currentBPM = settings.bpm.default;
+	#bpmSource = 'default'; // 'default', 'clock', or 'cc'
+
+	// MIDI Clock timing state
+	#lastClockTime = null;
+	#clockCount = 0;
+	#accumulatedClockTime = 0;
+	#clockTimeoutId = null;
 
 	set midiConnected(connected) {
 		if (this.#midiConnected !== connected) {
@@ -39,6 +62,40 @@ class AppState extends EventTarget {
 
 	get animationsLoaded() {
 		return this.#animationsLoaded;
+	}
+
+	/**
+	 * Get the current BPM value
+	 * @returns {number} Current BPM
+	 */
+	get bpm() {
+		return this.#currentBPM;
+	}
+
+	/**
+	 * Set the BPM value directly (for testing or manual override)
+	 * @param {number} value - BPM value (will be clamped to min/max range)
+	 */
+	set bpm(value) {
+		const { min, max } = settings.bpm;
+		const clampedValue = Math.min(max, Math.max(min, value));
+		if (this.#currentBPM !== clampedValue) {
+			this.#currentBPM = clampedValue;
+			this.#bpmSource = 'manual';
+			this.dispatchEvent(
+				new CustomEvent('bpmChanged', {
+					detail: { bpm: clampedValue, source: 'manual' }
+				})
+			);
+		}
+	}
+
+	/**
+	 * Get the current BPM source
+	 * @returns {string} 'default', 'clock', 'cc', or 'manual'
+	 */
+	get bpmSource() {
+		return this.#bpmSource;
 	}
 
 	/**
@@ -80,6 +137,137 @@ class AppState extends EventTarget {
 	}
 
 	/**
+	 * Dispatch MIDI Control Change event
+	 * @param {number} channel - MIDI channel (0-15)
+	 * @param {number} controller - CC number (0-127)
+	 * @param {number} value - CC value (0-127)
+	 */
+	dispatchMIDIControlChange(channel, controller, value) {
+		// Check if this is the BPM controller and clock is not active
+		if (channel === settings.bpm.controlChannel && controller === settings.bpm.controlCC && this.#bpmSource !== 'clock') {
+			this.#setBPM(ccToBPM(value), 'cc');
+		}
+
+		// Dispatch generic CC event for other uses
+		this.dispatchEvent(
+			new CustomEvent('midiControlChange', {
+				detail: { channel, controller, value }
+			})
+		);
+	}
+
+	/**
+	 * Handle MIDI Clock pulse (0xF8)
+	 * MIDI clock sends 24 pulses per quarter note (24 PPQN)
+	 * @param {number} timestamp - Performance.now() timestamp
+	 */
+	dispatchMIDIClock(timestamp) {
+		// Clear any existing timeout
+		if (this.#clockTimeoutId !== null) {
+			clearTimeout(this.#clockTimeoutId);
+		}
+
+		// Set timeout to fall back to CC if clock stops
+		this.#clockTimeoutId = setTimeout(() => {
+			if (this.#bpmSource === 'clock') {
+				this.#bpmSource = 'cc';
+				// Don't change BPM value, just the source
+				this.dispatchEvent(
+					new CustomEvent('bpmSourceChanged', {
+						detail: { source: 'cc', bpm: this.#currentBPM }
+					})
+				);
+			}
+			this.#clockTimeoutId = null;
+		}, settings.bpm.clockTimeoutMs);
+
+		if (this.#lastClockTime !== null) {
+			this.#accumulatedClockTime += timestamp - this.#lastClockTime;
+			this.#clockCount++;
+
+			// Calculate BPM every 24 pulses (1 beat)
+			if (this.#clockCount >= 24) {
+				const msPerBeat = this.#accumulatedClockTime;
+				const rawBPM = 60000 / msPerBeat;
+
+				// Apply exponential smoothing to reduce jitter
+				const smoothingFactor = settings.bpm.smoothingFactor;
+				const smoothedBPM = this.#currentBPM * smoothingFactor + rawBPM * (1 - smoothingFactor);
+
+				this.#setBPM(smoothedBPM, 'clock');
+
+				this.#clockCount = 0;
+				this.#accumulatedClockTime = 0;
+			}
+		}
+		this.#lastClockTime = timestamp;
+
+		// Dispatch clock event for any listeners
+		this.dispatchEvent(
+			new CustomEvent('midiClock', {
+				detail: { timestamp }
+			})
+		);
+	}
+
+	/**
+	 * Handle MIDI Start message (0xFA)
+	 * Resets clock counter for fresh BPM calculation
+	 */
+	dispatchMIDIStart() {
+		this.#lastClockTime = null;
+		this.#clockCount = 0;
+		this.#accumulatedClockTime = 0;
+
+		this.dispatchEvent(new CustomEvent('midiStart'));
+	}
+
+	/**
+	 * Handle MIDI Continue message (0xFB)
+	 * Resumes clock counting from current state
+	 */
+	dispatchMIDIContinue() {
+		this.dispatchEvent(new CustomEvent('midiContinue'));
+	}
+
+	/**
+	 * Handle MIDI Stop message (0xFC)
+	 * Pauses BPM sync (keeps last BPM value)
+	 */
+	dispatchMIDIStop() {
+		// Clear clock timing but keep the current BPM
+		this.#lastClockTime = null;
+		this.#clockCount = 0;
+		this.#accumulatedClockTime = 0;
+
+		this.dispatchEvent(new CustomEvent('midiStop'));
+	}
+
+	/**
+	 * Set BPM value and dispatch change event
+	 * @param {number} bpm - New BPM value
+	 * @param {string} source - BPM source ('default', 'clock', or 'cc')
+	 */
+	#setBPM(bpm, source) {
+		// Clamp BPM to valid range
+		const clampedBPM = Math.max(settings.bpm.min, Math.min(settings.bpm.max, bpm));
+
+		const bpmChanged = Math.abs(this.#currentBPM - clampedBPM) > 0.01;
+		const sourceChanged = this.#bpmSource !== source;
+
+		this.#currentBPM = clampedBPM;
+		this.#bpmSource = source;
+
+		if (bpmChanged || sourceChanged) {
+			this.dispatchEvent(
+				new CustomEvent('bpmChanged', {
+					detail: { bpm: clampedBPM, source }
+				})
+			);
+		}
+	}
+
+	/**
 	 * Notify that the video jockey component is ready
 	 */
 	notifyVideoJockeyReady() {
@@ -109,6 +297,18 @@ class AppState extends EventTarget {
 	reset() {
 		this.#midiConnected = false;
 		this.#animationsLoaded = false;
+
+		// Reset BPM state
+		this.#currentBPM = settings.bpm.default;
+		this.#bpmSource = 'default';
+		this.#lastClockTime = null;
+		this.#clockCount = 0;
+		this.#accumulatedClockTime = 0;
+
+		if (this.#clockTimeoutId !== null) {
+			clearTimeout(this.#clockTimeoutId);
+			this.#clockTimeoutId = null;
+		}
 	}
 }
 

@@ -123,6 +123,37 @@ async function validateAnimation(animationDir, animationPath) {
 			errors.push('retrigger must be a boolean');
 		}
 
+		// Validate bitDepth - must be 1, 2, 4, or 8 if specified
+		if (meta.bitDepth !== undefined) {
+			const validBitDepths = [1, 2, 4, 8];
+			if (!validBitDepths.includes(meta.bitDepth)) {
+				errors.push(`bitDepth must be one of ${validBitDepths.join(', ')} (got ${meta.bitDepth})`);
+			}
+		}
+
+		// Validate beatsPerFrame - must be positive number or array of positive numbers matching numberOfFrames
+		if (meta.beatsPerFrame !== undefined) {
+			if (Array.isArray(meta.beatsPerFrame)) {
+				// Array form - must match numberOfFrames length and all values must be positive
+				if (meta.numberOfFrames && meta.beatsPerFrame.length !== meta.numberOfFrames) {
+					errors.push(`beatsPerFrame array length (${meta.beatsPerFrame.length}) must match numberOfFrames (${meta.numberOfFrames})`);
+				}
+				for (let i = 0; i < meta.beatsPerFrame.length; i++) {
+					const val = meta.beatsPerFrame[i];
+					if (typeof val !== 'number' || val <= 0) {
+						errors.push(`beatsPerFrame[${i}] must be a positive number (got ${val})`);
+					}
+				}
+			} else if (typeof meta.beatsPerFrame === 'number') {
+				// Shorthand form - single positive number applies to all frames
+				if (meta.beatsPerFrame <= 0) {
+					errors.push(`beatsPerFrame must be a positive number (got ${meta.beatsPerFrame})`);
+				}
+			} else {
+				errors.push('beatsPerFrame must be a positive number or array of positive numbers');
+			}
+		}
+
 		if (meta.frameRatesForFrames !== undefined && meta.frameRatesForFrames !== null) {
 			if (typeof meta.frameRatesForFrames !== 'object') {
 				errors.push('frameRatesForFrames must be an object');

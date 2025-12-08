@@ -1,8 +1,13 @@
 /**
  * AnimationLayer - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
+ *
+ * Supports two timing modes:
+ * 1. frameRatesForFrames (legacy) - Frame timing in frames-per-second
+ * 2. beatsPerFrame (BPM sync) - Frame timing in beats, synced to current BPM
  */
 import settings from '../core/settings.js';
+import appState from '../core/AppState.js';
 
 class AnimationLayer {
 	// Configuration (immutable after construction)
@@ -11,6 +16,7 @@ class AnimationLayer {
 	#numberOfFrames;
 	#framesPerRow;
 	#frameRatesForFrames;
+	#beatsPerFrame; // Array or single number for BPM sync
 	#frameWidth;
 	#frameHeight;
 	#loop;
@@ -24,8 +30,9 @@ class AnimationLayer {
 	#lastTime = null;
 	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
+	#useBPMSync = false; // Whether to use BPM sync mode
 
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, retrigger = true }) {
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, retrigger = true }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
 			throw new Error('AnimationLayer requires numberOfFrames >= 1');
 		}
@@ -37,6 +44,21 @@ class AnimationLayer {
 		this.#image = image;
 		this.#numberOfFrames = numberOfFrames;
 		this.#framesPerRow = framesPerRow;
+
+		// Process beatsPerFrame (takes priority over frameRatesForFrames)
+		if (beatsPerFrame !== null && beatsPerFrame !== undefined) {
+			this.#useBPMSync = true;
+			if (Array.isArray(beatsPerFrame)) {
+				this.#beatsPerFrame = beatsPerFrame;
+			} else if (typeof beatsPerFrame === 'number' && beatsPerFrame > 0) {
+				// Shorthand: single number applies to all frames
+				this.#beatsPerFrame = Array(numberOfFrames).fill(beatsPerFrame);
+			} else {
+				console.warn('AnimationLayer: invalid beatsPerFrame, falling back to frameRatesForFrames');
+				this.#useBPMSync = false;
+			}
+		}
+
 		// Make a defensive shallow copy and validate the provided frame rates.
 		// Ensure we only store positive numeric values to avoid division by zero
 		// and to fail-fast on invalid animation metadata.
@@ -77,12 +99,36 @@ class AnimationLayer {
 	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
 	 */
 	play(timestamp = performance.now()) {
-		if (!this.#image || !this.#canvas2dContext) {
-			return;
-		}
-
 		// Non-looping animation completed - stop rendering
 		if (this.#isFinished) {
+			return;
+		}
+		this.#advanceFrame(timestamp);
+		this.#drawToContext(this.#canvas2dContext);
+	}
+
+	/**
+	 * Render the current animation frame to a specific context.
+	 * Useful for off-screen rendering in multi-layer compositing.
+	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
+	 * @param {number} [timestamp] - Optional performance.now() timestamp
+	 */
+	playToContext(ctx, timestamp = performance.now()) {
+		// Non-looping animation completed - stop rendering
+		if (this.#isFinished) {
+			return;
+		}
+		this.#advanceFrame(timestamp);
+		this.#drawToContext(ctx);
+	}
+
+	/**
+	 * Advance the animation frame based on elapsed time
+	 * Uses BPM sync if beatsPerFrame is defined, otherwise uses frameRatesForFrames
+	 * @param {number} timestamp - Current timestamp
+	 */
+	#advanceFrame(timestamp) {
+		if (!this.#image) {
 			return;
 		}
 
@@ -101,8 +147,7 @@ class AnimationLayer {
 		// current frame. Because frame rates may vary per frame, recompute
 		// interval for each advanced frame.
 		while (elapsed > 0) {
-			const framesPerSecond = this.#frameRatesForFrames[this.#frame] ?? this.#defaultFrameRate;
-			const interval = 1000 / framesPerSecond;
+			const interval = this.#getFrameInterval(this.#frame);
 
 			if (elapsed < interval) {
 				break;
@@ -129,12 +174,43 @@ class AnimationLayer {
 		// Preserve leftover fractional elapsed time so frames stay consistent
 		// across calls; next tick will start from timestamp - leftover.
 		this.#lastTime = timestamp - Math.max(0, elapsed);
+	}
+
+	/**
+	 * Calculate the interval (ms) for a given frame
+	 * Uses BPM sync if beatsPerFrame is defined, otherwise uses frameRatesForFrames
+	 * @param {number} frameIndex - The frame index
+	 * @returns {number} - Interval in milliseconds
+	 */
+	#getFrameInterval(frameIndex) {
+		if (this.#useBPMSync && this.#beatsPerFrame) {
+			// BPM sync mode: interval = (beatsPerFrame * 60000) / bpm
+			// beatsPerFrame[i] = number of beats this frame should last
+			// e.g., beatsPerFrame=0.25 at 120 BPM = 125ms (16th note)
+			const beats = this.#beatsPerFrame[frameIndex] ?? this.#beatsPerFrame[0] ?? 0.25;
+			const bpm = appState.bpm;
+			return (beats * 60000) / bpm;
+		}
+
+		// Legacy FPS mode
+		const framesPerSecond = this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate;
+		return 1000 / framesPerSecond;
+	}
+
+	/**
+	 * Draw the current frame to a canvas context
+	 * @param {CanvasRenderingContext2D} ctx - Target context
+	 */
+	#drawToContext(ctx) {
+		if (!this.#image || !ctx) {
+			return;
+		}
 
 		// Draw the current frame (use clamped frame index for drawing)
 		const drawFrame = Math.min(this.#frame, this.#numberOfFrames - 1);
 		const posY = Math.floor(drawFrame / this.#framesPerRow);
 		const posX = drawFrame - posY * this.#framesPerRow;
-		this.#canvas2dContext.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+		ctx.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
 
 	/**
