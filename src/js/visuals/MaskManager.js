@@ -10,6 +10,7 @@
  * - Velocity = variant/intensity of the transition
  */
 import settings from '../core/settings.js';
+import { buildVelocityCache, findVelocityLayer } from '../utils/velocityLayer.js';
 
 /**
  * @typedef {import('./AnimationLayer.js').default} AnimationLayer
@@ -43,21 +44,7 @@ class MaskManager {
 	setAnimations(animations) {
 		const mixerData = animations[this.#mixerChannel];
 		this.#maskAnimations = mixerData || {};
-		this.#buildVelocityCache();
-	}
-
-	/**
-	 * Build cache of sorted velocity keys for each note
-	 */
-	#buildVelocityCache() {
-		this.#velocityCache.clear();
-
-		for (const [note, velocities] of Object.entries(this.#maskAnimations)) {
-			const sorted = Object.keys(velocities)
-				.map(Number)
-				.sort((a, b) => a - b);
-			this.#velocityCache.set(Number(note), sorted);
-		}
+		this.#velocityCache = buildVelocityCache(this.#maskAnimations);
 	}
 
 	/**
@@ -81,7 +68,8 @@ class MaskManager {
 			return false;
 		}
 
-		const velocityLayer = this.#findVelocityLayer(velocity, note);
+		const velocities = this.#velocityCache.get(note);
+		const velocityLayer = findVelocityLayer(velocities, velocity);
 		if (velocityLayer === null) {
 			return false;
 		}
@@ -126,29 +114,6 @@ class MaskManager {
 		// Intentionally ignored - mask stays latched
 		// Only way to change mask is to trigger a new note
 		return false;
-	}
-
-	/**
-	 * Find the appropriate velocity layer based on input velocity
-	 * @param {number} velocity - Input velocity (0-127)
-	 * @param {number} note - MIDI note
-	 * @returns {number|null} The velocity layer key, or null if none available
-	 */
-	#findVelocityLayer(velocity, note) {
-		const velocities = this.#velocityCache.get(note);
-
-		if (!velocities || velocities.length === 0) {
-			return null;
-		}
-
-		// Find the highest velocity layer that doesn't exceed the input velocity
-		for (let i = velocities.length - 1; i >= 0; i--) {
-			const v = velocities[i];
-			if (v <= velocity) {
-				return v;
-			}
-		}
-		return null;
 	}
 
 	/**

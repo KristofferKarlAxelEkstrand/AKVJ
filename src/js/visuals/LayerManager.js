@@ -196,21 +196,6 @@ class LayerManager {
 		this.#maskManager.destroy();
 		this.#effectsManager.destroy();
 	}
-
-	/**
-	 * Get statistics about active layers
-	 * @returns {Object} Layer statistics
-	 */
-	getLayerStats() {
-		return {
-			layerA: this.#layerA.getActiveLayerCount(),
-			layerB: this.#layerB.getActiveLayerCount(),
-			layerC: this.#layerC.getActiveLayerCount(),
-			hasMask: this.#maskManager.hasMask(),
-			effectsAB: this.#effectsManager.getActiveEffectsAB().length,
-			effectsGlobal: this.#effectsManager.getActiveEffectsGlobal().length
-		};
-	}
 }
 
 export default LayerManager;

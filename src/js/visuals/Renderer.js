@@ -128,19 +128,17 @@ class Renderer {
 		const maskManager = this.#layerManager.getMaskManager();
 		const mask = maskManager.getCurrentMask();
 
-		// Quick-path: if both A and B are empty, nothing to do
 		const layerAEmpty = !this.#layerManager.getLayerA()?.hasActiveLayers();
 		const layerBEmpty = !this.#layerManager.getLayerB()?.hasActiveLayers();
-		if (layerAEmpty && layerBEmpty) {
-			// Nothing to mix, leave mixed canvas cleared
-			this.#ctxMixed.fillStyle = settings.rendering.backgroundColor;
-			this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
-			return;
-		}
 
-		// Clear mixed canvas
+		// Always clear mixed canvas first
 		this.#ctxMixed.fillStyle = settings.rendering.backgroundColor;
 		this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+
+		// Quick-path: if both A and B are empty, nothing to mix
+		if (layerAEmpty && layerBEmpty) {
+			return;
+		}
 
 		// If no mask, prefer Layer A, otherwise show Layer B
 		if (!mask) {

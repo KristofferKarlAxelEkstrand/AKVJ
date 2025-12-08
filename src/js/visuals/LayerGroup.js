@@ -6,6 +6,7 @@
  * - Lower channel renders first (bottom)
  * - Within a channel, lower note number renders first (bottom)
  */
+import { buildVelocityCache, findVelocityLayer } from '../utils/velocityLayer.js';
 
 /**
  * @typedef {import('./AnimationLayer.js').default} AnimationLayer
@@ -72,31 +73,14 @@ class LayerGroup {
 	 */
 	setAnimations(animations) {
 		this.#animations = animations;
-		this.#buildVelocityCache(animations);
-	}
 
-	/**
-	 * Build cache of sorted velocity keys for each channel/note combination
-	 */
-	#buildVelocityCache(animations) {
+		// Build velocity cache for each channel
 		this.#velocityCache.clear();
-
 		for (const channel of this.#channels) {
 			const channelData = animations[channel];
-			if (!channelData) {
-				continue;
+			if (channelData) {
+				this.#velocityCache.set(channel, buildVelocityCache(channelData));
 			}
-
-			const noteMap = new Map();
-
-			for (const [note, velocities] of Object.entries(channelData)) {
-				const sorted = Object.keys(velocities)
-					.map(Number)
-					.sort((a, b) => a - b);
-				noteMap.set(Number(note), sorted);
-			}
-
-			this.#velocityCache.set(channel, noteMap);
 		}
 	}
 
@@ -116,7 +100,8 @@ class LayerGroup {
 			return false;
 		}
 
-		const velocityLayer = this.#findVelocityLayer(velocity, channel, note);
+		const velocities = this.#velocityCache.get(channel)?.get(note);
+		const velocityLayer = findVelocityLayer(velocities, velocity);
 		if (velocityLayer === null) {
 			return false;
 		}
@@ -160,30 +145,6 @@ class LayerGroup {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Find the appropriate velocity layer based on input velocity
-	 * @param {number} velocity - Input velocity (0-127)
-	 * @param {number} channel - MIDI channel
-	 * @param {number} note - MIDI note
-	 * @returns {number|null} The velocity layer key, or null if none available
-	 */
-	#findVelocityLayer(velocity, channel, note) {
-		const velocities = this.#velocityCache.get(channel)?.get(note);
-
-		if (!velocities || velocities.length === 0) {
-			return null;
-		}
-
-		// Find the highest velocity layer that doesn't exceed the input velocity
-		for (let i = velocities.length - 1; i >= 0; i--) {
-			const v = velocities[i];
-			if (v <= velocity) {
-				return v;
-			}
-		}
-		return null;
 	}
 
 	/**

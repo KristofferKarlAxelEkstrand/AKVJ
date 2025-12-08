@@ -168,42 +168,10 @@ class EffectsManager {
 	}
 
 	/**
-	 * Get a specific A/B effect by type
-	 * @param {EffectType} type - Effect type
-	 * @returns {ActiveEffect|undefined}
-	 */
-	getEffectAB(type) {
-		return this.#activeEffectsAB.get(type);
-	}
-
-	/**
-	 * Get a specific global effect by type
-	 * @param {EffectType} type - Effect type
-	 * @returns {ActiveEffect|undefined}
-	 */
-	getEffectGlobal(type) {
-		return this.#activeEffectsGlobal.get(type);
-	}
-
-	/**
 	 * Clear all active effects
 	 */
 	clear() {
 		this.#activeEffectsAB.clear();
-		this.#activeEffectsGlobal.clear();
-	}
-
-	/**
-	 * Clear only A/B effects
-	 */
-	clearEffectsAB() {
-		this.#activeEffectsAB.clear();
-	}
-
-	/**
-	 * Clear only global effects
-	 */
-	clearEffectsGlobal() {
 		this.#activeEffectsGlobal.clear();
 	}
 

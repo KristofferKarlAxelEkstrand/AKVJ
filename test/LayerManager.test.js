@@ -134,29 +134,3 @@ describe('LayerManager - destroy', () => {
 		expect(() => lm.destroy()).not.toThrow();
 	});
 });
-
-describe('LayerManager - getLayerStats', () => {
-	test('returns statistics about active layers', () => {
-		const lm = new LayerManager();
-		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
-
-		const animations = {
-			0: {
-				60: {
-					0: fakeLayer
-				}
-			}
-		};
-
-		lm.setAnimations(animations);
-
-		const statsEmpty = lm.getLayerStats();
-		expect(statsEmpty.layerA).toBe(0);
-		expect(statsEmpty.layerB).toBe(0);
-		expect(statsEmpty.layerC).toBe(0);
-
-		lm.noteOn(0, 60, 127);
-		const statsActive = lm.getLayerStats();
-		expect(statsActive.layerA).toBe(1);
-	});
-});

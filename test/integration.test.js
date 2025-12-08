@@ -154,8 +154,9 @@ describe('EffectsManager', () => {
 		// Color effect (notes 48-63)
 		effects.noteOn(settings.channelMapping.effectsAB, 50, 127);
 		expect(effects.hasEffectsAB()).toBe(true);
-		expect(effects.getEffectAB('color')).toBeDefined();
-		expect(effects.getEffectAB('color').velocity).toBe(127);
+		const colorEffect = effects.getActiveEffectsAB().find(e => e.type === 'color');
+		expect(colorEffect).toBeDefined();
+		expect(colorEffect.velocity).toBe(127);
 
 		// Note off should deactivate
 		effects.noteOff(settings.channelMapping.effectsAB, 50);
@@ -184,8 +185,8 @@ describe('EffectsManager', () => {
 		effects.noteOn(channel, 40, 80);
 
 		expect(effects.getActiveEffectsAB().length).toBe(2);
-		expect(effects.getEffectAB('color')).toBeDefined();
-		expect(effects.getEffectAB('offset')).toBeDefined();
+		expect(effects.getActiveEffectsAB().find(e => e.type === 'color')).toBeDefined();
+		expect(effects.getActiveEffectsAB().find(e => e.type === 'offset')).toBeDefined();
 	});
 
 	test('within same type, only last note wins', () => {
@@ -194,12 +195,13 @@ describe('EffectsManager', () => {
 
 		// Activate color effect with note 50
 		effects.noteOn(channel, 50, 100);
-		expect(effects.getEffectAB('color').note).toBe(50);
+		expect(effects.getActiveEffectsAB().find(e => e.type === 'color').note).toBe(50);
 
 		// Activate color effect with note 55 - should replace
 		effects.noteOn(channel, 55, 80);
-		expect(effects.getEffectAB('color').note).toBe(55);
-		expect(effects.getEffectAB('color').velocity).toBe(80);
+		const colorEffect = effects.getActiveEffectsAB().find(e => e.type === 'color');
+		expect(colorEffect.note).toBe(55);
+		expect(colorEffect.velocity).toBe(80);
 	});
 });
 
