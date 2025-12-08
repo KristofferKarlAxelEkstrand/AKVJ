@@ -363,6 +363,8 @@ class Renderer {
 				// Offset in bytes (horizontal pixel displacement), constrained to same row
 				const offsetPx = Math.floor(Math.random() * (glitchAmount + 1)) - Math.floor(glitchAmount / 2);
 				const offsetBytes = offsetPx * 4;
+				// Clamp srcIdx to [rowStart, rowEnd] to ensure we only sample from the same row.
+				// This prevents vertical artifacts by stopping displacement at row edges rather than wrapping.
 				const srcIdx = Math.max(rowStart, Math.min(rowEnd, i + offsetBytes));
 				data[i] = original[srcIdx];
 				data[i + 1] = original[srcIdx + 1];
