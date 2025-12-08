@@ -341,11 +341,11 @@ class Renderer {
 
 	/**
 	 * Apply glitch effect
-	 * Intentionally uses vertical row displacement (i + offset * w) for a scanline-style
-	 * glitch aesthetic. The effect pulls pixel data from rows above/below the current pixel.
+	 * Uses horizontal pixel displacement for a digital glitch aesthetic.
+	 * The effect randomly shifts pixels left/right by sampling neighboring pixel data.
 	 */
 	#applyGlitchEffect(data, intensity) {
-		// Random vertical pixel displacement based on intensity (scanline glitch style)
+		// Random horizontal pixel displacement based on intensity
 		const glitchAmount = Math.floor(intensity * 20);
 
 		for (let i = 0; i < data.length; i += 4) {
