@@ -352,6 +352,9 @@ class Renderer {
 		const w = this.#canvasWidth;
 		const rowBytes = w * 4;
 
+		// Create a copy of original data to avoid reading already-modified pixels
+		const original = new Uint8ClampedArray(data);
+
 		for (let i = 0; i < data.length; i += 4) {
 			if (Math.random() < intensity * 0.1) {
 				// Calculate row boundaries to prevent vertical wrapping
@@ -362,9 +365,9 @@ class Renderer {
 				const offsetPx = Math.floor(Math.random() * (glitchAmount + 1)) - Math.floor(glitchAmount / 2);
 				const offsetBytes = offsetPx * 4;
 				const srcIdx = Math.max(rowStart, Math.min(rowEnd, i + offsetBytes));
-				data[i] = data[srcIdx];
-				data[i + 1] = data[srcIdx + 1];
-				data[i + 2] = data[srcIdx + 2];
+				data[i] = original[srcIdx];
+				data[i + 1] = original[srcIdx + 1];
+				data[i + 2] = original[srcIdx + 2];
 			}
 		}
 	}
@@ -404,6 +407,9 @@ class Renderer {
 		// Number of splits based on note (2-8 splits)
 		const splits = Math.min(8, Math.max(2, Math.floor(noteInRange / 2) + 2));
 
+		// Create output buffer to avoid reading already-modified pixels
+		const output = new Uint8ClampedArray(data.length);
+
 		if (noteInRange < 8) {
 			// Horizontal split - use modulo wrapping for proper repeating pattern
 			const sectionWidth = Math.floor(w / splits);
@@ -412,10 +418,10 @@ class Renderer {
 					const srcX = ((x % sectionWidth) * splits) % w;
 					const srcIdx = (y * w + srcX) * 4;
 					const dstIdx = (y * w + x) * 4;
-					data[dstIdx] = data[srcIdx];
-					data[dstIdx + 1] = data[srcIdx + 1];
-					data[dstIdx + 2] = data[srcIdx + 2];
-					data[dstIdx + 3] = data[srcIdx + 3];
+					output[dstIdx] = data[srcIdx];
+					output[dstIdx + 1] = data[srcIdx + 1];
+					output[dstIdx + 2] = data[srcIdx + 2];
+					output[dstIdx + 3] = data[srcIdx + 3];
 				}
 			}
 		} else {
@@ -426,12 +432,17 @@ class Renderer {
 				for (let x = 0; x < w; x++) {
 					const srcIdx = (srcY * w + x) * 4;
 					const dstIdx = (y * w + x) * 4;
-					data[dstIdx] = data[srcIdx];
-					data[dstIdx + 1] = data[srcIdx + 1];
-					data[dstIdx + 2] = data[srcIdx + 2];
-					data[dstIdx + 3] = data[srcIdx + 3];
+					output[dstIdx] = data[srcIdx];
+					output[dstIdx + 1] = data[srcIdx + 1];
+					output[dstIdx + 2] = data[srcIdx + 2];
+					output[dstIdx + 3] = data[srcIdx + 3];
 				}
 			}
+		}
+
+		// Copy output back to data
+		for (let i = 0; i < data.length; i++) {
+			data[i] = output[i];
 		}
 
 		ctx.putImageData(imageData, 0, 0);
