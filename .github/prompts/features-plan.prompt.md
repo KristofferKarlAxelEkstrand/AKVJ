@@ -102,13 +102,15 @@ output.b = layerA.b + (layerB.b - layerA.b) * alpha;
 ### Bitmask Animation Requirements
 
 - **Format**: True **grayscale PNG** (not RGB with equal values)
-- **Bit Depth**: **✅ CURRENT IMPLEMENTATION:** Channel 4 auto-converts to 1-bit. Configurable via `meta.json` for all animations.
+- **Bit Depth**: **✅ CURRENT:** Channel 4 animations auto-convert to 1-bit. **⚠️ PLANNED:** Configurable bitDepth via `meta.json` for multi-bit masks (2, 4, 8-bit).
 - **Location**: Channel 4 folder (or any animation with `bitDepth` set)
 - **Structure**: Same channel/note/velocity organization as regular animations
 
 ### PNG Bit Depth Options
 
-**✅ CURRENT IMPLEMENTATION:** All animations can specify a `bitDepth` in their `meta.json`:
+**⚠️ PLANNED - Build pipeline ready, runtime support incomplete:**
+
+All animations can specify a `bitDepth` in their `meta.json` for future multi-bit mixing:
 
 | bitDepth      | Colors     | File Size | Use Case                           | PNG Native?          |
 | ------------- | ---------- | --------- | ---------------------------------- | -------------------- |
@@ -121,7 +123,9 @@ output.b = layerA.b + (layerB.b - layerA.b) * alpha;
 **PNG native grayscale bit depths**: 1, 2, 4, 8, 16
 **Note**: 2-bit is technically supported by PNG spec but Sharp outputs as 4-color indexed palette.
 
-### meta.json Configuration
+### meta.json Configuration (Planned)
+
+**⚠️ PLANNED - Not yet supported:**
 
 ```json
 {
@@ -149,19 +153,19 @@ output.b = layerA.b + (layerB.b - layerA.b) * alpha;
 
 ### Automatic Conversion in Build Pipeline
 
-**✅ CURRENT IMPLEMENTATION:** The animation pipeline (`scripts/animations/lib/optimize.js`) converts based on:
+**✅ CURRENT IMPLEMENTATION:**
 
-1. **Channel 4** (bitmask channel): Auto-converts to 1-bit if no `bitDepth` specified
-2. **`bitDepth` in meta.json**: Respects explicit setting for any animation (1, 2, 4, or 8-bit)
+The build pipeline currently supports:
 
-**Runtime access**: The `bitDepth` value from meta.json is included in the generated `animations.json` so the renderer knows which mixing algorithm to use at runtime.
+1. **Channel 4** (bitmask channel): Auto-converts to 1-bit grayscale for hard-cut masks
+2. All channel 4 animations are converted to 1-bit black & white for crisp masking
 
-**Current code example** (from `optimize.js`):
+**⚠️ PLANNED - Build code exists but not fully integrated:**
 
-**Current code example** (from `optimize.js`):
+The `optimize.js` script has infrastructure for configurable bitDepth via `meta.json`, but this isn't exposed or tested yet:
 
 ```javascript
-// ✅ CURRENTLY IMPLEMENTED
+// ⚠️ PLANNED - Code exists but not active in current build
 function getTargetBitDepth(animationPath, meta) {
     // Explicit bitDepth in meta.json takes priority
     if (meta?.bitDepth !== undefined) {
@@ -181,7 +185,7 @@ function getTargetBitDepth(animationPath, meta) {
     return null;
 }
 
-// Sharp conversion based on bitDepth:
+// Sharp conversion pipeline (infrastructure ready):
 switch (bitDepth) {
     case 1:
         // 1-bit: threshold to pure B&W
@@ -253,15 +257,15 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 **✅ CURRENT IMPLEMENTATION:** For bitmask animations (channel 4):
 
 - Place any image in `animations/4/{note}/{velocity}/`
-- Automatically converted to 1-bit B&W during build (unless `bitDepth` specified in meta.json)
+- Automatically converted to 1-bit B&W during build
 - **Note** = transition type (e.g., note 0 = horizontal wipe, note 1 = vertical wipe, note 2 = diagonal, etc.)
 - **Velocity** = variant/intensity (higher velocity → more dramatic variant)
 - Only one mask active at a time; new note replaces previous mask
 
-**✅ CURRENT IMPLEMENTATION:** For any animation with custom bit depth:
+**⚠️ PLANNED:** For animations with custom bit depth (not yet available):
 
 ```json
-// meta.json
+// meta.json (planned, not yet supported)
 {
     "numberOfFrames": 10,
     "framesPerRow": 5,
