@@ -100,6 +100,15 @@ class LayerManager {
 
 	/**
 	 * Handle MIDI note on event - activate animation layer
+	 *
+	 * Note: Both the new LayerGroup system and legacy #canvasLayers are updated
+	 * intentionally during the transition period. The LayerGroups own the actual
+	 * AnimationLayer instances and handle rendering via playToContext(). The legacy
+	 * #canvasLayers array is kept in sync so that getActiveLayers() continues to work
+	 * for any code still using the old rendering path. This dual update does NOT cause
+	 * duplicate rendering because both systems reference the same AnimationLayer objects.
+	 * The legacy path will be removed once all consumers migrate to the new layer API.
+	 *
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
@@ -112,7 +121,7 @@ class LayerManager {
 
 		// Try each handler in order
 		if (this.#layerA.noteOn(channel, note, velocity)) {
-			// Also update legacy layer for backwards compatibility
+			// Keep legacy #canvasLayers in sync for backwards compatibility
 			this.#legacyNoteOn(channel, note, velocity);
 			return;
 		}
