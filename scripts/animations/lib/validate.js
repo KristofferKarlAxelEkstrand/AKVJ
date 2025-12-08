@@ -132,7 +132,6 @@ async function validateAnimation(animationDir, animationPath) {
 		}
 
 		// Validate beatsPerFrame - must be positive number or array of positive numbers matching numberOfFrames
-		// Validate beatsPerFrame - must be positive number or array of positive numbers matching numberOfFrames
 		if (meta.beatsPerFrame !== undefined) {
 			if (Array.isArray(meta.beatsPerFrame)) {
 				// Check for empty array (AnimationLayer will warn and fall back, but we should catch it here)
