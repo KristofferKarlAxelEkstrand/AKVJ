@@ -267,10 +267,11 @@ class Renderer {
 	 * @param {CanvasRenderingContext2D} ctx - Target context
 	 * @param {ImageData} imageData - Source image data
 	 * @param {number} note - MIDI note number
-	 * @param {number} _intensity - Effect intensity (TODO: use for partial mirror effects)
+	 * @param {number} _intensity - Effect intensity (reserved for future use)
 	 */
 	#applyMirrorEffect(ctx, imageData, note, _intensity) {
-		// TODO: Use intensity parameter for partial mirror effects (e.g., blend factor)
+		// Future: Use _intensity to blend between original and mirrored image
+		// Example: result = original * (1 - _intensity) + mirrored * _intensity
 		const noteInRange = note - settings.effectRanges.mirror.min;
 		const data = imageData.data;
 		const w = this.#canvasWidth;
@@ -307,14 +308,17 @@ class Renderer {
 
 	/**
 	 * Apply glitch effect
+	 * Intentionally uses vertical row displacement (i + offset * w) for a scanline-style
+	 * glitch aesthetic. The effect pulls pixel data from rows above/below the current pixel.
 	 */
 	#applyGlitchEffect(data, intensity) {
-		// Random pixel displacement based on intensity
+		// Random vertical pixel displacement based on intensity (scanline glitch style)
 		const glitchAmount = Math.floor(intensity * 20);
 		const w = this.#canvasWidth;
 
 		for (let i = 0; i < data.length; i += 4) {
 			if (Math.random() < intensity * 0.1) {
+				// Offset by rows (w * 4 bytes per row) for vertical displacement effect
 				const offset = (Math.floor(Math.random() * glitchAmount) - glitchAmount / 2) * 4;
 				const srcIdx = Math.max(0, Math.min(data.length - 4, i + offset * w));
 				data[i] = data[srcIdx];
@@ -344,10 +348,11 @@ class Renderer {
 	 * @param {CanvasRenderingContext2D} ctx - Target context
 	 * @param {ImageData} imageData - Source image data
 	 * @param {number} note - MIDI note number
-	 * @param {number} _intensity - Effect intensity (TODO: use for split transition or blend)
+	 * @param {number} _intensity - Effect intensity (reserved for future use)
 	 */
 	#applySplitEffect(ctx, imageData, note, _intensity) {
-		// TODO: Use intensity parameter to control split transitions or blend between states
+		// Future: Use _intensity to animate split transitions or blend between states
+		// Example: Use _intensity to control the number of splits dynamically
 		const data = imageData.data;
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;

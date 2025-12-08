@@ -140,7 +140,9 @@ async function validateAnimation(animationDir, animationPath) {
 				}
 				for (let i = 0; i < meta.beatsPerFrame.length; i++) {
 					const val = meta.beatsPerFrame[i];
-					if (typeof val !== 'number' || val <= 0) {
+					if (typeof val !== 'number') {
+						errors.push(`beatsPerFrame[${i}] must be a number (got ${typeof val})`);
+					} else if (val <= 0) {
 						errors.push(`beatsPerFrame[${i}] must be a positive number (got ${val})`);
 					}
 				}

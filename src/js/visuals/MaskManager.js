@@ -107,10 +107,8 @@ class MaskManager {
 		this.#currentNote = note;
 		this.#currentVelocity = velocityLayer;
 		this.#currentMask = layer;
-		// TODO: Retrieve bitDepth from animation metadata if available.
-		// Currently AnimationLayer doesn't expose bitDepth; consider adding a getter
-		// or storing bitDepth separately when animations are loaded.
-		this.#currentBitDepth = maskData.bitDepth ?? 1; // Default to 1-bit for masks
+		// Get bitDepth from mask metadata (defaults to 1-bit for crisp B&W masks)
+		this.#currentBitDepth = maskData.bitDepth ?? 1;
 
 		// Reset the mask animation
 		this.#currentMask.reset();
