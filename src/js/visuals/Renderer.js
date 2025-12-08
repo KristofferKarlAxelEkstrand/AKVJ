@@ -128,13 +128,27 @@ class Renderer {
 		const maskManager = this.#layerManager.getMaskManager();
 		const mask = maskManager.getCurrentMask();
 
+		// Quick-path: if both A and B are empty, nothing to do
+		const layerAEmpty = !this.#layerManager.getLayerA()?.hasActiveLayers();
+		const layerBEmpty = !this.#layerManager.getLayerB()?.hasActiveLayers();
+		if (layerAEmpty && layerBEmpty) {
+			// Nothing to mix, leave mixed canvas cleared
+			this.#ctxMixed.fillStyle = settings.rendering.backgroundColor;
+			this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+			return;
+		}
+
 		// Clear mixed canvas
 		this.#ctxMixed.fillStyle = settings.rendering.backgroundColor;
 		this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 
-		// If no mask, just show Layer A
+		// If no mask, prefer Layer A, otherwise show Layer B
 		if (!mask) {
-			this.#ctxMixed.drawImage(this.#canvasA, 0, 0);
+			if (!layerAEmpty) {
+				this.#ctxMixed.drawImage(this.#canvasA, 0, 0);
+			} else if (!layerBEmpty) {
+				this.#ctxMixed.drawImage(this.#canvasB, 0, 0);
+			}
 			return;
 		}
 
@@ -178,6 +192,22 @@ class Renderer {
 					outPixels[idx + 2] = bPixels[idx + 2];
 					outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 				}
+			} else if (bitDepth === 2) {
+				// 2-bit: 4 levels -> alpha = level/3
+				const level2 = Math.floor(maskValue / 64);
+				const alpha2 = level2 / 3;
+				outPixels[idx] = aPixels[idx] + (bPixels[idx] - aPixels[idx]) * alpha2;
+				outPixels[idx + 1] = aPixels[idx + 1] + (bPixels[idx + 1] - aPixels[idx + 1]) * alpha2;
+				outPixels[idx + 2] = aPixels[idx + 2] + (bPixels[idx + 2] - aPixels[idx + 2]) * alpha2;
+				outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
+			} else if (bitDepth === 4) {
+				// 4-bit: 16 levels -> alpha = level/15
+				const level4 = Math.floor(maskValue / 16);
+				const alpha4 = level4 / 15;
+				outPixels[idx] = aPixels[idx] + (bPixels[idx] - aPixels[idx]) * alpha4;
+				outPixels[idx + 1] = aPixels[idx + 1] + (bPixels[idx + 1] - aPixels[idx + 1]) * alpha4;
+				outPixels[idx + 2] = aPixels[idx + 2] + (bPixels[idx + 2] - aPixels[idx + 2]) * alpha4;
+				outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 			} else {
 				// Smooth blend: A + (B - A) * alpha
 				const alpha = maskValue / 255;
@@ -271,7 +301,10 @@ class Renderer {
 	 */
 	#applyMirrorEffect(ctx, imageData, note, _intensity) {
 		// Future: Use _intensity to blend between original and mirrored image
-		// Example: result = original * (1 - _intensity) + mirrored * _intensity
+		// Example usage:
+		// - _intensity = 0 -> show original
+		// - _intensity = 1 -> show mirrored image
+		// - intermediate values blend the mirrored and original images per-pixel
 		const noteInRange = note - settings.effectRanges.mirror.min;
 		const data = imageData.data;
 		const w = this.#canvasWidth;
@@ -314,13 +347,13 @@ class Renderer {
 	#applyGlitchEffect(data, intensity) {
 		// Random vertical pixel displacement based on intensity (scanline glitch style)
 		const glitchAmount = Math.floor(intensity * 20);
-		const w = this.#canvasWidth;
 
 		for (let i = 0; i < data.length; i += 4) {
 			if (Math.random() < intensity * 0.1) {
-				// Offset by rows (w * 4 bytes per row) for vertical displacement effect
-				const offset = (Math.floor(Math.random() * glitchAmount) - glitchAmount / 2) * 4;
-				const srcIdx = Math.max(0, Math.min(data.length - 4, i + offset * w));
+				// Offset in bytes (horizontal pixel displacement), not rows
+				const offsetPx = Math.floor(Math.random() * (glitchAmount + 1)) - Math.floor(glitchAmount / 2);
+				const offsetBytes = offsetPx * 4;
+				const srcIdx = Math.max(0, Math.min(data.length - 4, i + offsetBytes));
 				data[i] = data[srcIdx];
 				data[i + 1] = data[srcIdx + 1];
 				data[i + 2] = data[srcIdx + 2];
@@ -351,8 +384,10 @@ class Renderer {
 	 * @param {number} _intensity - Effect intensity (reserved for future use)
 	 */
 	#applySplitEffect(ctx, imageData, note, _intensity) {
-		// Future: Use _intensity to animate split transitions or blend between states
-		// Example: Use _intensity to control the number of splits dynamically
+		// Use _intensity to animate split transitions or blend between states in future:
+		// Example: When _intensity = 0, show original; when _intensity = 1, show split fully.
+		// Could also use intensity to dynamically change the number of splits:
+		// splits = baseSplits + Math.round(_intensity * extraSplits);
 		const data = imageData.data;
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;

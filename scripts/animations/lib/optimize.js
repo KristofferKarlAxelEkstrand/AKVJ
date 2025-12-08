@@ -156,6 +156,11 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 
 			const tempStats = await fs.stat(tempPath);
 
+			// When converting to bit depth we prioritize correctness; warn if size increased dramatically
+			if (bitDepth !== null && tempStats.size > originalSize * 1.5) {
+				console.warn(`Warning: ${sourcePath} - bit depth conversion increased size by ${((tempStats.size / originalSize - 1) * 100).toFixed(1)}%`);
+			}
+
 			// For bit depth conversions, always use the converted version (correctness over size)
 			// For regular images, only keep optimized version if it's smaller
 			if (bitDepth !== null || tempStats.size < originalSize) {

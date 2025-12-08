@@ -28,6 +28,7 @@ class AnimationLayer {
 	#frame = 0;
 	/** @type {number|null} Last timestamp from performance.now(), null if never played */
 	#lastTime = null;
+	#lastAdvanceTimestamp = null; // Prevent double-advancement within same timestamp
 	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 	#useBPMSync = false; // Whether to use BPM sync mode
@@ -133,6 +134,10 @@ class AnimationLayer {
 	 * @param {number} timestamp - Current timestamp
 	 */
 	#advanceFrame(timestamp) {
+		// Prevent double-advancement when the same timestamp is used to advance
+		if (this.#lastAdvanceTimestamp === timestamp) {
+			return;
+		}
 		if (!this.#image) {
 			return;
 		}
@@ -179,6 +184,7 @@ class AnimationLayer {
 		// Preserve leftover fractional elapsed time so frames stay consistent
 		// across calls; next tick will start from timestamp - leftover.
 		this.#lastTime = timestamp - Math.max(0, elapsed);
+		this.#lastAdvanceTimestamp = timestamp;
 	}
 
 	/**
@@ -207,7 +213,7 @@ class AnimationLayer {
 	 * @param {CanvasRenderingContext2D} ctx - Target context
 	 */
 	#drawToContext(ctx) {
-		if (!this.#image || !ctx) {
+		if (!this.#image || !ctx || this.#isFinished) {
 			return;
 		}
 

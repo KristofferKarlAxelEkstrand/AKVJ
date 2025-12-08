@@ -169,7 +169,9 @@ class AppState extends EventTarget {
 
 		// Set timeout to fall back to CC if clock stops
 		this.#clockTimeoutId = setTimeout(() => {
-			if (this.#bpmSource === 'clock') {
+			const now = performance.now();
+			// Only fall back if the last clock timestamp is older than the timeout
+			if (this.#bpmSource === 'clock' && (this.#lastClockTime === null || now - this.#lastClockTime > settings.bpm.clockTimeoutMs)) {
 				this.#bpmSource = 'cc';
 				// Don't change BPM value, just the source
 				this.dispatchEvent(
@@ -188,11 +190,24 @@ class AppState extends EventTarget {
 			// Calculate BPM every 24 pulses (1 beat)
 			if (this.#clockCount >= 24) {
 				const msPerBeat = this.#accumulatedClockTime;
+
+				// Ignore suspiciously fast clock (likely error): < 10 ms per beat -> > 6000 BPM
+				if (msPerBeat < 10) {
+					this.#clockCount = 0;
+					this.#accumulatedClockTime = 0;
+					return;
+				}
 				const rawBPM = 60000 / msPerBeat;
 
 				// Apply exponential smoothing to reduce jitter
 				const smoothingFactor = settings.bpm.smoothingFactor;
-				const smoothedBPM = this.#currentBPM * smoothingFactor + rawBPM * (1 - smoothingFactor);
+				let smoothedBPM;
+				// For the very first clock-derived BPM, prefer the rawBPM (no smoothing)
+				if (this.#bpmSource !== 'clock' || this.#currentBPM === settings.bpm.default) {
+					smoothedBPM = rawBPM;
+				} else {
+					smoothedBPM = this.#currentBPM * smoothingFactor + rawBPM * (1 - smoothingFactor);
+				}
 
 				this.#setBPM(smoothedBPM, 'clock');
 
