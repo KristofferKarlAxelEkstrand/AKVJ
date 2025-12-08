@@ -136,23 +136,23 @@ async function validateAnimation(animationDir, animationPath) {
 			if (Array.isArray(meta.beatsPerFrame)) {
 				// Array form - must match numberOfFrames length and all values must be positive
 				if (meta.numberOfFrames && meta.beatsPerFrame.length !== meta.numberOfFrames) {
-					errors.push(`beatsPerFrame array length (${meta.beatsPerFrame.length}) must match numberOfFrames (${meta.numberOfFrames})`);
+					errors.push(`meta.json: beatsPerFrame array length (${meta.beatsPerFrame.length}) must match numberOfFrames (${meta.numberOfFrames})`);
 				}
 				for (let i = 0; i < meta.beatsPerFrame.length; i++) {
 					const val = meta.beatsPerFrame[i];
 					if (typeof val !== 'number') {
-						errors.push(`beatsPerFrame[${i}] must be a number (got ${typeof val})`);
+						errors.push(`meta.json: beatsPerFrame[${i}] must be a number (got ${typeof val})`);
 					} else if (val <= 0) {
-						errors.push(`beatsPerFrame[${i}] must be a positive number (got ${val})`);
+						errors.push(`meta.json: beatsPerFrame[${i}] must be a positive number (got ${val})`);
 					}
 				}
 			} else if (typeof meta.beatsPerFrame === 'number') {
 				// Shorthand form - single positive number applies to all frames
 				if (meta.beatsPerFrame <= 0) {
-					errors.push(`beatsPerFrame must be a positive number (got ${meta.beatsPerFrame})`);
+					errors.push(`meta.json: beatsPerFrame must be a positive number (got ${meta.beatsPerFrame})`);
 				}
 			} else {
-				errors.push('beatsPerFrame must be a positive number or array of positive numbers');
+				errors.push('meta.json: beatsPerFrame must be a positive number or array of positive numbers');
 			}
 		}
 
