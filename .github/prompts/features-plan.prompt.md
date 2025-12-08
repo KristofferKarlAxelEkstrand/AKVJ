@@ -33,6 +33,8 @@ Instead of a single layer of animations, AKVJ will support **three distinct laye
 | 14                  | 15                | Reserved (future use)                              |
 | 15                  | 16                | Reserved (future use)                              |
 
+**Note**: Channels 13-15 are ignored by the layer system. Animations placed in these channels will not play.
+
 ### Layer Groups
 
 #### Layer A (Channels 0-3)
@@ -40,28 +42,41 @@ Instead of a single layer of animations, AKVJ will support **three distinct laye
 - Primary animation deck
 - 4 slots for simultaneous animations
 - Can layer animations on top of each other within the group
+- **Compositing order**: Lower channel renders first (bottom), higher channel on top
+- **Within a channel**: Lower note number renders first (bottom), higher notes on top
 
 #### Layer B (Channels 5-8)
 
 - Secondary animation deck
 - 4 slots for simultaneous animations
 - Mixed with Layer A via the Mixer channel
+- **Compositing order**: Same as Layer A (lower channel/note = bottom)
 
 #### Mixer (Channel 4)
 
 - Uses **black-and-white bitmask animations**
 - Pure black pixels → show Layer A
 - Pure white pixels → show Layer B
-- Creates visual crossfading/transitions between decks
-- Trigger different mask patterns via MIDI notes
-- Velocity could control mask animation speed or transition style
+- **Only one mask active at a time** (unlike layers A/B/C which support multiple)
+- **Latches to last triggered note/velocity** - stays active until another mask is triggered
+- **Before first trigger** → show Layer A only (default behavior)
+- **After first trigger** → always has one mask active (no way to "clear" back to Layer A only)
+- Each **note = different transition type** (wipe, dissolve, pattern, etc.)
+- **Velocity = variant/intensity** within that transition type
+- Higher velocity → more intense/dramatic variant of the same transition
+- Masks can be animated (frame-based like regular animations)
+- Masks support `beatsPerFrame` in meta.json (same format as all other animations)
+- **If Layer B is empty**: White mask pixels show transparent (black background)
 
 #### Layer C (Channels 10-11)
 
 - **Overlay layer** - always on top
 - Useful for logos, persistent graphics, watermarks
 - 2 slots for overlay animations
-- Rendered after A/B mixing and effects
+- Rendered after A/B mixing and Effects A/B
+- **NOT affected by Effects A/B** - only Global Effects (channel 12) apply
+- **Compositing**: Standard `source-over` with alpha transparency
+- **Expected format**: PNGs with alpha channel for transparency
 
 ---
 
@@ -121,6 +136,7 @@ All animations can specify a `bitDepth` in their `meta.json`:
 | ---------------- | ------------------------------------------ |
 | `1`              | 1-bit indexed (2 colors: black & white)    |
 | `2`              | 2-bit indexed (4 grayscale levels)         |
+| `4`              | 4-bit indexed (16 grayscale levels)        |
 | `8`              | 8-bit true grayscale (256 levels)          |
 | _(omitted)_      | Standard palette optimization (full color) |
 
@@ -137,6 +153,8 @@ The animation pipeline (`scripts/animations/lib/optimize.js`) converts based on:
 
 1. **Channel 4** (bitmask channel): Auto-converts to 1-bit if no `bitDepth` specified
 2. **`bitDepth` in meta.json**: Respects explicit setting for any animation
+
+**Runtime access**: The `bitDepth` value from meta.json is included in the generated `animations.json` so the renderer knows which mixing algorithm to use at runtime.
 
 ```javascript
 // In optimize.js
@@ -164,6 +182,10 @@ switch (bitDepth) {
         // 2-bit: 4 grayscale levels
         pipeline = pipeline.grayscale().png({ palette: true, colors: 4 });
         break;
+    case 4:
+        // 4-bit: 16 grayscale levels
+        pipeline = pipeline.grayscale().png({ palette: true, colors: 16 });
+        break;
     case 8:
         // 8-bit: true grayscale (256 levels)
         pipeline = pipeline.grayscale().png({ palette: true, colors: 256 });
@@ -176,11 +198,12 @@ switch (bitDepth) {
 
 ### Runtime Performance
 
-| bitDepth | Blend Operations      | Notes                                 |
-| -------- | --------------------- | ------------------------------------- |
-| 1        | 0 muls (just branch)  | `mask < 128 ? A : B`                  |
-| 2        | 0 muls (4-way branch) | 4 discrete levels                     |
-| 8        | 3 muls per pixel      | `A + (B-A) * alpha` optimized formula |
+| bitDepth | Blend Operations       | Notes                                 |
+| -------- | ---------------------- | ------------------------------------- |
+| 1        | 0 muls (just branch)   | `mask < 128 ? A : B`                  |
+| 2        | 0 muls (4-way branch)  | 4 discrete levels                     |
+| 4        | 0 muls (16-way branch) | 16 discrete levels                    |
+| 8        | 3 muls per pixel       | `A + (B-A) * alpha` optimized formula |
 
 ### Usage
 
@@ -188,6 +211,9 @@ switch (bitDepth) {
 
 - Place any image in `animations/4/{note}/{velocity}/`
 - Automatically converted to 1-bit B&W (unless `bitDepth` specified in meta.json)
+- **Note** = transition type (e.g., note 0 = horizontal wipe, note 1 = vertical wipe, note 2 = diagonal, etc.)
+- **Velocity** = variant/intensity (higher velocity → more dramatic variant)
+- Only one mask active at a time; new note replaces previous mask
 
 **For any animation with custom bit depth:**
 
@@ -216,9 +242,14 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
             return maskValue < 128 ? layerA : layerB;
         case 2:
             // 4 levels: 0, 85, 170, 255
-            const level = Math.floor(maskValue / 64);
-            const alpha = level / 3;
-            return blend(layerA, layerB, alpha);
+            const level2 = Math.floor(maskValue / 64);
+            const alpha2 = level2 / 3;
+            return blend(layerA, layerB, alpha2);
+        case 4:
+            // 16 levels: 0, 17, 34, ... 255
+            const level4 = Math.floor(maskValue / 16);
+            const alpha4 = level4 / 15;
+            return blend(layerA, layerB, alpha4);
         case 8:
             // Smooth blend: A + (B - A) * alpha
             const alpha8 = maskValue / 255;
@@ -237,6 +268,12 @@ Could use Canvas 2D `globalCompositeOperation` modes:
 
 - `source-in` / `source-out` / `destination-in` for masking
 - Multiple off-screen canvases for layer composition
+
+**Implementation Strategy:**
+
+1. **First try**: Canvas composite operations (faster, GPU-accelerated)
+2. **Fall back to**: Per-pixel JavaScript mixing only if Canvas ops can't achieve the effect
+3. Per-pixel at 240×135 = 32,400 pixels × 4 channels × 60fps = 7.8M ops/sec (risky but doable)
 
 ---
 
@@ -276,12 +313,20 @@ Effects that apply to the entire output (after all layers):
 - **Velocity (0-127)**: Controls effect intensity/variation
 - **Note**: Selects specific effect
 - **Note On/Off**: Enables/disables effect
+- **Effects are NOT latched**: Note Off immediately disables the effect (unlike masks which latch)
 
 ### Effect Stacking Order
 
 1. Effects are applied in **ascending note order** (lower notes first)
 2. Multiple effects of the **same type don't stack** (last wins)
 3. **Velocity 0** = disable effect, **1-127** = intensity
+
+**Effect Type Determination:**
+
+- Effect "type" is determined by **note range** (0-15, 16-31, 32-47, etc.)
+- Within a range, only one effect can be active (last note pressed wins)
+- Effects from **different ranges** can stack (e.g., Mirror + Invert)
+- Example: Note 5 (Split) + Note 20 (Mirror) = both active; Note 5 + Note 10 = only Note 10 active
 
 ---
 
@@ -295,6 +340,9 @@ Animation playback speed syncs to a BPM (Beats Per Minute) value, allowing beat-
 
 1. **MIDI Clock (0xF8)** - Default, syncs with DJ software/DAWs/hardware
 2. **CC Knob** - Manual override/fallback
+3. **Default BPM** - Used on startup before any external source is received (`settings.bpm.default`: 120)
+
+**Startup behavior**: Animations with `beatsPerFrame` set will sync to the default 120 BPM until MIDI clock or CC is received.
 
 ### MIDI Clock Sync (Default)
 
@@ -320,7 +368,9 @@ function handleMIDIClock(timestamp) {
 
             // Apply exponential smoothing to reduce jitter
             // USB MIDI has ~1-3ms jitter which can cause ±5 BPM fluctuation
-            smoothedBPM = smoothedBPM * 0.9 + rawBPM * 0.1;
+            // Smoothing factor configurable in settings.bpm.smoothingFactor (default 0.9)
+            const smoothingFactor = settings.bpm.smoothingFactor;
+            smoothedBPM = smoothedBPM * smoothingFactor + rawBPM * (1 - smoothingFactor);
             setBPM(smoothedBPM);
 
             clockCount = 0;
@@ -333,7 +383,13 @@ function handleMIDIClock(timestamp) {
 
 ### MIDI CC Fallback/Override
 
-MIDI CC messages send values 0-127. Maps to BPM range:
+MIDI CC messages send values 0-127. Maps to BPM range.
+
+**Priority**: MIDI clock always wins when active. CC is only used as fallback:
+
+- If no clock pulses received for >2 seconds, CC becomes active
+- Once clock resumes, CC is ignored again
+- This allows manual BPM control when no external clock source is connected
 
 #### BPM Range: 10-522 BPM
 
@@ -377,6 +433,7 @@ const settings = {
         max: 522,
         // MIDI Clock (primary)
         useMIDIClock: true, // Listen to 0xF8 timing messages
+        smoothingFactor: 0.9, // Exponential smoothing (0.9 = 90% old + 10% new)
         // MIDI CC (fallback/override)
         controlCC: 0, // CC number (0-127)
         controlChannel: 0 // MIDI channel (0-15)
@@ -397,43 +454,71 @@ const settings = {
 
 ### How BPM Affects Animations
 
-1. **Frame Rate Sync**: Animation playback speed tied to beat
-    - 1 beat = 1 animation cycle
-    - Or configurable: 1/2 beat, 1/4 beat, 2 beats, 4 beats per cycle
-
-2. **Beat Divisions**:
+1. **Core Formula**:
 
     ```javascript
-    // Milliseconds per beat
+    // Milliseconds per beat at given BPM
     const msPerBeat = 60000 / bpm;
 
-    // For an animation to complete in 1 beat:
-    const frameDelay = msPerBeat / animation.frameCount;
+    // Frame duration = beats × msPerBeat
+    const frameDuration = beatsPerFrame[frameIndex] * msPerBeat;
     ```
 
-3. **Sync Modes** (velocity could select):
-    - `1:1` - Animation completes on each beat
-    - `1:2` - Animation completes every 2 beats
-    - `1:4` - Animation completes every 4 beats (1 bar in 4/4)
-    - `2:1` - Animation plays twice per beat
-    - `4:1` - Animation plays 4 times per beat
+2. **Per-Frame Beat Timing (`beatsPerFrame`)**:
 
-4. **Sync Mode in meta.json** (recommended):
-
-    Instead of using velocity for sync mode selection, define it per animation:
+    Define how many beats each frame should be displayed:
 
     ```json
     {
-        "numberOfFrames": 10,
-        "framesPerRow": 5,
-        "syncMode": "1:4",
+        "numberOfFrames": 4,
+        "beatsPerFrame": [1, 0.5, 0.5, 2],
         "loop": true
     }
     ```
 
-    This frees velocity for intensity/variation control. Valid values:
-    - `"1:1"`, `"1:2"`, `"1:4"`, `"2:1"`, `"4:1"`
-    - `"free"` - ignore BPM, use frameRatesForFrames (default for backwards compatibility)
+    This means:
+    - Frame 0: hold for 1 beat
+    - Frame 1: hold for 0.5 beats
+    - Frame 2: hold for 0.5 beats
+    - Frame 3: hold for 2 beats
+    - **Total: 4 beats (1 bar in 4/4)**
+
+    At 120 BPM (500ms per beat):
+    - Frame 0: 500ms
+    - Frame 1: 250ms
+    - Frame 2: 250ms
+    - Frame 3: 1000ms
+
+3. **Timing Field Priority**:
+
+    | Field                 | Unit         | When used                           |
+    | --------------------- | ------------ | ----------------------------------- |
+    | `beatsPerFrame`       | beats        | When synced to BPM (takes priority) |
+    | `frameRatesForFrames` | milliseconds | When NOT synced to BPM              |
+
+    **Behavior:**
+    - If `beatsPerFrame` exists → use BPM sync, convert beats to ms based on current BPM
+    - If only `frameRatesForFrames` exists → ignore BPM (current behavior, backwards compatible)
+    - If both exist → `beatsPerFrame` takes priority when BPM is available
+
+4. **Shorthand for uniform timing**:
+
+    For animations where all frames have the same beat duration:
+
+    ```json
+    {
+        "numberOfFrames": 8,
+        "beatsPerFrame": 0.5,
+        "loop": true
+    }
+    ```
+
+    A single number applies to all frames (each frame shown for 0.5 beats, total = 4 beats).
+
+5. **Validation Rules for `beatsPerFrame`**:
+    - **Array form**: Must have exactly `numberOfFrames` elements, all positive numbers
+    - **Shorthand form**: Single positive number (applies to all frames)
+    - **Omitted**: Animation uses `frameRatesForFrames` (backwards compatible)
 
 ---
 
@@ -454,9 +539,9 @@ commands: {
 },
 systemRealTime: {
     clock: 0xF8,      // MIDI Clock pulse (24 per beat)
-    start: 0xFA,      // Start playback
-    continue: 0xFB,   // Continue playback
-    stop: 0xFC        // Stop playback
+    start: 0xFA,      // Start playback - reset clock counter, start fresh BPM calculation
+    continue: 0xFB,   // Continue playback - resume clock counting from current state
+    stop: 0xFC        // Stop playback - pause BPM sync (keep last BPM, don't recalculate)
 }
 
 // In midi.js #handleMIDIMessage:
@@ -485,16 +570,32 @@ dispatchMIDIControlChange(channel, controller, value) {
 }
 ```
 
+### Multiple MIDI Devices
+
+**Warning**: MIDI clock from multiple devices is merged. If two devices both send clock, pulses will be doubled (48 PPQN instead of 24), resulting in incorrect BPM calculation (double speed).
+
+**Recommendation**: Ensure only one connected MIDI device sends clock, or filter clock by device ID in a future update.
+
 ---
 
 ## 6. Implementation Phases
+
+### Phase 0: Validation & Build Pipeline
+
+- [ ] Copy one of the existing animation sets to channel 4 for testing bitmasks
+- [ ] Add `bitDepth` validation to `validate.js` (allowed: 1, 2, 4, 8, or omitted)
+- [ ] Add `beatsPerFrame` validation to `validate.js` (allowed: positive number, or array of positive numbers matching numberOfFrames, or omitted)
+- [ ] Update `generate.js` to include `bitDepth` and `beatsPerFrame` in `animations.json` output
+- [x] ~~Extend `optimize.js` to handle all bit depths~~ ✅ Done - supports 1, 2, 4, 8-bit
+- [ ] Add tests for new validation rules and bit depth conversions
 
 ### Phase 1: Foundation
 
 - [ ] Update `settings.js` with channel mapping and BPM config
 - [ ] Add CC handling to `midi.js`
+- [ ] Add System Real-Time handling to `midi.js` (0xF8 clock, 0xFA start, 0xFB continue, 0xFC stop)
 - [ ] Add BPM state to `AppState.js`
-- [ ] Update dispatch methods
+- [ ] Add `dispatchMIDIControlChange` and `dispatchMIDIClock` methods
 
 ### Phase 2: Layer Architecture
 
@@ -504,15 +605,18 @@ dispatchMIDIControlChange(channel, controller, value) {
 
 ### Phase 3: Bitmask Mixing
 
-- [ ] Create mask animation loader/storage
-- [ ] Implement pixel-level mixing in renderer
+- [ ] Create `MaskManager` class (single active mask, latching behavior)
+- [ ] Implement single-mask state: stores current note/velocity, latches on note-on
+- [ ] Note-off on channel 4 is **ignored** (mask stays latched)
+- [ ] Implement pixel-level mixing in renderer (or Canvas composite)
 - [ ] Add mask animation triggers (channel 4)
 
 ### Phase 4: BPM Sync
 
-- [ ] Implement BPM-based frame timing
-- [ ] Add sync mode selection (velocity-based)
-- [ ] Test with various BPM values
+- [ ] Implement BPM-based frame timing in `AnimationLayer`
+- [ ] Read `beatsPerFrame` from meta.json (if absent, use `frameRatesForFrames` for backwards compatibility)
+- [ ] Handle MIDI clock timeout (>2s no clock → enable CC fallback)
+- [ ] Test with various BPM values and beatsPerFrame configurations
 
 ### Phase 5: Effects
 
@@ -541,8 +645,45 @@ dispatchMIDIControlChange(channel, controller, value) {
 ### Memory
 
 - Each layer group = up to 4 active animations × frames × pixel data
-- Masks add additional memory footprint
+- Masks add additional memory footprint (but only 1 active at a time)
 - Implement proper cleanup when animations change
+
+### Mask Behavior (Channel 4)
+
+Unlike Layer A/B/C which support multiple simultaneous animations:
+
+```javascript
+// MaskManager - single mask, latching behavior
+class MaskManager {
+    #currentMask = null; // AnimationLayer or null
+    #currentNote = null;
+    #currentVelocity = null;
+
+    noteOn(note, velocity) {
+        // Always replace current mask with new one
+        this.#currentNote = note;
+        this.#currentVelocity = velocity;
+        this.#currentMask = this.#loadMask(note, velocity);
+        this.#currentMask.reset();
+    }
+
+    noteOff(note) {
+        // Intentionally ignored - mask stays latched
+        // Only way to change mask is to trigger a new note
+    }
+
+    getCurrentMask() {
+        return this.#currentMask; // null before first trigger
+    }
+}
+```
+
+**Key behaviors:**
+
+- Before first trigger: `getCurrentMask()` returns `null` → show Layer A only
+- After any trigger: mask stays active until replaced by another note
+- Note-off is ignored (no "clearing" the mask)
+- Each note = transition type, velocity = variant/intensity
 
 ### Canvas Composition Order
 
@@ -571,7 +712,7 @@ dispatchMIDIControlChange(channel, controller, value) {
     All saved as **true grayscale PNG** for smallest file size.
 
 2. ~~**Effect stacking**: Can multiple effects be active simultaneously?~~
-   **RESOLVED**: Yes. Effects work similarly to animations - multiple can be active at once via different MIDI notes on the effects channels (9 and 12). Effects are applied in order and can stack/combine.
+   **RESOLVED**: Yes, with rules. Effects from **different note ranges** can stack (e.g., Split + Mirror). Within the **same range**, only the last note wins. Effects are **NOT latched** - Note Off immediately disables them (unlike masks which stay latched). See Section 3 "Effect Stacking Order" for details.
 
 3. ~~**MIDI learn**: Should users be able to reassign CC/channel mappings at runtime?~~
    **RESOLVED**: No. Mappings are configured in `settings.js` and require a rebuild/reload to change. No runtime MIDI learn feature.

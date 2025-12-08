@@ -4,9 +4,15 @@ import { hashFile, writeHashFile, isCacheValid } from './hash.js';
 
 /**
  * Channel number for bitmask/mixer animations.
- * Animations in this channel are converted to 1-bit (black & white).
+ * Animations in this channel default to 1-bit (black & white) if no bitDepth specified.
  */
 const BITMASK_CHANNEL = 4;
+
+/**
+ * Valid bit depth values for grayscale conversion.
+ * @type {Set<number>}
+ */
+const VALID_BIT_DEPTHS = new Set([1, 2, 4, 8]);
 
 /**
  * Optimization result for a single file.
@@ -14,7 +20,7 @@ const BITMASK_CHANNEL = 4;
  * @property {string} path - Animation path
  * @property {boolean} skipped - True if file was unchanged
  * @property {boolean} optimized - True if file was optimized
- * @property {boolean} [isBitmask] - True if processed as 1-bit bitmask
+ * @property {number|null} [bitDepth] - Bit depth used for conversion, null if standard optimization
  * @property {number} [originalSize] - Original file size in bytes
  * @property {number} [optimizedSize] - Optimized file size in bytes
  * @property {string} [error] - Error message if optimization failed
@@ -34,13 +40,84 @@ async function loadSharp() {
 }
 
 /**
- * Check if an animation path is a bitmask (channel 4).
+ * Determine the target bit depth for an animation.
+ * Priority:
+ * 1. Explicit bitDepth in meta.json takes priority
+ * 2. Channel 4 (bitmask) defaults to 1-bit
+ * 3. Regular animations: null (no bit depth conversion)
+ *
  * @param {string} animationPath - Path like "4/0/0"
- * @returns {boolean}
+ * @param {Object|null} meta - Parsed meta.json object
+ * @returns {number|null} Target bit depth (1, 2, 4, 8) or null for standard optimization
  */
-function isBitmaskAnimation(animationPath) {
+function getTargetBitDepth(animationPath, meta) {
+	// Explicit bitDepth in meta.json takes priority
+	if (meta?.bitDepth !== undefined) {
+		const depth = meta.bitDepth;
+		if (VALID_BIT_DEPTHS.has(depth)) {
+			return depth;
+		}
+		console.warn(`Invalid bitDepth ${depth} in ${animationPath}/meta.json, ignoring`);
+	}
+
+	// Channel 4 defaults to 1-bit for bitmasks
 	const channel = parseInt(animationPath.split('/')[0], 10);
-	return channel === BITMASK_CHANNEL;
+	if (channel === BITMASK_CHANNEL) {
+		return 1;
+	}
+
+	// Regular animations: no bit depth conversion
+	return null;
+}
+
+/**
+ * Apply Sharp pipeline based on target bit depth.
+ * @param {import('sharp').Sharp} pipeline - Sharp pipeline
+ * @param {number|null} bitDepth - Target bit depth or null for standard optimization
+ * @returns {import('sharp').Sharp} Modified pipeline
+ */
+function applyBitDepthPipeline(pipeline, bitDepth) {
+	switch (bitDepth) {
+		case 1:
+			// 1-bit: threshold to pure B&W (2 colors)
+			return pipeline.grayscale().threshold(128).png({
+				palette: true,
+				quality: 100,
+				colors: 2,
+				effort: 10
+			});
+
+		case 2:
+			// 2-bit: 4 grayscale levels (uses indexed palette)
+			return pipeline.grayscale().png({
+				palette: true,
+				quality: 100,
+				colors: 4,
+				effort: 10
+			});
+
+		case 4:
+			// 4-bit: 16 grayscale levels
+			return pipeline.grayscale().png({
+				palette: true,
+				quality: 100,
+				colors: 16,
+				effort: 10
+			});
+
+		case 8:
+			// 8-bit: true grayscale (256 levels)
+			return pipeline.grayscale().png({
+				palette: true,
+				quality: 100,
+				colors: 256,
+				effort: 10
+			});
+
+		default:
+			// Standard color optimization
+			return pipeline.png({ palette: true, quality: 80, effort: 10 });
+	}
 }
 
 /**
@@ -48,13 +125,13 @@ function isBitmaskAnimation(animationPath) {
  * @param {string} sourcePath - Path to source PNG
  * @param {string} cachePath - Path to output cached PNG
  * @param {import('sharp')|null} sharp - Sharp module or null to skip optimization
- * @param {boolean} [isBitmask=false] - If true, convert to 1-bit black & white
+ * @param {number|null} [bitDepth=null] - Target bit depth (1, 2, 4, 8) or null for standard
  * @returns {Promise<OptimizeResult>}
  */
-async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
+async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 	// Check if cache is valid
 	if (await isCacheValid(sourcePath, cachePath)) {
-		return { path: sourcePath, skipped: true, optimized: false, isBitmask };
+		return { path: sourcePath, skipped: true, optimized: false, bitDepth };
 	}
 
 	// Ensure cache directory exists
@@ -71,19 +148,7 @@ async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
 		let cleanupNeeded = false;
 		try {
 			let pipeline = sharp(sourcePath);
-
-			if (isBitmask) {
-				// Convert to 1-bit: grayscale, threshold at 128, then 1-bit palette
-				pipeline = pipeline.grayscale().threshold(128).png({
-					palette: true,
-					quality: 100,
-					colors: 2, // Black and white only
-					effort: 10
-				});
-			} else {
-				// Standard palette optimization
-				pipeline = pipeline.png({ palette: true, quality: 80, effort: 10 });
-			}
+			pipeline = applyBitDepthPipeline(pipeline, bitDepth);
 
 			await pipeline.toFile(tempPath);
 			tempExists = true;
@@ -91,9 +156,9 @@ async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
 
 			const tempStats = await fs.stat(tempPath);
 
-			// For bitmasks, always use the converted version (correctness over size)
+			// For bit depth conversions, always use the converted version (correctness over size)
 			// For regular images, only keep optimized version if it's smaller
-			if (isBitmask || tempStats.size < originalSize) {
+			if (bitDepth !== null || tempStats.size < originalSize) {
 				await fs.rename(tempPath, cachePath);
 				optimizedSize = tempStats.size;
 				cleanupNeeded = false;
@@ -134,6 +199,7 @@ async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
 		path: sourcePath,
 		skipped: false,
 		optimized: true,
+		bitDepth,
 		originalSize,
 		optimizedSize
 	};
@@ -141,10 +207,12 @@ async function optimizeFile(sourcePath, cachePath, sharp, isBitmask = false) {
 
 /**
  * Optimize all PNG files from validated animations.
- * Bitmask animations (channel 4) are converted to 1-bit black & white.
+ * Supports configurable bit depth conversion via meta.json bitDepth field.
+ * Channel 4 (bitmask) defaults to 1-bit if no bitDepth specified.
+ *
  * @param {Array<{path: string, dir: string, pngPath: string|null, meta: Object}>} animations - Validated animations
  * @param {string} cacheDir - Cache output directory
- * @returns {Promise<{results: OptimizeResult[], sharp: boolean}>}
+ * @returns {Promise<{results: OptimizeResult[], sharp: boolean, bitDepthCounts: Object}>}
  */
 export async function optimize(animations, cacheDir) {
 	const sharp = await loadSharp();
@@ -155,7 +223,7 @@ export async function optimize(animations, cacheDir) {
 	}
 
 	const results = [];
-	let bitmaskCount = 0;
+	const bitDepthCounts = { 1: 0, 2: 0, 4: 0, 8: 0, standard: 0 };
 
 	for (const animation of animations) {
 		if (!animation.pngPath) {
@@ -166,14 +234,17 @@ export async function optimize(animations, cacheDir) {
 		const relativePath = animation.path;
 		const pngName = path.basename(animation.pngPath);
 		const cachePath = path.join(cacheDir, relativePath, pngName);
-		const isBitmask = isBitmaskAnimation(relativePath);
+		const bitDepth = getTargetBitDepth(relativePath, animation.meta);
 
-		if (isBitmask) {
-			bitmaskCount++;
+		// Track counts
+		if (bitDepth !== null) {
+			bitDepthCounts[bitDepth]++;
+		} else {
+			bitDepthCounts.standard++;
 		}
 
 		try {
-			const result = await optimizeFile(animation.pngPath, cachePath, sharp, isBitmask);
+			const result = await optimizeFile(animation.pngPath, cachePath, sharp, bitDepth);
 			result.animationPath = relativePath;
 			results.push(result);
 		} catch (error) {
@@ -182,7 +253,7 @@ export async function optimize(animations, cacheDir) {
 				animationPath: relativePath,
 				skipped: false,
 				optimized: false,
-				isBitmask,
+				bitDepth,
 				error: error.message
 			});
 		}
@@ -199,5 +270,8 @@ export async function optimize(animations, cacheDir) {
 		}
 	}
 
-	return { results, sharp: !!sharp, bitmaskCount };
+	return { results, sharp: !!sharp, bitDepthCounts };
 }
+
+// Export for testing
+export { getTargetBitDepth, applyBitDepthPipeline, VALID_BIT_DEPTHS, BITMASK_CHANNEL };
