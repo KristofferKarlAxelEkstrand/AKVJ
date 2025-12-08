@@ -132,10 +132,15 @@ async function validateAnimation(animationDir, animationPath) {
 		}
 
 		// Validate beatsPerFrame - must be positive number or array of positive numbers matching numberOfFrames
+		// Validate beatsPerFrame - must be positive number or array of positive numbers matching numberOfFrames
 		if (meta.beatsPerFrame !== undefined) {
 			if (Array.isArray(meta.beatsPerFrame)) {
+				// Check for empty array (AnimationLayer will warn and fall back, but we should catch it here)
+				if (meta.beatsPerFrame.length === 0) {
+					errors.push('meta.json: beatsPerFrame array cannot be empty');
+				}
 				// Array form - must match numberOfFrames length and all values must be positive
-				if (meta.numberOfFrames && meta.beatsPerFrame.length !== meta.numberOfFrames) {
+				if (meta.numberOfFrames && meta.beatsPerFrame.length > 0 && meta.beatsPerFrame.length !== meta.numberOfFrames) {
 					errors.push(`meta.json: beatsPerFrame array length (${meta.beatsPerFrame.length}) must match numberOfFrames (${meta.numberOfFrames})`);
 				}
 				for (let i = 0; i < meta.beatsPerFrame.length; i++) {

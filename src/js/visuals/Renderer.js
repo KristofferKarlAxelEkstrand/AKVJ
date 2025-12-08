@@ -301,11 +301,12 @@ class Renderer {
 	 * @param {number} _intensity - Effect intensity (reserved for future use)
 	 */
 	#applyMirrorEffect(ctx, imageData, note, _intensity) {
-		// Future: Use _intensity to blend between original and mirrored image
-		// Example usage:
-		// - _intensity = 0 -> show original
-		// - _intensity = 1 -> show mirrored image
-		// - intermediate values blend the mirrored and original images per-pixel
+		// TODO: Use _intensity to blend between original and mirrored image.
+		// Currently, _intensity is unused; only full mirroring is applied.
+		// Planned behavior:
+		//   - _intensity = 0 -> show original
+		//   - _intensity = 1 -> show mirrored image
+		//   - intermediate values blend the mirrored and original images per-pixel
 		const noteInRange = note - settings.effectRanges.mirror.min;
 		const data = imageData.data;
 		const w = this.#canvasWidth;
@@ -395,9 +396,12 @@ class Renderer {
 	 * @param {number} _intensity - Effect intensity (reserved for future use)
 	 */
 	#applySplitEffect(ctx, imageData, note, _intensity) {
-		// Use _intensity to animate split transitions or blend between states in future:
-		// Example: When _intensity = 0, show original; when _intensity = 1, show split fully.
-		// Could also use intensity to dynamically change the number of splits:
+		// TODO: Use _intensity to animate split transitions or blend between states.
+		// Currently, _intensity is unused; splits are applied at full intensity.
+		// Planned behavior:
+		//   - _intensity = 0 -> show original
+		//   - _intensity = 1 -> show split fully
+		// TODO: Could also use intensity to dynamically change the number of splits:
 		// splits = baseSplits + Math.round(_intensity * extraSplits);
 		const data = imageData.data;
 		const w = this.#canvasWidth;
