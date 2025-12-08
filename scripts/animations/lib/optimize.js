@@ -61,8 +61,9 @@ function getTargetBitDepth(animationPath, meta) {
 	}
 
 	// Channel 4 defaults to 1-bit for bitmasks
-	const channel = parseInt(animationPath.split('/')[0], 10);
-	if (channel === BITMASK_CHANNEL) {
+	const pathParts = animationPath.split('/');
+	const channel = pathParts.length > 0 ? parseInt(pathParts[0], 10) : NaN;
+	if (!isNaN(channel) && channel === BITMASK_CHANNEL) {
 		return 1;
 	}
 
