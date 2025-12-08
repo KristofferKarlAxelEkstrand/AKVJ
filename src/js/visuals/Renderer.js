@@ -515,69 +515,45 @@ class Renderer {
 			this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 		}
 
-		// Check if we have the new layer architecture available
-		const layerA = this.#layerManager?.getLayerA?.();
-		const layerB = this.#layerManager?.getLayerB?.();
-		const layerC = this.#layerManager?.getLayerC?.();
-		const effectsManager = this.#layerManager?.getEffectsManager?.();
+		const layerA = this.#layerManager?.getLayerA();
+		const layerB = this.#layerManager?.getLayerB();
+		const layerC = this.#layerManager?.getLayerC();
+		const effectsManager = this.#layerManager?.getEffectsManager();
 
-		if (layerA && this.#ctxA) {
-			// New multi-layer rendering path
+		if (!layerA || !this.#ctxA) {
+			this.#animationFrameId = requestAnimationFrame(this.#loop);
+			return;
+		}
 
-			// Clear off-screen canvases
-			this.#ctxA.fillStyle = settings.rendering.backgroundColor;
-			this.#ctxA.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
-			this.#ctxB.fillStyle = settings.rendering.backgroundColor;
-			this.#ctxB.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		// Clear off-screen canvases
+		this.#ctxA.fillStyle = settings.rendering.backgroundColor;
+		this.#ctxA.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		this.#ctxB.fillStyle = settings.rendering.backgroundColor;
+		this.#ctxB.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 
-			// Render Layer A
-			this.#renderLayerGroup(this.#ctxA, layerA, timestamp);
+		// Render Layer A
+		this.#renderLayerGroup(this.#ctxA, layerA, timestamp);
 
-			// Render Layer B
-			this.#renderLayerGroup(this.#ctxB, layerB, timestamp);
+		// Render Layer B
+		this.#renderLayerGroup(this.#ctxB, layerB, timestamp);
 
-			// Mix A and B using mask
-			this.#mixLayers(timestamp);
+		// Mix A and B using mask
+		this.#mixLayers(timestamp);
 
-			// Apply A/B effects
-			if (effectsManager?.hasEffectsAB()) {
-				this.#applyEffects(this.#ctxMixed, effectsManager.getActiveEffectsAB());
-			}
+		// Apply A/B effects
+		if (effectsManager?.hasEffectsAB()) {
+			this.#applyEffects(this.#ctxMixed, effectsManager.getActiveEffectsAB());
+		}
 
-			// Draw mixed result to main canvas
-			this.#canvas2dContext.drawImage(this.#canvasMixed, 0, 0);
+		// Draw mixed result to main canvas
+		this.#canvas2dContext.drawImage(this.#canvasMixed, 0, 0);
 
-			// Render Layer C (overlay) directly on main canvas
-			this.#renderLayerGroup(this.#canvas2dContext, layerC, timestamp);
+		// Render Layer C (overlay) directly on main canvas
+		this.#renderLayerGroup(this.#canvas2dContext, layerC, timestamp);
 
-			// Apply global effects
-			if (effectsManager?.hasEffectsGlobal()) {
-				this.#applyEffects(this.#canvas2dContext, effectsManager.getActiveEffectsGlobal());
-			}
-		} else {
-			// Legacy rendering path (backwards compatibility)
-			const activeLayers = this.#layerManager?.getActiveLayers();
-
-			if (!activeLayers || activeLayers.length === 0) {
-				this.#animationFrameId = requestAnimationFrame(this.#loop);
-				return;
-			}
-
-			for (const channel of activeLayers) {
-				if (channel) {
-					for (let i = 0; i < channel.length; i++) {
-						const animation = channel[i];
-						if (!animation) {
-							continue;
-						}
-						if (animation.isFinished) {
-							channel[i] = null;
-							continue;
-						}
-						animation.play(timestamp);
-					}
-				}
-			}
+		// Apply global effects
+		if (effectsManager?.hasEffectsGlobal()) {
+			this.#applyEffects(this.#canvas2dContext, effectsManager.getActiveEffectsGlobal());
 		}
 
 		this.#animationFrameId = requestAnimationFrame(this.#loop);

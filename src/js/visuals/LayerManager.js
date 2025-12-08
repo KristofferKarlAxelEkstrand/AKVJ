@@ -38,12 +38,6 @@ class LayerManager {
 	/** @type {Set<number>} */
 	#reservedChannels;
 
-	// Legacy compatibility - keep for backwards compatibility
-	/** @type {Array<Array<AnimationLayer|null>>} */
-	#canvasLayers = [];
-	#animations = {};
-	#velocityCache = new Map(); // Map<channel, Map<note, number[]>>
-
 	constructor() {
 		const { channelMapping } = settings;
 
@@ -65,8 +59,6 @@ class LayerManager {
 	 * @param {Object} animations - Animation data keyed by channel/note/velocity
 	 */
 	setAnimations(animations) {
-		this.#animations = animations;
-
 		// Distribute animations to layer groups
 		this.#layerA.setAnimations(animations);
 		this.#layerB.setAnimations(animations);
@@ -74,41 +66,10 @@ class LayerManager {
 
 		// Set mask animations
 		this.#maskManager.setAnimations(animations);
-
-		// Build legacy velocity cache for backwards compatibility
-		this.#buildVelocityCache(animations);
-	}
-
-	/**
-	 * Build cache of sorted velocity keys for each channel/note combination
-	 * Uses nested Maps to avoid string key allocation in hot path
-	 */
-	#buildVelocityCache(animations) {
-		this.#velocityCache.clear();
-		for (const [channel, notes] of Object.entries(animations)) {
-			const channelNum = Number(channel);
-			const noteMap = new Map();
-			for (const [note, velocities] of Object.entries(notes)) {
-				const sorted = Object.keys(velocities)
-					.map(Number)
-					.sort((a, b) => a - b);
-				noteMap.set(Number(note), sorted);
-			}
-			this.#velocityCache.set(channelNum, noteMap);
-		}
 	}
 
 	/**
 	 * Handle MIDI note on event - activate animation layer
-	 *
-	 * Note: Both the new LayerGroup system and legacy #canvasLayers are updated
-	 * intentionally during the transition period. The LayerGroups own the actual
-	 * AnimationLayer instances and handle rendering via playToContext(). The legacy
-	 * #canvasLayers array is kept in sync so that getActiveLayers() continues to work
-	 * for any code still using the old rendering path. This dual update does NOT cause
-	 * duplicate rendering because both systems reference the same AnimationLayer objects.
-	 * The legacy path will be removed once all consumers migrate to the new layer API.
-	 *
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
@@ -119,10 +80,8 @@ class LayerManager {
 			return;
 		}
 
-		// Try each handler in order
+		// Try each handler in order - first match wins
 		if (this.#layerA.noteOn(channel, note, velocity)) {
-			// Keep legacy #canvasLayers in sync for backwards compatibility
-			this.#legacyNoteOn(channel, note, velocity);
 			return;
 		}
 
@@ -131,7 +90,6 @@ class LayerManager {
 		}
 
 		if (this.#layerB.noteOn(channel, note, velocity)) {
-			this.#legacyNoteOn(channel, note, velocity);
 			return;
 		}
 
@@ -140,7 +98,6 @@ class LayerManager {
 		}
 
 		if (this.#layerC.noteOn(channel, note, velocity)) {
-			this.#legacyNoteOn(channel, note, velocity);
 			return;
 		}
 	}
@@ -158,7 +115,6 @@ class LayerManager {
 
 		// Try each handler in order
 		if (this.#layerA.noteOff(channel, note)) {
-			this.#legacyNoteOff(channel, note);
 			return;
 		}
 
@@ -166,7 +122,6 @@ class LayerManager {
 		this.#maskManager.noteOff(channel, note);
 
 		if (this.#layerB.noteOff(channel, note)) {
-			this.#legacyNoteOff(channel, note);
 			return;
 		}
 
@@ -175,81 +130,8 @@ class LayerManager {
 		}
 
 		if (this.#layerC.noteOff(channel, note)) {
-			this.#legacyNoteOff(channel, note);
 			return;
 		}
-	}
-
-	/**
-	 * Legacy note on for backwards compatibility
-	 * @private
-	 */
-	#legacyNoteOn(channel, note, velocity) {
-		if (!this.#animations[channel]?.[note]) {
-			return;
-		}
-
-		const velocityLayer = this.#findVelocityLayer(velocity, channel, note);
-		if (velocityLayer === null) {
-			return;
-		}
-
-		const layer = this.#animations[channel][note][velocityLayer];
-		if (!layer) {
-			return;
-		}
-		layer.reset();
-
-		this.#canvasLayers[channel] ??= [];
-		this.#canvasLayers[channel][note] = layer;
-	}
-
-	/**
-	 * Legacy note off for backwards compatibility
-	 * @private
-	 */
-	#legacyNoteOff(channel, note) {
-		if (this.#canvasLayers[channel]?.[note]) {
-			this.#canvasLayers[channel][note].stop();
-			this.#canvasLayers[channel][note] = null;
-		}
-	}
-
-	/**
-	 * Find the appropriate velocity layer based on input velocity
-	 * @param {number} velocity - Input velocity (0-127)
-	 * @param {number} channel - MIDI channel
-	 * @param {number} note - MIDI note
-	 * @returns {number|null} The velocity layer key, or null if none available
-	 */
-	#findVelocityLayer(velocity, channel, note) {
-		const velocities = this.#velocityCache.get(channel)?.get(note);
-
-		if (!velocities || velocities.length === 0) {
-			return null;
-		}
-
-		// Find the highest velocity layer that doesn't exceed the input velocity
-		// If none match (input velocity lower than lowest defined), return null
-		// `findLast` is a relatively new method. Use explicit reverse loop for
-		// compatibility and to avoid depending on polyfills.
-		for (let i = velocities.length - 1; i >= 0; i--) {
-			const v = velocities[i];
-			if (v <= velocity) {
-				return v;
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Get all active canvas layers for rendering.
-	 * Returns internal array reference for performance. Do not mutate externally.
-	 * @returns {Array} Active canvas layers indexed by [channel][note]
-	 * @deprecated Use getLayerGroups() for new code
-	 */
-	getActiveLayers() {
-		return this.#canvasLayers;
 	}
 
 	/**
@@ -296,33 +178,11 @@ class LayerManager {
 	 * Clear all active layers and stop their animations
 	 */
 	clearLayers() {
-		// Clear layer groups
 		this.#layerA.clearLayers();
 		this.#layerB.clearLayers();
 		this.#layerC.clearLayers();
-
-		// Clear mask
 		this.#maskManager.clear();
-
-		// Clear effects
 		this.#effectsManager.clear();
-
-		// Clear legacy layers
-		for (const channelLayers of this.#canvasLayers) {
-			if (!channelLayers) {
-				continue;
-			}
-			for (const layer of channelLayers) {
-				if (layer) {
-					layer.stop();
-					// Dispose of any image resources the layer may hold (no-op if not present)
-					if (typeof layer.dispose === 'function') {
-						layer.dispose();
-					}
-				}
-			}
-		}
-		this.#canvasLayers = [];
 	}
 
 	/**
@@ -330,34 +190,19 @@ class LayerManager {
 	 */
 	destroy() {
 		this.clearLayers();
-
 		this.#layerA.destroy();
 		this.#layerB.destroy();
 		this.#layerC.destroy();
 		this.#maskManager.destroy();
 		this.#effectsManager.destroy();
-
-		this.#animations = {};
-		this.#velocityCache.clear();
 	}
 
 	/**
 	 * Get statistics about active layers
+	 * @returns {Object} Layer statistics
 	 */
 	getLayerStats() {
-		let activeCount = 0;
-		for (const channelLayers of this.#canvasLayers) {
-			if (channelLayers) {
-				for (const layer of channelLayers) {
-					if (layer) {
-						activeCount++;
-					}
-				}
-			}
-		}
-
 		return {
-			activeCount,
 			layerA: this.#layerA.getActiveLayerCount(),
 			layerB: this.#layerB.getActiveLayerCount(),
 			layerC: this.#layerC.getActiveLayerCount(),

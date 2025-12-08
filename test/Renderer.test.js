@@ -9,10 +9,6 @@ function createMockContext() {
 	};
 }
 
-function createMockLayer(playSpy = vi.fn()) {
-	return { play: playSpy };
-}
-
 describe('Renderer', () => {
 	beforeEach(() => {
 		// Replace document.createElement for canvas with a mock that returns a context object
@@ -63,8 +59,15 @@ describe('Renderer', () => {
 
 	test('fills canvas with background color and renders active layers', () => {
 		const ctx = createMockContext();
-		const layer = createMockLayer();
-		const layerManager = { getActiveLayers: () => [[layer]] };
+		const layer = { playToContext: vi.fn() };
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 
 		const renderer = new Renderer(ctx, layerManager);
 		rafSpy.mockClear();
@@ -73,7 +76,7 @@ describe('Renderer', () => {
 		rafCb(0);
 
 		expect(ctx.fillRect).toHaveBeenCalled();
-		expect(layer.play).toHaveBeenCalled();
+		expect(layer.playToContext).toHaveBeenCalled();
 		// stop and destroy should not throw
 		const stopSpy = vi.spyOn(renderer, 'stop');
 		renderer.destroy();
@@ -84,11 +87,18 @@ describe('Renderer', () => {
 		const ctx = createMockContext();
 		let receivedTimestamp = null;
 		const layer = {
-			play: t => {
+			playToContext: (ctx, t) => {
 				receivedTimestamp = t;
 			}
 		};
-		const layerManager = { getActiveLayers: () => [[layer]] };
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 
 		// Set up RAF to immediately invoke the callback with a timestamp
 		let called = false;
@@ -106,23 +116,38 @@ describe('Renderer', () => {
 		renderer.destroy();
 	});
 
-	test('clears finished non-looping layers from active layer array', () => {
+	test('skips finished non-looping layers during render', () => {
 		const ctx = createMockContext();
-		const finishedLayer = { play: vi.fn(), isFinished: true };
-		const layers = [[finishedLayer]];
-		const layerManager = { getActiveLayers: () => layers };
+		const finishedLayer = { playToContext: vi.fn(), isFinished: true };
+		const activeLayer = { playToContext: vi.fn(), isFinished: false };
+		const layers = [finishedLayer, activeLayer];
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => layers };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 
 		const renderer = new Renderer(ctx, layerManager);
 		renderer.start();
 
-		// finished layer should not have its play() invoked and should be cleared from layer list
-		expect(finishedLayer.play).not.toHaveBeenCalled();
-		expect(layers[0][0]).toBeNull();
+		// Finished layer should not have playToContext invoked, but active layer should
+		expect(finishedLayer.playToContext).not.toHaveBeenCalled();
+		expect(activeLayer.playToContext).toHaveBeenCalled();
+		renderer.destroy();
 	});
 
 	test('continues rendering loop when no active layers present', () => {
 		const ctx = createMockContext();
-		const layerManager = { getActiveLayers: () => [] };
+		const layerManager = {
+			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 
 		rafSpy.mockClear();
 		const renderer = new Renderer(ctx, layerManager);
@@ -314,8 +339,15 @@ describe('Renderer', () => {
 
 	test('handles pending frame after destroy without throwing', () => {
 		const ctx = createMockContext();
-		const layer = createMockLayer();
-		const layerManager = { getActiveLayers: () => [[layer]] };
+		const layer = { playToContext: vi.fn() };
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 
 		let frameCallback = null;
 		rafSpy.mockImplementation(cb => {
@@ -338,7 +370,13 @@ describe('Renderer', () => {
 
 	test('destroy is idempotent and safe to call multiple times', () => {
 		const ctx = createMockContext();
-		const layerManager = { getActiveLayers: () => [] };
+		const layerManager = {
+			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 		const renderer = new Renderer(ctx, layerManager);
 
 		renderer.destroy();
@@ -347,7 +385,13 @@ describe('Renderer', () => {
 
 	test('destroy before start does not throw', () => {
 		const ctx = createMockContext();
-		const layerManager = { getActiveLayers: () => [] };
+		const layerManager = {
+			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => ({ getCurrentMask: () => null }),
+			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+		};
 		const renderer = new Renderer(ctx, layerManager);
 
 		expect(() => renderer.destroy()).not.toThrow();
