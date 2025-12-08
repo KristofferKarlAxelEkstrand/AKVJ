@@ -102,13 +102,13 @@ output.b = layerA.b + (layerB.b - layerA.b) * alpha;
 ### Bitmask Animation Requirements
 
 - **Format**: True **grayscale PNG** (not RGB with equal values)
-- **Bit Depth**: Configurable per animation via `meta.json`
+- **Bit Depth**: **✅ CURRENT IMPLEMENTATION:** Channel 4 auto-converts to 1-bit. Configurable via `meta.json` for all animations.
 - **Location**: Channel 4 folder (or any animation with `bitDepth` set)
 - **Structure**: Same channel/note/velocity organization as regular animations
 
 ### PNG Bit Depth Options
 
-All animations can specify a `bitDepth` in their `meta.json`:
+**✅ CURRENT IMPLEMENTATION:** All animations can specify a `bitDepth` in their `meta.json`:
 
 | bitDepth      | Colors     | File Size | Use Case                           | PNG Native?          |
 | ------------- | ---------- | --------- | ---------------------------------- | -------------------- |
@@ -149,20 +149,29 @@ All animations can specify a `bitDepth` in their `meta.json`:
 
 ### Automatic Conversion in Build Pipeline
 
-The animation pipeline (`scripts/animations/lib/optimize.js`) converts based on:
+**✅ CURRENT IMPLEMENTATION:** The animation pipeline (`scripts/animations/lib/optimize.js`) converts based on:
 
 1. **Channel 4** (bitmask channel): Auto-converts to 1-bit if no `bitDepth` specified
-2. **`bitDepth` in meta.json**: Respects explicit setting for any animation
+2. **`bitDepth` in meta.json**: Respects explicit setting for any animation (1, 2, 4, or 8-bit)
 
 **Runtime access**: The `bitDepth` value from meta.json is included in the generated `animations.json` so the renderer knows which mixing algorithm to use at runtime.
 
+**Current code example** (from `optimize.js`):
+
+**Current code example** (from `optimize.js`):
+
 ```javascript
-// In optimize.js
+// ✅ CURRENTLY IMPLEMENTED
 function getTargetBitDepth(animationPath, meta) {
     // Explicit bitDepth in meta.json takes priority
-    if (meta?.bitDepth) {
-        return meta.bitDepth;
+    if (meta?.bitDepth !== undefined) {
+        const depth = meta.bitDepth;
+        if (VALID_BIT_DEPTHS.has(depth)) {
+            return depth;
+        }
+        console.warn(`Invalid bitDepth ${depth} in ${animationPath}/meta.json, ignoring`);
     }
+
     // Channel 4 defaults to 1-bit for bitmasks
     const channel = parseInt(animationPath.split('/')[0], 10);
     if (channel === BITMASK_CHANNEL) {
@@ -196,43 +205,9 @@ switch (bitDepth) {
 }
 ```
 
-### Runtime Performance
+### Implementation Notes (Planned for Runtime Mixing)
 
-| bitDepth | Blend Operations       | Notes                                 |
-| -------- | ---------------------- | ------------------------------------- |
-| 1        | 0 muls (just branch)   | `mask < 128 ? A : B`                  |
-| 2        | 0 muls (4-way branch)  | 4 discrete levels                     |
-| 4        | 0 muls (16-way branch) | 16 discrete levels                    |
-| 8        | 3 muls per pixel       | `A + (B-A) * alpha` optimized formula |
-
-### Usage
-
-**For bitmask animations (channel 4):**
-
-- Place any image in `animations/4/{note}/{velocity}/`
-- Automatically converted to 1-bit B&W (unless `bitDepth` specified in meta.json)
-- **Note** = transition type (e.g., note 0 = horizontal wipe, note 1 = vertical wipe, note 2 = diagonal, etc.)
-- **Velocity** = variant/intensity (higher velocity → more dramatic variant)
-- Only one mask active at a time; new note replaces previous mask
-
-**For any animation with custom bit depth:**
-
-```json
-// meta.json
-{
-    "numberOfFrames": 10,
-    "framesPerRow": 5,
-    "bitDepth": 8
-}
-```
-
-**Build command:**
-
-```bash
-npm run generate-animation-json-to-json  # or full pipeline
-```
-
-### Implementation Notes
+**⚠️ PLANNED - NOT YET IMPLEMENTED:** The following runtime mixing code is a design proposal for future implementation:
 
 ```javascript
 // Runtime mixing based on bit depth
@@ -262,7 +237,47 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 }
 ```
 
-### Canvas Compositing (Performance Option)
+### Runtime Performance (Planned)
+
+**⚠️ PLANNED - NOT YET IMPLEMENTED:** Performance characteristics for different bit depths:
+
+| bitDepth | Blend Operations       | Notes                                 |
+| -------- | ---------------------- | ------------------------------------- |
+| 1        | 0 muls (just branch)   | `mask < 128 ? A : B`                  |
+| 2        | 0 muls (4-way branch)  | 4 discrete levels                     |
+| 4        | 0 muls (16-way branch) | 16 discrete levels                    |
+| 8        | 3 muls per pixel       | `A + (B-A) * alpha` optimized formula |
+
+### Usage
+
+**✅ CURRENT IMPLEMENTATION:** For bitmask animations (channel 4):
+
+- Place any image in `animations/4/{note}/{velocity}/`
+- Automatically converted to 1-bit B&W during build (unless `bitDepth` specified in meta.json)
+- **Note** = transition type (e.g., note 0 = horizontal wipe, note 1 = vertical wipe, note 2 = diagonal, etc.)
+- **Velocity** = variant/intensity (higher velocity → more dramatic variant)
+- Only one mask active at a time; new note replaces previous mask
+
+**✅ CURRENT IMPLEMENTATION:** For any animation with custom bit depth:
+
+```json
+// meta.json
+{
+    "numberOfFrames": 10,
+    "framesPerRow": 5,
+    "bitDepth": 8
+}
+```
+
+**Build command:**
+
+```bash
+npm run generate-animation-json-to-json  # Rebuild after adding/changing animations
+```
+
+### Canvas Compositing (Performance Option - Planned)
+
+**⚠️ PLANNED - NOT YET IMPLEMENTED:**
 
 Could use Canvas 2D `globalCompositeOperation` modes:
 
