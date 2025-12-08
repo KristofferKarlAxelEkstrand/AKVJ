@@ -118,8 +118,8 @@ class MaskManager {
 
 	/**
 	 * Handle MIDI note off - intentionally ignored for masks (latching behavior)
-	 * @param {number} channel - MIDI channel
-	 * @param {number} note - MIDI note
+	 * @param {number} _channel - MIDI channel (ignored, masks don't respond to note-off)
+	 * @param {number} _note - MIDI note (ignored, masks stay latched until new note-on)
 	 * @returns {boolean} Always returns false (note-off is ignored)
 	 */
 	noteOff(_channel, _note) {
