@@ -175,6 +175,10 @@ class Renderer {
 		const pixelCount = this.#canvasWidth * this.#canvasHeight;
 
 		// Mix pixels based on bit depth
+		// Note on alpha handling: We use Math.max(aPixels[idx + 3], bPixels[idx + 3]) for all bit depths.
+		// This is intentional for VJ compositing - it ensures no pixel becomes transparent when mixing
+		// two opaque layers. The mask controls RGB blending; alpha is preserved from whichever layer
+		// has higher opacity, providing consistent visual results during live performance.
 		for (let i = 0; i < pixelCount; i++) {
 			const idx = i * 4;
 			const maskValue = maskPixels[idx]; // Use R channel (grayscale: R=G=B)
@@ -394,35 +398,31 @@ class Renderer {
 		const splits = Math.min(8, Math.max(2, Math.floor(noteInRange / 2) + 2));
 
 		if (noteInRange < 8) {
-			// Horizontal split
+			// Horizontal split - use modulo wrapping for proper repeating pattern
 			const sectionWidth = Math.floor(w / splits);
 			for (let y = 0; y < h; y++) {
 				for (let x = 0; x < w; x++) {
-					const srcX = (x % sectionWidth) * splits;
-					if (srcX < w) {
-						const srcIdx = (y * w + Math.min(srcX, w - 1)) * 4;
-						const dstIdx = (y * w + x) * 4;
-						data[dstIdx] = data[srcIdx];
-						data[dstIdx + 1] = data[srcIdx + 1];
-						data[dstIdx + 2] = data[srcIdx + 2];
-						data[dstIdx + 3] = data[srcIdx + 3];
-					}
+					const srcX = ((x % sectionWidth) * splits) % w;
+					const srcIdx = (y * w + srcX) * 4;
+					const dstIdx = (y * w + x) * 4;
+					data[dstIdx] = data[srcIdx];
+					data[dstIdx + 1] = data[srcIdx + 1];
+					data[dstIdx + 2] = data[srcIdx + 2];
+					data[dstIdx + 3] = data[srcIdx + 3];
 				}
 			}
 		} else {
-			// Vertical split
+			// Vertical split - use modulo wrapping for proper repeating pattern
 			const sectionHeight = Math.floor(h / splits);
 			for (let y = 0; y < h; y++) {
-				const srcY = (y % sectionHeight) * splits;
+				const srcY = ((y % sectionHeight) * splits) % h;
 				for (let x = 0; x < w; x++) {
-					if (srcY < h) {
-						const srcIdx = (Math.min(srcY, h - 1) * w + x) * 4;
-						const dstIdx = (y * w + x) * 4;
-						data[dstIdx] = data[srcIdx];
-						data[dstIdx + 1] = data[srcIdx + 1];
-						data[dstIdx + 2] = data[srcIdx + 2];
-						data[dstIdx + 3] = data[srcIdx + 3];
-					}
+					const srcIdx = (srcY * w + x) * 4;
+					const dstIdx = (y * w + x) * 4;
+					data[dstIdx] = data[srcIdx];
+					data[dstIdx + 1] = data[srcIdx + 1];
+					data[dstIdx + 2] = data[srcIdx + 2];
+					data[dstIdx + 3] = data[srcIdx + 3];
 				}
 			}
 		}
