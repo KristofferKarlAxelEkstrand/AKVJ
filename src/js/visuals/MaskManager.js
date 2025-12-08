@@ -107,8 +107,8 @@ class MaskManager {
 		this.#currentNote = note;
 		this.#currentVelocity = velocityLayer;
 		this.#currentMask = layer;
-		// Get bitDepth from mask metadata (defaults to 1-bit for crisp B&W masks)
-		this.#currentBitDepth = maskData.bitDepth ?? 1;
+		// Get bitDepth from animation layer (defaults to 1-bit for crisp B&W masks)
+		this.#currentBitDepth = layer.bitDepth ?? 1;
 
 		// Reset the mask animation
 		this.#currentMask.reset();

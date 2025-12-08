@@ -21,6 +21,7 @@ class AnimationLayer {
 	#frameHeight;
 	#loop;
 	#retrigger;
+	#bitDepth; // For mask mixing (1, 2, 4, or 8 bit)
 	#canvasWidth;
 	#canvasHeight;
 
@@ -33,7 +34,7 @@ class AnimationLayer {
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 	#useBPMSync = false; // Whether to use BPM sync mode
 
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, retrigger = true }) {
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
 			throw new Error('AnimationLayer requires numberOfFrames >= 1');
 		}
@@ -45,6 +46,7 @@ class AnimationLayer {
 		this.#image = image;
 		this.#numberOfFrames = numberOfFrames;
 		this.#framesPerRow = framesPerRow;
+		this.#bitDepth = bitDepth;
 
 		// Process beatsPerFrame (takes priority over frameRatesForFrames)
 		if (beatsPerFrame !== null && beatsPerFrame !== undefined) {
@@ -238,6 +240,14 @@ class AnimationLayer {
 	 */
 	get isFinished() {
 		return this.#isFinished;
+	}
+
+	/**
+	 * Get the bit depth for this animation (used for mask mixing)
+	 * @returns {number|null} Bit depth (1, 2, 4, or 8) or null if not specified
+	 */
+	get bitDepth() {
+		return this.#bitDepth;
 	}
 
 	/**
