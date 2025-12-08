@@ -316,8 +316,7 @@ Effects that apply to the mixed A/B output:
 | 48-63      | **Color Effects** - Invert, threshold, posterize  |
 | 64-79      | **Glitch** - Random pixel displacement, scanlines |
 | 80-95      | **Strobe** - Flash effects                        |
-| 96-111     | **Zoom/Scale** - Crude scaling effects            |
-| 112-127    | Reserved                                          |
+| 96-127     | Reserved                                          |
 
 ### Global Effects (Channel 12)
 

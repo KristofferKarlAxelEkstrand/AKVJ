@@ -83,8 +83,7 @@ const settings = {
 		color: { min: 48, max: 63 }, // Color effects (invert, posterize, etc.)
 		glitch: { min: 64, max: 79 }, // Glitch effects
 		strobe: { min: 80, max: 95 }, // Strobe/Flash effects
-		zoom: { min: 96, max: 111 }, // Zoom/Scale effects
-		reserved: { min: 112, max: 127 } // Reserved for future use
+		reserved: { min: 96, max: 127 } // Reserved for future use
 	},
 	performance: {
 		// Target frame rate for animations

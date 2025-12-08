@@ -275,7 +275,7 @@ describe('Channel Mapping from Settings', () => {
 		expect(settings.effectRanges.color).toEqual({ min: 48, max: 63 });
 		expect(settings.effectRanges.glitch).toEqual({ min: 64, max: 79 });
 		expect(settings.effectRanges.strobe).toEqual({ min: 80, max: 95 });
-		expect(settings.effectRanges.zoom).toEqual({ min: 96, max: 111 });
+		expect(settings.effectRanges.reserved).toEqual({ min: 96, max: 127 });
 	});
 });
 

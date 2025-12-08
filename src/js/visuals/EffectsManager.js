@@ -15,7 +15,7 @@ import settings from '../core/settings.js';
 
 /**
  * Effect type based on note range
- * @typedef {'split'|'mirror'|'offset'|'color'|'glitch'|'strobe'|'zoom'|'reserved'} EffectType
+ * @typedef {'split'|'mirror'|'offset'|'color'|'glitch'|'strobe'|'reserved'} EffectType
  */
 
 /**

@@ -256,9 +256,6 @@ class Renderer {
 				case 'strobe':
 					this.#applyStrobeEffect(data, intensity);
 					break;
-				case 'zoom':
-					this.#applyZoomEffect(ctx, imageData, effect.note, intensity);
-					return; // Zoom modifies canvas directly
 				default:
 					break;
 			}
@@ -481,44 +478,6 @@ class Renderer {
 		}
 
 		ctx.putImageData(imageData, 0, 0);
-	}
-
-	/**
-	 * Apply zoom effect (scale from center)
-	 */
-	#applyZoomEffect(ctx, imageData, note, intensity) {
-		const w = this.#canvasWidth;
-		const h = this.#canvasHeight;
-		const noteInRange = note - settings.effectRanges.zoom.min;
-
-		// Zoom factor: 1.0 (no zoom) to 2.0 (2x zoom) based on intensity
-		const zoomIn = noteInRange < 8;
-		const zoomFactor = zoomIn ? 1.0 + intensity : 1.0 / (1.0 + intensity);
-
-		// Clear canvas and draw scaled version
-		ctx.putImageData(imageData, 0, 0);
-
-		// Create temp canvas for scaling
-		const tempCanvas = document.createElement('canvas');
-		tempCanvas.width = w;
-		tempCanvas.height = h;
-		const tempCtx = tempCanvas.getContext('2d');
-		tempCtx.putImageData(imageData, 0, 0);
-
-		// Clear main canvas
-		ctx.fillStyle = settings.rendering.backgroundColor;
-		ctx.fillRect(0, 0, w, h);
-
-		// Draw scaled from center
-		const scaledW = w * zoomFactor;
-		const scaledH = h * zoomFactor;
-		const offsetX = (w - scaledW) / 2;
-		const offsetY = (h - scaledH) / 2;
-
-		const originalSmoothing = ctx.imageSmoothingEnabled;
-		ctx.imageSmoothingEnabled = false; // Keep pixel-perfect rendering
-		ctx.drawImage(tempCanvas, offsetX, offsetY, scaledW, scaledH);
-		ctx.imageSmoothingEnabled = originalSmoothing; // Restore previous smoothing setting
 	}
 
 	/**
