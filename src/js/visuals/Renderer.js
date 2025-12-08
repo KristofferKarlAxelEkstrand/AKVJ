@@ -344,17 +344,24 @@ class Renderer {
 	 * Apply glitch effect
 	 * Uses horizontal pixel displacement for a digital glitch aesthetic.
 	 * The effect randomly shifts pixels left/right by sampling neighboring pixel data.
+	 * Offset is constrained to stay within the same row to prevent vertical artifacts.
 	 */
 	#applyGlitchEffect(data, intensity) {
 		// Random horizontal pixel displacement based on intensity
 		const glitchAmount = Math.floor(intensity * 20);
+		const w = this.#canvasWidth;
+		const rowBytes = w * 4;
 
 		for (let i = 0; i < data.length; i += 4) {
 			if (Math.random() < intensity * 0.1) {
-				// Offset in bytes (horizontal pixel displacement), not rows
+				// Calculate row boundaries to prevent vertical wrapping
+				const rowStart = Math.floor(i / rowBytes) * rowBytes;
+				const rowEnd = rowStart + rowBytes - 4;
+
+				// Offset in bytes (horizontal pixel displacement), constrained to same row
 				const offsetPx = Math.floor(Math.random() * (glitchAmount + 1)) - Math.floor(glitchAmount / 2);
 				const offsetBytes = offsetPx * 4;
-				const srcIdx = Math.max(0, Math.min(data.length - 4, i + offsetBytes));
+				const srcIdx = Math.max(rowStart, Math.min(rowEnd, i + offsetBytes));
 				data[i] = data[srcIdx];
 				data[i + 1] = data[srcIdx + 1];
 				data[i + 2] = data[srcIdx + 2];

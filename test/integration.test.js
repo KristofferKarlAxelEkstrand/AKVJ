@@ -10,7 +10,9 @@ import EffectsManager from '../src/js/visuals/EffectsManager.js';
 import settings from '../src/js/core/settings.js';
 
 /**
- * Create a mock animation layer
+ * Create a mock animation layer with spied methods
+ * @param {string} id - Unique identifier for the layer
+ * @returns {Object} Mock layer with vi.fn() spies for all methods
  */
 function createMockLayer(id = 'mock') {
 	return {
@@ -78,6 +80,22 @@ describe('LayerGroup', () => {
 		// High velocity should get highVel layer
 		group.noteOn(0, 60, 100);
 		expect(group.getActiveLayers()).toContain(highVel);
+	});
+
+	test('active layers have playToContext method for off-screen rendering', () => {
+		const group = new LayerGroup('A', [0]);
+		const layer = createMockLayer('layer');
+
+		const animations = { 0: { 60: { 0: layer } } };
+		group.setAnimations(animations);
+
+		group.noteOn(0, 60, 127);
+		const activeLayers = group.getActiveLayers();
+
+		// Verify playToContext is available on active layers (used by Renderer for off-screen compositing)
+		expect(activeLayers.length).toBe(1);
+		expect(activeLayers[0].playToContext).toBeDefined();
+		expect(typeof activeLayers[0].playToContext).toBe('function');
 	});
 });
 
