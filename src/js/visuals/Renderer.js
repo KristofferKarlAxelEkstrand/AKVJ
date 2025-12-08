@@ -171,12 +171,12 @@ class Renderer {
 					outPixels[idx] = aPixels[idx];
 					outPixels[idx + 1] = aPixels[idx + 1];
 					outPixels[idx + 2] = aPixels[idx + 2];
-					outPixels[idx + 3] = aPixels[idx + 3];
+					outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 				} else {
 					outPixels[idx] = bPixels[idx];
 					outPixels[idx + 1] = bPixels[idx + 1];
 					outPixels[idx + 2] = bPixels[idx + 2];
-					outPixels[idx + 3] = bPixels[idx + 3];
+					outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 				}
 			} else {
 				// Smooth blend: A + (B - A) * alpha
@@ -264,8 +264,13 @@ class Renderer {
 
 	/**
 	 * Apply mirror effect
+	 * @param {CanvasRenderingContext2D} ctx - Target context
+	 * @param {ImageData} imageData - Source image data
+	 * @param {number} note - MIDI note number
+	 * @param {number} _intensity - Effect intensity (TODO: use for partial mirror effects)
 	 */
 	#applyMirrorEffect(ctx, imageData, note, _intensity) {
+		// TODO: Use intensity parameter for partial mirror effects (e.g., blend factor)
 		const noteInRange = note - settings.effectRanges.mirror.min;
 		const data = imageData.data;
 		const w = this.#canvasWidth;
@@ -336,8 +341,13 @@ class Renderer {
 
 	/**
 	 * Apply split effect (divide screen into sections)
+	 * @param {CanvasRenderingContext2D} ctx - Target context
+	 * @param {ImageData} imageData - Source image data
+	 * @param {number} note - MIDI note number
+	 * @param {number} _intensity - Effect intensity (TODO: use for split transition or blend)
 	 */
 	#applySplitEffect(ctx, imageData, note, _intensity) {
+		// TODO: Use intensity parameter to control split transitions or blend between states
 		const data = imageData.data;
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;
@@ -465,8 +475,10 @@ class Renderer {
 		const offsetX = (w - scaledW) / 2;
 		const offsetY = (h - scaledH) / 2;
 
+		const originalSmoothing = ctx.imageSmoothingEnabled;
 		ctx.imageSmoothingEnabled = false; // Keep pixel-perfect rendering
 		ctx.drawImage(tempCanvas, offsetX, offsetY, scaledW, scaledH);
+		ctx.imageSmoothingEnabled = originalSmoothing; // Restore previous smoothing setting
 	}
 
 	/**

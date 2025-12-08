@@ -110,6 +110,11 @@ class AnimationLayer {
 	/**
 	 * Render the current animation frame to a specific context.
 	 * Useful for off-screen rendering in multi-layer compositing.
+	 *
+	 * Note: This method advances the animation frame based on the timestamp.
+	 * To prevent double-advancement, ensure only one of play() or playToContext()
+	 * is called per animation per frame with the same timestamp.
+	 *
 	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
 	 * @param {number} [timestamp] - Optional performance.now() timestamp
 	 */
