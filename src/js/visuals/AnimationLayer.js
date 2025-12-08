@@ -207,8 +207,8 @@ class AnimationLayer {
 			// beatsPerFrame[i] = number of beats this frame should last
 			// e.g., beatsPerFrame=0.25 at 120 BPM = 125ms (16th note)
 			const beats = this.#beatsPerFrame[frameIndex] ?? this.#beatsPerFrame[0] ?? 0.25;
-			// Ensure BPM is at least 1 to prevent division by zero
-			const bpm = Math.max(1, appState.bpm);
+			// Ensure BPM is at least the configured minimum to prevent extremely long intervals
+			const bpm = Math.max(settings.bpm.min, appState.bpm);
 			return (beats * 60000) / bpm;
 		}
 
