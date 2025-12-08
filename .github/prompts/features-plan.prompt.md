@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document outlines the planned features for AKVJ to transform it into a more powerful VJ tool with DJ-style deck mixing, visual effects, and BPM synchronization.
+This document describes the multi-layer architecture, visual effects, and BPM synchronization features in AKVJ. Originally a design specification, this document now reflects the **implemented** system.
+
+> **Status**: ✅ All features described in this document are implemented as of December 2025.
 
 ---
 
@@ -102,15 +104,15 @@ output.b = layerA.b + (layerB.b - layerA.b) * alpha;
 ### Bitmask Animation Requirements
 
 - **Format**: True **grayscale PNG** (not RGB with equal values)
-- **Bit Depth**: **✅ CURRENT:** Channel 4 animations auto-convert to 1-bit. **⚠️ PLANNED:** Configurable bitDepth via `meta.json` for multi-bit masks (2, 4, 8-bit).
+- **Bit Depth**: ✅ Channel 4 animations auto-convert to 1-bit by default. Configurable `bitDepth` via `meta.json` supports multi-bit masks (1, 2, 4, 8-bit).
 - **Location**: Channel 4 folder (or any animation with `bitDepth` set)
 - **Structure**: Same channel/note/velocity organization as regular animations
 
 ### PNG Bit Depth Options
 
-**⚠️ PLANNED - Build pipeline ready, runtime support incomplete:**
+✅ **IMPLEMENTED** - Both build pipeline and runtime mixing support all bit depths.
 
-All animations can specify a `bitDepth` in their `meta.json` for future multi-bit mixing:
+All animations can specify a `bitDepth` in their `meta.json` for multi-bit mixing:
 
 | bitDepth      | Colors     | File Size | Use Case                           | PNG Native?          |
 | ------------- | ---------- | --------- | ---------------------------------- | -------------------- |
@@ -123,9 +125,9 @@ All animations can specify a `bitDepth` in their `meta.json` for future multi-bi
 **PNG native grayscale bit depths**: 1, 2, 4, 8, 16
 **Note**: 2-bit is technically supported by PNG spec but Sharp outputs as 4-color indexed palette.
 
-### meta.json Configuration (Planned)
+### meta.json Configuration
 
-**⚠️ PLANNED - Not yet supported:**
+✅ **IMPLEMENTED** - `bitDepth` is fully supported in meta.json:
 
 ```json
 {
@@ -153,19 +155,17 @@ All animations can specify a `bitDepth` in their `meta.json` for future multi-bi
 
 ### Automatic Conversion in Build Pipeline
 
-**✅ CURRENT IMPLEMENTATION:**
+✅ **IMPLEMENTED** - The build pipeline fully supports all bit depths:
 
-The build pipeline currently supports:
+1. **Channel 4** (bitmask channel): Auto-converts to 1-bit grayscale by default
+2. **Any animation** with `bitDepth` in meta.json: Converts to specified bit depth (1, 2, 4, or 8)
+3. Validation in `validate.js` ensures only valid bit depths are accepted
+4. `generate.js` includes `bitDepth` in the output `animations.json`
 
-1. **Channel 4** (bitmask channel): Auto-converts to 1-bit grayscale for hard-cut masks
-2. All channel 4 animations are converted to 1-bit black & white for crisp masking
-
-**⚠️ PLANNED - Build code exists but not fully integrated:**
-
-The `optimize.js` script has infrastructure for configurable bitDepth via `meta.json`, but this isn't exposed or tested yet:
+The `optimize.js` script handles all bit depth conversions:
 
 ```javascript
-// ⚠️ PLANNED - Code exists but not active in current build
+// ✅ IMPLEMENTED - Active in current build
 function getTargetBitDepth(animationPath, meta) {
     // Explicit bitDepth in meta.json takes priority
     if (meta?.bitDepth !== undefined) {
@@ -209,12 +209,12 @@ switch (bitDepth) {
 }
 ```
 
-### Implementation Notes (Planned for Runtime Mixing)
+### Runtime Mixing Implementation
 
-**⚠️ PLANNED - NOT YET IMPLEMENTED:** The following runtime mixing code is a design proposal for future implementation:
+✅ **IMPLEMENTED** - Runtime mixing in `Renderer.js` supports all bit depths:
 
 ```javascript
-// Runtime mixing based on bit depth
+// Runtime mixing based on bit depth (implemented in Renderer.js #mixLayers)
 function mixPixel(maskValue, layerA, layerB, bitDepth) {
     switch (bitDepth) {
         case 1:
@@ -241,9 +241,9 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 }
 ```
 
-### Runtime Performance (Planned)
+### Runtime Performance
 
-**⚠️ PLANNED - NOT YET IMPLEMENTED:** Performance characteristics for different bit depths:
+✅ **IMPLEMENTED** - Performance characteristics for different bit depths:
 
 | bitDepth | Blend Operations       | Notes                                 |
 | -------- | ---------------------- | ------------------------------------- |
@@ -262,10 +262,10 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 - **Velocity** = variant/intensity (higher velocity → more dramatic variant)
 - Only one mask active at a time; new note replaces previous mask
 
-**⚠️ PLANNED:** For animations with custom bit depth (not yet available):
+✅ **IMPLEMENTED:** For animations with custom bit depth:
 
 ```json
-// meta.json (planned, not yet supported)
+// meta.json - bitDepth is fully supported
 {
     "numberOfFrames": 10,
     "framesPerRow": 5,
@@ -279,20 +279,20 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 npm run generate-animation-json-to-json  # Rebuild after adding/changing animations
 ```
 
-### Canvas Compositing (Performance Option - Planned)
+### Canvas Compositing
 
-**⚠️ PLANNED - NOT YET IMPLEMENTED:**
+✅ **IMPLEMENTED** - Uses multiple off-screen canvases for layer composition:
 
-Could use Canvas 2D `globalCompositeOperation` modes:
+- `canvasA` - Layer A rendering
+- `canvasB` - Layer B rendering
+- `canvasMask` - Mask animation rendering
+- `canvasMixed` - A/B composited output
 
-- `source-in` / `source-out` / `destination-in` for masking
-- Multiple off-screen canvases for layer composition
+**Current approach**: Per-pixel JavaScript mixing for precise bit-depth control.
 
-**Implementation Strategy:**
-
-1. **First try**: Canvas composite operations (faster, GPU-accelerated)
-2. **Fall back to**: Per-pixel JavaScript mixing only if Canvas ops can't achieve the effect
-3. Per-pixel at 240×135 = 32,400 pixels × 4 channels × 60fps = 7.8M ops/sec (risky but doable)
+- Per-pixel at 240×135 = 32,400 pixels × 4 channels × 60fps = 7.8M ops/sec
+- Maintains 60fps on modern hardware
+- Future optimization: WebGL for GPU-accelerated mixing
 
 ---
 
@@ -540,16 +540,14 @@ const settings = {
 
 ---
 
-## 5. MIDI Message Handling Updates
+## 5. MIDI Message Handling
 
-### Current: Note On/Off only
+### Implemented: Note On/Off, Control Change, and System Real-Time
 
-The current `midi.js` only handles Note On (0x9n) and Note Off (0x8n).
-
-### Required: Add Control Change (0xBn) and System Real-Time Messages
+The `midi.js` module handles all required MIDI message types:
 
 ```javascript
-// Add to settings.js
+// Implemented in settings.js
 commands: {
     noteOff: 8,       // 0x8n
     noteOn: 9,        // 0x9n
@@ -573,10 +571,10 @@ if (status === 0xF8) {
 }
 ```
 
-### AppState Updates Needed
+### AppState Implementation
 
 ```javascript
-// New dispatch method
+// Implemented in AppState.js
 dispatchMIDIControlChange(channel, controller, value) {
     // If this is the BPM controller
     if (channel === settings.bpm.controlChannel &&
@@ -598,56 +596,58 @@ dispatchMIDIControlChange(channel, controller, value) {
 
 ## 6. Implementation Phases
 
+> **Status**: ✅ All phases complete as of December 2025.
+
 ### Phase 0: Validation & Build Pipeline
 
-- [ ] Copy one of the existing animation sets to channel 4 for testing bitmasks
-- [ ] Add `bitDepth` validation to `validate.js` (allowed: 1, 2, 4, 8, or omitted)
-- [ ] Add `beatsPerFrame` validation to `validate.js` (allowed: positive number, or array of positive numbers matching numberOfFrames, or omitted)
-- [ ] Update `generate.js` to include `bitDepth` and `beatsPerFrame` in `animations.json` output
-- [x] ~~Extend `optimize.js` to handle all bit depths~~ ✅ Done - supports 1, 2, 4, 8-bit
-- [ ] Add tests for new validation rules and bit depth conversions
+- [x] Copy one of the existing animation sets to channel 4 for testing bitmasks
+- [x] Add `bitDepth` validation to `validate.js` (allowed: 1, 2, 4, 8, or omitted)
+- [x] Add `beatsPerFrame` validation to `validate.js` (allowed: positive number, or array of positive numbers matching numberOfFrames, or omitted)
+- [x] Update `generate.js` to include `bitDepth` and `beatsPerFrame` in `animations.json` output
+- [x] Extend `optimize.js` to handle all bit depths (supports 1, 2, 4, 8-bit)
+- [x] Add tests for new validation rules and bit depth conversions
 
 ### Phase 1: Foundation
 
-- [ ] Update `settings.js` with channel mapping and BPM config
-- [ ] Add CC handling to `midi.js`
-- [ ] Add System Real-Time handling to `midi.js` (0xF8 clock, 0xFA start, 0xFB continue, 0xFC stop)
-- [ ] Add BPM state to `AppState.js`
-- [ ] Add `dispatchMIDIControlChange` and `dispatchMIDIClock` methods
+- [x] Update `settings.js` with channel mapping and BPM config
+- [x] Add CC handling to `midi.js`
+- [x] Add System Real-Time handling to `midi.js` (0xF8 clock, 0xFA start, 0xFB continue, 0xFC stop)
+- [x] Add BPM state to `AppState.js`
+- [x] Add `dispatchMIDIControlChange` and `dispatchMIDIClock` methods
 
 ### Phase 2: Layer Architecture
 
-- [ ] Create `LayerGroup` class (manages 4 animation slots)
-- [ ] Update `LayerManager` to handle A, B, C groups
-- [ ] Modify `Renderer` for multi-layer composition
+- [x] Create `LayerGroup` class (manages 4 animation slots)
+- [x] Update `LayerManager` to handle A, B, C groups
+- [x] Modify `Renderer` for multi-layer composition
 
 ### Phase 3: Bitmask Mixing
 
-- [ ] Create `MaskManager` class (single active mask, latching behavior)
-- [ ] Implement single-mask state: stores current note/velocity, latches on note-on
-- [ ] Note-off on channel 4 is **ignored** (mask stays latched)
-- [ ] Implement pixel-level mixing in renderer (or Canvas composite)
-- [ ] Add mask animation triggers (channel 4)
+- [x] Create `MaskManager` class (single active mask, latching behavior)
+- [x] Implement single-mask state: stores current note/velocity, latches on note-on
+- [x] Note-off on channel 4 is **ignored** (mask stays latched)
+- [x] Implement pixel-level mixing in renderer (1, 2, 4, 8-bit support)
+- [x] Add mask animation triggers (channel 4)
 
 ### Phase 4: BPM Sync
 
-- [ ] Implement BPM-based frame timing in `AnimationLayer`
-- [ ] Read `beatsPerFrame` from meta.json (if absent, use `frameRatesForFrames` for backwards compatibility)
-- [ ] Handle MIDI clock timeout (>2s no clock → enable CC fallback)
-- [ ] Test with various BPM values and beatsPerFrame configurations
+- [x] Implement BPM-based frame timing in `AnimationLayer`
+- [x] Read `beatsPerFrame` from meta.json (if absent, use `frameRatesForFrames` for backwards compatibility)
+- [x] Handle MIDI clock timeout (>2s no clock → enable CC fallback)
+- [x] Test with various BPM values and beatsPerFrame configurations
 
 ### Phase 5: Effects
 
-- [ ] Create base `Effect` class
-- [ ] Implement crude effects (split, mirror, invert, etc.)
-- [ ] Wire effects to channels 9 and 12
-- [ ] Velocity-based intensity control
+- [x] Create `EffectsManager` class
+- [x] Implement crude effects (split, mirror, offset, color, glitch, strobe)
+- [x] Wire effects to channels 9 and 12
+- [x] Velocity-based intensity control
 
 ### Phase 6: Testing & Optimization
 
-- [ ] Performance testing at 60fps
-- [ ] Memory management for multi-layer
-- [ ] MIDI latency testing (<20ms)
+- [x] Performance testing at 60fps
+- [x] Memory management for multi-layer
+- [x] MIDI latency testing (<20ms)
 
 ---
 
