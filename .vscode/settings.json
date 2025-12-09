@@ -1,0 +1,71 @@
+{
+	// Theme
+	"workbench.colorTheme": "Gruvbox Dark Medium",
+
+	// Editor settings
+	"editor.tabSize": 4,
+	"editor.insertSpaces": false,
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit",
+		"source.fixAll.stylelint": "explicit"
+	},
+	"editor.bracketPairColorization.enabled": true,
+	"editor.guides.bracketPairs": true,
+	"editor.minimap.enabled": false,
+	"editor.wordWrap": "off",
+	"editor.renderWhitespace": "selection",
+
+	// Files
+	"files.eol": "\n",
+	"files.trimTrailingWhitespace": true,
+	"files.insertFinalNewline": true,
+	"files.associations": {
+		"*.json": "jsonc"
+	},
+
+	// JavaScript
+	"javascript.preferences.quoteStyle": "single",
+	"javascript.updateImportsOnFileMove.enabled": "always",
+
+	// ESLint
+	"eslint.validate": ["javascript"],
+	"eslint.useFlatConfig": true,
+
+	// Prettier
+	"prettier.useTabs": true,
+	"prettier.tabWidth": 4,
+	"prettier.singleQuote": true,
+
+	// Stylelint
+	"stylelint.validate": ["css"],
+	"css.validate": false,
+
+	// Git
+	"git.autofetch": true,
+	"git.confirmSync": false,
+
+	// Explorer
+	"explorer.confirmDelete": false,
+	"explorer.confirmDragAndDrop": false,
+	"explorer.fileNesting.enabled": true,
+	"explorer.fileNesting.patterns": {
+		"package.json": "package-lock.json, .npmrc, .prettierrc, .stylelintrc, .prettierignore, .gitignore",
+		"*.js": "${capture}.test.js, ${capture}.spec.js"
+	},
+
+	// Search exclusions
+	"search.exclude": {
+		"**/node_modules": true,
+		"**/dist": true,
+		"**/package-lock.json": true
+	},
+
+	// Copilot
+	"github.copilot.enable": {
+		"*": true,
+		"plaintext": true,
+		"markdown": true
+	}
+}
