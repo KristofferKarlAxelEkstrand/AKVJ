@@ -92,34 +92,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		try {
-			this.#teardownMIDIEventListeners();
-		} catch (error) {
-			console.error('Error tearing down MIDI listeners:', error);
-		}
-		try {
-			if (this.#renderer) {
-				this.#renderer.stop();
-				this.#renderer.destroy();
-			}
-		} catch (error) {
-			console.error('Error stopping renderer:', error);
-		}
-		try {
-			if (this.#layerManager) {
-				this.#layerManager.clearLayers();
-				this.#layerManager.destroy();
-			}
-		} catch (error) {
-			console.error('Error clearing layers:', error);
-		}
-		try {
-			if (this.#animationLoader) {
-				this.#animationLoader.cleanup(this.#animations);
-			}
-		} catch (error) {
-			console.error('Error cleaning up animations:', error);
-		}
+		this.#teardownMIDIEventListeners();
+		this.#renderer?.stop();
+		this.#renderer?.destroy();
+		this.#layerManager?.clearLayers();
+		this.#layerManager?.destroy();
+		this.#animationLoader?.cleanup(this.#animations);
 		this.#animations = {};
 	}
 

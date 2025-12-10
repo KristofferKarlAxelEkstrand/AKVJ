@@ -61,8 +61,18 @@ export async function generate(sourceDir, outputPath) {
 					entry.png = finalPng;
 				}
 
+				// Ensure bitDepth is included if specified (for bitmask mixing)
+				if (metadata.bitDepth !== undefined) {
+					entry.bitDepth = metadata.bitDepth;
+				}
+
+				// Ensure beatsPerFrame is included if specified (for BPM sync)
+				if (metadata.beatsPerFrame !== undefined) {
+					entry.beatsPerFrame = metadata.beatsPerFrame;
+				}
+
 				output[channel][note][velocity] = entry;
-				console.log(`    Velocity ${velocity}: ${pngFile || '(no png)'}`);
+				console.log(`    Velocity ${velocity}: ${pngFile || '(no png)'}${metadata.bitDepth ? ` (${metadata.bitDepth}-bit)` : ''}${metadata.beatsPerFrame ? ' (BPM sync)' : ''}`);
 			}
 		}
 	}

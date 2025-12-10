@@ -11,9 +11,6 @@ class MIDI {
 	#connectedInputs = new Map();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
 	#boundStateChange = this.#handleStateChange.bind(this);
-	#messageMinLength = settings.midi.messageMinLength;
-	#commandNoteOn = settings.midi.commands.noteOn;
-	#commandNoteOff = settings.midi.commands.noteOff;
 
 	constructor() {
 		this.#init();
@@ -161,31 +158,62 @@ class MIDI {
 	}
 
 	#handleMIDIMessage(message) {
-		if (!message?.data || message.data.length < this.#messageMinLength) {
+		if (!message?.data || message.data.length === 0) {
 			return;
 		}
 
-		const [status, note, velocity] = message.data;
+		const status = message.data[0];
+		const { commands, systemRealTime, messageMinLength } = settings.midi;
+
+		// Handle System Real-Time messages (single-byte, no channel)
+		// These are high-priority timing messages and should be processed first
+		if (status >= 0xf8) {
+			switch (status) {
+				case systemRealTime.clock:
+					appState.dispatchMIDIClock(performance.now());
+					break;
+				case systemRealTime.start:
+					appState.dispatchMIDIStart();
+					break;
+				case systemRealTime.continue:
+					appState.dispatchMIDIContinue();
+					break;
+				case systemRealTime.stop:
+					appState.dispatchMIDIStop();
+					break;
+				default:
+					// Other system real-time messages (0xFE Active Sensing, 0xFF Reset)
+					break;
+			}
+			return;
+		}
+
+		// Channel messages require at least 3 bytes (for Note and CC)
+		if (message.data.length < messageMinLength) {
+			return;
+		}
+
+		const [, note, velocity] = message.data;
 		const command = status >> 4;
 		const channel = status & 0xf;
 
-		try {
-			switch (command) {
-				case this.#commandNoteOn:
-					if (velocity > 0) {
-						appState.dispatchMIDINoteOn(channel, note, velocity);
-					} else {
-						appState.dispatchMIDINoteOff(channel, note);
-					}
-					break;
-				case this.#commandNoteOff:
+		switch (command) {
+			case commands.noteOn:
+				if (velocity > 0) {
+					appState.dispatchMIDINoteOn(channel, note, velocity);
+				} else {
 					appState.dispatchMIDINoteOff(channel, note);
-					break;
-				default:
-					break;
-			}
-		} catch (error) {
-			console.error('Error dispatching MIDI event:', error);
+				}
+				break;
+			case commands.noteOff:
+				appState.dispatchMIDINoteOff(channel, note);
+				break;
+			case commands.controlChange:
+				// note = controller number, velocity = value
+				appState.dispatchMIDIControlChange(channel, note, velocity);
+				break;
+			default:
+				break;
 		}
 	}
 
