@@ -42,9 +42,9 @@ class LayerManager {
 		const { channelMapping } = settings;
 
 		// Initialize layer groups
-		this.#layerA = new LayerGroup('A', channelMapping.layerA);
-		this.#layerB = new LayerGroup('B', channelMapping.layerB);
-		this.#layerC = new LayerGroup('C', channelMapping.layerC);
+		this.#layerA = new LayerGroup(channelMapping.layerA);
+		this.#layerB = new LayerGroup(channelMapping.layerB);
+		this.#layerC = new LayerGroup(channelMapping.layerC);
 
 		// Initialize managers
 		this.#maskManager = new MaskManager();

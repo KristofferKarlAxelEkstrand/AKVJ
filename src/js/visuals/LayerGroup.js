@@ -12,9 +12,6 @@ import { buildVelocityCache, findVelocityLayer } from '../utils/velocityLayer.js
  * @typedef {import('./AnimationLayer.js').default} AnimationLayer
  */
 class LayerGroup {
-	/** @type {string} */
-	#name;
-
 	/** @type {number[]} */
 	#channels;
 
@@ -29,42 +26,15 @@ class LayerGroup {
 
 	/**
 	 * Create a new LayerGroup
-	 * @param {string} name - Name of the group ('A', 'B', or 'C')
 	 * @param {number[]} channels - Array of MIDI channels this group handles
 	 */
-	constructor(name, channels) {
-		this.#name = name;
+	constructor(channels) {
 		this.#channels = channels;
 
 		// Initialize active layers map for each channel
 		for (const channel of channels) {
 			this.#activeLayers.set(channel, new Map());
 		}
-	}
-
-	/**
-	 * Get the name of this layer group
-	 * @returns {string}
-	 */
-	get name() {
-		return this.#name;
-	}
-
-	/**
-	 * Get the channels this group handles
-	 * @returns {number[]}
-	 */
-	get channels() {
-		return this.#channels;
-	}
-
-	/**
-	 * Check if this group handles a specific channel
-	 * @param {number} channel - MIDI channel
-	 * @returns {boolean}
-	 */
-	handlesChannel(channel) {
-		return this.#channels.includes(channel);
 	}
 
 	/**
@@ -92,7 +62,8 @@ class LayerGroup {
 	 * @returns {boolean} True if an animation was activated
 	 */
 	noteOn(channel, note, velocity) {
-		if (!this.handlesChannel(channel)) {
+		const channelLayers = this.#activeLayers.get(channel);
+		if (!channelLayers) {
 			return false;
 		}
 
@@ -112,11 +83,7 @@ class LayerGroup {
 		}
 
 		layer.reset();
-
-		const channelLayers = this.#activeLayers.get(channel);
-		if (channelLayers) {
-			channelLayers.set(note, layer);
-		}
+		channelLayers.set(note, layer);
 
 		return true;
 	}
@@ -128,10 +95,6 @@ class LayerGroup {
 	 * @returns {boolean} True if an animation was deactivated
 	 */
 	noteOff(channel, note) {
-		if (!this.handlesChannel(channel)) {
-			return false;
-		}
-
 		const channelLayers = this.#activeLayers.get(channel);
 		if (!channelLayers) {
 			return false;
@@ -191,18 +154,6 @@ class LayerGroup {
 	}
 
 	/**
-	 * Get count of active layers
-	 * @returns {number}
-	 */
-	getActiveLayerCount() {
-		let count = 0;
-		for (const channelLayers of this.#activeLayers.values()) {
-			count += channelLayers.size;
-		}
-		return count;
-	}
-
-	/**
 	 * Clear all active layers and stop their animations
 	 */
 	clearLayers() {
@@ -216,19 +167,6 @@ class LayerGroup {
 				}
 			}
 			channelLayers.clear();
-		}
-	}
-
-	/**
-	 * Clean up finished layers (non-looping animations that completed)
-	 */
-	cleanupFinishedLayers() {
-		for (const channelLayers of this.#activeLayers.values()) {
-			for (const [note, layer] of channelLayers.entries()) {
-				if (layer && layer.isFinished) {
-					channelLayers.delete(note);
-				}
-			}
 		}
 	}
 

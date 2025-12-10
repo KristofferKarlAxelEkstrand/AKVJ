@@ -29,7 +29,7 @@ function createMockLayer(id = 'mock') {
 describe('LayerGroup', () => {
 	test('manages animation slots correctly', () => {
 		// LayerGroup expects an array of channels
-		const group = new LayerGroup('A', [0, 1, 2, 3]);
+		const group = new LayerGroup([0, 1, 2, 3]);
 		const layer1 = createMockLayer('layer1');
 		const layer2 = createMockLayer('layer2');
 
@@ -57,7 +57,7 @@ describe('LayerGroup', () => {
 	});
 
 	test('velocity layer selection', () => {
-		const group = new LayerGroup('A', [0]);
+		const group = new LayerGroup([0]);
 		const lowVel = createMockLayer('low');
 		const highVel = createMockLayer('high');
 
@@ -83,7 +83,7 @@ describe('LayerGroup', () => {
 	});
 
 	test('active layers have playToContext method for off-screen rendering', () => {
-		const group = new LayerGroup('A', [0]);
+		const group = new LayerGroup([0]);
 		const layer = createMockLayer('layer');
 
 		const animations = { 0: { 60: { 0: layer } } };

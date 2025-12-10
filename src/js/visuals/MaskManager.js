@@ -20,12 +20,6 @@ class MaskManager {
 	#currentMask = null;
 
 	/** @type {number|null} */
-	#currentNote = null;
-
-	/** @type {number|null} */
-	#currentVelocity = null;
-
-	/** @type {number|null} */
 	#currentBitDepth = null;
 
 	/** @type {Object} */
@@ -92,8 +86,6 @@ class MaskManager {
 		}
 
 		// Set new mask
-		this.#currentNote = note;
-		this.#currentVelocity = velocityLayer;
 		this.#currentMask = layer;
 		// Get bitDepth from animation layer (defaults to 1-bit for crisp B&W masks)
 		this.#currentBitDepth = layer.bitDepth ?? 1;
@@ -141,22 +133,6 @@ class MaskManager {
 	}
 
 	/**
-	 * Get the current mask note (transition type)
-	 * @returns {number|null}
-	 */
-	getCurrentNote() {
-		return this.#currentNote;
-	}
-
-	/**
-	 * Get the current mask velocity (variant)
-	 * @returns {number|null}
-	 */
-	getCurrentVelocity() {
-		return this.#currentVelocity;
-	}
-
-	/**
 	 * Clear the current mask
 	 * Note: This is mainly for testing/reset purposes
 	 * During normal operation, masks should stay latched
@@ -166,8 +142,6 @@ class MaskManager {
 			this.#currentMask.stop();
 		}
 		this.#currentMask = null;
-		this.#currentNote = null;
-		this.#currentVelocity = null;
 		this.#currentBitDepth = null;
 	}
 

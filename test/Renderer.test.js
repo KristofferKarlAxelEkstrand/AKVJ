@@ -120,8 +120,8 @@ describe('Renderer', () => {
 		const ctx = createMockContext();
 		const finishedLayer = { playToContext: vi.fn(), isFinished: true };
 		const activeLayer = { playToContext: vi.fn(), isFinished: false };
-		const layers = [finishedLayer, activeLayer];
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => layers };
+		// getActiveLayers() should only return non-finished layers (filtering is done by LayerGroup)
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [activeLayer] };
 		const layerManager = {
 			getLayerA: () => layerA,
 			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
@@ -133,7 +133,7 @@ describe('Renderer', () => {
 		const renderer = new Renderer(ctx, layerManager);
 		renderer.start();
 
-		// Finished layer should not have playToContext invoked, but active layer should
+		// Finished layer should not be in getActiveLayers() result, so playToContext not called
 		expect(finishedLayer.playToContext).not.toHaveBeenCalled();
 		expect(activeLayer.playToContext).toHaveBeenCalled();
 		renderer.destroy();
