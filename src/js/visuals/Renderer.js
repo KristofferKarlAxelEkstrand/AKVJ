@@ -126,6 +126,9 @@ class Renderer {
 		this.#ctxMask = null;
 		this.#canvasMixed = null;
 		this.#ctxMixed = null;
+		// Release large typed arrays to help GC
+		this.#outputImageData = null;
+		this.#scratchBuffer = null;
 	}
 
 	/**

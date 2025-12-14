@@ -92,16 +92,32 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	disconnectedCallback() {
+		// Use individual try-catch blocks so one failure doesn't prevent other cleanup
 		try {
 			this.#teardownMIDIEventListeners();
+		} catch (error) {
+			console.error('Error tearing down MIDI event listeners:', error);
+		}
+
+		try {
 			this.#renderer?.stop();
 			this.#renderer?.destroy();
+		} catch (error) {
+			console.error('Error destroying renderer:', error);
+		}
+
+		try {
 			this.#layerManager?.clearLayers();
 			this.#layerManager?.destroy();
+		} catch (error) {
+			console.error('Error destroying layer manager:', error);
+		}
+
+		try {
 			this.#animationLoader?.cleanup(this.#animations);
 			this.#animations = {};
 		} catch (error) {
-			console.error('Error during AdventureKidVideoJockey cleanup in disconnectedCallback:', error);
+			console.error('Error cleaning up animation loader:', error);
 		}
 	}
 

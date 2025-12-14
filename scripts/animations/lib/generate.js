@@ -66,13 +66,13 @@ export async function generate(sourceDir, outputPath) {
 					entry.bitDepth = metadata.bitDepth;
 				}
 
-				// Ensure beatsPerFrame is included if specified (for BPM sync)
-				if (metadata.beatsPerFrame !== undefined) {
-					entry.beatsPerFrame = metadata.beatsPerFrame;
+				// Ensure frameDurationBeats is included if specified (for BPM sync)
+				if (metadata.frameDurationBeats !== undefined) {
+					entry.frameDurationBeats = metadata.frameDurationBeats;
 				}
 
 				output[channel][note][velocity] = entry;
-				console.log(`    Velocity ${velocity}: ${pngFile || '(no png)'}${metadata.bitDepth ? ` (${metadata.bitDepth}-bit)` : ''}${metadata.beatsPerFrame ? ' (BPM sync)' : ''}`);
+				console.log(`    Velocity ${velocity}: ${pngFile || '(no png)'}${metadata.bitDepth ? ` (${metadata.bitDepth}-bit)` : ''}${metadata.frameDurationBeats ? ' (BPM sync)' : ''}`);
 			}
 		}
 	}

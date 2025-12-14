@@ -163,18 +163,18 @@ describe('validate.js extended validation', () => {
 		});
 	});
 
-	describe('beatsPerFrame validation', () => {
+	describe('frameDurationBeats validation', () => {
 		test('accepts single positive number (shorthand)', async () => {
 			await createTestAnimation('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
-				beatsPerFrame: 0.5
+				frameDurationBeats: 0.5
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(0);
-			expect(result.valid[0].meta.beatsPerFrame).toBe(0.5);
+			expect(result.valid[0].meta.frameDurationBeats).toBe(0.5);
 		});
 
 		test('accepts array of positive numbers matching numberOfFrames', async () => {
@@ -182,25 +182,25 @@ describe('validate.js extended validation', () => {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
-				beatsPerFrame: [0.5]
+				frameDurationBeats: [0.5]
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(0);
-			expect(result.valid[0].meta.beatsPerFrame).toEqual([0.5]);
+			expect(result.valid[0].meta.frameDurationBeats).toEqual([0.5]);
 		});
 
 		test('rejects array with wrong length', async () => {
 			await createTestAnimation('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 4,
-				framesPerRow: 1, // Note: will fail dimension check, but we test beatsPerFrame first
-				beatsPerFrame: [1, 0.5] // Only 2 elements, should be 4
+				framesPerRow: 1, // Note: will fail dimension check, but we test frameDurationBeats first
+				frameDurationBeats: [1, 0.5] // Only 2 elements, should be 4
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('beatsPerFrame array length'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats array length'))).toBe(true);
 		});
 
 		test('rejects non-positive numbers in array', async () => {
@@ -208,12 +208,12 @@ describe('validate.js extended validation', () => {
 				png: 'sprite.png',
 				numberOfFrames: 4,
 				framesPerRow: 1,
-				beatsPerFrame: [1, 0, 0.5, 2] // 0 is not positive
+				frameDurationBeats: [1, 0, 0.5, 2] // 0 is not positive
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('beatsPerFrame[1]'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats[1]'))).toBe(true);
 		});
 
 		test('rejects negative shorthand value', async () => {
@@ -221,12 +221,12 @@ describe('validate.js extended validation', () => {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
-				beatsPerFrame: -1
+				frameDurationBeats: -1
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('beatsPerFrame must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects zero shorthand value', async () => {
@@ -234,12 +234,12 @@ describe('validate.js extended validation', () => {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
-				beatsPerFrame: 0
+				frameDurationBeats: 0
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('beatsPerFrame must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects invalid type (string)', async () => {
@@ -247,15 +247,15 @@ describe('validate.js extended validation', () => {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
-				beatsPerFrame: 'invalid'
+				frameDurationBeats: 'invalid'
 			});
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('beatsPerFrame must be'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be'))).toBe(true);
 		});
 
-		test('allows omitting beatsPerFrame entirely', async () => {
+		test('allows omitting frameDurationBeats entirely', async () => {
 			await createTestAnimation('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,

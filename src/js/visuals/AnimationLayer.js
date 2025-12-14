@@ -4,7 +4,7 @@
  *
  * Supports two timing modes:
  * 1. frameRatesForFrames (FPS) - Frame timing in frames-per-second (default)
- * 2. beatsPerFrame (BPM sync) - Frame timing in beats, synced to current BPM
+ * 2. frameDurationBeats (BPM sync) - Frame timing in beats, synced to current BPM
  *    When MIDI clock is active, uses real-time clock pulses (24 PPQN)
  *    When no clock, falls back to time-based BPM calculation
  */
@@ -18,7 +18,7 @@ class AnimationLayer {
 	#numberOfFrames;
 	#framesPerRow;
 	#frameRatesForFrames;
-	#beatsPerFrame; // Array or single number for BPM sync
+	#frameDurationBeats; // Array or single number for BPM sync
 	#frameWidth;
 	#frameHeight;
 	#loop;
@@ -35,11 +35,11 @@ class AnimationLayer {
 	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 	#useBPMSync = false; // Whether to use BPM sync mode
-	#pulsesPerFrame; // Array of pulses per frame for clock sync (derived from beatsPerFrame)
+	#pulsesPerFrame; // Array of pulses per frame for clock sync (derived from frameDurationBeats)
 	#pulseCount = 0; // Accumulated clock pulses since last frame advance
 	#unsubscribeClock = null; // Cleanup for clock subscription
 
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, retrigger = true, bitDepth = null }) {
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
 			throw new Error('AnimationLayer requires numberOfFrames >= 1');
 		}
@@ -53,26 +53,26 @@ class AnimationLayer {
 		this.#framesPerRow = framesPerRow;
 		this.#bitDepth = bitDepth;
 
-		// Process beatsPerFrame - supports both clock sync and time-based BPM sync
+		// Process frameDurationBeats - supports both clock sync and time-based BPM sync
 		// When MIDI clock is active, uses clock pulses for real-time sync (24 PPQN)
 		// When no clock, falls back to time-based BPM calculation
-		if (beatsPerFrame !== null && beatsPerFrame !== undefined) {
+		if (frameDurationBeats !== null && frameDurationBeats !== undefined) {
 			this.#useBPMSync = true;
 
-			if (Array.isArray(beatsPerFrame)) {
+			if (Array.isArray(frameDurationBeats)) {
 				// Enforce strict array length equal to numberOfFrames
-				if (beatsPerFrame.length !== numberOfFrames) {
-					throw new Error(`AnimationLayer: beatsPerFrame array length (${beatsPerFrame.length}) must equal numberOfFrames (${numberOfFrames})`);
+				if (frameDurationBeats.length !== numberOfFrames) {
+					throw new Error(`AnimationLayer: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
-				this.#beatsPerFrame = beatsPerFrame;
+				this.#frameDurationBeats = frameDurationBeats;
 				// Pre-calculate pulsesPerFrame for when clock is active (24 PPQN)
-				this.#pulsesPerFrame = beatsPerFrame.map(b => Math.round(b * 24));
-			} else if (typeof beatsPerFrame === 'number' && beatsPerFrame > 0) {
+				this.#pulsesPerFrame = frameDurationBeats.map(b => Math.round(b * 24));
+			} else if (typeof frameDurationBeats === 'number' && frameDurationBeats > 0) {
 				// Shorthand: single number applies to all frames
-				this.#beatsPerFrame = Array(numberOfFrames).fill(beatsPerFrame);
-				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(beatsPerFrame * 24));
+				this.#frameDurationBeats = Array(numberOfFrames).fill(frameDurationBeats);
+				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * 24));
 			} else {
-				throw new Error('AnimationLayer: invalid beatsPerFrame');
+				throw new Error('AnimationLayer: invalid frameDurationBeats');
 			}
 
 			// Subscribe to MIDI clock events for real-time sync when clock is active
@@ -149,12 +149,12 @@ class AnimationLayer {
 
 	/**
 	 * Advance the animation frame based on elapsed time
-	 * Uses BPM sync if beatsPerFrame is defined, otherwise uses frameRatesForFrames
+	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames
 	 * Clock sync mode skips time-based advancement (pulses drive frames directly)
 	 * @param {number} timestamp - Current timestamp
 	 */
 	#advanceFrame(timestamp) {
-		// When clock is active and we have beatsPerFrame, let pulses drive frames
+		// When clock is active and we have frameDurationBeats, let pulses drive frames
 		if (this.#useBPMSync && this.#pulsesPerFrame && appState.bpmSource === 'clock') {
 			return;
 		}
@@ -213,16 +213,16 @@ class AnimationLayer {
 
 	/**
 	 * Calculate the interval (ms) for a given frame
-	 * Uses BPM sync if beatsPerFrame is defined, otherwise uses frameRatesForFrames
+	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames
 	 * @param {number} frameIndex - The frame index
 	 * @returns {number} - Interval in milliseconds
 	 */
 	#getFrameInterval(frameIndex) {
-		if (this.#useBPMSync && this.#beatsPerFrame) {
-			// BPM sync mode: interval = (beatsPerFrame * 60000) / bpm
-			// beatsPerFrame[i] = number of beats this frame should last
-			// e.g., beatsPerFrame=0.25 at 120 BPM = 125ms (16th note)
-			const beats = this.#beatsPerFrame[frameIndex] ?? this.#beatsPerFrame[0] ?? 0.25;
+		if (this.#useBPMSync && this.#frameDurationBeats) {
+			// BPM sync mode: interval = (frameDurationBeats * 60000) / bpm
+			// frameDurationBeats[i] = number of beats this frame should last
+			// e.g., frameDurationBeats=0.25 at 120 BPM = 125ms (16th note)
+			const beats = this.#frameDurationBeats[frameIndex] ?? this.#frameDurationBeats[0] ?? 0.25;
 			// Ensure BPM is at least the configured minimum to prevent extremely long intervals.
 			// Fallback to 1 if settings.bpm.min is 0 or invalid to prevent division by zero.
 			const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
