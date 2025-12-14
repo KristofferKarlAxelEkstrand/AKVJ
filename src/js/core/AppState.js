@@ -35,6 +35,7 @@ class AppState extends EventTarget {
 	#clockTimeoutId = null;
 	#beatMeasurements = []; // Rolling window of beat duration measurements
 	#pulseTimestamps = []; // Recent pulse timestamps for sub-beat calculation
+	#consecutiveOutliers = []; // Track consecutive outlier measurements for tempo change detection
 
 	set midiConnected(connected) {
 		if (this.#midiConnected !== connected) {
@@ -234,10 +235,41 @@ class AppState extends EventTarget {
 
 				// Reject outliers that deviate too far from the rolling average
 				// Guard against division by zero in case rollingAvg is 0 (should be unlikely)
+				// Skip outlier detection when transitioning to clock source - we need to accept
+				// the first valid measurements even if they differ significantly from the default BPM
 				const deviation = rollingAvg > 0 ? Math.abs(rawBPM - rollingAvg) / rollingAvg : 0;
-				const isOutlier = this.#beatMeasurements.length >= 2 && deviation > outlierThreshold;
+				const hasClockBaseline = this.#bpmSource === 'clock' && this.#beatMeasurements.length >= 2;
+				const isOutlier = hasClockBaseline && deviation > outlierThreshold;
 
-				if (!isOutlier) {
+				// Track consecutive outliers for live tempo change detection
+				// If we see N consecutive outliers that are consistent with each other,
+				// treat it as a genuine tempo change and reset the baseline
+				if (isOutlier) {
+					this.#consecutiveOutliers.push(rawBPM);
+					const resetCount = settings.bpm.outlierResetCount ?? 3;
+
+					if (this.#consecutiveOutliers.length >= resetCount) {
+						// Check if consecutive outliers are consistent with each other
+						const outlierAvg = this.#consecutiveOutliers.reduce((a, b) => a + b, 0) / this.#consecutiveOutliers.length;
+						const outlierDeviations = this.#consecutiveOutliers.map(v => Math.abs(v - outlierAvg) / outlierAvg);
+						const maxOutlierDeviation = Math.max(...outlierDeviations);
+
+						// If outliers are consistent (within threshold of each other), accept as new tempo
+						if (maxOutlierDeviation <= outlierThreshold) {
+							// Reset baseline with new tempo
+							this.#beatMeasurements = [...this.#consecutiveOutliers];
+							this.#consecutiveOutliers = [];
+							const newAvgBPM = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
+							this.#setBPM(newAvgBPM, 'clock');
+						} else {
+							// Outliers aren't consistent, keep the oldest ones and try again
+							this.#consecutiveOutliers.shift();
+						}
+					}
+				} else {
+					// Valid measurement - clear consecutive outliers
+					this.#consecutiveOutliers = [];
+
 					// Add measurement to rolling window
 					this.#beatMeasurements.push(rawBPM);
 					if (this.#beatMeasurements.length > windowSize) {
@@ -375,6 +407,7 @@ class AppState extends EventTarget {
 		this.#accumulatedClockTime = 0;
 		this.#beatMeasurements = [];
 		this.#pulseTimestamps = [];
+		this.#consecutiveOutliers = [];
 
 		if (this.#clockTimeoutId !== null) {
 			clearTimeout(this.#clockTimeoutId);
