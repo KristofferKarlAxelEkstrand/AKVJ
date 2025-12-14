@@ -20,18 +20,40 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 
 ### Layer System
 
-- **16 layers** (MIDI channels 0-15)
-- Channel 0 = background (rendered first)
-- Channel 15 = foreground (rendered last)
-- Layers composite on top of each other
+- **16 channels** mapped to layer groups:
+    - Channels 0-3: Layer A (primary animation deck)
+    - Channel 4: Mixer (B&W bitmask for A/B crossfading)
+    - Channels 5-8: Layer B (secondary animation deck)
+    - Channel 9: Effects A/B (applied to mixed A/B output)
+    - Channels 10-11: Layer C (overlay layer)
+    - Channel 12: Global Effects (applied to entire output)
+    - Channels 13-15: Reserved
+- Layers composite in order: A+B mixed → Effects A/B → Layer C → Global Effects
 - Multiple notes can be active simultaneously on different channels
 
 ### Animation Playback
 
-- Animations are sprite-based (PNG strips)
+- Animations are sprite-based (PNG sheets)
 - Each animation can have custom frame rates per frame
 - Animations can loop or play once
 - Retrigger behavior is configurable per animation
+- **BPM Sync**: Animations can sync to tempo using `frameDurationBeats`
+    - Uses MIDI clock pulses (24 PPQN) when available
+    - Falls back to time-based BPM calculation
+
+### Effects System
+
+- Effects are triggered via channels 9 (A/B) and 12 (global)
+- Note ranges select effect type: split, mirror, offset, color, glitch, strobe
+- Velocity controls effect intensity
+- Effects are NOT latched (Note Off disables immediately)
+
+### Mask/Crossfade System
+
+- Channel 4 controls the A/B mixer
+- B&W animations act as crossfade masks between Layer A and B
+- `bitDepth` controls blend levels (1=hard cut, 8=smooth gradient)
+- Masks ARE latched (stay active until new mask triggered)
 
 ---
 

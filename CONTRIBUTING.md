@@ -77,6 +77,7 @@ If you prefer to enable these settings globally rather than per-workspace, open 
 ### 3. Test Your Changes
 
 ```bash
+npm run test          # Run unit tests
 npm run lint          # Check code quality
 npm run build         # Verify build works
 npm run dev           # Test in browser
@@ -127,23 +128,26 @@ Push your branch and open a PR against `main`.
 
 ### Key Files
 
-| File                                | Purpose               |
-| ----------------------------------- | --------------------- |
-| `src/js/midi-input/midi.js`         | Web MIDI API handling |
-| `src/js/visuals/Renderer.js`        | 60fps canvas loop     |
-| `src/js/visuals/LayerManager.js`    | Visual layer state    |
-| `src/js/visuals/AnimationLoader.js` | Sprite loading        |
+| File                                | Purpose                              |
+| ----------------------------------- | ------------------------------------ |
+| `src/js/midi-input/midi.js`         | Web MIDI API handling                |
+| `src/js/visuals/Renderer.js`        | 60fps canvas loop with compositing   |
+| `src/js/visuals/LayerManager.js`    | Coordinates all layer groups         |
+| `src/js/visuals/LayerGroup.js`      | Animation slots per layer            |
+| `src/js/visuals/AnimationLoader.js` | Sprite loading with concurrency      |
+| `src/js/visuals/AnimationLayer.js`  | Animation playback (FPS or BPM sync) |
+| `src/js/visuals/MaskManager.js`     | A/B layer crossfade masks            |
+| `src/js/visuals/EffectsManager.js`  | Visual effects                       |
+| `src/js/core/AppState.js`           | Event-based state management         |
 
 ## Adding Animations
 
-Animations go in `src/public/animations/{channel}/{note}/{velocity}/`:
+Animations go in `animations/{channel}/{note}/{velocity}/` (source folder, not `src/public/`):
 
 ```
-animations/0/60/64/
-  ├── meta.json       # Frame count, timing
-  ├── frame_0.png     # First frame
-  ├── frame_1.png     # Second frame
-  └── ...
+animations/0/60/0/
+  ├── meta.json       # Animation metadata
+  └── sprite.png      # Sprite sheet with all frames
 ```
 
 After adding animations:

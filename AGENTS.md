@@ -32,15 +32,20 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 ## Key Files
 
-| File                                     | Purpose                                  |
-| ---------------------------------------- | ---------------------------------------- |
-| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)       |
-| `src/js/midi-input/midi.js`              | Web MIDI API with hot-plug support       |
-| `src/js/visuals/Renderer.js`             | 60fps canvas rendering loop              |
-| `src/js/visuals/LayerManager.js`         | Visual layer state management            |
-| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading              |
-| `src/js/visuals/AnimationLayer.js`       | Individual animation playback            |
-| `src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick) |
+| File                                     | Purpose                                       |
+| ---------------------------------------- | --------------------------------------------- |
+| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)            |
+| `src/js/midi-input/midi.js`              | Web MIDI API with hot-plug support            |
+| `src/js/visuals/Renderer.js`             | 60fps canvas rendering with layer compositing |
+| `src/js/visuals/LayerManager.js`         | Coordinates LayerGroups, Mask, Effects        |
+| `src/js/visuals/LayerGroup.js`           | Animation slots per layer (A, B, C)           |
+| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading                   |
+| `src/js/visuals/AnimationLayer.js`       | Animation playback (FPS or BPM sync)          |
+| `src/js/visuals/MaskManager.js`          | B&W bitmask for A/B crossfading               |
+| `src/js/visuals/EffectsManager.js`       | Visual effects (split, mirror, glitch)        |
+| `src/js/core/AppState.js`                | Event-based state management (EventTarget)    |
+| `src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)      |
+| `src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)           |
 
 ## Common Commands
 
@@ -56,18 +61,46 @@ npm run generate-animation-json-to-json # Rebuild animation metadata
 
 ## MIDI Mapping
 
-- **Channel (0-15)** → Layer selection
+### Channel → Layer Assignment
+
+| Channels | Layer          | Function                      |
+| -------- | -------------- | ----------------------------- |
+| 0-3      | A              | Primary animation deck        |
+| 4        | Mixer          | B&W bitmask for A/B crossfade |
+| 5-8      | B              | Secondary animation deck      |
+| 9        | Effects A/B    | Effects on mixed A/B output   |
+| 10-11    | C              | Overlay layer (logos)         |
+| 12       | Global Effects | Effects on entire output      |
+| 13-15    | Reserved       | Ignored                       |
+
+### Note/Velocity
+
 - **Note (0-127)** → Animation selection
 - **Velocity (0-127)** → Animation variant/intensity
 
+## Animation Metadata
+
+Key fields in `meta.json`:
+
+| Field                 | Type         | Description                         |
+| --------------------- | ------------ | ----------------------------------- |
+| `png`                 | string       | Sprite sheet filename               |
+| `numberOfFrames`      | number       | Total frames                        |
+| `framesPerRow`        | number       | Frames per row in sprite sheet      |
+| `loop`                | boolean      | Whether to loop                     |
+| `retrigger`           | boolean      | Restart on re-trigger               |
+| `frameRatesForFrames` | object       | FPS per frame index                 |
+| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame) |
+| `bitDepth`            | number       | For masks: 1, 2, 4, or 8            |
+
 ## Animation Structure
 
-Animations live in `src/public/animations/` organized as:
+Source animations live in `animations/` (build pipeline copies to `src/public/animations/`):
 
 ```
 animations/{channel}/{note}/{velocity}/
-  ├── meta.json       # Frame count, timing
-  └── *.png           # Sprite frames
+  ├── meta.json       # Animation metadata
+  └── sprite.png      # Sprite sheet
 ```
 
 ## Code Style

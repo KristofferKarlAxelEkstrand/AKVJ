@@ -57,11 +57,13 @@ Then add your `sprite.png` to the same folder and update `meta.json`.
 
 ### Optional Fields
 
-| Field                 | Type    | Default | Description                                |
-| --------------------- | ------- | ------- | ------------------------------------------ |
-| `loop`                | boolean | true    | Whether animation loops                    |
-| `retrigger`           | boolean | true    | Restart animation on repeated MIDI trigger |
-| `frameRatesForFrames` | object  | {0: 12} | Frame rate per frame index (fps)           |
+| Field                 | Type            | Default | Description                                |
+| --------------------- | --------------- | ------- | ------------------------------------------ |
+| `loop`                | boolean         | true    | Whether animation loops                    |
+| `retrigger`           | boolean         | true    | Restart animation on repeated MIDI trigger |
+| `frameRatesForFrames` | object          | {0: 12} | Frame rate per frame index (fps)           |
+| `frameDurationBeats`  | number \| array | null    | BPM-synced timing: beats per frame         |
+| `bitDepth`            | number          | null    | Bit depth for mask mixing (1, 2, 4, or 8)  |
 
 ### Frame Rates
 
@@ -77,6 +79,45 @@ The `frameRatesForFrames` object maps frame indices to frame rates. The rate app
 ```
 
 This plays frames 0-31 at 12 fps, then frames 32+ at 24 fps.
+
+### BPM Sync (frameDurationBeats)
+
+For tempo-synced animations, use `frameDurationBeats` instead of `frameRatesForFrames`:
+
+```json
+{
+    "frameDurationBeats": 0.5
+}
+```
+
+This plays each frame for half a beat (e.g., 250ms at 120 BPM).
+
+**Array form** for per-frame timing:
+
+```json
+{
+    "numberOfFrames": 4,
+    "frameDurationBeats": [0.25, 0.5, 0.25, 1.0]
+}
+```
+
+The array length must match `numberOfFrames`.
+
+**Timing sources:**
+
+- **MIDI Clock**: When active, uses real-time clock pulses (24 PPQN) for tight sync
+- **BPM fallback**: Uses time-based calculation from current BPM setting
+
+### Bit Depth (for Masks)
+
+Mask animations on Channel 4 support `bitDepth` for crossfade control:
+
+| bitDepth | Levels | Effect                    |
+| -------- | ------ | ------------------------- |
+| 1        | 2      | Hard cut (black/white)    |
+| 2        | 4      | 4-level blend             |
+| 4        | 16     | 16-level blend            |
+| 8        | 256    | Smooth gradient crossfade |
 
 ## Sprite Sheet Format
 

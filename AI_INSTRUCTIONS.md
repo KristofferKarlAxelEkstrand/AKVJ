@@ -20,10 +20,29 @@ AKVJ is a real-time VJ (Video Jockey) application designed for live visual perfo
 
 ### Channel → Layer Mapping
 
-- **MIDI Channels 1-16** (displayed in UI) map to **Canvas Layers 0-15** (internal indexing)
-- **Channel 0 (internal) = Background layer** (furthest back)
-- **Higher channels = Foreground layers** (closer to viewer)
-- Each channel represents an independent visual layer that can display animations simultaneously
+The 16 MIDI channels are mapped to specific layer groups and functions:
+
+| Channels | Layer Group    | Function                                   |
+| -------- | -------------- | ------------------------------------------ |
+| 0-3      | Layer A        | Primary animation deck (4 slots)           |
+| 4        | Mixer          | B&W bitmask for A/B crossfading            |
+| 5-8      | Layer B        | Secondary animation deck (4 slots)         |
+| 9        | Effects A/B    | Effects applied to mixed A/B output        |
+| 10-11    | Layer C        | Overlay layer (logos, persistent graphics) |
+| 12       | Global Effects | Effects applied to entire output           |
+| 13-15    | Reserved       | Ignored by layer system                    |
+
+### Rendering Pipeline
+
+1. Render Layer A (channels 0-3) → off-screen canvas A
+2. Render Layer B (channels 5-8) → off-screen canvas B
+3. Render Mask (channel 4) → mask canvas
+4. Composite A + B using Mask → mixed canvas
+5. Apply Effects A/B (channel 9) to mixed canvas
+6. Draw mixed result to main canvas
+7. Render Layer C (channels 10-11) on top
+8. Apply Global Effects (channel 12)
+9. Output to visible canvas
 
 ### Note → Animation Mapping
 
@@ -46,9 +65,25 @@ AKVJ is a real-time VJ (Video Jockey) application designed for live visual perfo
 
 Velocity selection behavior
 
-- The system chooses the highest available velocity layer that does not exceed the incoming MIDI velocity. This allows coarse-grained velocity thresholds to drive variation without accidental selection of higher-intensity animations on softer input.
-- If no configured velocity layer is <= the incoming velocity (i.e. the input is lower than the lowest defined layer), the selection algorithm returns `null` and no animation is triggered for that note.
-- If you require alternative behavior (for example, falling back to the lowest defined layer), adjust `LayerManager.#findVelocityLayer` accordingly.
+- The system chooses the highest available velocity layer that does not exceed the incoming MIDI velocity.
+- If no configured velocity layer is <= the incoming velocity, the note is ignored (no animation triggered).
+- Velocity selection is handled by `velocityLayer.js` utilities (`buildVelocityCache`, `findVelocityLayer`).
+
+### Effects System
+
+Effects are applied via channels 9 (A/B effects) and 12 (global effects):
+
+| Note Range | Effect Type                  |
+| ---------- | ---------------------------- |
+| 0-15       | Split (divide screen)        |
+| 16-31      | Mirror (horizontal/vertical) |
+| 32-47      | Offset (shift with wrap)     |
+| 48-63      | Color (invert, posterize)    |
+| 64-79      | Glitch (pixel displacement)  |
+| 80-95      | Strobe (flash)               |
+| 96-127     | Reserved                     |
+
+Velocity (1-127) controls effect intensity. Note Off disables the effect immediately (no latching).
 
 ### Pipeline Flow
 
@@ -69,22 +104,25 @@ MIDI Controller → Web MIDI API → Channel/Note/Velocity → Animation Selecti
 
 ```json
 {
-    "velocityLayers": [
-        {
-            "minVelocity": 0, // Velocity threshold (0-127)
-            "numberOfFrames": 64, // Total frames in sprite sheet
-            "framesPerRow": 8, // Grid layout (8 frames per row)
-            "loop": true, // Whether animation repeats
-            "src": "sprite.png", // PNG sprite sheet filename
-            "frameRatesForFrames": {
-                // Custom timing per frame
-                "0": 2, // Frame 0 displays for 2 render ticks
-                "32": 4 // Frame 32 displays for 4 render ticks
-            }
-        }
-    ]
+    "png": "sprite.png",
+    "numberOfFrames": 64,
+    "framesPerRow": 8,
+    "loop": true,
+    "retrigger": true,
+    "frameRatesForFrames": {
+        "0": 12,
+        "32": 24
+    },
+    "frameDurationBeats": 0.5,
+    "bitDepth": 1
 }
 ```
+
+**Key Properties:**
+
+- `frameRatesForFrames`: FPS-based timing (frames per second per frame index)
+- `frameDurationBeats`: BPM-synced timing (beats per frame, overrides frameRatesForFrames)
+- `bitDepth`: For mask animations (1=hard cut, 2=4 levels, 4=16 levels, 8=smooth)
 
 ### File Organization
 
@@ -113,9 +151,18 @@ src/public/animations/
 - **`src/index.html`** - Main HTML template
 - **`src/js/core/AdventureKidVideoJockey.js`** - Main VJ component (custom element)
 - **`src/js/midi-input/midi.js`** - Web MIDI API integration and event handling
-- **`src/js/core/AppState.js`** - Global application state management
+- **`src/js/core/AppState.js`** - Global application state management (EventTarget-based)
 - **`src/js/core/settings.js`** - Configuration constants and settings
 - **`src/js/utils/Fullscreen.js`** - Fullscreen functionality for live performance
+- **`src/js/utils/DebugOverlay.js`** - Debug overlay (press 'D' to toggle)
+- **`src/js/visuals/Renderer.js`** - 60fps canvas rendering loop with layer compositing
+- **`src/js/visuals/LayerManager.js`** - Coordinates LayerGroups, MaskManager, EffectsManager
+- **`src/js/visuals/LayerGroup.js`** - Manages animation slots for a layer (A, B, or C)
+- **`src/js/visuals/AnimationLoader.js`** - Sprite and metadata loading with concurrency control
+- **`src/js/visuals/AnimationLayer.js`** - Individual animation playback (FPS or BPM sync)
+- **`src/js/visuals/MaskManager.js`** - B&W bitmask for A/B layer crossfading
+- **`src/js/visuals/EffectsManager.js`** - Visual effects (split, mirror, glitch, etc.)
+- **`src/js/utils/velocityLayer.js`** - Velocity layer selection utilities
 
 ### Build & Development
 

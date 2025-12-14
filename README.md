@@ -17,6 +17,19 @@ AKVJ transforms MIDI input into layered visual animations using a sophisticated 
 - **MIDI Note (0-127)**: Selects specific animation within a channel
 - **MIDI Velocity (0-127)**: Chooses velocity layer variant for dynamic expression
 
+### Effects System
+
+- **Channel 9 (Effects A/B)**: Applied to mixed Layer A/B output
+    - Notes 0-15: Split effects
+    - Notes 16-31: Mirror effects
+    - Notes 32-47: Offset effects
+    - Notes 48-63: Color effects (invert, posterize)
+    - Notes 64-79: Glitch effects
+    - Notes 80-95: Strobe effects
+- **Channel 12 (Global Effects)**: Same effects applied to entire output after Layer C
+
+Velocity controls effect intensity (1-127).
+
 Each MIDI note triggers frame-based sprite animations that blend in real-time, creating complex visual compositions perfect for live performance.
 
 ## Table of Contents
@@ -122,6 +135,20 @@ Each animation folder contains a JSON file with the following structure:
 - **`loop`**: Whether animation loops continuously
 - **`retrigger`**: Whether animation restarts when note is retriggered
 - **`frameRatesForFrames`**: Custom frame rates for specific frames (frames per second)
+- **`frameDurationBeats`**: BPM-synced timing - beats per frame (number or array)
+- **`bitDepth`**: For mask animations - controls crossfade levels (1, 2, 4, or 8)
+
+### BPM Sync
+
+Animations can sync to tempo using `frameDurationBeats`:
+
+```json
+{
+    "frameDurationBeats": 0.5
+}
+```
+
+This plays each frame for half a beat (250ms at 120 BPM). When MIDI clock is active, animations lock to the clock pulses (24 PPQN) for tight synchronization.
 
 ### Velocity Layers
 
