@@ -6,7 +6,14 @@ A real-time VJ (Video Jockey) application for live visual performances, built wi
 
 AKVJ transforms MIDI input into layered visual animations using a sophisticated channel-note-velocity mapping system:
 
-- **MIDI Channel (0-15)**: Determines visual layer depth (0 = background, 15 = foreground)
+- **MIDI Channel (0-15)**: Determines layer group and function:
+    - Channels 0-3: Layer A (primary animation deck)
+    - Channel 4: Mixer/Mask (B&W bitmask for A/B crossfading)
+    - Channels 5-8: Layer B (secondary animation deck)
+    - Channel 9: Effects A/B (applied to mixed A/B output)
+    - Channels 10-11: Layer C (overlay layer for logos, persistent graphics)
+    - Channel 12: Global Effects (applied to entire output)
+    - Channels 13-15: Reserved
 - **MIDI Note (0-127)**: Selects specific animation within a channel
 - **MIDI Velocity (0-127)**: Chooses velocity layer variant for dynamic expression
 

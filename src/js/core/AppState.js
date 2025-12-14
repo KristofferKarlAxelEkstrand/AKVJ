@@ -33,6 +33,8 @@ class AppState extends EventTarget {
 	#clockCount = 0;
 	#accumulatedClockTime = 0;
 	#clockTimeoutId = null;
+	#beatMeasurements = []; // Rolling window of beat duration measurements
+	#pulseTimestamps = []; // Recent pulse timestamps for sub-beat calculation
 
 	set midiConnected(connected) {
 		if (this.#midiConnected !== connected) {
@@ -159,6 +161,13 @@ class AppState extends EventTarget {
 	/**
 	 * Handle MIDI Clock pulse (0xF8)
 	 * MIDI clock sends 24 pulses per quarter note (24 PPQN)
+	 *
+	 * Improved algorithm for reduced jitter:
+	 * 1. Calculates BPM more frequently (every 6 pulses = 16th note resolution)
+	 * 2. Uses rolling average over multiple beat measurements
+	 * 3. Rejects outlier measurements that deviate too far from the average
+	 * 4. Applies exponential smoothing on top for extra stability
+	 *
 	 * @param {number} timestamp - Performance.now() timestamp
 	 */
 	dispatchMIDIClock(timestamp) {
@@ -183,33 +192,73 @@ class AppState extends EventTarget {
 			this.#clockTimeoutId = null;
 		}, settings.bpm.clockTimeoutMs);
 
+		// Track pulse timestamps for sub-beat calculation
+		this.#pulseTimestamps.push(timestamp);
+
+		// Keep only the last 25 timestamps (24 intervals = 1 beat)
+		if (this.#pulseTimestamps.length > 25) {
+			this.#pulseTimestamps.shift();
+		}
+
 		if (this.#lastClockTime !== null) {
 			this.#accumulatedClockTime += timestamp - this.#lastClockTime;
 			this.#clockCount++;
 
-			// Calculate BPM every 24 pulses (1 beat)
-			if (this.#clockCount >= 24) {
-				const msPerBeat = this.#accumulatedClockTime;
+			const pulsesPerUpdate = settings.bpm.pulsesPerUpdate ?? 6;
+
+			// Calculate BPM more frequently for smoother updates
+			if (this.#clockCount >= pulsesPerUpdate) {
+				// Extrapolate to full beat: (accumulated time / pulses counted) * 24
+				const msPerPulse = this.#accumulatedClockTime / this.#clockCount;
+				const msPerBeat = msPerPulse * 24;
 
 				// Ignore suspiciously fast clock (likely error): < 10 ms per beat -> > 6000 BPM
 				if (msPerBeat < 10) {
 					this.#clockCount = 0;
 					this.#accumulatedClockTime = 0;
+					this.#lastClockTime = timestamp;
 					return;
 				}
+
 				const rawBPM = 60000 / msPerBeat;
 
-				// Apply exponential smoothing to reduce jitter
-				const smoothingFactor = settings.bpm.smoothingFactor;
-				let smoothedBPM;
-				// For the very first clock-derived BPM, prefer the rawBPM (no smoothing)
-				if (this.#bpmSource !== 'clock' || this.#currentBPM === settings.bpm.default) {
-					smoothedBPM = rawBPM;
-				} else {
-					smoothedBPM = this.#currentBPM * smoothingFactor + rawBPM * (1 - smoothingFactor);
+				// Add to rolling window of measurements
+				const windowSize = settings.bpm.rollingWindowSize ?? 8;
+				const outlierThreshold = settings.bpm.outlierThreshold ?? 0.15;
+
+				// Calculate rolling average for outlier detection
+				let rollingAvg = rawBPM;
+				if (this.#beatMeasurements.length > 0) {
+					rollingAvg = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
 				}
 
-				this.#setBPM(smoothedBPM, 'clock');
+				// Reject outliers that deviate too far from the rolling average
+				const deviation = Math.abs(rawBPM - rollingAvg) / rollingAvg;
+				const isOutlier = this.#beatMeasurements.length >= 2 && deviation > outlierThreshold;
+
+				if (!isOutlier) {
+					// Add measurement to rolling window
+					this.#beatMeasurements.push(rawBPM);
+					if (this.#beatMeasurements.length > windowSize) {
+						this.#beatMeasurements.shift();
+					}
+
+					// Calculate averaged BPM from rolling window
+					const avgBPM = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
+
+					// Apply exponential smoothing on top of the rolling average
+					const smoothingFactor = settings.bpm.smoothingFactor;
+					let smoothedBPM;
+
+					// For the very first clock-derived BPM, prefer the avgBPM (no smoothing)
+					if (this.#bpmSource !== 'clock' || this.#currentBPM === settings.bpm.default) {
+						smoothedBPM = avgBPM;
+					} else {
+						smoothedBPM = this.#currentBPM * smoothingFactor + avgBPM * (1 - smoothingFactor);
+					}
+
+					this.#setBPM(smoothedBPM, 'clock');
+				}
 
 				this.#clockCount = 0;
 				this.#accumulatedClockTime = 0;
@@ -233,6 +282,8 @@ class AppState extends EventTarget {
 		this.#lastClockTime = null;
 		this.#clockCount = 0;
 		this.#accumulatedClockTime = 0;
+		this.#beatMeasurements = [];
+		this.#pulseTimestamps = [];
 
 		this.dispatchEvent(new CustomEvent('midiStart'));
 	}
@@ -254,6 +305,8 @@ class AppState extends EventTarget {
 		this.#lastClockTime = null;
 		this.#clockCount = 0;
 		this.#accumulatedClockTime = 0;
+		// Keep beatMeasurements for faster re-lock on continue
+		this.#pulseTimestamps = [];
 
 		this.dispatchEvent(new CustomEvent('midiStop'));
 	}
@@ -319,6 +372,8 @@ class AppState extends EventTarget {
 		this.#lastClockTime = null;
 		this.#clockCount = 0;
 		this.#accumulatedClockTime = 0;
+		this.#beatMeasurements = [];
+		this.#pulseTimestamps = [];
 
 		if (this.#clockTimeoutId !== null) {
 			clearTimeout(this.#clockTimeoutId);
