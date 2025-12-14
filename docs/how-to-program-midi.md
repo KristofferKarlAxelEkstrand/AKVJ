@@ -11,32 +11,32 @@ AKVJ uses MIDI notes to trigger animations. Each MIDI channel controls a differe
 ║              AKVJ CHANNEL MAPPING                         ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  LAYER A (Primary Deck)                                   ║
-║    Channel 0  → Layer A, Slot 0                          ║
-║    Channel 1  → Layer A, Slot 1                          ║
-║    Channel 2  → Layer A, Slot 2                          ║
-║    Channel 3  → Layer A, Slot 3                          ║
+║    Channel 1  → Layer A, Slot 0                          ║
+║    Channel 2  → Layer A, Slot 1                          ║
+║    Channel 3  → Layer A, Slot 2                          ║
+║    Channel 4  → Layer A, Slot 3                          ║
 ║                                                           ║
 ║  MIXER                                                    ║
-║    Channel 4  → A/B Crossfade Mask (B&W bitmap)          ║
+║    Channel 5  → A/B Crossfade Mask (B&W bitmap)          ║
 ║                                                           ║
 ║  LAYER B (Secondary Deck)                                 ║
-║    Channel 5  → Layer B, Slot 0                          ║
-║    Channel 6  → Layer B, Slot 1                          ║
-║    Channel 7  → Layer B, Slot 2                          ║
-║    Channel 8  → Layer B, Slot 3                          ║
+║    Channel 6  → Layer B, Slot 0                          ║
+║    Channel 7  → Layer B, Slot 1                          ║
+║    Channel 8  → Layer B, Slot 2                          ║
+║    Channel 9  → Layer B, Slot 3                          ║
 ║                                                           ║
 ║  EFFECTS A/B                                              ║
-║    Channel 9  → Effects on mixed A/B output              ║
+║    Channel 10 → Effects on mixed A/B output              ║
 ║                                                           ║
 ║  LAYER C (Overlay)                                        ║
-║    Channel 10 → Overlay Slot 0 (logos, graphics)         ║
-║    Channel 11 → Overlay Slot 1                           ║
+║    Channel 11 → Overlay Slot 0 (logos, graphics)         ║
+║    Channel 12 → Overlay Slot 1                           ║
 ║                                                           ║
 ║  GLOBAL EFFECTS                                           ║
-║    Channel 12 → Effects on entire output                 ║
+║    Channel 13 → Effects on entire output                 ║
 ║                                                           ║
 ║  RESERVED                                                 ║
-║    Channels 13-15 → Ignored                              ║
+║    Channels 14-16 → Ignored                              ║
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
@@ -46,17 +46,19 @@ Every MIDI note you send has three values:
 
 | Parameter    | Range | What It Controls                         |
 | ------------ | ----- | ---------------------------------------- |
-| **Channel**  | 0-15  | Which layer/function (see mapping above) |
+| **Channel**  | 1-16  | Which layer/function (see mapping above) |
 | **Note**     | 0-127 | Which animation to trigger               |
 | **Velocity** | 1-127 | Which variant of the animation           |
 
 **Note:** Velocity 0 = Note Off (stops the animation)
 
-**Example:** `Channel 0, Note 60, Velocity 100` plays the animation at `animations/0/60/100/`
+**Example:** `Channel 1, Note 60, Velocity 100` plays the animation at `animations/0/60/100/`
+
+> **Source folder paths use 1-16:** Channel 1 in your DAW = folder `1/`. The build pipeline automatically converts to 0-15 for code.
 
 ## Layer Architecture
 
-### Layer A (Channels 0-3) - Primary Deck
+### Layer A (Channels 1-4) - Primary Deck
 
 Your main animation deck with 4 independent slots. Use for:
 
@@ -66,7 +68,7 @@ Your main animation deck with 4 independent slots. Use for:
 
 Each channel can play one animation at a time. Sending a new note replaces the current animation.
 
-### Mixer (Channel 4) - A/B Crossfade
+### Mixer (Channel 5) - A/B Crossfade
 
 Triggers **black & white mask animations** that blend Layer A and Layer B:
 
@@ -76,7 +78,7 @@ Triggers **black & white mask animations** that blend Layer A and Layer B:
 
 Use for creative transitions and DJ-style crossfades.
 
-### Layer B (Channels 5-8) - Secondary Deck
+### Layer B (Channels 6-9) - Secondary Deck
 
 Your secondary deck, same as Layer A but blended via the Mixer. Use for:
 
@@ -84,7 +86,7 @@ Your secondary deck, same as Layer A but blended via the Mixer. Use for:
 - Background elements during crossfades
 - B-roll content
 
-### Effects A/B (Channel 9)
+### Effects A/B (Channel 10)
 
 Applies effects to the **mixed A/B output**. Note ranges control different effect types:
 
@@ -98,7 +100,7 @@ Applies effects to the **mixed A/B output**. Note ranges control different effec
 | 80-95      | Strobe/Flash              |
 | 96-127     | Reserved                  |
 
-### Layer C (Channels 10-11) - Overlay
+### Layer C (Channels 11-12) - Overlay
 
 Renders **on top** of everything. Use for:
 
@@ -106,11 +108,11 @@ Renders **on top** of everything. Use for:
 - Persistent graphics
 - Text overlays
 
-### Global Effects (Channel 12)
+### Global Effects (Channel 13)
 
 Applies effects to the **entire final output** (all layers combined). Same note ranges as Effects A/B.
 
-### Reserved (Channels 13-15)
+### Reserved (Channels 14-16)
 
 These channels are ignored by AKVJ.
 
@@ -136,7 +138,7 @@ Set up tracks for each layer you want to control:
 | Overlay 1 | Channel 12         | Logo slot 1      |
 | Global FX | Channel 13         | Global effects   |
 
-**Important:** Most DAWs display channels 1-16, but MIDI internally uses 0-15. So DAW "Channel 1" = MIDI Channel 0.
+> **Folder path note:** Animation source folders use 1-16 (matching your DAW). The build pipeline converts to 0-15 for code output.
 
 ### Route to AKVJ
 
@@ -150,7 +152,7 @@ Set up tracks for each layer you want to control:
 ### Basic 4-on-the-floor
 
 ```
-Channel 0 (Layer A, Slot 0):
+Channel 1 (Layer A, Slot 0):
   Note 36, every beat (quarter notes)
   Velocity: 100
 
@@ -160,39 +162,39 @@ Result: Animation at animations/0/36/100/ plays on every beat
 ### Layered Pattern
 
 ```
-Channel 0 (Layer A-0): Kick animation on beats 1 & 3
+Channel 1 (Layer A-0): Kick animation on beats 1 & 3
   Note 36, Velocity 100
 
-Channel 1 (Layer A-1): Snare animation on beats 2 & 4
+Channel 2 (Layer A-1): Snare animation on beats 2 & 4
   Note 38, Velocity 90
 
-Channel 2 (Layer A-2): Hi-hat on every 8th note
+Channel 3 (Layer A-2): Hi-hat on every 8th note
   Note 42, Velocity 60-80 (vary velocity for dynamics)
 ```
 
 ### A/B Crossfade Performance
 
 ```
-1. Start with content on Layer A (Channels 0-3)
-2. Prepare alternate content on Layer B (Channels 5-8)
-3. Trigger a mask animation on Channel 4 (Mixer)
+1. Start with content on Layer A (Channels 1-4)
+2. Prepare alternate content on Layer B (Channels 6-9)
+3. Trigger a mask animation on Channel 5 (Mixer)
 4. The mask gradually reveals Layer B as it animates
 ```
 
 ### Effects Automation
 
 ```
-Channel 9 (Effects A/B):
+Channel 10 (Effects A/B):
   Note 64, Velocity 100  → Glitch effect on A/B mix
 
-Channel 12 (Global Effects):
+Channel 13 (Global Effects):
   Note 80, Velocity 127  → Strobe on entire output
 ```
 
 ### Logo Overlay
 
 ```
-Channel 10 (Overlay Slot 0):
+Channel 11 (Overlay Slot 0):
   Note 0, Velocity 100   → Show logo
   (sustain for duration)
   Note 0, Velocity 0     → Hide logo (Note Off)
@@ -277,20 +279,20 @@ sudo modprobe snd-virmidi
 1. **Check Chrome:** AKVJ requires Chrome/Chromium (Web MIDI API)
 2. **Check console:** Press F12, look for "JSON for animations loaded"
 3. **Check MIDI routing:** Ensure DAW outputs to virtual MIDI port
-4. **Check channel numbers:** DAW channels 1-16 = MIDI 0-15
-5. **Check animation exists:** Verify folder at `animations/{ch}/{note}/{vel}/`
+4. **Check channel numbers:** Use channels 1-16 in your DAW
+5. **Check animation exists:** Verify folder at `animations/{ch-1}/{note}/{vel}/`
 
 ### Wrong layer responding
 
 Remember the channel mapping:
 
-- Channels 0-3 = Layer A
-- Channel 4 = Mixer
-- Channels 5-8 = Layer B
-- Channel 9 = Effects A/B
-- Channels 10-11 = Layer C (Overlay)
-- Channel 12 = Global Effects
-- Channels 13-15 = Ignored
+- Channels 1-4 = Layer A
+- Channel 5 = Mixer
+- Channels 6-9 = Layer B
+- Channel 10 = Effects A/B
+- Channels 11-12 = Layer C (Overlay)
+- Channel 13 = Global Effects
+- Channels 14-16 = Ignored
 
 ### Animation won't stop
 

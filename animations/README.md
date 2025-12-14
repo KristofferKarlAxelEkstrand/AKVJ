@@ -4,16 +4,18 @@ This folder contains the source animation assets for AKVJ. Animations are organi
 
 ## Directory Structure
 
+> **Note:** Source folder names use 1-16 (matching DAW channel display). The build pipeline automatically converts to 0-15 for code.
+
 ```
 animations/
-  {channel}/
+  {channel}/            # 0-15 (where 0 = DAW Channel 1)
     {note}/
       {velocity}/
         sprite.png      # Sprite sheet with all frames
         meta.json       # Animation metadata
 ```
 
-**Example:** `animations/0/5/0/` = Channel 0, Note 5, Velocity 0
+**Example:** `animations/0/5/0/` = DAW Channel 1, Note 5, Velocity layer 0
 
 ## Creating a New Animation
 
@@ -22,6 +24,7 @@ animations/
 ```bash
 npm run animations:new 0 5 0
 # Creates: animations/0/5/0/meta.json with template
+# This is DAW Channel 1, Note 5, Velocity layer 0
 ```
 
 Then add your `sprite.png` to the same folder and update `meta.json`.
@@ -110,7 +113,7 @@ The array length must match `numberOfFrames`.
 
 ### Bit Depth (for Masks)
 
-Mask animations on Channel 4 support `bitDepth` for crossfade control:
+Mask animations on Channel 5 (folder `4/`) support `bitDepth` for crossfade control:
 
 | bitDepth | Levels | Effect                    |
 | -------- | ------ | ------------------------- |
@@ -187,11 +190,11 @@ Features:
 
 ## MIDI Mapping
 
-| MIDI Parameter   | Animation Parameter |
-| ---------------- | ------------------- |
-| Channel (0-15)   | Layer selection     |
-| Note (0-127)     | Animation selection |
-| Velocity (1-127) | Animation variant   |
+| MIDI Parameter   | Animation Parameter                   |
+| ---------------- | ------------------------------------- |
+| Channel (1-16)   | Layer selection (matches folder name) |
+| Note (0-127)     | Animation selection                   |
+| Velocity (1-127) | Animation variant                     |
 
 **Note:** Velocity 0 is interpreted as Note Off (stops the animation).
 

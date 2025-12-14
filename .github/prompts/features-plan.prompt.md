@@ -14,28 +14,28 @@ This document describes the multi-layer architecture, visual effects, and BPM sy
 
 Instead of a single layer of animations, AKVJ will support **three distinct layer groups** (A, B, C) with a **crossfader/mixer** system using black-and-white bitmask animations.
 
-### MIDI Channel Mapping (0-15, displayed as 1-16)
+### MIDI Channel Mapping (Code: 0-15, Source Folders: 1-16)
 
-| Channel (0-indexed) | Channel (Display) | Purpose                                            |
-| ------------------- | ----------------- | -------------------------------------------------- |
-| 0                   | 1                 | Layer A - Animation Slot 1                         |
-| 1                   | 2                 | Layer A - Animation Slot 2                         |
-| 2                   | 3                 | Layer A - Animation Slot 3                         |
-| 3                   | 4                 | Layer A - Animation Slot 4                         |
-| 4                   | 5                 | **Mixer/Crossfader** - B&W bitmask animations      |
-| 5                   | 6                 | Layer B - Animation Slot 1                         |
-| 6                   | 7                 | Layer B - Animation Slot 2                         |
-| 7                   | 8                 | Layer B - Animation Slot 3                         |
-| 8                   | 9                 | Layer B - Animation Slot 4                         |
-| 9                   | 10                | **Effects A/B** - Crude effects for Layer A/B      |
-| 10                  | 11                | Layer C - Overlay Slot 1 (logos, overlays)         |
-| 11                  | 12                | Layer C - Overlay Slot 2 (logos, overlays)         |
-| 12                  | 13                | **Global Effects** - Effects applied to everything |
-| 13                  | 14                | Reserved (future use)                              |
-| 14                  | 15                | Reserved (future use)                              |
-| 15                  | 16                | Reserved (future use)                              |
+| Channel (Code) | Channel (Source Folder/DAW) | Purpose                                            |
+| -------------- | --------------------------- | -------------------------------------------------- |
+| 0              | 1                           | Layer A - Animation Slot 1                         |
+| 1              | 2                           | Layer A - Animation Slot 2                         |
+| 2              | 3                           | Layer A - Animation Slot 3                         |
+| 3              | 4                           | Layer A - Animation Slot 4                         |
+| 4              | 5                           | **Mixer/Crossfader** - B&W bitmask animations      |
+| 5              | 6                           | Layer B - Animation Slot 1                         |
+| 6              | 7                           | Layer B - Animation Slot 2                         |
+| 7              | 8                           | Layer B - Animation Slot 3                         |
+| 8              | 9                           | Layer B - Animation Slot 4                         |
+| 9              | 10                          | **Effects A/B** - Crude effects for Layer A/B      |
+| 10             | 11                          | Layer C - Overlay Slot 1 (logos, overlays)         |
+| 11             | 12                          | Layer C - Overlay Slot 2 (logos, overlays)         |
+| 12             | 13                          | **Global Effects** - Effects applied to everything |
+| 13             | 14                          | Reserved (future use)                              |
+| 14             | 15                          | Reserved (future use)                              |
+| 15             | 16                          | Reserved (future use)                              |
 
-**Note**: Channels 13-15 are ignored by the layer system. Animations placed in these channels will not play.
+**Note**: Source animation folders use 1-16 (matching DAW display). The build pipeline converts to 0-15 for code. Channels 14-16 (code 13-15) are ignored by the layer system.
 
 ### Layer Groups
 

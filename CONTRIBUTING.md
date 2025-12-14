@@ -144,11 +144,15 @@ Push your branch and open a PR against `main`.
 
 Animations go in `animations/{channel}/{note}/{velocity}/` (source folder, not `src/public/`):
 
+> **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code.
+
 ```
 animations/0/60/0/
   ├── meta.json       # Animation metadata
   └── sprite.png      # Sprite sheet with all frames
 ```
+
+This example is for DAW Channel 1, Note 60, Velocity layer 0.
 
 After adding animations:
 

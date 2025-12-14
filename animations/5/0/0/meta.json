@@ -4,5 +4,5 @@
 	"framesPerRow": 8,
 	"loop": true,
 	"retrigger": true,
-	"frameDurationBeats": 0.5
+	"frameDurationBeats": 0.25
 }

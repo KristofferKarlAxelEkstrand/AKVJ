@@ -258,7 +258,7 @@ These are single-byte messages for timing:
 
 ## MIDI Channels
 
-MIDI supports 16 channels (0-15, often labeled 1-16 for users).
+MIDI supports 16 channels. The protocol uses 0-15 internally (in the status byte), but DAWs and hardware controllers universally display them as 1-16 for users. This is an industry-wide convention—always use 1-16 when communicating with users, and 0-15 in code.
 
 ### Channel Usage Patterns
 

@@ -20,28 +20,28 @@ AKVJ is a real-time VJ (Video Jockey) application designed for live visual perfo
 
 ### Channel → Layer Mapping
 
-The 16 MIDI channels are mapped to specific layer groups and functions:
+The 16 MIDI channels are mapped to specific layer groups and functions. Channels are shown as displayed in DAWs (1-16). Source folders use 1-16; the build pipeline converts to 0-15 for code.
 
 | Channels | Layer Group    | Function                                   |
 | -------- | -------------- | ------------------------------------------ |
-| 0-3      | Layer A        | Primary animation deck (4 slots)           |
-| 4        | Mixer          | B&W bitmask for A/B crossfading            |
-| 5-8      | Layer B        | Secondary animation deck (4 slots)         |
-| 9        | Effects A/B    | Effects applied to mixed A/B output        |
-| 10-11    | Layer C        | Overlay layer (logos, persistent graphics) |
-| 12       | Global Effects | Effects applied to entire output           |
-| 13-15    | Reserved       | Ignored by layer system                    |
+| 1-4      | Layer A        | Primary animation deck (4 slots)           |
+| 5        | Mixer          | B&W bitmask for A/B crossfading            |
+| 6-9      | Layer B        | Secondary animation deck (4 slots)         |
+| 10       | Effects A/B    | Effects applied to mixed A/B output        |
+| 11-12    | Layer C        | Overlay layer (logos, persistent graphics) |
+| 13       | Global Effects | Effects applied to entire output           |
+| 14-16    | Reserved       | Ignored by layer system                    |
 
 ### Rendering Pipeline
 
-1. Render Layer A (channels 0-3) → off-screen canvas A
-2. Render Layer B (channels 5-8) → off-screen canvas B
-3. Render Mask (channel 4) → mask canvas
+1. Render Layer A (channels 1-4) → off-screen canvas A
+2. Render Layer B (channels 6-9) → off-screen canvas B
+3. Render Mask (channel 5) → mask canvas
 4. Composite A + B using Mask → mixed canvas
-5. Apply Effects A/B (channel 9) to mixed canvas
+5. Apply Effects A/B (channel 10) to mixed canvas
 6. Draw mixed result to main canvas
-7. Render Layer C (channels 10-11) on top
-8. Apply Global Effects (channel 12)
+7. Render Layer C (channels 11-12) on top
+8. Apply Global Effects (channel 13)
 9. Output to visible canvas
 
 ### Note → Animation Mapping
@@ -71,7 +71,7 @@ Velocity selection behavior
 
 ### Effects System
 
-Effects are applied via channels 9 (A/B effects) and 12 (global effects):
+Effects are applied via channels 10 (A/B effects) and 13 (global effects):
 
 | Note Range | Effect Type                  |
 | ---------- | ---------------------------- |
@@ -126,9 +126,11 @@ MIDI Controller → Web MIDI API → Channel/Note/Velocity → Animation Selecti
 
 ### File Organization
 
+Source folder names use 1-16 (matching DAW display). The build pipeline converts to 0-15 for code.
+
 ```
 src/public/animations/
-├── {channel}/              # MIDI channel (0-15)
+├── {channel}/              # Channel folder (1-16, matching DAW display)
 │   ├── {note}/            # MIDI note (0-127)
 │   │   ├── {velocity}/    # Velocity layer (0-12)
 │   │   │   ├── sprite.png # Animation frames

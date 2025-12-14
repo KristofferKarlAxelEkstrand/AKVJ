@@ -177,6 +177,7 @@ npm run fix                              # Updates all dependencies in package.j
 ### Animation System
 
 - **`src/public/animations/`** - Animation assets organized as: `{channel}/{note}/{velocity}/`
+    - Folder names use 1-16 (matching DAWs); build pipeline converts to 0-15 for code
 - **`generateAnimationsJson.js`** - Build script for animation metadata
 - **`src/public/animations/animations.json`** - Generated animation index
 

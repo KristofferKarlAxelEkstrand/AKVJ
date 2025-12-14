@@ -6,27 +6,27 @@ A real-time VJ (Video Jockey) application for live visual performances, built wi
 
 AKVJ transforms MIDI input into layered visual animations using a sophisticated channel-note-velocity mapping system:
 
-- **MIDI Channel (0-15)**: Determines layer group and function:
-    - Channels 0-3: Layer A (primary animation deck)
-    - Channel 4: Mixer/Mask (B&W bitmask for A/B crossfading)
-    - Channels 5-8: Layer B (secondary animation deck)
-    - Channel 9: Effects A/B (applied to mixed A/B output)
-    - Channels 10-11: Layer C (overlay layer for logos, persistent graphics)
-    - Channel 12: Global Effects (applied to entire output)
-    - Channels 13-15: Reserved
+- **MIDI Channel (1-16)**: Determines layer group and function:
+    - Channels 1-4: Layer A (primary animation deck)
+    - Channel 5: Mixer/Mask (B&W bitmask for A/B crossfading)
+    - Channels 6-9: Layer B (secondary animation deck)
+    - Channel 10: Effects A/B (applied to mixed A/B output)
+    - Channels 11-12: Layer C (overlay layer for logos, persistent graphics)
+    - Channel 13: Global Effects (applied to entire output)
+    - Channels 14-16: Reserved
 - **MIDI Note (0-127)**: Selects specific animation within a channel
 - **MIDI Velocity (0-127)**: Chooses velocity layer variant for dynamic expression
 
 ### Effects System
 
-- **Channel 9 (Effects A/B)**: Applied to mixed Layer A/B output
+- **Channel 10 (Effects A/B)**: Applied to mixed Layer A/B output
     - Notes 0-15: Split effects
     - Notes 16-31: Mirror effects
     - Notes 32-47: Offset effects
     - Notes 48-63: Color effects (invert, posterize)
     - Notes 64-79: Glitch effects
     - Notes 80-95: Strobe effects
-- **Channel 12 (Global Effects)**: Same effects applied to entire output after Layer C
+- **Channel 13 (Global Effects)**: Same effects applied to entire output after Layer C
 
 Velocity controls effect intensity (1-127).
 
@@ -86,9 +86,11 @@ AKVJ uses a sophisticated animation system based on PNG sprite sheets and JSON m
 
 ### Directory Structure
 
+> **Note:** Source folder names use 1-16 (matching DAW channel display). The build pipeline automatically converts to 0-15 for code.
+
 ```
 animations/                 # Source animation assets (editable, version controlled)
-├── {channel}/              # MIDI channel (0-15)
+├── {channel}/              # Channel folder (1-16, matching DAW display)
 │   ├── {note}/             # MIDI note (0-127)
 │   │   ├── {velocity}/     # Velocity layer (0-127)
 │   │   │   ├── sprite.png  # PNG sprite sheet (source)
@@ -236,7 +238,7 @@ AKVJ/
 │   │   └── utils/Fullscreen.js         # Fullscreen functionality
 │   └── public/
 │       └── animations/             # Animation assets
-│           ├── {channel}/          # MIDI channels (0-15)
+│           ├── {channel}/          # Channel folders (0-15, auto-converted from source)
 │           │   └── {note}/         # MIDI notes (0-127)
 │           │       └── {velocity}/ # Velocity layers
 │           └── animations.json     # Generated animation index

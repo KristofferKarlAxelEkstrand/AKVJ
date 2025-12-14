@@ -63,15 +63,17 @@ npm run generate-animation-json-to-json # Rebuild animation metadata
 
 ### Channel → Layer Assignment
 
+Channels shown as displayed in DAWs (1-16). Source folders use 1-16; the build pipeline converts to 0-15 for code.
+
 | Channels | Layer          | Function                      |
 | -------- | -------------- | ----------------------------- |
-| 0-3      | A              | Primary animation deck        |
-| 4        | Mixer          | B&W bitmask for A/B crossfade |
-| 5-8      | B              | Secondary animation deck      |
-| 9        | Effects A/B    | Effects on mixed A/B output   |
-| 10-11    | C              | Overlay layer (logos)         |
-| 12       | Global Effects | Effects on entire output      |
-| 13-15    | Reserved       | Ignored                       |
+| 1-4      | A              | Primary animation deck        |
+| 5        | Mixer          | B&W bitmask for A/B crossfade |
+| 6-9      | B              | Secondary animation deck      |
+| 10       | Effects A/B    | Effects on mixed A/B output   |
+| 11-12    | C              | Overlay layer (logos)         |
+| 13       | Global Effects | Effects on entire output      |
+| 14-16    | Reserved       | Ignored                       |
 
 ### Note/Velocity
 
@@ -96,6 +98,8 @@ Key fields in `meta.json`:
 ## Animation Structure
 
 Source animations live in `animations/` (build pipeline copies to `src/public/animations/`):
+
+> **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code output.
 
 ```
 animations/{channel}/{note}/{velocity}/
