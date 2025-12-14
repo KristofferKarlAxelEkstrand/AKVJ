@@ -227,8 +227,9 @@ class Renderer {
 	 * Apply effects to a canvas context
 	 * @param {CanvasRenderingContext2D} ctx - Target context
 	 * @param {Array<{type: string, velocity: number}>} effects - Active effects
+	 * @param {number} timestamp - Current timestamp from requestAnimationFrame
 	 */
-	#applyEffects(ctx, effects) {
+	#applyEffects(ctx, effects, timestamp) {
 		if (!effects || effects.length === 0) {
 			return;
 		}
@@ -256,7 +257,7 @@ class Renderer {
 					this.#applyGlitchEffect(data, intensity);
 					break;
 				case 'strobe':
-					this.#applyStrobeEffect(data, intensity);
+					this.#applyStrobeEffect(data, intensity, timestamp);
 					break;
 				default:
 					break;
@@ -271,8 +272,9 @@ class Renderer {
 	 */
 	#applyColorEffect(data, note, intensity) {
 		const noteInRange = note - settings.effectRanges.color.min;
+		const { effectVariantThreshold, posterizeBaseLevels, posterizeIntensityScale } = settings.effectParams;
 
-		if (noteInRange < 8) {
+		if (noteInRange < effectVariantThreshold) {
 			// Invert colors
 			for (let i = 0; i < data.length; i += 4) {
 				data[i] = 255 - data[i];
@@ -281,7 +283,7 @@ class Renderer {
 			}
 		} else {
 			// Posterize
-			const levels = Math.max(2, Math.floor(8 - intensity * 6));
+			const levels = Math.max(2, Math.floor(posterizeBaseLevels - intensity * posterizeIntensityScale));
 			const step = 255 / levels;
 			for (let i = 0; i < data.length; i += 4) {
 				data[i] = Math.floor(data[i] / step) * step;
@@ -303,8 +305,9 @@ class Renderer {
 		const data = imageData.data;
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;
+		const { effectVariantThreshold } = settings.effectParams;
 
-		if (noteInRange < 8) {
+		if (noteInRange < effectVariantThreshold) {
 			// Horizontal mirror
 			for (let y = 0; y < h; y++) {
 				for (let x = 0; x < w / 2; x++) {
@@ -340,8 +343,9 @@ class Renderer {
 	 * Offset is constrained to stay within the same row to prevent vertical artifacts.
 	 */
 	#applyGlitchEffect(data, intensity) {
+		const { glitchMaxDisplacement, glitchPixelProbability } = settings.effectParams;
 		// Random horizontal pixel displacement based on intensity
-		const glitchAmount = Math.floor(intensity * 20);
+		const glitchAmount = Math.floor(intensity * glitchMaxDisplacement);
 		const w = this.#canvasWidth;
 		const rowBytes = w * 4;
 
@@ -349,7 +353,7 @@ class Renderer {
 		const original = new Uint8ClampedArray(data);
 
 		for (let i = 0; i < data.length; i += 4) {
-			if (Math.random() < intensity * 0.1) {
+			if (Math.random() < intensity * glitchPixelProbability) {
 				// Calculate row boundaries to prevent vertical wrapping
 				const rowStart = Math.floor(i / rowBytes) * rowBytes;
 				const rowEnd = rowStart + rowBytes - 4;
@@ -368,11 +372,24 @@ class Renderer {
 	}
 
 	/**
-	 * Apply strobe effect
+	 * Apply strobe effect using timestamp-based deterministic flashing
+	 * Uses timestamp modulo to create consistent, reproducible flash patterns
+	 * @param {Uint8ClampedArray} data - Pixel data array
+	 * @param {number} intensity - Effect intensity (0-1)
+	 * @param {number} timestamp - Current timestamp from requestAnimationFrame
 	 */
-	#applyStrobeEffect(data, intensity) {
-		// Flash to white based on intensity and time
-		const flash = Math.random() < intensity * 0.3;
+	#applyStrobeEffect(data, intensity, timestamp) {
+		// Calculate strobe interval based on intensity:
+		// Higher intensity = faster strobe (shorter interval)
+		// Range: 200ms (low intensity) to 33ms (high intensity, ~30Hz)
+		const minInterval = 33; // ~30Hz max strobe rate
+		const maxInterval = 200; // ~5Hz min strobe rate
+		const strobeInterval = maxInterval - (maxInterval - minInterval) * intensity;
+
+		// Deterministic flash: flash on even intervals, no flash on odd
+		// This creates a consistent 50% duty cycle strobe
+		const flash = Math.floor(timestamp / strobeInterval) % 2 === 0;
+
 		if (flash) {
 			for (let i = 0; i < data.length; i += 4) {
 				data[i] = 255;
@@ -394,14 +411,15 @@ class Renderer {
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;
 		const noteInRange = note - settings.effectRanges.split.min;
+		const { effectVariantThreshold, splitMin, splitMax } = settings.effectParams;
 
-		// Number of splits based on note (2-8 splits)
-		const splits = Math.min(8, Math.max(2, Math.floor(noteInRange / 2) + 2));
+		// Number of splits based on note (splitMin to splitMax splits)
+		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / 2) + splitMin));
 
 		// Create output buffer to avoid reading already-modified pixels
 		const output = new Uint8ClampedArray(data.length);
 
-		if (noteInRange < 8) {
+		if (noteInRange < effectVariantThreshold) {
 			// Horizontal split - use modulo wrapping for proper repeating pattern
 			const sectionWidth = Math.floor(w / splits);
 			for (let y = 0; y < h; y++) {
@@ -447,11 +465,12 @@ class Renderer {
 		const w = this.#canvasWidth;
 		const h = this.#canvasHeight;
 		const noteInRange = note - settings.effectRanges.offset.min;
+		const { effectVariantThreshold } = settings.effectParams;
 
 		// Create output buffer
 		const output = new Uint8ClampedArray(data.length);
 
-		if (noteInRange < 8) {
+		if (noteInRange < effectVariantThreshold) {
 			// Horizontal offset
 			const offsetX = Math.floor(intensity * w);
 			for (let y = 0; y < h; y++) {
@@ -491,8 +510,9 @@ class Renderer {
 
 	/**
 	 * Main rendering loop - renders all layers with proper compositing
+	 * @param {number} timestamp - Timestamp provided by requestAnimationFrame
 	 */
-	#loop = (timestamp = performance.now()) => {
+	#loop = timestamp => {
 		if (!this.#isRunning) {
 			return;
 		}
@@ -529,7 +549,7 @@ class Renderer {
 
 		// Apply A/B effects
 		if (effectsManager?.hasEffectsAB()) {
-			this.#applyEffects(this.#ctxMixed, effectsManager.getActiveEffectsAB());
+			this.#applyEffects(this.#ctxMixed, effectsManager.getActiveEffectsAB(), timestamp);
 		}
 
 		// Draw mixed result to main canvas
@@ -540,7 +560,7 @@ class Renderer {
 
 		// Apply global effects
 		if (effectsManager?.hasEffectsGlobal()) {
-			this.#applyEffects(this.#canvas2dContext, effectsManager.getActiveEffectsGlobal());
+			this.#applyEffects(this.#canvas2dContext, effectsManager.getActiveEffectsGlobal(), timestamp);
 		}
 
 		this.#animationFrameId = requestAnimationFrame(this.#loop);

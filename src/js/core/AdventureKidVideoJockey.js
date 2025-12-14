@@ -92,13 +92,17 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		this.#teardownMIDIEventListeners();
-		this.#renderer?.stop();
-		this.#renderer?.destroy();
-		this.#layerManager?.clearLayers();
-		this.#layerManager?.destroy();
-		this.#animationLoader?.cleanup(this.#animations);
-		this.#animations = {};
+		try {
+			this.#teardownMIDIEventListeners();
+			this.#renderer?.stop();
+			this.#renderer?.destroy();
+			this.#layerManager?.clearLayers();
+			this.#layerManager?.destroy();
+			this.#animationLoader?.cleanup(this.#animations);
+			this.#animations = {};
+		} catch (error) {
+			console.error('Error during AdventureKidVideoJockey cleanup in disconnectedCallback:', error);
+		}
 	}
 
 	async #setUpAnimations(jsonUrl) {

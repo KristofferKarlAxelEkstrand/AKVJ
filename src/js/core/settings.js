@@ -42,7 +42,7 @@ const settings = {
 	 */
 	bpm: {
 		default: 120, // Default BPM when no clock/CC received
-		min: 10, // Minimum BPM value
+		min: 10, // Minimum BPM value (must be > 0 to prevent division by zero)
 		max: 522, // Maximum BPM value (512 range + 10 minimum)
 		// MIDI Clock (primary BPM source)
 		useMIDIClock: true, // Listen to 0xF8 timing messages
@@ -87,6 +87,27 @@ const settings = {
 		glitch: { min: 64, max: 79 }, // Glitch effects
 		strobe: { min: 80, max: 95 }, // Strobe/Flash effects
 		reserved: { min: 96, max: 127 } // Reserved for future use
+	},
+	/**
+	 * Effect parameters for tuning visual effects
+	 * These control thresholds, probabilities, and intensities
+	 */
+	effectParams: {
+		// Note range threshold: notes below this use variant A, at/above use variant B
+		// (e.g., horizontal vs vertical for mirror/split/offset effects)
+		effectVariantThreshold: 8,
+		// Maximum pixel displacement for glitch effect (scaled by intensity)
+		glitchMaxDisplacement: 20,
+		// Probability that a pixel will be glitched (scaled by intensity)
+		glitchPixelProbability: 0.1,
+		// Base probability for strobe flash (scaled by intensity)
+		strobeFlashProbability: 0.3,
+		// Posterize: base levels and intensity scale
+		posterizeBaseLevels: 8,
+		posterizeIntensityScale: 6,
+		// Split effect: min and max number of splits
+		splitMin: 2,
+		splitMax: 8
 	},
 	performance: {
 		// Target frame rate for animations
