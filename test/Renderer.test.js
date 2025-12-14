@@ -11,7 +11,24 @@ function createMockContext() {
 }
 
 describe('Renderer', () => {
+	// Mock for requestAnimationFrame - shared across tests in this describe block
+	let rafSpy;
+	let cafSpy;
+	// Original settings to restore after tests that mutate them
+	let originalCanvasWidth;
+	let originalCanvasHeight;
+
 	beforeEach(() => {
+		// Save original settings for restoration
+		originalCanvasWidth = settings.canvas.width;
+		originalCanvasHeight = settings.canvas.height;
+
+		// Mock requestAnimationFrame to capture callbacks
+		rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(_cb => {
+			return 1; // Return a fake frame ID
+		});
+		cafSpy = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+
 		// Replace document.createElement for canvas with a mock that returns a context object
 		// so Renderer can create off-screen canvases and their contexts.
 		globalThis.__createElementBackup = document.createElement;
@@ -101,9 +118,7 @@ describe('Renderer', () => {
 	});
 
 	test('allocates ImageData with new dimensions when canvas size changes via settings', () => {
-		// Temporarily change settings for this test
-		const oldW = settings.canvas.width;
-		const oldH = settings.canvas.height;
+		// Temporarily change settings for this test (restored by afterEach)
 		settings.canvas.width = 320;
 		settings.canvas.height = 180;
 
@@ -166,33 +181,27 @@ describe('Renderer', () => {
 		expect(putArg.width).toBe(320);
 		expect(putArg.height).toBe(180);
 
-		// Restore settings
-		settings.canvas.width = oldW;
-		settings.canvas.height = oldH;
 		renderer.destroy();
 	});
 
 	afterEach(() => {
+		// Restore settings that may have been mutated
+		settings.canvas.width = originalCanvasWidth;
+		settings.canvas.height = originalCanvasHeight;
+
+		// Restore requestAnimationFrame and cancelAnimationFrame mocks
+		if (rafSpy) {
+			rafSpy.mockRestore();
+		}
+		if (cafSpy) {
+			cafSpy.mockRestore();
+		}
+
 		// Restore createElement
 		if (globalThis.__createElementBackup) {
 			document.createElement = globalThis.__createElementBackup;
 			delete globalThis.__createElementBackup;
 		}
-	});
-	let rafSpy;
-	let cafSpy;
-
-	beforeEach(() => {
-		// Avoid recursive synchronous calls; let the first loop run and don't recursively call raf
-		rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(() => {
-			return 1; // no immediate callback
-		});
-		cafSpy = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
-	});
-
-	afterEach(() => {
-		rafSpy.mockRestore();
-		cafSpy.mockRestore();
 	});
 
 	test('fills canvas with background color and renders active layers', () => {

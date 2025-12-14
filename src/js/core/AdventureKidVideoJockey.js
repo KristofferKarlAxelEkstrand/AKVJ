@@ -130,6 +130,11 @@ class AdventureKidVideoJockey extends HTMLElement {
 		} catch (error) {
 			console.error(`Failed to set up animations from ${jsonUrl}:`, error);
 			appState.animationsLoaded = false;
+			appState.dispatchEvent(
+				new CustomEvent('animationLoadError', {
+					detail: { url: jsonUrl, error: error.message }
+				})
+			);
 			return {};
 		}
 	}

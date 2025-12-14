@@ -24,6 +24,12 @@ class LayerGroup {
 	/** @type {Map<number, Map<number, number[]>>} */
 	#velocityCache = new Map();
 
+	/** @type {AnimationLayer[]|null} Cached sorted active layers array */
+	#cachedActiveLayers = null;
+
+	/** @type {boolean} Flag indicating cache needs rebuild */
+	#layersDirty = true;
+
 	/**
 	 * Create a new LayerGroup
 	 * @param {number[]} channels - Array of MIDI channels this group handles
@@ -82,8 +88,15 @@ class LayerGroup {
 			return false;
 		}
 
+		// Stop any existing layer on this note before replacing (cleanup on rapid retriggers)
+		const existing = channelLayers.get(note);
+		if (existing && existing !== layer) {
+			existing.stop();
+		}
+
 		layer.reset();
 		channelLayers.set(note, layer);
+		this.#layersDirty = true;
 
 		return true;
 	}
@@ -104,6 +117,7 @@ class LayerGroup {
 		if (layer) {
 			layer.stop();
 			channelLayers.delete(note);
+			this.#layersDirty = true;
 			return true;
 		}
 
@@ -111,10 +125,25 @@ class LayerGroup {
 	}
 
 	/**
-	 * Get all active layers for rendering, sorted by channel then note
+	 * Get all active layers for rendering, sorted by channel then note.
+	 * Results are cached and only rebuilt when layers change.
+	 * Also cleans up finished layers from the Map to prevent memory leaks.
 	 * @returns {AnimationLayer[]} Array of active animation layers
 	 */
 	getActiveLayers() {
+		// Return cached array if still valid
+		if (!this.#layersDirty && this.#cachedActiveLayers !== null) {
+			// Filter out finished layers (may have finished since last cache)
+			const stillActive = this.#cachedActiveLayers.filter(layer => !layer.isFinished);
+			if (stillActive.length !== this.#cachedActiveLayers.length) {
+				this.#cachedActiveLayers = stillActive;
+				// Also clean up finished layers from the Map to prevent memory leaks
+				this.#cleanupFinishedLayers();
+			}
+			return this.#cachedActiveLayers;
+		}
+
+		// Rebuild cache
 		const layers = [];
 
 		// Sort channels in ascending order (lower channel = bottom)
@@ -137,7 +166,27 @@ class LayerGroup {
 			}
 		}
 
+		this.#cachedActiveLayers = layers;
+		this.#layersDirty = false;
 		return layers;
+	}
+
+	/**
+	 * Clean up finished layers from the activeLayers Map.
+	 * This prevents memory leaks by removing references to non-looping
+	 * animations that have completed playback.
+	 */
+	#cleanupFinishedLayers() {
+		for (const channel of this.#channels) {
+			const channelLayers = this.#activeLayers.get(channel);
+			if (channelLayers) {
+				for (const [note, layer] of channelLayers.entries()) {
+					if (layer && layer.isFinished) {
+						channelLayers.delete(note);
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -168,6 +217,8 @@ class LayerGroup {
 			}
 			channelLayers.clear();
 		}
+		this.#cachedActiveLayers = null;
+		this.#layersDirty = true;
 	}
 
 	/**
@@ -177,6 +228,8 @@ class LayerGroup {
 		this.clearLayers();
 		this.#animations = {};
 		this.#velocityCache.clear();
+		this.#cachedActiveLayers = null;
+		this.#layersDirty = true;
 	}
 }
 

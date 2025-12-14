@@ -44,7 +44,10 @@ class AnimationLoader {
 		}
 
 		const data = await response.json();
-		console.log('JSON for animations loaded:', data);
+		// Debug logging only in development mode
+		if (import.meta.env.DEV) {
+			console.log('JSON for animations loaded:', data);
+		}
 		return data;
 	}
 
@@ -95,9 +98,8 @@ class AnimationLoader {
 		// Construct image path using configurable base path to support subpath deployments
 		const base = settings.performance.animationsBasePath;
 		const sanitizedFile = this.#sanitizeFileName(animationData.png);
-		// Early return with clear error if filename was invalid/sanitized to empty
+		// Early return if filename was invalid (warning already logged in #sanitizeFileName)
 		if (!sanitizedFile) {
-			console.error(`Invalid filename for animation ${channel}/${note}/${velocityLayer}: ${animationData.png}`);
 			return null;
 		}
 		// Normalize base path to avoid double slashes in the constructed URL

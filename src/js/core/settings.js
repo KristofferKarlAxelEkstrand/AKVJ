@@ -87,8 +87,10 @@ const settings = {
 	 * These control thresholds, probabilities, and intensities
 	 */
 	effectParams: {
-		// Note range threshold: notes below this use variant A, at/above use variant B
-		// (e.g., horizontal vs vertical for mirror/split/offset effects)
+		// Note range threshold within each effect range (0-15 notes per range).
+		// Notes with noteInRange < threshold use variant A (e.g., horizontal).
+		// Notes with noteInRange >= threshold use variant B (e.g., vertical).
+		// Value of 8 splits the 16-note range evenly: 0-7 = A, 8-15 = B.
 		effectVariantThreshold: 8,
 		// Maximum pixel displacement for glitch effect (scaled by intensity)
 		glitchMaxDisplacement: 20,
@@ -101,7 +103,10 @@ const settings = {
 		posterizeIntensityScale: 6,
 		// Split effect: min and max number of splits
 		splitMin: 2,
-		splitMax: 8
+		splitMax: 8,
+		// Strobe effect: min/max intervals in ms
+		strobeMinInterval: 33, // ~30Hz max strobe rate
+		strobeMaxInterval: 200 // ~5Hz min strobe rate
 	},
 	performance: {
 		// Target frame rate for animations

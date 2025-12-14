@@ -14,6 +14,25 @@
  */
 import settings from '../core/settings.js';
 
+/**
+ * Bit depth mixing constants.
+ * These define how mask values (0-255) are quantized for different bit depths.
+ */
+const BIT_DEPTH_MIXING = {
+	/** 1-bit threshold: values below this show Layer A, above show Layer B */
+	THRESHOLD_1BIT: 128,
+	/** 2-bit: 256/4 = 64 per level, giving 4 levels (0-3) */
+	DIVISOR_2BIT: 64,
+	/** 2-bit: max level value (4 levels: 0, 1, 2, 3) */
+	MAX_LEVEL_2BIT: 3,
+	/** 4-bit: 256/16 = 16 per level, giving 16 levels (0-15) */
+	DIVISOR_4BIT: 16,
+	/** 4-bit: max level value (16 levels: 0-15) */
+	MAX_LEVEL_4BIT: 15,
+	/** 8-bit: full 256 levels for smooth blending */
+	MAX_VALUE_8BIT: 255
+};
+
 class Renderer {
 	#canvas2dContext;
 	#layerManager;
@@ -27,7 +46,7 @@ class Renderer {
 	#ctxA = null;
 	#canvasB = null;
 	#ctxB = null;
-	#canvasMask = null;
+	// Mask canvas is created for its context; canvas element not directly used
 	#ctxMask = null;
 	#canvasMixed = null;
 	#ctxMixed = null;
@@ -45,6 +64,22 @@ class Renderer {
 	}
 
 	/**
+	 * Create an off-screen canvas with the configured dimensions and settings.
+	 * @returns {{ canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D }} The canvas and its 2D context
+	 */
+	#createOffscreenCanvas() {
+		const canvas = document.createElement('canvas');
+		canvas.width = this.#canvasWidth;
+		canvas.height = this.#canvasHeight;
+		const ctx = canvas.getContext('2d');
+		if (ctx) {
+			ctx.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
+			ctx.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
+		}
+		return { canvas, ctx };
+	}
+
+	/**
 	 * Initialize off-screen canvases for layer compositing
 	 */
 	#initOffscreenCanvases() {
@@ -53,35 +88,11 @@ class Renderer {
 			return;
 		}
 
-		// Create off-screen canvases
-		this.#canvasA = document.createElement('canvas');
-		this.#canvasA.width = this.#canvasWidth;
-		this.#canvasA.height = this.#canvasHeight;
-		this.#ctxA = this.#canvasA.getContext('2d');
-
-		this.#canvasB = document.createElement('canvas');
-		this.#canvasB.width = this.#canvasWidth;
-		this.#canvasB.height = this.#canvasHeight;
-		this.#ctxB = this.#canvasB.getContext('2d');
-
-		this.#canvasMask = document.createElement('canvas');
-		this.#canvasMask.width = this.#canvasWidth;
-		this.#canvasMask.height = this.#canvasHeight;
-		this.#ctxMask = this.#canvasMask.getContext('2d');
-
-		this.#canvasMixed = document.createElement('canvas');
-		this.#canvasMixed.width = this.#canvasWidth;
-		this.#canvasMixed.height = this.#canvasHeight;
-		this.#ctxMixed = this.#canvasMixed.getContext('2d');
-
-		// Configure contexts
-		const contexts = [this.#ctxA, this.#ctxB, this.#ctxMask, this.#ctxMixed];
-		for (const ctx of contexts) {
-			if (ctx) {
-				ctx.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
-				ctx.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
-			}
-		}
+		// Create off-screen canvases using helper
+		({ canvas: this.#canvasA, ctx: this.#ctxA } = this.#createOffscreenCanvas());
+		({ canvas: this.#canvasB, ctx: this.#ctxB } = this.#createOffscreenCanvas());
+		({ ctx: this.#ctxMask } = this.#createOffscreenCanvas()); // Canvas not stored, only context needed
+		({ canvas: this.#canvasMixed, ctx: this.#ctxMixed } = this.#createOffscreenCanvas());
 
 		// Pre-allocate reusable ImageData and scratch buffer for pixel ops
 		if (this.#ctxMixed) {
@@ -122,7 +133,6 @@ class Renderer {
 		this.#ctxA = null;
 		this.#canvasB = null;
 		this.#ctxB = null;
-		this.#canvasMask = null;
 		this.#ctxMask = null;
 		this.#canvasMixed = null;
 		this.#ctxMixed = null;
@@ -209,8 +219,8 @@ class Renderer {
 			const maskValue = maskPixels[idx]; // Use R channel (grayscale: R=G=B)
 
 			if (bitDepth === 1) {
-				// 1-bit: hard cut
-				if (maskValue < 128) {
+				// 1-bit: hard cut at threshold
+				if (maskValue < BIT_DEPTH_MIXING.THRESHOLD_1BIT) {
 					outPixels[idx] = aPixels[idx];
 					outPixels[idx + 1] = aPixels[idx + 1];
 					outPixels[idx + 2] = aPixels[idx + 2];
@@ -222,24 +232,24 @@ class Renderer {
 					outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 				}
 			} else if (bitDepth === 2) {
-				// 2-bit: 4 levels -> alpha = level/3
-				const level2 = Math.floor(maskValue / 64);
-				const alpha2 = level2 / 3;
+				// 2-bit: 4 levels -> alpha = level / MAX_LEVEL_2BIT
+				const level2 = Math.floor(maskValue / BIT_DEPTH_MIXING.DIVISOR_2BIT);
+				const alpha2 = level2 / BIT_DEPTH_MIXING.MAX_LEVEL_2BIT;
 				outPixels[idx] = aPixels[idx] + (bPixels[idx] - aPixels[idx]) * alpha2;
 				outPixels[idx + 1] = aPixels[idx + 1] + (bPixels[idx + 1] - aPixels[idx + 1]) * alpha2;
 				outPixels[idx + 2] = aPixels[idx + 2] + (bPixels[idx + 2] - aPixels[idx + 2]) * alpha2;
 				outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 			} else if (bitDepth === 4) {
-				// 4-bit: 16 levels -> alpha = level/15
-				const level4 = Math.floor(maskValue / 16);
-				const alpha4 = level4 / 15;
+				// 4-bit: 16 levels -> alpha = level / MAX_LEVEL_4BIT
+				const level4 = Math.floor(maskValue / BIT_DEPTH_MIXING.DIVISOR_4BIT);
+				const alpha4 = level4 / BIT_DEPTH_MIXING.MAX_LEVEL_4BIT;
 				outPixels[idx] = aPixels[idx] + (bPixels[idx] - aPixels[idx]) * alpha4;
 				outPixels[idx + 1] = aPixels[idx + 1] + (bPixels[idx + 1] - aPixels[idx + 1]) * alpha4;
 				outPixels[idx + 2] = aPixels[idx + 2] + (bPixels[idx + 2] - aPixels[idx + 2]) * alpha4;
 				outPixels[idx + 3] = Math.max(aPixels[idx + 3], bPixels[idx + 3]);
 			} else {
-				// Smooth blend: A + (B - A) * alpha
-				const alpha = maskValue / 255;
+				// 8-bit smooth blend: A + (B - A) * alpha
+				const alpha = maskValue / BIT_DEPTH_MIXING.MAX_VALUE_8BIT;
 				outPixels[idx] = aPixels[idx] + (bPixels[idx] - aPixels[idx]) * alpha;
 				outPixels[idx + 1] = aPixels[idx + 1] + (bPixels[idx + 1] - aPixels[idx + 1]) * alpha;
 				outPixels[idx + 2] = aPixels[idx + 2] + (bPixels[idx + 2] - aPixels[idx + 2]) * alpha;
@@ -413,10 +423,8 @@ class Renderer {
 	#applyStrobeEffect(data, intensity, timestamp) {
 		// Calculate strobe interval based on intensity:
 		// Higher intensity = faster strobe (shorter interval)
-		// Range: 200ms (low intensity) to 33ms (high intensity, ~30Hz)
-		const minInterval = 33; // ~30Hz max strobe rate
-		const maxInterval = 200; // ~5Hz min strobe rate
-		const strobeInterval = maxInterval - (maxInterval - minInterval) * intensity;
+		const { strobeMinInterval, strobeMaxInterval } = settings.effectParams;
+		const strobeInterval = strobeMaxInterval - (strobeMaxInterval - strobeMinInterval) * intensity;
 
 		// Deterministic flash: flash on even intervals, no flash on odd
 		// This creates a consistent 50% duty cycle strobe

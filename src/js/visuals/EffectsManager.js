@@ -119,7 +119,7 @@ class EffectsManager {
 		}
 
 		const effectType = this.#getEffectType(note);
-		if (!effectType) {
+		if (effectType === null || effectType === 'reserved') {
 			return false;
 		}
 

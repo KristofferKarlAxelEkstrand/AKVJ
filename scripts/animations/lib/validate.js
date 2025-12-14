@@ -33,6 +33,7 @@ async function getSubfolders(dir) {
 		const entries = await fs.readdir(dir, { withFileTypes: true });
 		return entries.filter(e => e.isDirectory()).map(e => e.name);
 	} catch {
+		// Directory doesn't exist or can't be read - return empty array
 		return [];
 	}
 }
@@ -48,6 +49,7 @@ async function getFilesWithExtension(dir, ext) {
 		const entries = await fs.readdir(dir);
 		return entries.filter(f => path.extname(f) === ext);
 	} catch {
+		// Directory doesn't exist or can't be read - return empty array
 		return [];
 	}
 }
@@ -171,6 +173,11 @@ async function validateAnimation(animationDir, animationPath) {
 					}
 					if (meta.numberOfFrames && frameNum >= meta.numberOfFrames) {
 						errors.push(`frameRatesForFrames key "${key}" exceeds numberOfFrames (${meta.numberOfFrames})`);
+					}
+					// Validate frame rate values are positive numbers
+					const rate = meta.frameRatesForFrames[key];
+					if (typeof rate !== 'number' || rate <= 0) {
+						errors.push(`frameRatesForFrames["${key}"] must be a positive number (got ${rate})`);
 					}
 				}
 			}

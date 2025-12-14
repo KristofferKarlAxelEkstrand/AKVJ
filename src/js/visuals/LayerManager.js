@@ -56,7 +56,8 @@ class LayerManager {
 
 	/**
 	 * Set the loaded animations reference and distribute to groups
-	 * @param {Object} animations - Animation data keyed by channel/note/velocity
+	 * @param {Object<string, Object<string, Object<string, AnimationLayer>>>} animations
+	 *   Nested object: animations[channel][note][velocityLayer] = AnimationLayer
 	 */
 	setAnimations(animations) {
 		// Distribute animations to layer groups
