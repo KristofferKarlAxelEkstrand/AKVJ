@@ -68,17 +68,22 @@ class AnimationLoader {
 	 * Create an AnimationLayer from animation data and loaded image
 	 */
 	#createAnimationLayer(image, animationData) {
-		return new AnimationLayer({
-			canvas2dContext: this.#canvas2dContext,
-			image,
-			numberOfFrames: animationData.numberOfFrames,
-			framesPerRow: animationData.framesPerRow,
-			loop: animationData.loop,
-			frameRatesForFrames: animationData.frameRatesForFrames,
-			beatsPerFrame: animationData.beatsPerFrame ?? null,
-			retrigger: animationData.retrigger,
-			bitDepth: animationData.bitDepth ?? null
-		});
+		try {
+			return new AnimationLayer({
+				canvas2dContext: this.#canvas2dContext,
+				image,
+				numberOfFrames: animationData.numberOfFrames,
+				framesPerRow: animationData.framesPerRow,
+				loop: animationData.loop,
+				frameRatesForFrames: animationData.frameRatesForFrames,
+				beatsPerFrame: animationData.beatsPerFrame ?? null,
+				retrigger: animationData.retrigger,
+				bitDepth: animationData.bitDepth ?? null
+			});
+		} catch (err) {
+			console.error(`AnimationLoader: invalid animation data for image ${animationData.png}:`, err);
+			return null;
+		}
 	}
 
 	/**

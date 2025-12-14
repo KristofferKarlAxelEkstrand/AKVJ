@@ -35,8 +35,9 @@ temp/
 tmp-*.js
 
 # Animation pipeline
-.cache/
-src/public/animations/
+
 
 # System files
 Thumbs.db
+
+

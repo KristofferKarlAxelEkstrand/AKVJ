@@ -209,7 +209,9 @@ async function watchMode() {
 export { watchMode };
 
 // Execute the pipeline only when run as a CLI, not when imported as a module
-const isCli = import.meta.url === `file://${process.argv[1]}` || (process.argv[1] && process.argv[1].endsWith('index.js'));
+// Handles both `node scripts/animations/index.js` and `node scripts/animations` (folder)
+const scriptPath = process.argv[1] ?? '';
+const isCli = import.meta.url === `file://${scriptPath}` || import.meta.url === `file://${scriptPath}/index.js` || scriptPath.endsWith('index.js');
 
 if (isCli) {
 	(async () => {

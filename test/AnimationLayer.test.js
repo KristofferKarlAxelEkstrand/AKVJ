@@ -38,6 +38,54 @@ describe('AnimationLayer', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('beatsPerFrame array controls per-frame timing and falls back to first element', () => {
+		// Create a fake context that captures drawImage sx value
+		let lastSx = null;
+		const ctx = {
+			drawImage: (img, sx) => {
+				lastSx = sx;
+			}
+		};
+
+		const image = { width: 30, height: 10 }; // frameWidth = 10
+
+		// numberOfFrames = 3, framesPerRow = 3
+		// Provide a beatsPerFrame array with explicit per-frame values
+		const layer = new AnimationLayer({
+			canvas2dContext: ctx,
+			image,
+			numberOfFrames: 3,
+			framesPerRow: 3,
+			beatsPerFrame: [0.25, 0.5, 0.25],
+			loop: false
+		});
+
+		// Frame 0 at t=0
+		layer.playToContext(ctx, 0);
+		expect(lastSx).toBe(0);
+
+		// Advance by 125ms (0.25 beats @ 120 BPM) -> frame 1
+		layer.playToContext(ctx, 125);
+		expect(lastSx).toBe(10);
+
+		// Advance by 250ms (0.5 beats) -> frame 2
+		layer.playToContext(ctx, 375);
+		expect(lastSx).toBe(20);
+
+		// If beatsPerFrame array length doesn't match numberOfFrames, constructor should throw
+		expect(
+			() =>
+				new AnimationLayer({
+					canvas2dContext: ctx,
+					image,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					beatsPerFrame: [0.25, 0.5],
+					loop: false
+				})
+		).toThrow('beatsPerFrame array length');
+	});
+
 	describe('constructor', () => {
 		test('throws if numberOfFrames is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: 0 }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
@@ -441,32 +489,21 @@ describe('AnimationLayer', () => {
 			appState.bpm = 120;
 		});
 
-		test('falls back to frameRatesForFrames if beatsPerFrame is invalid', async () => {
+		test('throws when beatsPerFrame is invalid (no fallback)', async () => {
 			const ctx = createMockContext();
-			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-			const layer = new AnimationLayer(
-				defaultOptions({
-					canvas2dContext: ctx,
-					numberOfFrames: 2,
-					framesPerRow: 2,
-					beatsPerFrame: 'invalid', // Invalid value
-					frameRatesForFrames: { 0: 1000 } // 1ms interval
-				})
-			);
-
-			// Should have warned about invalid beatsPerFrame
-			expect(consoleWarnSpy).toHaveBeenCalled();
-
-			// t=0 -> frame 0
-			layer.play(0);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// t=1ms -> should advance using FPS mode
-			layer.play(1);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 1
-
-			consoleWarnSpy.mockRestore();
+			expect(
+				() =>
+					new AnimationLayer(
+						defaultOptions({
+							canvas2dContext: ctx,
+							numberOfFrames: 2,
+							framesPerRow: 2,
+							beatsPerFrame: 'invalid', // Invalid value
+							frameRatesForFrames: { 0: 1000 } // would be used previously
+						})
+					)
+			).toThrow('invalid beatsPerFrame');
 		});
 
 		test('beatsPerFrame takes priority over frameRatesForFrames', async () => {

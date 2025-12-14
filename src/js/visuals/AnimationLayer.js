@@ -52,19 +52,16 @@ class AnimationLayer {
 		if (beatsPerFrame !== null && beatsPerFrame !== undefined) {
 			this.#useBPMSync = true;
 			if (Array.isArray(beatsPerFrame)) {
-				// Validate non-empty array to fail fast rather than using 0.25 fallback
-				if (beatsPerFrame.length === 0) {
-					console.warn('AnimationLayer: beatsPerFrame array is empty, falling back to frameRatesForFrames');
-					this.#useBPMSync = false;
-				} else {
-					this.#beatsPerFrame = beatsPerFrame;
+				// Enforce strict array length equal to numberOfFrames
+				if (beatsPerFrame.length !== numberOfFrames) {
+					throw new Error(`AnimationLayer: beatsPerFrame array length (${beatsPerFrame.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
+				this.#beatsPerFrame = beatsPerFrame;
 			} else if (typeof beatsPerFrame === 'number' && beatsPerFrame > 0) {
 				// Shorthand: single number applies to all frames
 				this.#beatsPerFrame = Array(numberOfFrames).fill(beatsPerFrame);
 			} else {
-				console.warn('AnimationLayer: invalid beatsPerFrame, falling back to frameRatesForFrames');
-				this.#useBPMSync = false;
+				throw new Error('AnimationLayer: invalid beatsPerFrame');
 			}
 		}
 
