@@ -181,10 +181,10 @@ async function watchMode() {
 		process.exit(1);
 	}
 
-	console.log('Watching for changes in animations/...\n');
-
-	// Initial build
+	// Initial build (animations:watch is the only entry point in dev)
 	await run();
+
+	console.log('\nWatching for changes in animations/...\n');
 
 	// Debounce function
 	let timeout;
@@ -204,7 +204,18 @@ async function watchMode() {
 		}
 	}, 100);
 
-	chokidar.default.watch(SOURCE_DIR, { ignoreInitial: true }).on('all', rebuild);
+	// Use polling in dev containers where inotify may not work reliably
+	const usePolling = !!(process.env.REMOTE_CONTAINERS || process.env.CODESPACES || process.env.GITPOD_WORKSPACE_ID);
+	chokidar.default
+		.watch(SOURCE_DIR, {
+			ignoreInitial: true,
+			usePolling,
+			interval: usePolling ? 300 : undefined
+		})
+		.on('all', (event, filePath) => {
+			console.log(`[anim] ${event}: ${filePath}`);
+			rebuild();
+		});
 }
 export { watchMode };
 

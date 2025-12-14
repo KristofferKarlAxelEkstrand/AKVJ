@@ -19,7 +19,7 @@
 	"type": "module",
 	"private": false,
 	"scripts": {
-		"dev": "vite",
+		"dev": "concurrently -n vite,anim -c blue,green \"vite\" \"npm run animations:watch\"",
 		"animations": "node scripts/animations",
 		"animations:watch": "node scripts/animations --watch",
 		"animations:clean": "node scripts/animations --clean",
@@ -62,6 +62,7 @@
 	"devDependencies": {
 		"@eslint/js": "^9.39.2",
 		"chokidar": "^5.0.0",
+		"concurrently": "^9.2.1",
 		"eslint": "^9.39.2",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^16.5.0",

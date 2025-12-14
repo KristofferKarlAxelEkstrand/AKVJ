@@ -35,7 +35,9 @@ class AnimationLoader {
 	 * Load and parse animation data from JSON URL
 	 */
 	async #loadAnimationsJson(jsonUrl) {
-		const response = await fetch(jsonUrl);
+		// Add cache-busting query param during development to ensure fresh data
+		const url = import.meta.env.DEV ? `${jsonUrl}?t=${Date.now()}` : jsonUrl;
+		const response = await fetch(url);
 
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status} for ${jsonUrl}`);
