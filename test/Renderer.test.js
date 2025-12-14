@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../src/js/visuals/Renderer.js';
+import settings from '../src/js/core/settings.js';
 
 function createMockContext() {
 	return {
@@ -32,6 +33,143 @@ describe('Renderer', () => {
 			}
 			return globalThis.__createElementBackup(tagName);
 		};
+	});
+
+	test('reuses output ImageData instance across consecutive frames', () => {
+		const mainCtx = createMockContext();
+		globalThis.__createdCanvases = [];
+
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const maskLayer = { isFinished: false, playToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 1 };
+		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => layerB,
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const renderer = new Renderer(mainCtx, layerManager);
+		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
+		const ctxA = canvasA.getContext();
+		const ctxB = canvasB.getContext();
+		const ctxMask = canvasMask.getContext();
+		const ctxMixed = canvasMixed.getContext();
+
+		// Provide deterministic pixel arrays
+		const w = settings.canvas.width;
+		const h = settings.canvas.height;
+		const size = w * h * 4;
+		const aPixels = new Uint8ClampedArray(size);
+		const bPixels = new Uint8ClampedArray(size);
+		const maskPixels = new Uint8ClampedArray(size);
+		for (let i = 0; i < size; i += 4) {
+			aPixels[i] = 0;
+			aPixels[i + 1] = 0;
+			aPixels[i + 2] = 0;
+			aPixels[i + 3] = 255;
+			bPixels[i] = 255;
+			bPixels[i + 1] = 255;
+			bPixels[i + 2] = 255;
+			bPixels[i + 3] = 255;
+			maskPixels[i] = 0;
+			maskPixels[i + 1] = 0;
+			maskPixels[i + 2] = 0;
+			maskPixels[i + 3] = 255;
+		}
+
+		ctxA.getImageData = () => ({ data: aPixels });
+		ctxB.getImageData = () => ({ data: bPixels });
+		ctxMask.getImageData = () => ({ data: maskPixels });
+
+		const outputs = [];
+		ctxMixed.putImageData = outData => outputs.push(outData);
+
+		// Run two frames
+		renderer.start();
+		const rafCb = rafSpy.mock.calls[0][0];
+		rafCb(0);
+		rafCb(1);
+
+		expect(outputs.length).toBeGreaterThanOrEqual(2);
+		// The same ImageData instance should be reused across frames
+		expect(outputs[0]).toBe(outputs[1]);
+		renderer.destroy();
+	});
+
+	test('allocates ImageData with new dimensions when canvas size changes via settings', () => {
+		// Temporarily change settings for this test
+		const oldW = settings.canvas.width;
+		const oldH = settings.canvas.height;
+		settings.canvas.width = 320;
+		settings.canvas.height = 180;
+
+		const mainCtx = createMockContext();
+		globalThis.__createdCanvases = [];
+
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const maskLayer = { isFinished: false, playToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 8 };
+		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => layerB,
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const renderer = new Renderer(mainCtx, layerManager);
+		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
+		const ctxA = canvasA.getContext();
+		const ctxB = canvasB.getContext();
+		const ctxMask = canvasMask.getContext();
+		const ctxMixed = canvasMixed.getContext();
+
+		// Prepare image arrays with new dimensions for getImageData
+		const w2 = settings.canvas.width;
+		const h2 = settings.canvas.height;
+		const size2 = w2 * h2 * 4;
+		const aPixels2 = new Uint8ClampedArray(size2);
+		const bPixels2 = new Uint8ClampedArray(size2);
+		const maskPixels2 = new Uint8ClampedArray(size2);
+		for (let i = 0; i < size2; i += 4) {
+			aPixels2[i] = 0;
+			aPixels2[i + 1] = 0;
+			aPixels2[i + 2] = 0;
+			aPixels2[i + 3] = 255;
+			bPixels2[i] = 255;
+			bPixels2[i + 1] = 255;
+			bPixels2[i + 2] = 255;
+			bPixels2[i + 3] = 255;
+			maskPixels2[i] = 128;
+			maskPixels2[i + 1] = 128;
+			maskPixels2[i + 2] = 128;
+			maskPixels2[i + 3] = 255;
+		}
+		ctxA.getImageData = () => ({ data: aPixels2 });
+		ctxB.getImageData = () => ({ data: bPixels2 });
+		ctxMask.getImageData = () => ({ data: maskPixels2 });
+
+		let putArg = null;
+		ctxMixed.putImageData = out => (putArg = out);
+
+		renderer.start();
+		const cb = rafSpy.mock.calls[0][0];
+		cb(0);
+
+		expect(putArg).toBeDefined();
+		expect(putArg.width).toBe(320);
+		expect(putArg.height).toBe(180);
+
+		// Restore settings
+		settings.canvas.width = oldW;
+		settings.canvas.height = oldH;
+		renderer.destroy();
 	});
 
 	afterEach(() => {

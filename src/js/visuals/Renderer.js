@@ -31,6 +31,8 @@ class Renderer {
 	#ctxMask = null;
 	#canvasMixed = null;
 	#ctxMixed = null;
+	#outputImageData = null;
+	#scratchBuffer = null; // Uint8ClampedArray reused for temporary copies
 
 	constructor(canvas2dContext, layerManager) {
 		this.#canvas2dContext = canvas2dContext;
@@ -80,6 +82,12 @@ class Renderer {
 				ctx.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
 			}
 		}
+
+		// Pre-allocate reusable ImageData and scratch buffer for pixel ops
+		if (this.#ctxMixed) {
+			this.#outputImageData = this.#ctxMixed.createImageData(this.#canvasWidth, this.#canvasHeight);
+			this.#scratchBuffer = new Uint8ClampedArray(this.#canvasWidth * this.#canvasHeight * 4);
+		}
 	}
 
 	/**
@@ -128,12 +136,24 @@ class Renderer {
 		const maskManager = this.#layerManager.getMaskManager();
 		const mask = maskManager.getCurrentMask();
 
+		// Defensive guards - ensure offscreen contexts exist
+		const ctxA = this.#ctxA;
+		const ctxB = this.#ctxB;
+		const ctxMask = this.#ctxMask;
+		const ctxMixed = this.#ctxMixed;
+		const canvasW = this.#canvasWidth;
+		const canvasH = this.#canvasHeight;
+
+		if (!ctxA || !ctxB || !ctxMask || !ctxMixed) {
+			return;
+		}
+
 		const layerAEmpty = !this.#layerManager.getLayerA()?.hasActiveLayers();
 		const layerBEmpty = !this.#layerManager.getLayerB()?.hasActiveLayers();
 
 		// Always clear mixed canvas first
-		this.#ctxMixed.fillStyle = settings.rendering.backgroundColor;
-		this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		ctxMixed.fillStyle = settings.rendering.backgroundColor;
+		ctxMixed.fillRect(0, 0, canvasW, canvasH);
 
 		// Quick-path: if both A and B are empty, nothing to mix
 		if (layerAEmpty && layerBEmpty) {
@@ -151,26 +171,30 @@ class Renderer {
 		}
 
 		// Render the mask animation
-		this.#ctxMask.fillStyle = '#000000';
-		this.#ctxMask.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		ctxMask.fillStyle = '#000000';
+		ctxMask.fillRect(0, 0, canvasW, canvasH);
 		if (!mask.isFinished) {
-			mask.playToContext(this.#ctxMask, timestamp);
+			mask.playToContext(ctxMask, timestamp);
 		}
 
 		const bitDepth = maskManager.getBitDepth() ?? 1;
 
 		// Get image data for pixel manipulation
-		const layerAData = this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const layerBData = this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const maskData = this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const outputData = this.#ctxMixed.createImageData(this.#canvasWidth, this.#canvasHeight);
+		const layerAData = ctxA.getImageData(0, 0, canvasW, canvasH);
+		const layerBData = ctxB.getImageData(0, 0, canvasW, canvasH);
+		const maskData = ctxMask.getImageData(0, 0, canvasW, canvasH);
+
+		// Ensure output ImageData matches current canvas size and reuse where possible
+		if (!this.#outputImageData || this.#outputImageData.width !== canvasW || this.#outputImageData.height !== canvasH) {
+			this.#outputImageData = ctxMixed.createImageData(canvasW, canvasH);
+		}
 
 		const aPixels = layerAData.data;
 		const bPixels = layerBData.data;
 		const maskPixels = maskData.data;
-		const outPixels = outputData.data;
+		const outPixels = this.#outputImageData.data;
 
-		const pixelCount = this.#canvasWidth * this.#canvasHeight;
+		const pixelCount = canvasW * canvasH;
 
 		// Mix pixels based on bit depth
 		// Note on alpha handling: We use Math.max(aPixels[idx + 3], bPixels[idx + 3]) for all bit depths.
@@ -220,7 +244,7 @@ class Renderer {
 			}
 		}
 
-		this.#ctxMixed.putImageData(outputData, 0, 0);
+		ctxMixed.putImageData(this.#outputImageData, 0, 0);
 	}
 
 	/**
@@ -349,8 +373,13 @@ class Renderer {
 		const w = this.#canvasWidth;
 		const rowBytes = w * 4;
 
-		// Create a copy of original data to avoid reading already-modified pixels
-		const original = new Uint8ClampedArray(data);
+		// Ensure scratch buffer is available and large enough
+		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
+			this.#scratchBuffer = new Uint8ClampedArray(data.length);
+		}
+		// Copy current data into scratch to use as original read-only source
+		this.#scratchBuffer.set(data);
+		const original = this.#scratchBuffer;
 
 		for (let i = 0; i < data.length; i += 4) {
 			if (Math.random() < intensity * glitchPixelProbability) {
@@ -416,8 +445,11 @@ class Renderer {
 		// Number of splits based on note (splitMin to splitMax splits)
 		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / 2) + splitMin));
 
-		// Create output buffer to avoid reading already-modified pixels
-		const output = new Uint8ClampedArray(data.length);
+		// Reuse scratch buffer as output to avoid allocations
+		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
+			this.#scratchBuffer = new Uint8ClampedArray(data.length);
+		}
+		const output = this.#scratchBuffer;
 
 		if (noteInRange < effectVariantThreshold) {
 			// Horizontal split - use modulo wrapping for proper repeating pattern
@@ -449,10 +481,8 @@ class Renderer {
 			}
 		}
 
-		// Copy output back to data
-		for (let i = 0; i < data.length; i++) {
-			data[i] = output[i];
-		}
+		// Copy output back to data in one call
+		data.set(output);
 
 		ctx.putImageData(imageData, 0, 0);
 	}
@@ -468,7 +498,10 @@ class Renderer {
 		const { effectVariantThreshold } = settings.effectParams;
 
 		// Create output buffer
-		const output = new Uint8ClampedArray(data.length);
+		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
+			this.#scratchBuffer = new Uint8ClampedArray(data.length);
+		}
+		const output = this.#scratchBuffer;
 
 		if (noteInRange < effectVariantThreshold) {
 			// Horizontal offset
@@ -501,9 +534,7 @@ class Renderer {
 		}
 
 		// Copy output back to data
-		for (let i = 0; i < data.length; i++) {
-			data[i] = output[i];
-		}
+		data.set(output);
 
 		ctx.putImageData(imageData, 0, 0);
 	}

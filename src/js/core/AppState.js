@@ -233,7 +233,8 @@ class AppState extends EventTarget {
 				}
 
 				// Reject outliers that deviate too far from the rolling average
-				const deviation = Math.abs(rawBPM - rollingAvg) / rollingAvg;
+				// Guard against division by zero in case rollingAvg is 0 (should be unlikely)
+				const deviation = rollingAvg > 0 ? Math.abs(rawBPM - rollingAvg) / rollingAvg : 0;
 				const isOutlier = this.#beatMeasurements.length >= 2 && deviation > outlierThreshold;
 
 				if (!isOutlier) {

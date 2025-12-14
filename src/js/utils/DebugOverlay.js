@@ -115,7 +115,8 @@ class DebugOverlay {
 	#handleKeydown(e) {
 		if (e.key === 'd' || e.key === 'D') {
 			// Don't toggle if user is typing in an input
-			if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+			const targetTag = e.target?.tagName?.toUpperCase();
+			if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
 				return;
 			}
 			this.#visible = !this.#visible;
@@ -143,7 +144,7 @@ class DebugOverlay {
 	}
 
 	#addLogEntry(type, message) {
-		this.#midiLog.unshift({ type, message, time: Date.now() });
+		this.#midiLog.unshift({ type, message, time: performance.now() });
 		if (this.#midiLog.length > this.#maxLogEntries) {
 			this.#midiLog.pop();
 		}
