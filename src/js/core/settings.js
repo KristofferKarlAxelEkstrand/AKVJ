@@ -44,15 +44,8 @@ const settings = {
 		default: 120, // Default BPM when no clock/CC received
 		min: 10, // Minimum BPM value (must be > 0 to prevent division by zero)
 		max: 522, // Maximum BPM value (512 range + 10 minimum)
-		// MIDI Clock (primary BPM source)
-		useMIDIClock: true, // Listen to 0xF8 timing messages
-		smoothingFactor: 0.5, // Exponential smoothing (0.5 = balanced response)
-		clockTimeoutMs: 2000, // If no clock for this many ms, fall back to CC
-		pulsesPerUpdate: 6, // Calculate BPM every N pulses (6 = 16th note resolution at 24 PPQN)
-		rollingWindowSize: 2, // Number of beat measurements to average (smaller = faster response)
-		outlierThreshold: 0.15, // Reject measurements deviating >15% from rolling average
-		outlierResetCount: 1, // After N consecutive outliers, accept as new tempo (1 = real-time)
-		// MIDI CC (fallback/override)
+		clockTimeoutMs: 500, // Fall back to CC/default if no clock pulses for this long
+		// MIDI CC (fallback when no clock)
 		controlCC: 0, // CC number (0-127)
 		controlChannel: 0 // MIDI channel (0-15)
 	},

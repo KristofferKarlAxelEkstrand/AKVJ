@@ -30,12 +30,8 @@ class AppState extends EventTarget {
 
 	// MIDI Clock timing state
 	#lastClockTime = null;
-	#clockCount = 0;
-	#accumulatedClockTime = 0;
 	#clockTimeoutId = null;
-	#beatMeasurements = []; // Rolling window of beat duration measurements
-	#pulseTimestamps = []; // Recent pulse timestamps for sub-beat calculation
-	#consecutiveOutliers = []; // Track consecutive outlier measurements for tempo change detection
+	#recentPulseIntervals = []; // Last few pulse intervals for BPM calculation
 
 	set midiConnected(connected) {
 		if (this.#midiConnected !== connected) {
@@ -163,11 +159,10 @@ class AppState extends EventTarget {
 	 * Handle MIDI Clock pulse (0xF8)
 	 * MIDI clock sends 24 pulses per quarter note (24 PPQN)
 	 *
-	 * Improved algorithm for reduced jitter:
-	 * 1. Calculates BPM more frequently (every 6 pulses = 16th note resolution)
-	 * 2. Uses rolling average over multiple beat measurements
-	 * 3. Rejects outlier measurements that deviate too far from the average
-	 * 4. Applies exponential smoothing on top for extra stability
+	 * Simple algorithm:
+	 * 1. Track intervals between pulses
+	 * 2. Average the last few intervals
+	 * 3. Calculate BPM from average
 	 *
 	 * @param {number} timestamp - Performance.now() timestamp
 	 */
@@ -177,129 +172,45 @@ class AppState extends EventTarget {
 			clearTimeout(this.#clockTimeoutId);
 		}
 
-		// Set timeout to fall back to CC if clock stops
+		// Set timeout to detect when clock stops
 		this.#clockTimeoutId = setTimeout(() => {
-			const now = performance.now();
-			// Only fall back if the last clock timestamp is older than the timeout
-			if (this.#bpmSource === 'clock' && (this.#lastClockTime === null || now - this.#lastClockTime > settings.bpm.clockTimeoutMs)) {
-				this.#bpmSource = 'cc';
-				// Don't change BPM value, just the source
+			if (this.#bpmSource === 'clock') {
+				this.#bpmSource = 'default';
 				this.dispatchEvent(
 					new CustomEvent('bpmSourceChanged', {
-						detail: { source: 'cc', bpm: this.#currentBPM }
+						detail: { source: 'default', bpm: this.#currentBPM }
 					})
 				);
 			}
 			this.#clockTimeoutId = null;
 		}, settings.bpm.clockTimeoutMs);
 
-		// Track pulse timestamps for sub-beat calculation
-		this.#pulseTimestamps.push(timestamp);
-
-		// Keep only the last 25 timestamps (24 intervals = 1 beat)
-		if (this.#pulseTimestamps.length > 25) {
-			this.#pulseTimestamps.shift();
-		}
-
+		// Calculate interval from last pulse
 		if (this.#lastClockTime !== null) {
-			this.#accumulatedClockTime += timestamp - this.#lastClockTime;
-			this.#clockCount++;
+			const interval = timestamp - this.#lastClockTime;
 
-			const pulsesPerUpdate = settings.bpm.pulsesPerUpdate ?? 6;
-
-			// Calculate BPM more frequently for smoother updates
-			if (this.#clockCount >= pulsesPerUpdate) {
-				// Extrapolate to full beat: (accumulated time / pulses counted) * 24
-				const msPerPulse = this.#accumulatedClockTime / this.#clockCount;
-				const msPerBeat = msPerPulse * 24;
-
-				// Ignore suspiciously fast clock (likely error): < 10 ms per beat -> > 6000 BPM
-				if (msPerBeat < 10) {
-					this.#clockCount = 0;
-					this.#accumulatedClockTime = 0;
-					this.#lastClockTime = timestamp;
-					return;
+			// Ignore impossibly fast pulses (< 1ms = > 2500 BPM)
+			if (interval >= 1) {
+				// Keep last 24 intervals (one beat worth)
+				this.#recentPulseIntervals.push(interval);
+				if (this.#recentPulseIntervals.length > 24) {
+					this.#recentPulseIntervals.shift();
 				}
 
-				const rawBPM = 60000 / msPerBeat;
+				// Calculate BPM from average interval
+				// Need at least 6 intervals for reasonable accuracy (16th note)
+				if (this.#recentPulseIntervals.length >= 6) {
+					const avgInterval = this.#recentPulseIntervals.reduce((a, b) => a + b, 0) / this.#recentPulseIntervals.length;
+					const msPerBeat = avgInterval * 24; // 24 PPQN
+					const bpm = 60000 / msPerBeat;
 
-				// Add to rolling window of measurements
-				const windowSize = settings.bpm.rollingWindowSize ?? 8;
-				const outlierThreshold = settings.bpm.outlierThreshold ?? 0.15;
-
-				// Calculate rolling average for outlier detection
-				let rollingAvg = rawBPM;
-				if (this.#beatMeasurements.length > 0) {
-					rollingAvg = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
+					this.#setBPM(bpm, 'clock');
 				}
-
-				// Reject outliers that deviate too far from the rolling average
-				// Guard against division by zero in case rollingAvg is 0 (should be unlikely)
-				// Skip outlier detection when transitioning to clock source - we need to accept
-				// the first valid measurements even if they differ significantly from the default BPM
-				const deviation = rollingAvg > 0 ? Math.abs(rawBPM - rollingAvg) / rollingAvg : 0;
-				const hasClockBaseline = this.#bpmSource === 'clock' && this.#beatMeasurements.length >= 2;
-				const isOutlier = hasClockBaseline && deviation > outlierThreshold;
-
-				// Track consecutive outliers for live tempo change detection
-				// If we see N consecutive outliers that are consistent with each other,
-				// treat it as a genuine tempo change and reset the baseline
-				if (isOutlier) {
-					this.#consecutiveOutliers.push(rawBPM);
-					const resetCount = settings.bpm.outlierResetCount ?? 3;
-
-					if (this.#consecutiveOutliers.length >= resetCount) {
-						// Check if consecutive outliers are consistent with each other
-						const outlierAvg = this.#consecutiveOutliers.reduce((a, b) => a + b, 0) / this.#consecutiveOutliers.length;
-						const outlierDeviations = this.#consecutiveOutliers.map(v => Math.abs(v - outlierAvg) / outlierAvg);
-						const maxOutlierDeviation = Math.max(...outlierDeviations);
-
-						// If outliers are consistent (within threshold of each other), accept as new tempo
-						if (maxOutlierDeviation <= outlierThreshold) {
-							// Reset baseline with new tempo
-							this.#beatMeasurements = [...this.#consecutiveOutliers];
-							this.#consecutiveOutliers = [];
-							const newAvgBPM = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
-							this.#setBPM(newAvgBPM, 'clock');
-						} else {
-							// Outliers aren't consistent, keep the oldest ones and try again
-							this.#consecutiveOutliers.shift();
-						}
-					}
-				} else {
-					// Valid measurement - clear consecutive outliers
-					this.#consecutiveOutliers = [];
-
-					// Add measurement to rolling window
-					this.#beatMeasurements.push(rawBPM);
-					if (this.#beatMeasurements.length > windowSize) {
-						this.#beatMeasurements.shift();
-					}
-
-					// Calculate averaged BPM from rolling window
-					const avgBPM = this.#beatMeasurements.reduce((a, b) => a + b, 0) / this.#beatMeasurements.length;
-
-					// Apply exponential smoothing on top of the rolling average
-					const smoothingFactor = settings.bpm.smoothingFactor;
-					let smoothedBPM;
-
-					// For the very first clock-derived BPM, prefer the avgBPM (no smoothing)
-					if (this.#bpmSource !== 'clock' || this.#currentBPM === settings.bpm.default) {
-						smoothedBPM = avgBPM;
-					} else {
-						smoothedBPM = this.#currentBPM * smoothingFactor + avgBPM * (1 - smoothingFactor);
-					}
-
-					this.#setBPM(smoothedBPM, 'clock');
-				}
-
-				this.#clockCount = 0;
-				this.#accumulatedClockTime = 0;
 			}
 		}
 		this.#lastClockTime = timestamp;
 
-		// Dispatch clock event for any listeners
+		// Dispatch clock event for animation sync
 		this.dispatchEvent(
 			new CustomEvent('midiClock', {
 				detail: { timestamp }
@@ -309,14 +220,11 @@ class AppState extends EventTarget {
 
 	/**
 	 * Handle MIDI Start message (0xFA)
-	 * Resets clock counter for fresh BPM calculation
+	 * Resets clock state for fresh sync
 	 */
 	dispatchMIDIStart() {
 		this.#lastClockTime = null;
-		this.#clockCount = 0;
-		this.#accumulatedClockTime = 0;
-		this.#beatMeasurements = [];
-		this.#pulseTimestamps = [];
+		this.#recentPulseIntervals = [];
 
 		this.dispatchEvent(new CustomEvent('midiStart'));
 	}
@@ -334,12 +242,8 @@ class AppState extends EventTarget {
 	 * Pauses BPM sync (keeps last BPM value)
 	 */
 	dispatchMIDIStop() {
-		// Clear clock timing but keep the current BPM
 		this.#lastClockTime = null;
-		this.#clockCount = 0;
-		this.#accumulatedClockTime = 0;
-		// Keep beatMeasurements for faster re-lock on continue
-		this.#pulseTimestamps = [];
+		// Keep intervals for faster re-lock on continue
 
 		this.dispatchEvent(new CustomEvent('midiStop'));
 	}
@@ -403,11 +307,7 @@ class AppState extends EventTarget {
 		this.#currentBPM = settings.bpm.default;
 		this.#bpmSource = 'default';
 		this.#lastClockTime = null;
-		this.#clockCount = 0;
-		this.#accumulatedClockTime = 0;
-		this.#beatMeasurements = [];
-		this.#pulseTimestamps = [];
-		this.#consecutiveOutliers = [];
+		this.#recentPulseIntervals = [];
 
 		if (this.#clockTimeoutId !== null) {
 			clearTimeout(this.#clockTimeoutId);

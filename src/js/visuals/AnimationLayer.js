@@ -2,10 +2,11 @@
  * AnimationLayer - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  *
- * Supports three timing modes:
+ * Supports two timing modes:
  * 1. frameRatesForFrames (FPS) - Frame timing in frames-per-second (default)
  * 2. beatsPerFrame (BPM sync) - Frame timing in beats, synced to current BPM
- * 3. pulsesPerFrame (Clock sync) - Frame advances on MIDI clock pulses (real-time sync)
+ *    When MIDI clock is active, uses real-time clock pulses (24 PPQN)
+ *    When no clock, falls back to time-based BPM calculation
  */
 import settings from '../core/settings.js';
 import appState from '../core/AppState.js';
@@ -34,12 +35,11 @@ class AnimationLayer {
 	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
 	#useBPMSync = false; // Whether to use BPM sync mode
-	#useClockSync = false; // Whether to use MIDI clock pulse sync mode
-	#pulsesPerFrame; // Array of pulses per frame for clock sync
+	#pulsesPerFrame; // Array of pulses per frame for clock sync (derived from beatsPerFrame)
 	#pulseCount = 0; // Accumulated clock pulses since last frame advance
 	#unsubscribeClock = null; // Cleanup for clock subscription
 
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, pulsesPerFrame = null, retrigger = true, bitDepth = null }) {
+	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, beatsPerFrame = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
 			throw new Error('AnimationLayer requires numberOfFrames >= 1');
 		}
@@ -53,28 +53,10 @@ class AnimationLayer {
 		this.#framesPerRow = framesPerRow;
 		this.#bitDepth = bitDepth;
 
-		// Process pulsesPerFrame (explicit clock sync - highest priority)
-		if (pulsesPerFrame !== null && pulsesPerFrame !== undefined) {
-			this.#useClockSync = true;
-			if (Array.isArray(pulsesPerFrame)) {
-				if (pulsesPerFrame.length !== numberOfFrames) {
-					throw new Error(`AnimationLayer: pulsesPerFrame array length (${pulsesPerFrame.length}) must equal numberOfFrames (${numberOfFrames})`);
-				}
-				this.#pulsesPerFrame = pulsesPerFrame;
-			} else if (typeof pulsesPerFrame === 'number' && pulsesPerFrame > 0) {
-				// Shorthand: single number applies to all frames
-				this.#pulsesPerFrame = Array(numberOfFrames).fill(pulsesPerFrame);
-			} else {
-				throw new Error('AnimationLayer: invalid pulsesPerFrame');
-			}
-			// Subscribe to MIDI clock events for real-time sync
-			this.#unsubscribeClock = appState.subscribe('midiClock', () => this.#onClockPulse());
-		}
-
 		// Process beatsPerFrame - supports both clock sync and time-based BPM sync
 		// When MIDI clock is active, uses clock pulses for real-time sync (24 PPQN)
 		// When no clock, falls back to time-based BPM calculation
-		if (!this.#useClockSync && beatsPerFrame !== null && beatsPerFrame !== undefined) {
+		if (beatsPerFrame !== null && beatsPerFrame !== undefined) {
 			this.#useBPMSync = true;
 
 			if (Array.isArray(beatsPerFrame)) {
@@ -172,11 +154,8 @@ class AnimationLayer {
 	 * @param {number} timestamp - Current timestamp
 	 */
 	#advanceFrame(timestamp) {
-		// When clock is active and we have pulse-based timing, let pulses drive frames
-		// For explicit pulsesPerFrame (useClockSync=true), always use clock
-		// For beatsPerFrame (useBPMSync=true), use clock when bpmSource is 'clock'
-		const clockActive = this.#useClockSync || (this.#useBPMSync && appState.bpmSource === 'clock');
-		if (clockActive && this.#pulsesPerFrame) {
+		// When clock is active and we have beatsPerFrame, let pulses drive frames
+		if (this.#useBPMSync && this.#pulsesPerFrame && appState.bpmSource === 'clock') {
 			return;
 		}
 		// Prevent double-advancement when the same timestamp is used to advance
@@ -335,16 +314,15 @@ class AnimationLayer {
 	/**
 	 * Handle MIDI clock pulse for real-time sync mode
 	 * Advances frame when enough pulses have accumulated
-	 * For beatsPerFrame, only active when MIDI clock is the BPM source
+	 * Only active when MIDI clock is the BPM source
 	 */
 	#onClockPulse() {
 		if (this.#isFinished || !this.#pulsesPerFrame) {
 			return;
 		}
 
-		// For beatsPerFrame (useBPMSync without explicit useClockSync),
-		// only process pulses when clock is the active BPM source
-		if (this.#useBPMSync && !this.#useClockSync && appState.bpmSource !== 'clock') {
+		// Only process pulses when clock is the active BPM source
+		if (appState.bpmSource !== 'clock') {
 			return;
 		}
 
