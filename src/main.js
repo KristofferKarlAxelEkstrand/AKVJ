@@ -7,10 +7,15 @@ import './js/core/AdventureKidVideoJockey.js';
 // Import and initialize MIDI singleton (side-effect: starts listening for devices)
 import midi from './js/midi-input/midi.js';
 import Fullscreen from './js/utils/Fullscreen.js';
+import DebugOverlay from './js/utils/DebugOverlay.js';
 
 // Enable fullscreen functionality
 const fullscreenManager = new Fullscreen();
 fullscreenManager.init();
+
+// Enable debug overlay (press 'D' to toggle)
+const debugOverlay = new DebugOverlay();
+debugOverlay.init();
 
 // Cleanup on hot module replacement (HMR)
 if (import.meta.hot) {
@@ -19,6 +24,11 @@ if (import.meta.hot) {
 			fullscreenManager.destroy();
 		} catch (error) {
 			console.warn('Error destroying fullscreenManager during HMR:', error);
+		}
+		try {
+			debugOverlay.destroy();
+		} catch (error) {
+			console.warn('Error destroying debugOverlay during HMR:', error);
 		}
 		try {
 			midi?.destroy?.();

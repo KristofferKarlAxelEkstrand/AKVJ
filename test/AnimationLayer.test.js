@@ -38,6 +38,54 @@ describe('AnimationLayer', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('beatsPerFrame array controls per-frame timing and falls back to first element', () => {
+		// Create a fake context that captures drawImage sx value
+		let lastSx = null;
+		const ctx = {
+			drawImage: (img, sx) => {
+				lastSx = sx;
+			}
+		};
+
+		const image = { width: 30, height: 10 }; // frameWidth = 10
+
+		// numberOfFrames = 3, framesPerRow = 3
+		// Provide a beatsPerFrame array with explicit per-frame values
+		const layer = new AnimationLayer({
+			canvas2dContext: ctx,
+			image,
+			numberOfFrames: 3,
+			framesPerRow: 3,
+			beatsPerFrame: [0.25, 0.5, 0.25],
+			loop: false
+		});
+
+		// Frame 0 at t=0
+		layer.playToContext(ctx, 0);
+		expect(lastSx).toBe(0);
+
+		// Advance by 125ms (0.25 beats @ 120 BPM) -> frame 1
+		layer.playToContext(ctx, 125);
+		expect(lastSx).toBe(10);
+
+		// Advance by 250ms (0.5 beats) -> frame 2
+		layer.playToContext(ctx, 375);
+		expect(lastSx).toBe(20);
+
+		// If beatsPerFrame array length doesn't match numberOfFrames, constructor should throw
+		expect(
+			() =>
+				new AnimationLayer({
+					canvas2dContext: ctx,
+					image,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					beatsPerFrame: [0.25, 0.5],
+					loop: false
+				})
+		).toThrow('beatsPerFrame array length');
+	});
+
 	describe('constructor', () => {
 		test('throws if numberOfFrames is missing or less than 1', () => {
 			expect(() => new AnimationLayer(defaultOptions({ numberOfFrames: 0 }))).toThrow('AnimationLayer requires numberOfFrames >= 1');
@@ -354,6 +402,135 @@ describe('AnimationLayer', () => {
 			layer.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('BPM sync mode (beatsPerFrame)', () => {
+		test('accepts beatsPerFrame as single number and uses BPM sync', async () => {
+			const ctx = createMockContext();
+			// Import appState to set BPM
+			const appState = (await import('../src/js/core/AppState.js')).default;
+			appState.bpm = 120; // 120 BPM
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					beatsPerFrame: 0.5 // Half beat per frame = 250ms at 120 BPM
+				})
+			);
+
+			// t=0 -> initial draw (frame 0)
+			layer.play(0);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+
+			// t=249ms -> should still be on frame 0
+			layer.play(249);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // sx=0 for frame 0
+
+			// t=250ms -> should advance to frame 1
+			layer.play(250);
+			// Frame 1: sx = 60 (240px width / 4 frames)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60);
+		});
+
+		test('accepts beatsPerFrame as array with per-frame values', async () => {
+			const ctx = createMockContext();
+			const appState = (await import('../src/js/core/AppState.js')).default;
+			appState.bpm = 120; // 120 BPM
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					// Frame 0: 0.25 beat (125ms), Frame 1: 0.5 beat (250ms), etc.
+					beatsPerFrame: [0.25, 0.5, 0.25, 0.5]
+				})
+			);
+
+			// t=0 -> initial draw (frame 0)
+			layer.play(0);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+			// t=125ms -> should advance to frame 1
+			layer.play(125);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60); // Frame 1
+
+			// t=375ms -> should advance to frame 2 (125 + 250 = 375)
+			layer.play(375);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 2
+		});
+
+		test('responds to BPM changes during playback', async () => {
+			const ctx = createMockContext();
+			const appState = (await import('../src/js/core/AppState.js')).default;
+			appState.bpm = 60; // Start at 60 BPM (0.5 beat = 500ms)
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 4,
+					framesPerRow: 4,
+					beatsPerFrame: 0.5
+				})
+			);
+
+			// t=0 -> frame 0
+			layer.play(0);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+			// t=499ms at 60 BPM -> still frame 0 (need 500ms)
+			layer.play(499);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+			// Reset appState to 120 BPM for other tests
+			appState.bpm = 120;
+		});
+
+		test('throws when beatsPerFrame is invalid (no fallback)', async () => {
+			const ctx = createMockContext();
+
+			expect(
+				() =>
+					new AnimationLayer(
+						defaultOptions({
+							canvas2dContext: ctx,
+							numberOfFrames: 2,
+							framesPerRow: 2,
+							beatsPerFrame: 'invalid', // Invalid value
+							frameRatesForFrames: { 0: 1000 } // would be used previously
+						})
+					)
+			).toThrow('invalid beatsPerFrame');
+		});
+
+		test('beatsPerFrame takes priority over frameRatesForFrames', async () => {
+			const ctx = createMockContext();
+			const appState = (await import('../src/js/core/AppState.js')).default;
+			appState.bpm = 120;
+
+			const layer = new AnimationLayer(
+				defaultOptions({
+					canvas2dContext: ctx,
+					numberOfFrames: 2,
+					framesPerRow: 2,
+					beatsPerFrame: 0.5, // 250ms at 120 BPM
+					frameRatesForFrames: { 0: 1000 } // Would be 1ms if used
+				})
+			);
+
+			// t=0 -> frame 0
+			layer.play(0);
+
+			// t=10ms -> if FPS were used, would advance. With BPM sync, stays on frame 0
+			layer.play(10);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // Still frame 0
+
+			// t=250ms -> BPM sync advances
+			layer.play(250);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 1
 		});
 	});
 });

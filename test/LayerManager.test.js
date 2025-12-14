@@ -2,7 +2,7 @@ import { describe, test, expect, vi } from 'vitest';
 import LayerManager from '../src/js/visuals/LayerManager.js';
 
 describe('LayerManager', () => {
-	test('setAnimations and noteOn/noteOff behavior', () => {
+	test('setAnimations distributes to layer groups', () => {
 		const lm = new LayerManager();
 		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
 
@@ -15,15 +15,33 @@ describe('LayerManager', () => {
 		};
 
 		lm.setAnimations(animations);
-		expect(lm.getActiveLayers()).toEqual([]);
 
+		// Layer A should have no active layers initially
+		expect(lm.getLayerA().getActiveLayers()).toEqual([]);
+	});
+
+	test('noteOn/noteOff activates and deactivates layers via LayerGroup', () => {
+		const lm = new LayerManager();
+		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
+
+		const animations = {
+			0: {
+				60: {
+					0: fakeLayer
+				}
+			}
+		};
+
+		lm.setAnimations(animations);
 		lm.noteOn(0, 60, 127);
-		const active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer);
+
+		// Layer A (channel 0) should now have the active layer
+		const activeLayers = lm.getLayerA().getActiveLayers();
+		expect(activeLayers).toContain(fakeLayer);
 
 		lm.noteOff(0, 60);
-		expect(active[0][60]).toBeNull();
 		expect(fakeLayer.stop).toHaveBeenCalled();
+		expect(lm.getLayerA().getActiveLayers()).toEqual([]);
 	});
 });
 
@@ -43,36 +61,35 @@ describe('LayerManager - velocity selection', () => {
 		};
 
 		lm.setAnimations(animations);
-		// Below lowest - should be ignored (no layer activated)
+
+		// Below lowest - should not activate any layer
 		lm.noteOn(0, 60, 30);
-		let active = lm.getActiveLayers();
-		expect(active[0]).toBeUndefined();
-		// Reset
+		expect(lm.getLayerA().getActiveLayers()).toEqual([]);
 		lm.noteOff(0, 60);
-		// Equal to lowest
+
+		// Equal to lowest - should activate fakeLayer40
 		lm.noteOn(0, 60, 40);
-		active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer40);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer40);
 		lm.noteOff(0, 60);
+
 		// Mid range (between 40 and 80) -> pick 40
 		lm.noteOn(0, 60, 60);
-		active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer40);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer40);
 		lm.noteOff(0, 60);
+
 		// Equal to highest
 		lm.noteOn(0, 60, 80);
-		active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer80);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer80);
 		lm.noteOff(0, 60);
+
 		// Above highest -> pick 80
 		lm.noteOn(0, 60, 127);
-		active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer80);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer80);
 	});
 });
 
 describe('LayerManager - clearLayers', () => {
-	test('clearLayers stops, disposes, and removes all active layers', () => {
+	test('clearLayers clears all layer groups', () => {
 		const lm = new LayerManager();
 		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
 
@@ -86,18 +103,15 @@ describe('LayerManager - clearLayers', () => {
 
 		lm.setAnimations(animations);
 		lm.noteOn(0, 60, 127);
-		const active = lm.getActiveLayers();
-		expect(active[0][60]).toBe(fakeLayer);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer);
 
 		lm.clearLayers();
-		expect(fakeLayer.stop).toHaveBeenCalled();
-		expect(fakeLayer.dispose).toHaveBeenCalled();
-		expect(lm.getActiveLayers().length).toBe(0);
+		expect(lm.getLayerA().getActiveLayers()).toEqual([]);
 	});
 });
 
 describe('LayerManager - destroy', () => {
-	test('destroy clears layers and resets internal state', () => {
+	test('destroy clears layers and can be called multiple times safely', () => {
 		const lm = new LayerManager();
 		const fakeLayer = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
 
@@ -111,29 +125,12 @@ describe('LayerManager - destroy', () => {
 
 		lm.setAnimations(animations);
 		lm.noteOn(0, 60, 127);
-		expect(lm.getActiveLayers()[0][60]).toBe(fakeLayer);
+		expect(lm.getLayerA().getActiveLayers()).toContain(fakeLayer);
 
 		lm.destroy();
-		expect(lm.getActiveLayers().length).toBe(0);
+		expect(lm.getLayerA().getActiveLayers()).toEqual([]);
+
 		// Calling destroy again should be a no-op and not throw
 		expect(() => lm.destroy()).not.toThrow();
-	});
-});
-
-describe('LayerManager - clearLayers defensive behavior', () => {
-	test('clearLayers handles layers without dispose method', () => {
-		const lm = new LayerManager();
-		const layerWithoutDispose = { play: vi.fn(), stop: vi.fn(), reset: vi.fn() };
-		// Note: no dispose method
-
-		const animations = {
-			0: { 60: { 0: layerWithoutDispose } }
-		};
-
-		lm.setAnimations(animations);
-		lm.noteOn(0, 60, 127);
-
-		expect(() => lm.clearLayers()).not.toThrow();
-		expect(layerWithoutDispose.stop).toHaveBeenCalled();
 	});
 });

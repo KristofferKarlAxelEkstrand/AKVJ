@@ -1,0 +1,24 @@
+{
+	"name": "AKVJ - Node.js",
+	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-22-bookworm",
+	"remoteUser": "node",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "yarn install",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "stylelint.vscode-stylelint", "eamodio.gitlens", "jdinhlife.gruvbox"],
+			"settings": {
+				"workbench.colorTheme": "Gruvbox Dark Medium"
+			}
+		}
+	}
+}

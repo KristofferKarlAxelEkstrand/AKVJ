@@ -112,7 +112,7 @@ export async function run(options = {}) {
 	// Step 2: Optimize
 	if (!options.noOptimize) {
 		console.log('Step 2: Optimizing PNGs...');
-		const { results, sharp } = await optimize(valid, CACHE_DIR);
+		const { results, sharp, bitDepthCounts } = await optimize(valid, CACHE_DIR);
 
 		const optimized = results.filter(r => r.optimized).length;
 		const skipped = results.filter(r => r.skipped).length;
@@ -122,6 +122,10 @@ export async function run(options = {}) {
 			const totalSaved = results.filter(r => r.optimized && r.originalSize && r.optimizedSize).reduce((acc, r) => acc + (r.originalSize - r.optimizedSize), 0);
 
 			console.log(`  Optimized: ${optimized}, Skipped: ${skipped}, Failed: ${failed}`);
+			const bitmaskCount = bitDepthCounts?.[1] ?? 0;
+			if (bitmaskCount > 0) {
+				console.log(`  Bitmasks (1-bit): ${bitmaskCount}`);
+			}
 			if (totalSaved > 0) {
 				console.log(`  Total size saved: ${(totalSaved / 1024).toFixed(1)} KB`);
 			}
@@ -205,7 +209,9 @@ async function watchMode() {
 export { watchMode };
 
 // Execute the pipeline only when run as a CLI, not when imported as a module
-const isCli = import.meta.url === `file://${process.argv[1]}` || (process.argv[1] && process.argv[1].endsWith('index.js'));
+// Handles both `node scripts/animations/index.js` and `node scripts/animations` (folder)
+const scriptPath = process.argv[1] ?? '';
+const isCli = import.meta.url === `file://${scriptPath}` || import.meta.url === `file://${scriptPath}/index.js` || scriptPath.endsWith('index.js');
 
 if (isCli) {
 	(async () => {

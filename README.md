@@ -6,7 +6,14 @@ A real-time VJ (Video Jockey) application for live visual performances, built wi
 
 AKVJ transforms MIDI input into layered visual animations using a sophisticated channel-note-velocity mapping system:
 
-- **MIDI Channel (0-15)**: Determines visual layer depth (0 = background, 15 = foreground)
+- **MIDI Channel (0-15)**: Determines layer group and function:
+    - Channels 0-3: Layer A (primary animation deck)
+    - Channel 4: Mixer/Mask (B&W bitmask for A/B crossfading)
+    - Channels 5-8: Layer B (secondary animation deck)
+    - Channel 9: Effects A/B (applied to mixed A/B output)
+    - Channels 10-11: Layer C (overlay layer for logos, persistent graphics)
+    - Channel 12: Global Effects (applied to entire output)
+    - Channels 13-15: Reserved
 - **MIDI Note (0-127)**: Selects specific animation within a channel
 - **MIDI Velocity (0-127)**: Chooses velocity layer variant for dynamic expression
 
@@ -67,13 +74,29 @@ AKVJ uses a sophisticated animation system based on PNG sprite sheets and JSON m
 ### Directory Structure
 
 ```
-src/public/animations/
-├── {channel}/          # MIDI channel (0-15)
-│   ├── {note}/         # MIDI note (0-127)
-│   │   ├── {velocity}/ # Velocity layer (0-127)
-│   │   │   ├── sprite.png  # PNG sprite sheet
+animations/                 # Source animation assets (editable, version controlled)
+├── {channel}/              # MIDI channel (0-15)
+│   ├── {note}/             # MIDI note (0-127)
+│   │   ├── {velocity}/     # Velocity layer (0-127)
+│   │   │   ├── sprite.png  # PNG sprite sheet (source)
 │   │   │   └── meta.json   # Animation metadata
+
+.cache/animations/          # Optimized assets (generated, git-ignored)
+├── {channel}/{note}/{velocity}/
+│   ├── sprite.png          # Optimized PNG
+│   └── sprite.png.hash     # Source file hash for change detection
+└── animations.json         # Generated animation index
+
+src/public/animations/      # Final build output (generated, git-ignored)
+└── [Same structure as .cache/animations/]
 ```
+
+The animation pipeline automatically:
+
+- Validates source animations in `animations/`
+- Optimizes PNGs and caches them in `.cache/animations/`
+- Generates `animations.json` metadata index
+- Copies optimized assets to `src/public/animations/` for the application
 
 ### Animation Metadata (JSON)
 
@@ -221,8 +244,11 @@ This project uses **Husky** and **lint-staged** to automatically run linting and
 ### Animation Management
 
 ```bash
-npm run generate-animation-json-to-json  # Build animation index
-npm run watch:animations                 # Watch for animation changes
+npm run animations                       # Build animation pipeline (validate, optimize, generate)
+npm run animations:watch                 # Watch for animation changes and rebuild
+npm run animations:clean                 # Remove cache and generated output
+npm run animations:new                   # Create new animation scaffold (requires channel/note/velocity args)
+npm run animations:spritesheet           # Generate sprite sheet from frames (requires input/output paths)
 ```
 
 ### Dependency Management
@@ -246,11 +272,16 @@ AKVJ is optimized for real-time visual performance:
 
 ### Adding New Animations
 
-1. **Create directory structure**: `src/public/animations/{channel}/{note}/{velocity}/`
-2. **Add PNG sprite sheet**: Frame-based animation with consistent frame size
-3. **Add JSON metadata**: Define frames, timing, and behavior properties
-4. **Rebuild index**: Run `npm run generate-animation-json-to-json`
+1. **Create animation scaffold**: Run `npm run animations:new -- {channel} {note} {velocity}`
+2. **Add PNG sprite sheet**: Place frame-based animation in the created directory
+3. **Update metadata**: Edit the generated `meta.json` with correct frame count and timing
+4. **Rebuild pipeline**: Run `npm run animations` to validate, optimize, and generate the animation index
 5. **Test**: Use the development server to test your animations
+
+Alternatively, if you have individual frame files:
+
+1. **Generate sprite sheet**: Run `npm run animations:spritesheet -- ./frames-folder ./animations/{channel}/{note}/{velocity}`
+2. **Rebuild pipeline**: Run `npm run animations`
 
 ### Code Contributions
 
