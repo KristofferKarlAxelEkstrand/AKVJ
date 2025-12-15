@@ -15,7 +15,7 @@ Plan for improving the animation asset workflow.
 
 ```
 src/public/animations/          # Source AND output (mixed)
-generateAnimationsJson.js       # Build script in root
+scripts/animations/             # Build pipeline (validate, optimize, generate) - located under `scripts/animations`
 ```
 
 ### Proposed
@@ -197,7 +197,7 @@ Note: `fs.watch` has inconsistent behavior across platforms. `chokidar` handles 
 ## Implementation Order
 
 1. [ ] Create `scripts/animations/` folder structure
-2. [ ] Move `generateAnimationsJson.js` logic to `lib/generate.js`
+2. [ ] Move existing animation index building logic to `lib/generate.js`
 3. [ ] Create `index.js` orchestrator (no optimization yet)
 4. [ ] Move source animations from `src/public/animations/` to `animations/`
 5. [ ] Create `lib/copy.js` to sync to `src/public/animations/`

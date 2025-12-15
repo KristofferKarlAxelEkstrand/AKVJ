@@ -95,6 +95,12 @@ class AnimationLoader {
 	 * Load a single animation and return its placement info
 	 */
 	async #loadAnimation(channel, note, velocityLayer, animationData) {
+		// Validate that channel/note/velocity keys are numeric to avoid path traversal
+		if (!/^\d+$/.test(String(channel)) || !/^\d+$/.test(String(note)) || !/^\d+$/.test(String(velocityLayer))) {
+			console.warn('AnimationLoader: ignoring animation with non-numeric path keys', { channel, note, velocityLayer });
+			return null;
+		}
+
 		// Construct image path using configurable base path to support subpath deployments
 		const base = settings.performance.animationsBasePath;
 		const sanitizedFile = this.#sanitizeFileName(animationData.png);

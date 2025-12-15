@@ -38,6 +38,52 @@ describe('AnimationLayer', () => {
 		vi.restoreAllMocks();
 	});
 
+	test('dispose() unsubscribes from MIDI clock (no further advances)', async () => {
+		const ctx = createMockContext();
+		const appState = (await import('../src/js/core/AppState.js')).default;
+
+		// Use a frameDuration that maps to 1 pulse per frame (1/PPQN beats)
+		const beatsPerFrame = 1 / 24; // 1 pulse when PPQN=24
+
+		const layer = new AnimationLayer(
+			defaultOptions({
+				canvas2dContext: ctx,
+				numberOfFrames: 2,
+				framesPerRow: 2,
+				frameDurationBeats: beatsPerFrame,
+				loop: false
+			})
+		);
+
+		// Initial draw frame 0
+		layer.play(0);
+		expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+		expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+		// Send 6 pulses to establish clock sync (bpmSource -> 'clock')
+		for (let i = 0; i < 6; i++) {
+			appState.dispatchMIDIClock(i * 10);
+		}
+
+		// Now a single pulse should advance the frame (pulsesPerFrame === 1)
+		appState.dispatchMIDIClock(100);
+		// Drawing after pulse should show frame 1
+		layer.play(100);
+		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
+
+		// Dispose the layer (should unsubscribe from clock)
+		layer.dispose();
+
+		// Another pulse should NOT advance the frame further
+		appState.dispatchMIDIClock(200);
+		layer.play(200);
+		// The frame should remain the same (still frame 1)
+		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
+
+		// Reset global AppState to avoid leaking clock sync between tests
+		appState.reset();
+	});
+
 	test('frameDurationBeats array controls per-frame timing and falls back to first element', () => {
 		// Create a fake context that captures drawImage sx value
 		let lastSx = null;

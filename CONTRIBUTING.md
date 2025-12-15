@@ -157,7 +157,7 @@ This example is for DAW Channel 1, Note 60, Velocity layer 0.
 After adding animations:
 
 ```bash
-npm run generate-animation-json-to-json
+npm run animations
 ```
 
 Notes on velocity layer behavior:

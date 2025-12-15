@@ -276,7 +276,7 @@ function mixPixel(maskValue, layerA, layerB, bitDepth) {
 **Build command:**
 
 ```bash
-npm run generate-animation-json-to-json  # Rebuild after adding/changing animations
+npm run animations  # Rebuild after adding/changing animations
 ```
 
 ### Canvas Compositing

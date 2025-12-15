@@ -65,12 +65,12 @@ class AnimationLayer {
 					throw new Error(`AnimationLayer: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
 				this.#frameDurationBeats = frameDurationBeats;
-				// Pre-calculate pulsesPerFrame for when clock is active (24 PPQN)
-				this.#pulsesPerFrame = frameDurationBeats.map(b => Math.round(b * 24));
+				// Pre-calculate pulsesPerFrame for when clock is active (PPQN from settings)
+				this.#pulsesPerFrame = frameDurationBeats.map(b => Math.round(b * settings.midi.ppqn));
 			} else if (typeof frameDurationBeats === 'number' && frameDurationBeats > 0) {
 				// Shorthand: single number applies to all frames
 				this.#frameDurationBeats = Array(numberOfFrames).fill(frameDurationBeats);
-				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * 24));
+				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
 			} else {
 				throw new Error('AnimationLayer: invalid frameDurationBeats');
 			}
@@ -198,7 +198,8 @@ class AnimationLayer {
 				} else {
 					// Non-looping animations are considered finished; keep
 					// a state that indicates a completed animation.
-					this.#frame = this.#numberOfFrames;
+					// Clamp to last valid frame index for consistency with clock-driven path
+					this.#frame = this.#numberOfFrames - 1;
 					this.#isFinished = true;
 					break;
 				}

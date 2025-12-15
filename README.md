@@ -150,7 +150,7 @@ Animations can sync to tempo using `frameDurationBeats`:
 }
 ```
 
-This plays each frame for half a beat (250ms at 120 BPM). When MIDI clock is active, animations lock to the clock pulses (24 PPQN) for tight synchronization.
+This plays each frame for half a beat (250ms at 120 BPM). When MIDI clock is active, animations lock to the clock pulses (24 PPQN) for tight synchronization. The PPQN value (default 24) is configurable via `settings.midi.ppqn`.
 
 ### Velocity Layers
 
@@ -174,7 +174,7 @@ Velocity selection rules
 ### Building Animation Index
 
 ```bash
-npm run generate-animation-json-to-json
+npm run animations
 ```
 
 This command scans the animation directory structure and builds `src/public/animations/animations.json`, which contains the master index of all available animations.
@@ -242,7 +242,7 @@ AKVJ/
 │           │   └── {note}/         # MIDI notes (0-127)
 │           │       └── {velocity}/ # Velocity layers
 │           └── animations.json     # Generated animation index
-├── generateAnimationsJson.js       # Animation index builder
+├── scripts/animations/             # Animation pipeline (validate, optimize, generate)
 ├── vite.config.js                 # Vite build configuration
 └── package.json                   # Dependencies and scripts
 ```

@@ -17,7 +17,7 @@
 	],
 	"main": "main.js",
 	"type": "module",
-	"private": false,
+	"private": true,
 	"scripts": {
 		"dev": "concurrently -n vite,anim -c blue,green \"vite\" \"npm run animations:watch\"",
 		"animations": "node scripts/animations",

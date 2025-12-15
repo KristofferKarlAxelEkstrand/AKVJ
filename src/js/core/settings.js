@@ -34,7 +34,9 @@ const settings = {
 			start: 0xfa, // Start playback
 			continue: 0xfb, // Continue playback
 			stop: 0xfc // Stop playback
-		}
+		},
+		// Pulses Per Quarter Note (PPQN) for MIDI clock pulses. Standard MIDI clock is 24 PPQN.
+		ppqn: 24
 	},
 	/**
 	 * BPM (Beats Per Minute) synchronization settings

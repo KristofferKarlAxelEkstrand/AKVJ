@@ -6,7 +6,7 @@ Review PR comments, decide what to fix, apply changes, and respond.
 
 - Short, focused commits with clear messages
 - Run `npm run lint && npm run test && npm run build` after changes
-- For animation changes, also run `npm run generate-animation-json-to-json`
+- For animation changes, also run `npm run animations`
 - Push to PR branch only (never main)
 - When unsure, ask instead of guessing
 - MCP tooling can sometimes update PR content, but to avoid unexpected credential issues and maintain clear authoring and traceability, prefer a local git workflow (commit, push, PR) or the GitHub web UI/CLI for making code changes. Do not rely on MCP tools to push changes from the workspace; they should be used primarily for reading PR context, comments, and statuses.

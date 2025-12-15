@@ -38,7 +38,7 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 - Animations can loop or play once
 - Retrigger behavior is configurable per animation
 - **BPM Sync**: Animations can sync to tempo using `frameDurationBeats`
-    - Uses MIDI clock pulses (24 PPQN) when available
+    - Uses MIDI clock pulses (24 PPQN) when available (configurable via `settings.midi.ppqn`)
     - Falls back to time-based BPM calculation
 
 ### Effects System

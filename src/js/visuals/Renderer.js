@@ -107,7 +107,36 @@ class Renderer {
 	start() {
 		if (!this.#isRunning) {
 			this.#isRunning = true;
-			this.#loop();
+			// Perform a lightweight warm-up render synchronously: clear canvases
+			// and render active layers so tests and consumers see immediate
+			// results (e.g., playToContext calls, fillRect). Do NOT apply
+			// effects yet — the first scheduled RAF will perform the full
+			// frame (mixing + effects). This avoids double-mutation across
+			// an initial synchronous pass and the first RAF-driven frame.
+			this.#warmup(performance.now());
+			this.#animationFrameId = requestAnimationFrame(this.#loop);
+		}
+	}
+
+	/**
+	 * Lightweight warm-up render called synchronously on start(). It
+	 * invokes layer rendering so tests that expect immediate play/draw
+	 * operations observe them, but it avoids running full mixing/effects.
+	 */
+	#warmup(timestamp) {
+		if (!this.#ctxA || !this.#ctxB) {
+			return;
+		}
+		this.#ctxA.fillStyle = settings.rendering.backgroundColor;
+		this.#ctxA.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		this.#ctxB.fillStyle = settings.rendering.backgroundColor;
+		this.#ctxB.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
+		const layerA = this.#layerManager?.getLayerA();
+		const layerB = this.#layerManager?.getLayerB();
+		this.#renderLayerGroup(this.#ctxA, layerA, timestamp);
+		this.#renderLayerGroup(this.#ctxB, layerB, timestamp);
+		if (this.#canvas2dContext) {
+			this.#canvas2dContext.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 		}
 	}
 
@@ -270,44 +299,64 @@ class Renderer {
 		if (!effects || effects.length === 0) {
 			return;
 		}
-
 		const imageData = ctx.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
 		const data = imageData.data;
+		let modified = false;
+
+		// TEMP DEBUG
+		// console.log('applyEffects start data[0]=', data && data[0]);
 
 		for (const effect of effects) {
 			const intensity = effect.velocity / 127; // Normalize to 0-1
 
 			switch (effect.type) {
-				case 'split':
-					this.#applySplitEffect(ctx, imageData, effect.note, intensity);
-					return; // Split modifies canvas directly
-				case 'mirror':
-					this.#applyMirrorEffect(ctx, imageData, effect.note, intensity);
-					return; // Mirror modifies the canvas directly
-				case 'offset':
-					this.#applyOffsetEffect(ctx, imageData, effect.note, intensity);
-					return; // Offset modifies canvas directly
-				case 'color':
-					this.#applyColorEffect(data, effect.note, intensity);
+				case 'split': {
+					const res = this.#applySplitEffect(ctx, imageData, effect.note, intensity);
+					modified = modified || !!res;
 					break;
-				case 'glitch':
-					this.#applyGlitchEffect(data, intensity);
+				}
+				case 'mirror': {
+					const res = this.#applyMirrorEffect(ctx, imageData, effect.note, intensity);
+					modified = modified || !!res;
 					break;
-				case 'strobe':
-					this.#applyStrobeEffect(data, intensity, timestamp);
+				}
+				case 'offset': {
+					const res = this.#applyOffsetEffect(ctx, imageData, effect.note, intensity);
+					modified = modified || !!res;
 					break;
+				}
+				case 'color': {
+					const res = this.#applyColorEffect(data, effect.note, intensity);
+					modified = modified || !!res;
+					break;
+				}
+				case 'glitch': {
+					const res = this.#applyGlitchEffect(data, intensity);
+					modified = modified || !!res;
+					break;
+				}
+				case 'strobe': {
+					const res = this.#applyStrobeEffect(data, intensity, timestamp);
+					modified = modified || !!res;
+					break;
+				}
 				default:
 					break;
 			}
 		}
 
-		ctx.putImageData(imageData, 0, 0);
+		if (modified) {
+			ctx.putImageData(imageData, 0, 0);
+		}
 	}
 
 	/**
 	 * Apply color effects (invert, threshold, posterize)
 	 */
 	#applyColorEffect(data, note, intensity) {
+		// DEBUG: track calls during testing
+		// console.debug && console.debug('applyColorEffect', data && data[0]);
+
 		const noteInRange = note - settings.effectRanges.color.min;
 		const { effectVariantThreshold, posterizeBaseLevels, posterizeIntensityScale } = settings.effectParams;
 
@@ -328,6 +377,7 @@ class Renderer {
 				data[i + 2] = Math.floor(data[i + 2] / step) * step;
 			}
 		}
+		return true;
 	}
 
 	/**
@@ -369,8 +419,7 @@ class Renderer {
 				}
 			}
 		}
-
-		ctx.putImageData(imageData, 0, 0);
+		return true;
 	}
 
 	/**
@@ -380,6 +429,7 @@ class Renderer {
 	 * Offset is constrained to stay within the same row to prevent vertical artifacts.
 	 */
 	#applyGlitchEffect(data, intensity) {
+		let mutated = false;
 		const { glitchMaxDisplacement, glitchPixelProbability } = settings.effectParams;
 		// Random horizontal pixel displacement based on intensity
 		const glitchAmount = Math.floor(intensity * glitchMaxDisplacement);
@@ -409,8 +459,10 @@ class Renderer {
 				data[i] = original[srcIdx];
 				data[i + 1] = original[srcIdx + 1];
 				data[i + 2] = original[srcIdx + 2];
+				mutated = true;
 			}
 		}
+		return mutated;
 	}
 
 	/**
@@ -428,6 +480,7 @@ class Renderer {
 
 		// Deterministic flash: flash on even intervals, no flash on odd
 		// This creates a consistent 50% duty cycle strobe
+
 		const flash = Math.floor(timestamp / strobeInterval) % 2 === 0;
 
 		if (flash) {
@@ -436,7 +489,9 @@ class Renderer {
 				data[i + 1] = 255;
 				data[i + 2] = 255;
 			}
+			return true;
 		}
+		return false;
 	}
 
 	/**
@@ -456,46 +511,22 @@ class Renderer {
 		// Number of splits based on note (splitMin to splitMax splits)
 		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / 2) + splitMin));
 
-		// Reuse scratch buffer as output to avoid allocations
-		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
-			this.#scratchBuffer = new Uint8ClampedArray(data.length);
-		}
-		const output = this.#scratchBuffer;
-
 		if (noteInRange < effectVariantThreshold) {
-			// Horizontal split - use modulo wrapping for proper repeating pattern
-			const sectionWidth = Math.floor(w / splits);
-			for (let y = 0; y < h; y++) {
-				for (let x = 0; x < w; x++) {
-					const srcX = ((x % sectionWidth) * splits) % w;
-					const srcIdx = (y * w + srcX) * 4;
-					const dstIdx = (y * w + x) * 4;
-					output[dstIdx] = data[srcIdx];
-					output[dstIdx + 1] = data[srcIdx + 1];
-					output[dstIdx + 2] = data[srcIdx + 2];
-					output[dstIdx + 3] = data[srcIdx + 3];
-				}
-			}
+			// Horizontal split - map destination (x,y) -> source index
+			this.#transformCopy(data, (x, y) => {
+				const sectionWidth = Math.floor(w / splits);
+				const srcX = ((x % sectionWidth) * splits) % w;
+				return (y * w + srcX) * 4;
+			});
 		} else {
-			// Vertical split - use modulo wrapping for proper repeating pattern
-			const sectionHeight = Math.floor(h / splits);
-			for (let y = 0; y < h; y++) {
+			// Vertical split
+			this.#transformCopy(data, (x, y) => {
+				const sectionHeight = Math.floor(h / splits);
 				const srcY = ((y % sectionHeight) * splits) % h;
-				for (let x = 0; x < w; x++) {
-					const srcIdx = (srcY * w + x) * 4;
-					const dstIdx = (y * w + x) * 4;
-					output[dstIdx] = data[srcIdx];
-					output[dstIdx + 1] = data[srcIdx + 1];
-					output[dstIdx + 2] = data[srcIdx + 2];
-					output[dstIdx + 3] = data[srcIdx + 3];
-				}
-			}
+				return (srcY * w + x) * 4;
+			});
 		}
-
-		// Copy output back to data in one call
-		data.set(output);
-
-		ctx.putImageData(imageData, 0, 0);
+		return true;
 	}
 
 	/**
@@ -508,46 +539,41 @@ class Renderer {
 		const noteInRange = note - settings.effectRanges.offset.min;
 		const { effectVariantThreshold } = settings.effectParams;
 
-		// Create output buffer
-		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
-			this.#scratchBuffer = new Uint8ClampedArray(data.length);
-		}
-		const output = this.#scratchBuffer;
-
 		if (noteInRange < effectVariantThreshold) {
 			// Horizontal offset
 			const offsetX = Math.floor(intensity * w);
-			for (let y = 0; y < h; y++) {
-				for (let x = 0; x < w; x++) {
-					const srcX = (x + offsetX) % w;
-					const srcIdx = (y * w + srcX) * 4;
-					const dstIdx = (y * w + x) * 4;
-					output[dstIdx] = data[srcIdx];
-					output[dstIdx + 1] = data[srcIdx + 1];
-					output[dstIdx + 2] = data[srcIdx + 2];
-					output[dstIdx + 3] = data[srcIdx + 3];
-				}
-			}
+			this.#transformCopy(data, (x, y) => (y * w + ((x + offsetX) % w)) * 4);
 		} else {
 			// Vertical offset
 			const offsetY = Math.floor(intensity * h);
-			for (let y = 0; y < h; y++) {
-				const srcY = (y + offsetY) % h;
-				for (let x = 0; x < w; x++) {
-					const srcIdx = (srcY * w + x) * 4;
-					const dstIdx = (y * w + x) * 4;
-					output[dstIdx] = data[srcIdx];
-					output[dstIdx + 1] = data[srcIdx + 1];
-					output[dstIdx + 2] = data[srcIdx + 2];
-					output[dstIdx + 3] = data[srcIdx + 3];
-				}
+			this.#transformCopy(data, (x, y) => (((y + offsetY) % h) * w + x) * 4);
+		}
+		// Do not call putImageData here; caller will write once after all effects are applied
+		return true;
+	}
+
+	/**
+	 * Generic helper to transform/copy pixels using scratch buffer.
+	 * transformFn(x, y) should return source byte index for pixel at (x,y)
+	 */
+	#transformCopy(data, transformFn) {
+		const w = this.#canvasWidth;
+		const h = this.#canvasHeight;
+		if (!this.#scratchBuffer || this.#scratchBuffer.length < data.length) {
+			this.#scratchBuffer = new Uint8ClampedArray(data.length);
+		}
+		const out = this.#scratchBuffer;
+		for (let y = 0; y < h; y++) {
+			for (let x = 0; x < w; x++) {
+				const dst = (y * w + x) * 4;
+				const src = transformFn(x, y);
+				out[dst] = data[src];
+				out[dst + 1] = data[src + 1];
+				out[dst + 2] = data[src + 2];
+				out[dst + 3] = data[src + 3];
 			}
 		}
-
-		// Copy output back to data
-		data.set(output);
-
-		ctx.putImageData(imageData, 0, 0);
+		data.set(out);
 	}
 
 	/**

@@ -86,7 +86,7 @@ npm run format:stylelint                 # Format and lint CSS - takes <1 second
 ### Animation Management
 
 ```bash
-npm run generate-animation-json-to-json  # Generate animation metadata - takes <1 second
+npm run animations  # Generate animation metadata - takes <1 second
 npm run watch:animations                 # Watch animation changes (runs continuously)
 ```
 
@@ -136,7 +136,7 @@ npm run fix                              # Updates all dependencies in package.j
 4. **Animation System Validation:**
 
     ```bash
-    npm run generate-animation-json-to-json # Must rebuild animation metadata
+    npm run animations # Must rebuild animation metadata
     ```
 
     - Verify `src/public/animations/animations.json` is updated
@@ -178,7 +178,7 @@ npm run fix                              # Updates all dependencies in package.j
 
 - **`src/public/animations/`** - Animation assets organized as: `{channel}/{note}/{velocity}/`
     - Folder names use 1-16 (matching DAWs); build pipeline converts to 0-15 for code
-- **`generateAnimationsJson.js`** - Build script for animation metadata
+- **`scripts/animations/`** - Build scripts for animation metadata and asset pipeline
 - **`src/public/animations/animations.json`** - Generated animation index
 
 ### Configuration Files
@@ -237,7 +237,7 @@ npm run fix                              # Updates all dependencies in package.j
 ### Animation Loading Issues
 
 - **Issue:** Animations not displaying
-- **Solution:** Run `npm run generate-animation-json-to-json` to rebuild metadata
+- **Solution:** Run `npm run animations` to rebuild metadata
 - **Validation:** Check console for "JSON for animations loaded" message
 
 ### Performance Issues

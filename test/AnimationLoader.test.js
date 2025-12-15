@@ -182,4 +182,43 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 		expect(animations[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
 	});
+
+	test('ignores non-numeric channel/note/velocity keys from JSON', async () => {
+		const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+		const maliciousKeysJson = {
+			'../etc': {
+				60: {
+					0: { png: 'sprite01.png', numberOfFrames: 1, framesPerRow: 1, loop: true, frameRatesForFrames: { 0: 60 }, retrigger: true }
+				}
+			}
+		};
+
+		globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => maliciousKeysJson });
+
+		class MockImage {
+			constructor() {
+				this.onload = null;
+				this.onerror = null;
+				this.width = 240;
+				this.height = 135;
+			}
+			set src(_v) {
+				if (typeof this.onload === 'function') {
+					this.onload();
+				}
+			}
+		}
+		globalThis.Image = MockImage;
+
+		const ctx = {};
+		const loader = new AnimationLoader(ctx);
+		const animations = await loader.setUpAnimations('/fake.json');
+
+		// Should have warned about non-numeric keys and not loaded any animations
+		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring animation with non-numeric path keys'), expect.any(Object));
+		expect(Object.keys(animations).length).toBe(0);
+
+		consoleWarnSpy.mockRestore();
+	});
 });

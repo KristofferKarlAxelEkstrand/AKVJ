@@ -65,7 +65,7 @@ class AppState extends EventTarget {
 
 	/**
 	 * Get the current BPM value
-	 * @returns {number} Current BPM
+				if (this.#recentPulseIntervals.length > settings.midi.ppqn) {
 	 */
 	get bpm() {
 		return this.#currentBPM;
@@ -73,7 +73,7 @@ class AppState extends EventTarget {
 
 	/**
 	 * Set the BPM value directly (for testing or manual override)
-	 * @param {number} value - BPM value (will be clamped to min/max range)
+					const msPerBeat = avgInterval * settings.midi.ppqn; // PPQN
 	 */
 	set bpm(value) {
 		const { min, max } = settings.bpm;
@@ -191,9 +191,9 @@ class AppState extends EventTarget {
 
 			// Ignore impossibly fast pulses (< 1ms = > 2500 BPM)
 			if (interval >= 1) {
-				// Keep last 24 intervals (one beat worth)
+				// Keep last PPQN intervals (one beat worth)
 				this.#recentPulseIntervals.push(interval);
-				if (this.#recentPulseIntervals.length > 24) {
+				if (this.#recentPulseIntervals.length > settings.midi.ppqn) {
 					this.#recentPulseIntervals.shift();
 				}
 
@@ -201,7 +201,7 @@ class AppState extends EventTarget {
 				// Need at least 6 intervals for reasonable accuracy (16th note)
 				if (this.#recentPulseIntervals.length >= 6) {
 					const avgInterval = this.#recentPulseIntervals.reduce((a, b) => a + b, 0) / this.#recentPulseIntervals.length;
-					const msPerBeat = avgInterval * 24; // 24 PPQN
+					const msPerBeat = avgInterval * settings.midi.ppqn; // PPQN
 					const bpm = 60000 / msPerBeat;
 
 					this.#setBPM(bpm, 'clock');

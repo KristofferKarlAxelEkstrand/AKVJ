@@ -106,9 +106,9 @@ This plays each frame for half a beat (e.g., 250ms at 120 BPM).
 
 The array length must match `numberOfFrames`.
 
-**Timing sources:**
+-**Timing sources:**
 
-- **MIDI Clock**: When active, uses real-time clock pulses (24 PPQN) for tight sync
+- **MIDI Clock**: When active, uses real-time clock pulses (24 PPQN) for tight sync. The PPQN used by the app is configurable via `settings.midi.ppqn` (default 24).
 - **BPM fallback**: Uses time-based calculation from current BPM setting
 
 ### Bit Depth (for Masks)

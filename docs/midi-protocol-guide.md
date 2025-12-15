@@ -375,14 +375,15 @@ const CONTROLLERS = {
 ### MIDI Clock
 
 - **24 pulses per quarter note**
+- **24 pulses per quarter note** (configurable via `settings.midi.ppqn`, default 24)
 - **Tempo independent**: Clock rate varies with tempo
 - **96 pulses per whole note** at any tempo
 
 ```javascript
-// Calculate MIDI clock from BPM
-function calculateClockInterval(bpm) {
+// Calculate MIDI clock from BPM using configurable PPQN
+function calculateClockInterval(bpm, ppqn = 24) {
     const millisecondsPerBeat = 60000 / bpm;
-    const millisecondsPerClock = millisecondsPerBeat / 24;
+    const millisecondsPerClock = millisecondsPerBeat / ppqn;
     return millisecondsPerClock;
 }
 

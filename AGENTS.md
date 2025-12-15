@@ -56,7 +56,7 @@ npm run lint         # Check code quality
 npm run lint:fix     # Auto-fix lint issues
 npm run format:prettier # Format JS/JSON/Markdown
 npm run format:stylelint # Format & lint CSS
-npm run generate-animation-json-to-json # Rebuild animation metadata
+npm run animations # Rebuild animation metadata
 ```
 
 ## MIDI Mapping
@@ -156,7 +156,7 @@ Common issues and steps to investigate:
     - Verify MIDI device is connected. Use `getConnectedDevices()` from the `midi` singleton to list device names.
 
 - Black canvas or animations not loading
-    - Confirm `src/public/animations/animations.json` exists and was generated: `npm run generate-animation-json-to-json`.
+    - Confirm `src/public/animations/animations.json` exists and was generated: `npm run animations`.
     - Look for the console message: "JSON for animations loaded".
     - Verify the build step was successful and static assets are present.
 

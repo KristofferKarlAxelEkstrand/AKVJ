@@ -420,7 +420,7 @@ Husky and lint-staged automatically run on commit:
 ### Animation Management
 
 ```bash
-npm run generate-animation-json-to-json  # Generate animation metadata
+npm run animations  # Generate animation metadata
 npm run watch:animations                 # Watch for animation changes
 ```
 

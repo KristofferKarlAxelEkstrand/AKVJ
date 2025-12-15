@@ -484,6 +484,101 @@ describe('Renderer', () => {
 		renderer.destroy();
 	});
 
+	test('applies multiple A/B effects in order (color then strobe)', () => {
+		const mainCtx = createMockContext();
+		globalThis.__createdCanvases = [];
+
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
+		const effectsManager = {
+			hasEffectsAB: () => true,
+			hasEffectsGlobal: () => false,
+			getActiveEffectsAB: () => [
+				{ type: 'color', note: settings.effectRanges.color.min, velocity: 127 },
+				{ type: 'strobe', note: settings.effectRanges.strobe.min, velocity: 127 }
+			]
+		};
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => layerB,
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const renderer = new Renderer(mainCtx, layerManager);
+		const [, , , canvasMixed] = globalThis.__createdCanvases;
+		const ctxMixed = canvasMixed.getContext();
+
+		const w = settings.canvas.width;
+		const h = settings.canvas.height;
+		const size = w * h * 4;
+		const img = { data: new Uint8ClampedArray(size) };
+		// Initialize a known value
+		img.data[0] = 10;
+		ctxMixed.getImageData = () => img;
+
+		let out = null;
+		ctxMixed.putImageData = o => (out = o);
+
+		renderer.start();
+		const rafCb = globalThis.requestAnimationFrame.mock.calls[0][0];
+		rafCb(0);
+
+		expect(out).toBeDefined();
+		// color (invert) then strobe (flash on) should end with white (255)
+		expect(out.data[0]).toBe(255);
+		renderer.destroy();
+	});
+
+	test('respects A/B effect order (strobe then color)', () => {
+		const mainCtx = createMockContext();
+		globalThis.__createdCanvases = [];
+
+		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
+		const effectsManager = {
+			hasEffectsAB: () => true,
+			hasEffectsGlobal: () => false,
+			getActiveEffectsAB: () => [
+				{ type: 'strobe', note: settings.effectRanges.strobe.min, velocity: 127 },
+				{ type: 'color', note: settings.effectRanges.color.min, velocity: 127 }
+			]
+		};
+		const layerManager = {
+			getLayerA: () => layerA,
+			getLayerB: () => layerB,
+			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const renderer = new Renderer(mainCtx, layerManager);
+		const [, , , canvasMixed] = globalThis.__createdCanvases;
+		const ctxMixed = canvasMixed.getContext();
+
+		const w = settings.canvas.width;
+		const h = settings.canvas.height;
+		const size = w * h * 4;
+		const img = { data: new Uint8ClampedArray(size) };
+		img.data[0] = 10;
+		ctxMixed.getImageData = () => img;
+
+		let out = null;
+		ctxMixed.putImageData = o => (out = o);
+
+		renderer.start();
+		const rafCb = globalThis.requestAnimationFrame.mock.calls[0][0];
+		rafCb(0);
+
+		expect(out).toBeDefined();
+		// strobe then color (invert) should end with black (0)
+		expect(out.data[0]).toBe(0);
+		renderer.destroy();
+	});
+
 	test('handles pending frame after destroy without throwing', () => {
 		const ctx = createMockContext();
 		const layer = { playToContext: vi.fn() };
