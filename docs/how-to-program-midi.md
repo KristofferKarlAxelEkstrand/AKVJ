@@ -11,32 +11,32 @@ AKVJ uses MIDI notes to trigger animations. Each MIDI channel controls a differe
 ║              AKVJ CHANNEL MAPPING                         ║
 ╠═══════════════════════════════════════════════════════════╣
 ║  LAYER A (Primary Deck)                                   ║
-║    Channel 1  → Layer A, Slot 0                          ║
-║    Channel 2  → Layer A, Slot 1                          ║
-║    Channel 3  → Layer A, Slot 2                          ║
-║    Channel 4  → Layer A, Slot 3                          ║
+║    Channel 1  → Layer A, Slot 0                           ║
+║    Channel 2  → Layer A, Slot 1                           ║
+║    Channel 3  → Layer A, Slot 2                           ║
+║    Channel 4  → Layer A, Slot 3                           ║
 ║                                                           ║
 ║  MIXER                                                    ║
-║    Channel 5  → A/B Crossfade Mask (B&W bitmap)          ║
+║    Channel 5  → A/B Crossfade Mask (B&W bitmap)           ║
 ║                                                           ║
 ║  LAYER B (Secondary Deck)                                 ║
-║    Channel 6  → Layer B, Slot 0                          ║
-║    Channel 7  → Layer B, Slot 1                          ║
-║    Channel 8  → Layer B, Slot 2                          ║
-║    Channel 9  → Layer B, Slot 3                          ║
+║    Channel 6  → Layer B, Slot 0                           ║
+║    Channel 7  → Layer B, Slot 1                           ║
+║    Channel 8  → Layer B, Slot 2                           ║
+║    Channel 9  → Layer B, Slot 3                           ║
 ║                                                           ║
 ║  EFFECTS A/B                                              ║
-║    Channel 10 → Effects on mixed A/B output              ║
+║    Channel 10 → Effects on mixed A/B output               ║
 ║                                                           ║
 ║  LAYER C (Overlay)                                        ║
-║    Channel 11 → Overlay Slot 0 (logos, graphics)         ║
-║    Channel 12 → Overlay Slot 1                           ║
+║    Channel 11 → Overlay Slot 0 (logos, graphics)          ║
+║    Channel 12 → Overlay Slot 1                            ║
 ║                                                           ║
 ║  GLOBAL EFFECTS                                           ║
-║    Channel 13 → Effects on entire output                 ║
+║    Channel 13 → Effects on entire output                  ║
 ║                                                           ║
 ║  RESERVED                                                 ║
-║    Channels 14-16 → Ignored                              ║
+║    Channels 14-16 → Ignored                               ║
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
