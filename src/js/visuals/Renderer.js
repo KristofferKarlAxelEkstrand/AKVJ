@@ -75,6 +75,8 @@ class Renderer {
 		if (ctx) {
 			ctx.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
 			ctx.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
+			// Pre-configure background fill to avoid changing style each frame
+			ctx.fillStyle = settings.rendering.backgroundColor;
 		}
 		return { canvas, ctx };
 	}
@@ -307,6 +309,10 @@ class Renderer {
 		// console.log('applyEffects start data[0]=', data && data[0]);
 
 		for (const effect of effects) {
+			// Validate note when effect requires it
+			if ((effect.type === 'split' || effect.type === 'mirror' || effect.type === 'offset' || effect.type === 'color') && typeof effect.note !== 'number') {
+				continue; // malformed effect entry
+			}
 			const intensity = effect.velocity / 127; // Normalize to 0-1
 
 			switch (effect.type) {
@@ -601,9 +607,7 @@ class Renderer {
 		}
 
 		// Clear off-screen canvases
-		this.#ctxA.fillStyle = settings.rendering.backgroundColor;
 		this.#ctxA.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
-		this.#ctxB.fillStyle = settings.rendering.backgroundColor;
 		this.#ctxB.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 
 		// Render Layer A

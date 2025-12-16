@@ -67,5 +67,6 @@
 		"*": true,
 		"plaintext": true,
 		"markdown": true
-	}
+	},
+	"chat.agent.maxRequests": 500
 }
