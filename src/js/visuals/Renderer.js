@@ -13,6 +13,7 @@
  * 8. Output to visible canvas
  */
 import settings from '../core/settings.js';
+import appState from '../core/AppState.js';
 
 /**
  * Bit depth mixing constants.
@@ -342,7 +343,7 @@ class Renderer {
 					break;
 				}
 				case 'strobe': {
-					const res = this.#applyStrobeEffect(data, intensity, timestamp);
+					const res = this.#applyStrobeEffect(data, effect.velocity, timestamp);
 					modified = modified || !!res;
 					break;
 				}
@@ -472,22 +473,44 @@ class Renderer {
 	}
 
 	/**
-	 * Apply strobe effect using timestamp-based deterministic flashing
-	 * Uses timestamp modulo to create consistent, reproducible flash patterns
+	 * Apply strobe effect using velocity->pulses mapping
+	 * Velocity ranges map to pulses per beat; low velocities (1-9) are "white out"
 	 * @param {Uint8ClampedArray} data - Pixel data array
-	 * @param {number} intensity - Effect intensity (0-1)
+	 * @param {number} velocity - MIDI velocity (0-127)
 	 * @param {number} timestamp - Current timestamp from requestAnimationFrame
 	 */
-	#applyStrobeEffect(data, intensity, timestamp) {
-		// Calculate strobe interval based on intensity:
-		// Higher intensity = faster strobe (shorter interval)
-		const { strobeMinInterval, strobeMaxInterval } = settings.effectParams;
-		const strobeInterval = strobeMaxInterval - (strobeMaxInterval - strobeMinInterval) * intensity;
+	#applyStrobeEffect(data, velocity, timestamp) {
+		// velocity 0 treated as off
+		if (!velocity || velocity === 0) {
+			return false;
+		}
 
-		// Deterministic flash: flash on even intervals, no flash on odd
-		// This creates a consistent 50% duty cycle strobe
+		// White-out for very low velocities
+		if (velocity >= 1 && velocity <= 9) {
+			for (let i = 0; i < data.length; i += 4) {
+				data[i] = 255;
+				data[i + 1] = 255;
+				data[i + 2] = 255;
+			}
+			return true;
+		}
 
-		const flash = Math.floor(timestamp / strobeInterval) % 2 === 0;
+		// Map velocity to pulses per beat for velocities >= 10
+		// 10-19 => 1, 20-29 => 2, ... 120-127 => 12
+		let pulsesPerBeat = Math.floor((velocity - 10) / 10) + 1;
+		pulsesPerBeat = Math.max(1, Math.min(12, pulsesPerBeat));
+
+		// Duty cycle is based on remainder within the 10-velocity bucket for some variety
+		const bucketRemainder = (velocity - 10) % 10;
+		const duty = 0.25 + (bucketRemainder / 9) * 0.25; // 0.25 .. 0.5
+
+		const bpm = Math.max(settings.bpm.min, appState?.bpm ?? settings.bpm.default);
+		const msPerBeat = 60000 / bpm;
+		const t = timestamp ?? performance.now();
+		const beatPos = (t % msPerBeat) / msPerBeat; // 0..1 position within beat
+		const pulsePhase = (beatPos * pulsesPerBeat) % 1; // 0..1 within a pulse
+
+		const flash = pulsePhase < duty;
 
 		if (flash) {
 			for (let i = 0; i < data.length; i += 4) {

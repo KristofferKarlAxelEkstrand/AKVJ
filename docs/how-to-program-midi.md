@@ -189,6 +189,19 @@ Channel 10 (Effects A/B):
 
 Channel 13 (Global Effects):
   Note 80, Velocity 127  → Strobe on entire output
+
+### Strobe (Notes 80-95)
+
+The **Strobe** effect (notes 80–95) creates a BPM‑synchronized flash on the output. Velocity controls how the strobe behaves:
+
+- Velocities **1–9**: Full-frame **white‑out** flash (instant full white frame)
+- Velocities **10–19**: **1 pulse per beat**
+- Velocities **20–29**: **2 pulses per beat**
+- Velocities **30–39**: **3 pulses per beat**
+- ... (each 10‑velocity bucket increases pulses by 1)
+- Velocities **120–127**: **12 pulses per beat**
+
+The strobe is synchronized to the current BPM (MIDI Clock when available). Within each 10‑velocity bucket a small duty‑cycle variation is applied (roughly 25–50% on time) so different velocities feel slightly different even within the same bucket. The behavior is deterministic (no random flashes), which makes it testable and reliable in live performance.
 ```
 
 ### Logo Overlay

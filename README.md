@@ -26,6 +26,9 @@ AKVJ transforms MIDI input into layered visual animations using a sophisticated 
     - Notes 48-63: Color effects (invert, posterize)
     - Notes 64-79: Glitch effects
     - Notes 80-95: Strobe effects
+
+    - Strobe behavior: velocities control strobe intensity and pulse rate. Velocities 1–9 trigger a full-frame white‑out flash; velocities 10–19 → 1 pulse/beat, 20–29 → 2 pulses/beat, … up to 120–127 → 12 pulses/beat. Strobe is **BPM‑synced and deterministic**, and the duty cycle varies slightly within each 10‑velocity bucket for musical variation (approx. 25–50% duty).
+
 - **Channel 13 (Global Effects)**: Same effects applied to entire output after Layer C
 
 Velocity controls effect intensity (1-127).
