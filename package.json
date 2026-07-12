@@ -1,68 +1,10 @@
 {
-	"name": "akvj",
-	"version": "0.0.0",
-	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
-	"keywords": [
-		"vj",
-		"video-jockey",
-		"midi",
-		"web-midi",
-		"canvas",
-		"visuals",
-		"live-performance",
-		"pixel-art",
-		"sprite-animation",
-		"real-time",
-		"music-visualization"
-	],
-	"main": "main.js",
-	"type": "module",
-	"private": true,
-	"scripts": {
-		"dev": "concurrently -n vite,anim -c blue,green \"vite\" \"npm run animations:watch\"",
-		"animations": "node scripts/animations",
-		"animations:watch": "node scripts/animations --watch",
-		"animations:clean": "node scripts/animations --clean",
-		"animations:new": "node scripts/animations/new.js",
-		"animations:spritesheet": "node scripts/animations/spritesheet.js",
-		"build": "vite build --emptyOutDir",
-		"build:full": "npm run animations && vite build --emptyOutDir",
-		"preview": "vite preview",
-		"lint": "eslint .",
-		"lint:fix": "eslint . --fix",
-		"format:stylelint": "stylelint \"**/*.css\" --fix",
-		"format:prettier": "prettier --write .",
-		"check:eol": "node scripts/check-line-endings.js",
-		"fix:eol": "node scripts/check-line-endings.js --fix",
-		"check:utf8": "node scripts/check-utf8.js",
-		"fix:utf8": "node scripts/check-utf8.js --fix",
-		"fix": "npx npm-check-updates -u && npm install && npm audit fix --force && npm prune && npm install && npm update",
-		"test": "vitest run",
-		"prepare": "husky"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/KristofferKarlAxelEkstrand/AKVJ"
-	},
 	"author": {
-		"name": "Kristoffer Ekstrand",
 		"email": "hej@kristofferekstrand.se",
+		"name": "Kristoffer Ekstrand",
 		"url": "https://kristofferekstrand.se"
 	},
-	"license": "MIT",
-	"lint-staged": {
-		"*.js": [
-			"eslint --fix",
-			"prettier --write"
-		],
-		"*.css": [
-			"stylelint --fix",
-			"prettier --write"
-		],
-		"*.{json,md}": [
-			"prettier --write"
-		]
-	},
+	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
 		"chokidar": "^5.0.0",
@@ -80,5 +22,63 @@
 		"stylelint-order": "^8.1.1",
 		"vite": "^8.1.4",
 		"vitest": "^4.1.10"
-	}
+	},
+	"keywords": [
+		"vj",
+		"video-jockey",
+		"midi",
+		"web-midi",
+		"canvas",
+		"visuals",
+		"live-performance",
+		"pixel-art",
+		"sprite-animation",
+		"real-time",
+		"music-visualization"
+	],
+	"license": "MIT",
+	"lint-staged": {
+		"*.css": [
+			"stylelint --fix",
+			"prettier --write"
+		],
+		"*.js": [
+			"eslint --fix",
+			"prettier --write"
+		],
+		"*.{json,md}": [
+			"prettier --write"
+		]
+	},
+	"main": "main.js",
+	"name": "akvj",
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/KristofferKarlAxelEkstrand/AKVJ"
+	},
+	"scripts": {
+		"animations": "node scripts/animations",
+		"animations:clean": "node scripts/animations --clean",
+		"animations:new": "node scripts/animations/new.js",
+		"animations:spritesheet": "node scripts/animations/spritesheet.js",
+		"animations:watch": "node scripts/animations --watch",
+		"build": "vite build --emptyOutDir",
+		"build:full": "npm run animations && vite build --emptyOutDir",
+		"check:eol": "node scripts/check-line-endings.js",
+		"check:utf8": "node scripts/check-utf8.js",
+		"dev": "concurrently -n vite,anim -c blue,green \"vite\" \"npm run animations:watch\"",
+		"fix": "npx npm-check-updates -u && npm install && npm audit fix --force && npm prune && npm install && npm update",
+		"fix:eol": "node scripts/check-line-endings.js --fix",
+		"fix:utf8": "node scripts/check-utf8.js --fix",
+		"format:prettier": "prettier --write .",
+		"format:stylelint": "stylelint \"**/*.css\" --fix",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"prepare": "husky",
+		"preview": "vite preview",
+		"test": "vitest run"
+	},
+	"type": "module",
+	"version": "0.0.0"
 }

@@ -139,13 +139,18 @@ Changes continuous controllers like volume, modulation, etc.
 
 ```javascript
 // Volume (Controller 7)
-[0xb0, 7, 100][ // Set channel 1 volume to 100
+[
+    0xb0, 7, 100
+] // Set channel 1 volume to 100
+[
     // Modulation (Controller 1)
     (0xb0, 1, 64)
-][ // Set modulation to middle position
+] // Set modulation to middle position
+[
     // Pan (Controller 10)
     (0xb0, 10, 64)
-][ // Center pan position
+] // Center pan position
+[
     // Sustain Pedal (Controller 64)
     (0xb0, 64, 127)
 ][(0xb0, 64, 0)]; // Sustain pedal pressed // Sustain pedal released
@@ -178,10 +183,14 @@ Bends the pitch of notes.
 
 ```javascript
 // No pitch bend
-[0xe0, 0, 64][ // 8192 = 0 + (64 << 7)
+[
+    0xe0, 0, 64
+] // 8192 = 0 + (64 << 7)
+[
     // Maximum bend up
     (0xe0, 127, 127)
-][ // 16383
+] // 16383
+[
     // Maximum bend down
     (0xe0, 0, 0)
 ]; // 0
@@ -415,7 +424,10 @@ MIDI optimization that omits repeated status bytes:
 
 ```javascript
 // Without running status:
-[0x90, 60, 100][(0x90, 64, 100)][(0x90, 67, 100)][ // Note On C4 // Note On E4 // Note On G4
+[0x90, 60, 100][(0x90, 64, 100)][
+    (0x90, 67, 100)
+] // Note On C4 // Note On E4 // Note On G4
+[
     // With running status:
     (0x90, 60, 100)
 ][(64, 100)][(67, 100)]; // Note On C4 // Note On E4 (status byte omitted) // Note On G4 (status byte omitted)
