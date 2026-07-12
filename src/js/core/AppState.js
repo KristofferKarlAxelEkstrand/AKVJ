@@ -65,7 +65,7 @@ class AppState extends EventTarget {
 
 	/**
 	 * Get the current BPM value
-				if (this.#recentPulseIntervals.length > settings.midi.ppqn) {
+	 * @returns {number} Current BPM
 	 */
 	get bpm() {
 		return this.#currentBPM;
@@ -73,7 +73,7 @@ class AppState extends EventTarget {
 
 	/**
 	 * Set the BPM value directly (for testing or manual override)
-					const msPerBeat = avgInterval * settings.midi.ppqn; // PPQN
+	 * @param {number} value - BPM value to set
 	 */
 	set bpm(value) {
 		const { min, max } = settings.bpm;

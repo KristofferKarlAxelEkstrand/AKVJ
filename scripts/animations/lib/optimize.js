@@ -182,10 +182,14 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 				await fs.copyFile(sourcePath, cachePath);
 			} catch (copyErr) {
 				// If copying fails, rethrow optimization error with additional context
-				throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}; copy failed: ${copyErr instanceof Error ? copyErr.message : String(copyErr)}`);
+				throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}; copy failed: ${copyErr instanceof Error ? copyErr.message : String(copyErr)}`, {
+					cause: copyErr
+				});
 			}
 			// Re-throw original error so caller records failure
-			throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}`);
+			throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}`, {
+				cause: err
+			});
 		}
 	} else {
 		// No sharp available, just copy

@@ -8,7 +8,7 @@
 	"bracketSpacing": true,
 	"bracketSameLine": false,
 	"arrowParens": "avoid",
-	"endOfLine": "auto",
+	"endOfLine": "lf",
 	"proseWrap": "preserve",
 	"overrides": [
 		{
