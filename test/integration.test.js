@@ -21,7 +21,7 @@ function createMockAnimationClip(id = 'mock') {
 		renderToContext: vi.fn(),
 		stop: vi.fn(),
 		reset: vi.fn(),
-		dispose: vi.fn(),
+		destroy: vi.fn(),
 		isFinished: false
 	};
 }
@@ -29,7 +29,7 @@ function createMockAnimationClip(id = 'mock') {
 describe('LayerGroup', () => {
 	test('manages clip slots correctly', () => {
 		// LayerGroup expects an array of channels
-		const group = new LayerGroup([0, 1, 2, 3]);
+		const layerGroup = new LayerGroup([0, 1, 2, 3]);
 		const animationClip1 = createMockAnimationClip('animationClip1');
 		const animationClip2 = createMockAnimationClip('animationClip2');
 
@@ -40,24 +40,24 @@ describe('LayerGroup', () => {
 				61: { 0: animationClip2 }
 			}
 		};
-		group.setAnimations(animations);
+		layerGroup.setAnimations(animations);
 
 		// Trigger note on for channel 0
-		group.noteOn(0, 60, 127);
-		expect(group.getActiveClips()).toContain(animationClip1);
+		layerGroup.noteOn(0, 60, 127);
+		expect(layerGroup.getActiveClips()).toContain(animationClip1);
 
-		group.noteOn(0, 61, 127);
-		expect(group.getActiveClips()).toContain(animationClip1);
-		expect(group.getActiveClips()).toContain(animationClip2);
+		layerGroup.noteOn(0, 61, 127);
+		expect(layerGroup.getActiveClips()).toContain(animationClip1);
+		expect(layerGroup.getActiveClips()).toContain(animationClip2);
 
 		// Note off should deactivate
-		group.noteOff(0, 60);
-		expect(group.getActiveClips()).not.toContain(animationClip1);
-		expect(group.getActiveClips()).toContain(animationClip2);
+		layerGroup.noteOff(0, 60);
+		expect(layerGroup.getActiveClips()).not.toContain(animationClip1);
+		expect(layerGroup.getActiveClips()).toContain(animationClip2);
 	});
 
 	test('velocity clip selection', () => {
-		const group = new LayerGroup([0]);
+		const layerGroup = new LayerGroup([0]);
 		const lowVelocityAnimationClip = createMockAnimationClip('low');
 		const highVelocityAnimationClip = createMockAnimationClip('high');
 
@@ -69,28 +69,28 @@ describe('LayerGroup', () => {
 				}
 			}
 		};
-		group.setAnimations(animations);
+		layerGroup.setAnimations(animations);
 
 		// Low velocity should get the lowVelocityAnimationClip
-		group.noteOn(0, 60, 32);
-		expect(group.getActiveClips()).toContain(lowVelocityAnimationClip);
+		layerGroup.noteOn(0, 60, 32);
+		expect(layerGroup.getActiveClips()).toContain(lowVelocityAnimationClip);
 
-		group.noteOff(0, 60);
+		layerGroup.noteOff(0, 60);
 
 		// High velocity should get the highVelocityAnimationClip
-		group.noteOn(0, 60, 100);
-		expect(group.getActiveClips()).toContain(highVelocityAnimationClip);
+		layerGroup.noteOn(0, 60, 100);
+		expect(layerGroup.getActiveClips()).toContain(highVelocityAnimationClip);
 	});
 
 	test('active clips have renderToContext method for off-screen rendering', () => {
-		const group = new LayerGroup([0]);
+		const layerGroup = new LayerGroup([0]);
 		const animationClip = createMockAnimationClip('animationClip');
 
 		const animations = { 0: { 60: { 0: animationClip } } };
-		group.setAnimations(animations);
+		layerGroup.setAnimations(animations);
 
-		group.noteOn(0, 60, 127);
-		const activeClips = group.getActiveClips();
+		layerGroup.noteOn(0, 60, 127);
+		const activeClips = layerGroup.getActiveClips();
 
 		// Verify renderToContext is available on active clips (used by Renderer for off-screen compositing)
 		expect(activeClips.length).toBe(1);
@@ -154,7 +154,7 @@ describe('EffectsManager', () => {
 		// Color effect (notes 48-63)
 		effects.noteOn(settings.channelMapping.mixedOutputEffects, 50, 127);
 		expect(effects.hasMixedOutputEffects()).toBe(true);
-		const colorEffect = effects.getActiveMixedOutputEffects().find(e => e.type === 'color');
+		const colorEffect = effects.getActiveMixedOutputEffects().find(effect => effect.type === 'color');
 		expect(colorEffect).toBeDefined();
 		expect(colorEffect.velocity).toBe(127);
 
@@ -185,8 +185,8 @@ describe('EffectsManager', () => {
 		effects.noteOn(channel, 40, 80);
 
 		expect(effects.getActiveMixedOutputEffects().length).toBe(2);
-		expect(effects.getActiveMixedOutputEffects().find(e => e.type === 'color')).toBeDefined();
-		expect(effects.getActiveMixedOutputEffects().find(e => e.type === 'offset')).toBeDefined();
+		expect(effects.getActiveMixedOutputEffects().find(effect => effect.type === 'color')).toBeDefined();
+		expect(effects.getActiveMixedOutputEffects().find(effect => effect.type === 'offset')).toBeDefined();
 	});
 
 	test('within same type, only last note wins', () => {
@@ -195,11 +195,11 @@ describe('EffectsManager', () => {
 
 		// Activate color effect with note 50
 		effects.noteOn(channel, 50, 100);
-		expect(effects.getActiveMixedOutputEffects().find(e => e.type === 'color').note).toBe(50);
+		expect(effects.getActiveMixedOutputEffects().find(effect => effect.type === 'color').note).toBe(50);
 
 		// Activate color effect with note 55 - should replace
 		effects.noteOn(channel, 55, 80);
-		const colorEffect = effects.getActiveMixedOutputEffects().find(e => e.type === 'color');
+		const colorEffect = effects.getActiveMixedOutputEffects().find(effect => effect.type === 'color');
 		expect(colorEffect.note).toBe(55);
 		expect(colorEffect.velocity).toBe(80);
 	});

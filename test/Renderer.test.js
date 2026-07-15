@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../src/js/visuals/Renderer.js';
 import settings from '../src/js/core/settings.js';
-import withSettings from './utils/with-settings.js';
-import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockContext } from './utils/renderer-fixture.js';
+import withSettings from './utils/withSettings.js';
+import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockContext } from './utils/rendererFixture.js';
 
 describe('Renderer', () => {
 	let rafMocks;

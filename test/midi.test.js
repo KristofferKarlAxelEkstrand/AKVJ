@@ -1,7 +1,8 @@
-// Using fixtures for setup/teardown
-import { waitForEvent } from './utils/wait-for-event.js';
-import { getListeners, invokeListeners } from './utils/invoke-listeners.js';
-import { useFakeMIDIFixture } from './utils/midi-fixture.js';
+﻿// Using fixtures for setup/teardown
+import { waitForEvent } from './utils/waitForEvent.js';
+import { getListeners, invokeListeners } from './utils/invokeListeners.js';
+import { useFakeMIDIFixture } from './utils/midiFixture.js';
+import { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF } from '../src/js/core/AppState.js';
 
 // Global requestMIDIAccess is now handled by `useFakeMIDIFixture()` fixture
 
@@ -14,10 +15,10 @@ describe('MIDI', () => {
 		// Reset modules to get fresh singleton instances with the fake MIDI environment
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/midi.js');
+		await import('../src/js/midi-input/Midi.js');
 
 		// Wait for event from AppState
-		const promise = waitForEvent(appState, 'midiNoteOn');
+		const promise = waitForEvent(appState, EVENT_MIDI_NOTE_ON);
 
 		// Simulate a Note On message (status 0x90 = Note On channel 0), note 60, velocity 127
 		const fakeInput = env.getInputById('fake-1');
@@ -36,8 +37,8 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/midi.js');
-		const promise = waitForEvent(appState, 'midiNoteOff');
+		await import('../src/js/midi-input/Midi.js');
+		const promise = waitForEvent(appState, EVENT_MIDI_NOTE_OFF);
 		const fakeInput = env.getInputById('fake-2');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x90, 60, 0]) }); // velocity 0 -> Note Off
 		const event = await promise;
@@ -51,8 +52,8 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/midi.js');
-		const promise = waitForEvent(appState, 'midiNoteOff');
+		await import('../src/js/midi-input/Midi.js');
+		const promise = waitForEvent(appState, EVENT_MIDI_NOTE_OFF);
 		const fakeInput = env.getInputById('fake-3');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x80, 60, 127]) }); // Note Off command
 		const event = await promise;
@@ -66,7 +67,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/midi.js');
+		await import('../src/js/midi-input/Midi.js');
 
 		const fakeInput = env.getInputById('fake-4');
 
@@ -99,7 +100,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi-input/midi.js')).default;
+		const midi = (await import('../src/js/midi-input/Midi.js')).default;
 
 		// MIDI connection is set during module import - check state directly
 		expect(appState.midiConnected).toBe(true);
@@ -125,7 +126,7 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi-input/midi.js')).default;
+		const midi = (await import('../src/js/midi-input/Midi.js')).default;
 
 		// Initially no devices
 		expect(appState.midiConnected).toBe(false);

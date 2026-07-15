@@ -36,8 +36,8 @@ class MaskManager {
 	 * @param {Object} animations - All clip data keyed by channel/note/velocity
 	 */
 	setAnimations(animations) {
-		const mixerData = animations[this.#mixerChannel];
-		this.#maskClips = mixerData || {};
+		const maskClips = animations[this.#mixerChannel];
+		this.#maskClips = maskClips || {};
 		this.#velocityCache = buildVelocityCache(this.#maskClips);
 	}
 
@@ -124,7 +124,7 @@ class MaskManager {
 	 * Note: This is mainly for testing/reset purposes
 	 * During normal operation, masks should stay latched
 	 */
-	clear() {
+	clearMask() {
 		if (this.#currentMask) {
 			this.#currentMask.stop();
 		}
@@ -136,9 +136,17 @@ class MaskManager {
 	 * Destroy and release resources
 	 */
 	destroy() {
-		this.clear();
+		try {
+			this.clearMask();
+		} catch (error) {
+			console.error('Error clearing mask in MaskManager:', error);
+		}
 		this.#maskClips = {};
-		this.#velocityCache.clear();
+		try {
+			this.#velocityCache.clear();
+		} catch (error) {
+			console.error('Error clearing velocityCache in MaskManager:', error);
+		}
 	}
 }
 

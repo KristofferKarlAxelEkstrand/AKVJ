@@ -16,7 +16,7 @@ export function createMockAnimationClip(drawFn) {
 		play: vi.fn(),
 		stop: vi.fn(),
 		reset: vi.fn(),
-		dispose: vi.fn(),
+		destroy: vi.fn(),
 		isFinished: false
 	};
 }
@@ -46,12 +46,7 @@ export function createSolidFillClip(r, g, b) {
  */
 export function createGradientClip(direction, fromColor, toColor) {
 	return createMockAnimationClip(ctx => {
-		let gradient;
-		if (direction === 'horizontal') {
-			gradient = ctx.createLinearGradient(0, 0, width, 0);
-		} else {
-			gradient = ctx.createLinearGradient(0, 0, 0, height);
-		}
+		const gradient = direction === 'horizontal' ? ctx.createLinearGradient(0, 0, width, 0) : ctx.createLinearGradient(0, 0, 0, height);
 		gradient.addColorStop(0, `rgb(${fromColor[0]},${fromColor[1]},${fromColor[2]})`);
 		gradient.addColorStop(1, `rgb(${toColor[0]},${toColor[1]},${toColor[2]})`);
 		ctx.fillStyle = gradient;
@@ -113,8 +108,8 @@ export function createMaskClip(type) {
 		'2bit-gradient': ctx => {
 			const levels = [0, 64, 128, 192];
 			const segmentWidth = Math.floor(width / levels.length);
-			levels.forEach((val, i) => {
-				ctx.fillStyle = `rgb(${val},${val},${val})`;
+			levels.forEach((level, i) => {
+				ctx.fillStyle = `rgb(${level},${level},${level})`;
 				ctx.fillRect(i * segmentWidth, 0, segmentWidth, height);
 			});
 		},
@@ -122,8 +117,8 @@ export function createMaskClip(type) {
 			const levels = 16;
 			const segmentWidth = Math.floor(width / levels);
 			for (let i = 0; i < levels; i++) {
-				const val = Math.floor((i * 255) / (levels - 1));
-				ctx.fillStyle = `rgb(${val},${val},${val})`;
+				const level = Math.floor((i * 255) / (levels - 1));
+				ctx.fillStyle = `rgb(${level},${level},${level})`;
 				ctx.fillRect(i * segmentWidth, 0, segmentWidth, height);
 			}
 		},

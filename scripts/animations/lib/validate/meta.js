@@ -46,11 +46,11 @@ export function validateMetaFields(meta) {
 				errors.push(`meta.json: frameDurationBeats array length (${meta.frameDurationBeats.length}) must match numberOfFrames (${meta.numberOfFrames})`);
 			}
 			for (let i = 0; i < meta.frameDurationBeats.length; i++) {
-				const val = meta.frameDurationBeats[i];
-				if (typeof val !== 'number') {
-					errors.push(`meta.json: frameDurationBeats[${i}] must be a number (got ${typeof val})`);
-				} else if (val <= 0) {
-					errors.push(`meta.json: frameDurationBeats[${i}] must be a positive number (got ${val})`);
+				const duration = meta.frameDurationBeats[i];
+				if (typeof duration !== 'number') {
+					errors.push(`meta.json: frameDurationBeats[${i}] must be a number (got ${typeof duration})`);
+				} else if (duration <= 0) {
+					errors.push(`meta.json: frameDurationBeats[${i}] must be a positive number (got ${duration})`);
 				}
 			}
 		} else if (typeof meta.frameDurationBeats === 'number') {

@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+﻿import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../../src/js/visuals/Renderer.js';
 import settings from '../../src/js/core/settings.js';
 import appState from '../../src/js/core/AppState.js';
@@ -15,6 +15,7 @@ let canvas;
 let ctx;
 let rafSpy;
 let randomSpy;
+let currentRenderer;
 
 beforeEach(() => {
 	canvas = document.createElement('canvas');
@@ -40,9 +41,9 @@ afterEach(() => {
 	}
 	appState.reset();
 
-	const renderer = canvas._renderer;
-	if (renderer) {
-		renderer.destroy();
+	if (currentRenderer) {
+		currentRenderer.destroy();
+		currentRenderer = null;
 	}
 	document.body.removeChild(canvas);
 	canvas = null;
@@ -55,7 +56,7 @@ afterEach(() => {
  */
 function renderFrame(layerManager, timestamp = 0) {
 	const renderer = new Renderer(ctx, layerManager, settings, appState);
-	canvas._renderer = renderer;
+	currentRenderer = renderer;
 	renderer.start();
 
 	// The warmup call already happened synchronously in start().

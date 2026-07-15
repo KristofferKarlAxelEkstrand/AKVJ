@@ -3,45 +3,51 @@ import { vi } from 'vitest';
 /**
  * Factories for fake MIDI inputs and access objects used in tests.
  * These simulate EventTarget-like addEventListener/removeEventListener behavior
- * by storing handlers in a private `_listeners` Map which tests can inspect or
- * invoke using the helpers from `invoke-listeners.js`.
+ * by storing handlers in a closure-private Map which tests can inspect or
+ * invoke using the helpers from `invokeListeners.js`.
  */
 
 export function createFakeInput({ id = 'fake-1', name = 'Fake MIDI Input' } = {}) {
+	const listenersByType = new Map();
 	return {
 		id,
 		name,
-		_listeners: new Map(),
-		addEventListener(type, fn) {
-			const arr = this._listeners.get(type) ?? [];
-			arr.push(fn);
-			this._listeners.set(type, arr);
+		getListeners(eventName) {
+			return listenersByType.get(eventName) ?? [];
 		},
-		removeEventListener(type, fn) {
-			const arr = this._listeners.get(type) ?? [];
-			this._listeners.set(
+		addEventListener(type, listener) {
+			const handlers = listenersByType.get(type) ?? [];
+			handlers.push(listener);
+			listenersByType.set(type, handlers);
+		},
+		removeEventListener(type, listener) {
+			const handlers = listenersByType.get(type) ?? [];
+			listenersByType.set(
 				type,
-				arr.filter(h => h !== fn)
+				handlers.filter(handler => handler !== listener)
 			);
 		}
 	};
 }
 
 export function createFakeAccess(inputs = []) {
-	const inputMap = new Map(inputs.map(i => [i.id, i]));
+	const inputMap = new Map(inputs.map(input => [input.id, input]));
+	const listenersByType = new Map();
 	return {
 		inputs: inputMap,
-		_listeners: new Map(),
+		getListeners(eventName) {
+			return listenersByType.get(eventName) ?? [];
+		},
 		addEventListener(type, handler) {
-			const arr = this._listeners.get(type) ?? [];
-			arr.push(handler);
-			this._listeners.set(type, arr);
+			const handlers = listenersByType.get(type) ?? [];
+			handlers.push(handler);
+			listenersByType.set(type, handlers);
 		},
 		removeEventListener(type, handler) {
-			const arr = this._listeners.get(type) ?? [];
-			this._listeners.set(
+			const handlers = listenersByType.get(type) ?? [];
+			listenersByType.set(
 				type,
-				arr.filter(h => h !== handler)
+				handlers.filter(existingHandler => existingHandler !== handler)
 			);
 		}
 	};
@@ -59,7 +65,7 @@ export function createFakeAccess(inputs = []) {
  */
 
 export function createFakeMIDIEnvironment(inputDefinitions = [{ id: 'fake', name: 'Fake' }]) {
-	const inputs = inputDefinitions.map(d => createFakeInput(d));
+	const inputs = inputDefinitions.map(definition => createFakeInput(definition));
 	const access = createFakeAccess(inputs);
 	const requestMIDIAccessMock = vi.fn().mockResolvedValue(access);
 
@@ -75,23 +81,23 @@ export function createFakeMIDIEnvironment(inputDefinitions = [{ id: 'fake', name
 		 * Return a fake input by its id (null if not found).
 		 */
 		getInputById(id) {
-			return access.inputs.get(id) ?? inputs.find(i => i.id === id) ?? null;
+			return access.inputs.get(id) ?? inputs.find(input => input.id === id) ?? null;
 		},
 		/**
 		 * Connect an input by id (adds the input to access and fires a 'statechange' event)
 		 * Returns the `port` object passed to the statechange handlers.
 		 */
 		connectInput(id) {
-			let input = inputs.find(i => i.id === id);
-			if (!input) {
-				input = createFakeInput({ id, name: id });
+			const existingInput = inputs.find(input => input.id === id);
+			const input = existingInput ?? createFakeInput({ id, name: id });
+			if (!existingInput) {
 				inputs.push(input);
 			}
 			access.inputs.set(input.id, input);
 			const port = { ...input, type: 'input', state: 'connected' };
-			(access._listeners.get('statechange') ?? []).forEach(h => {
+			access.getListeners('statechange').forEach(handler => {
 				try {
-					h({ port });
+					handler({ port });
 				} catch {
 					/* tests should handle errors */
 				}
@@ -102,15 +108,15 @@ export function createFakeMIDIEnvironment(inputDefinitions = [{ id: 'fake', name
 		 * Disconnect an input by id (removes the input from access or sets state, then fires statechange)
 		 */
 		disconnectInput(id) {
-			const input = inputs.find(i => i.id === id);
+			const input = inputs.find(existingInput => existingInput.id === id);
 			if (!input) {
 				return null;
 			}
 			const port = { ...input, type: 'input', state: 'disconnected' };
 			access.inputs.delete(id);
-			(access._listeners.get('statechange') ?? []).forEach(h => {
+			access.getListeners('statechange').forEach(handler => {
 				try {
-					h({ port });
+					handler({ port });
 				} catch {
 					/* tests should handle errors */
 				}
@@ -121,9 +127,9 @@ export function createFakeMIDIEnvironment(inputDefinitions = [{ id: 'fake', name
 		 * Trigger a raw statechange event with a custom port object.
 		 */
 		triggerStateChange(port) {
-			(access._listeners.get('statechange') ?? []).forEach(h => {
+			access.getListeners('statechange').forEach(handler => {
 				try {
-					h({ port });
+					handler({ port });
 				} catch {
 					/* tests should handle errors */
 				}

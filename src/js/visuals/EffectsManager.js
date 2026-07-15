@@ -192,7 +192,7 @@ class EffectsManager {
 	/**
 	 * Clear all active effects
 	 */
-	clear() {
+	clearEffects() {
 		this.#activeMixedOutputEffects.clear();
 		this.#activeGlobalEffects.clear();
 	}
@@ -201,7 +201,7 @@ class EffectsManager {
 	 * Destroy and release resources
 	 */
 	destroy() {
-		this.clear();
+		this.clearEffects();
 	}
 }
 

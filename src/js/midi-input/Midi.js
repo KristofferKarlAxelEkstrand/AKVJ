@@ -1,4 +1,4 @@
-import appState from '../core/AppState.js';
+﻿import appState from '../core/AppState.js';
 import settings from '../core/settings.js';
 
 /**
@@ -6,11 +6,11 @@ import settings from '../core/settings.js';
  * Dispatches parsed MIDI events through app state for loose coupling
  * Supports hot-plug: devices can be connected/disconnected at runtime
  */
-class MIDI {
+class Midi {
 	#midiAccess = null;
 	#connectedInputs = new Map();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
-	#boundStateChange = this.#handleStateChange.bind(this);
+	#boundHandleStateChange = this.#handleStateChange.bind(this);
 
 	constructor() {
 		this.#init();
@@ -51,8 +51,8 @@ class MIDI {
 		console.error('Failed to get MIDI access:', error);
 		try {
 			appState.midiConnected = false;
-		} catch (err) {
-			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', err);
+		} catch (error) {
+			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', error);
 		}
 	}
 
@@ -62,12 +62,12 @@ class MIDI {
 	#setupStateChangeListener(midiAccess) {
 		try {
 			if (typeof midiAccess.addEventListener === 'function') {
-				midiAccess.addEventListener('statechange', this.#boundStateChange);
+				midiAccess.addEventListener('statechange', this.#boundHandleStateChange);
 			} else {
-				midiAccess.onstatechange = this.#boundStateChange;
+				midiAccess.onstatechange = this.#boundHandleStateChange;
 			}
-		} catch (err) {
-			console.warn('Failed to set up statechange listener:', err);
+		} catch (error) {
+			console.warn('Failed to set up statechange listener:', error);
 		}
 	}
 
@@ -146,8 +146,8 @@ class MIDI {
 	#updateConnectionState() {
 		try {
 			appState.midiConnected = this.#connectedInputs.size > 0;
-		} catch (err) {
-			console.warn('Failed to update appState.midiConnected state:', err);
+		} catch (error) {
+			console.warn('Failed to update appState.midiConnected state:', error);
 		}
 	}
 
@@ -171,7 +171,7 @@ class MIDI {
 		}
 
 		const statusByte = message.data[0];
-		const { commands, systemRealTime, messageMinLength: minimumMessageLength } = settings.midi;
+		const { commands, systemRealTime, channelMessageMinLength: minimumMessageLength } = settings.midi;
 
 		// Handle System Real-Time messages (single-byte, no channel)
 		// These are high-priority timing messages and should be processed first
@@ -201,24 +201,24 @@ class MIDI {
 			return;
 		}
 
-		const [, dataByte1, dataByte2] = message.data;
+		const [, firstDataByte, secondDataByte] = message.data;
 		const command = statusByte >> 4;
 		const channel = statusByte & 0xf;
 
 		switch (command) {
 			case commands.noteOn:
-				if (dataByte2 > 0) {
-					appState.dispatchMIDINoteOn(channel, dataByte1, dataByte2);
+				if (secondDataByte > 0) {
+					appState.dispatchMIDINoteOn(channel, firstDataByte, secondDataByte);
 				} else {
-					appState.dispatchMIDINoteOff(channel, dataByte1);
+					appState.dispatchMIDINoteOff(channel, firstDataByte);
 				}
 				break;
 			case commands.noteOff:
-				appState.dispatchMIDINoteOff(channel, dataByte1);
+				appState.dispatchMIDINoteOff(channel, firstDataByte);
 				break;
 			case commands.controlChange:
-				// dataByte1 = controller number, dataByte2 = value
-				appState.dispatchMIDIControlChange(channel, dataByte1, dataByte2);
+				// firstDataByte = controller number, secondDataByte = value
+				appState.dispatchMIDIControlChange(channel, firstDataByte, secondDataByte);
 				break;
 			default:
 				break;
@@ -246,7 +246,7 @@ class MIDI {
 		if (this.#midiAccess) {
 			try {
 				if (typeof this.#midiAccess.removeEventListener === 'function') {
-					this.#midiAccess.removeEventListener('statechange', this.#boundStateChange);
+					this.#midiAccess.removeEventListener('statechange', this.#boundHandleStateChange);
 				} else {
 					this.#midiAccess.onstatechange = null;
 				}
@@ -265,6 +265,6 @@ class MIDI {
 	}
 }
 
-const midi = new MIDI();
+const midi = new Midi();
 
 export default midi;

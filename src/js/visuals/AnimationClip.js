@@ -1,4 +1,4 @@
-/**
+﻿/**
  * AnimationClip - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  *
@@ -9,7 +9,12 @@
  *    When no clock, falls back to time-based BPM calculation
  */
 import settings from '../core/settings.js';
-import appState from '../core/AppState.js';
+import appState, { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK } from '../core/AppState.js';
+
+const MS_PER_MINUTE = 60000;
+const MS_PER_SECOND = 1000;
+const DEFAULT_FRAME_DURATION_BEATS = 0.25;
+const DEFAULT_PULSES_PER_FRAME = 6;
 
 class AnimationClip {
 	// Configuration (immutable after construction)
@@ -76,24 +81,24 @@ class AnimationClip {
 			}
 
 			// Subscribe to MIDI clock events for real-time sync when clock is active
-			this.#unsubscribeClock = appState.subscribe('midiClock', () => this.#onClockPulse());
+			this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#onClockPulse());
 		}
 
 		// Make a defensive shallow copy and validate the provided frame rates.
 		// Ensure we only store positive numeric values to avoid division by zero
 		// and to fail-fast on invalid animation metadata.
 		this.#frameRatesForFrames = {};
-		for (const [k, v] of Object.entries(frameRatesForFrames)) {
-			const idx = Number(k);
-			if (!Number.isInteger(idx) || idx < 0 || idx >= numberOfFrames) {
-				console.warn(`AnimationClip: frame rate key ${k} is not a valid frame index; skipping`);
+		for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
+			const numericFrameIndex = Number(frameIndex);
+			if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= numberOfFrames) {
+				console.warn(`AnimationClip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
 				continue;
 			}
-			if (typeof v === 'number' && v > 0) {
-				this.#frameRatesForFrames[idx] = v;
+			if (typeof frameRate === 'number' && frameRate > 0) {
+				this.#frameRatesForFrames[numericFrameIndex] = frameRate;
 			} else {
 				// If invalid, log and skip - constructor enforces valid metadata
-				console.warn(`AnimationClip: invalid frame rate for frame ${k}: ${v}; skipping`);
+				console.warn(`AnimationClip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
 			}
 		}
 		this.#frameWidth = image.width / framesPerRow;
@@ -159,7 +164,7 @@ class AnimationClip {
 	 */
 	#advanceFrame(timestamp) {
 		// When clock is active and we have frameDurationBeats, let pulses drive frames
-		if (this.#useBPMSync && this.#pulsesPerFrame && appState.bpmSource === 'clock') {
+		if (this.#useBPMSync && this.#pulsesPerFrame && appState.bpmSource === BPM_SOURCE_CLOCK) {
 			return;
 		}
 		// Prevent double-advancement when the same timestamp is used to advance
@@ -227,17 +232,17 @@ class AnimationClip {
 			// BPM sync mode: interval = (frameDurationBeats * 60000) / bpm
 			// frameDurationBeats[i] = number of beats this frame should last
 			// e.g., frameDurationBeats=0.25 at 120 BPM = 125ms (16th note)
-			const beats = this.#frameDurationBeats[frameIndex] ?? this.#frameDurationBeats[0] ?? 0.25;
+			const beats = this.#frameDurationBeats[frameIndex] ?? this.#frameDurationBeats[0] ?? DEFAULT_FRAME_DURATION_BEATS;
 			// Ensure BPM is at least the configured minimum to prevent extremely long intervals.
 			// Fallback to 1 if settings.bpm.min is 0 or invalid to prevent division by zero.
 			const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
 			const bpm = Math.max(minBPM, appState.bpm);
-			return (beats * 60000) / bpm;
+			return (beats * MS_PER_MINUTE) / bpm;
 		}
 
 		// FPS mode (default when BPM sync is not used)
 		const framesPerSecond = this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate;
-		return 1000 / framesPerSecond;
+		return MS_PER_SECOND / framesPerSecond;
 	}
 
 	/**
@@ -303,18 +308,18 @@ class AnimationClip {
 	}
 
 	/**
-	 * Dispose of image resources to help garbage collection
+	 * Destroy clip and release image resources for garbage collection.
+	 * Unsubscribes from clock events and clears the image reference.
 	 */
-	dispose() {
-		// Unsubscribe from clock events if using clock sync
+	destroy() {
 		if (this.#unsubscribeClock) {
-			this.#unsubscribeClock();
+			try {
+				this.#unsubscribeClock();
+			} catch (error) {
+				console.error('Error unsubscribing from clock events in AnimationClip:', error);
+			}
 			this.#unsubscribeClock = null;
 		}
-		// Only clear image reference so GC can reclaim memory but leave the
-		// displayContext intact. Clearing the context is a breaking change;
-		// if a clip is disposed while still referenced by the renderer, we
-		// should still allow play() to return early safely.
 		this.#image = null;
 	}
 
@@ -329,14 +334,14 @@ class AnimationClip {
 		}
 
 		// Only process pulses when clock is the active BPM source
-		if (appState.bpmSource !== 'clock') {
+		if (appState.bpmSource !== BPM_SOURCE_CLOCK) {
 			return;
 		}
 
 		this.#pulseCount++;
 
 		// Get pulses needed for current frame
-		const pulsesNeeded = this.#pulsesPerFrame[this.#frame] ?? this.#pulsesPerFrame[0] ?? 6;
+		const pulsesNeeded = this.#pulsesPerFrame[this.#frame] ?? this.#pulsesPerFrame[0] ?? DEFAULT_PULSES_PER_FRAME;
 
 		if (this.#pulseCount >= pulsesNeeded) {
 			this.#pulseCount = 0;

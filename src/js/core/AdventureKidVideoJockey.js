@@ -1,4 +1,4 @@
-import appState from './AppState.js';
+﻿import appState, { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF } from './AppState.js';
 import settings from './settings.js';
 import AnimationLoader from '../visuals/AnimationLoader.js';
 import LayerManager from '../visuals/LayerManager.js';
@@ -43,7 +43,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	 */
 	#setupMIDIEventListeners() {
 		this.#unsubscribers.push(
-			appState.subscribe('midiNoteOn', event => {
+			appState.subscribe(EVENT_MIDI_NOTE_ON, event => {
 				if (!this.#layerManager) {
 					return;
 				}
@@ -53,7 +53,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 		);
 
 		this.#unsubscribers.push(
-			appState.subscribe('midiNoteOff', event => {
+			appState.subscribe(EVENT_MIDI_NOTE_OFF, event => {
 				if (!this.#layerManager) {
 					return;
 				}
@@ -68,7 +68,11 @@ class AdventureKidVideoJockey extends HTMLElement {
 	 */
 	#teardownMIDIEventListeners() {
 		for (const unsubscribe of this.#unsubscribers) {
-			unsubscribe();
+			try {
+				unsubscribe();
+			} catch (error) {
+				console.error('Error unsubscribing MIDI event listener:', error);
+			}
 		}
 		this.#unsubscribers = [];
 	}
@@ -121,20 +125,16 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 	}
 
-	async #setUpAnimations(jsonUrl) {
+	async #setupAnimations(jsonUrl) {
 		try {
-			this.#animations = await this.#animationLoader.setUpAnimations(jsonUrl);
+			this.#animations = await this.#animationLoader.setupAnimations(jsonUrl);
 			this.#layerManager.setAnimations(this.#animations);
 			appState.animationsLoaded = true;
 			return this.#animations;
 		} catch (error) {
 			console.error(`Failed to set up animations from ${jsonUrl}:`, error);
 			appState.animationsLoaded = false;
-			appState.dispatchEvent(
-				new CustomEvent('animationLoadError', {
-					detail: { url: jsonUrl, error: error.message }
-				})
-			);
+			appState.dispatchAnimationLoadError(jsonUrl, error.message);
 			return {};
 		}
 	}
@@ -150,7 +150,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			return;
 		}
 
-		await this.#setUpAnimations(settings.performance.animationsJsonUrl);
+		await this.#setupAnimations(settings.performance.animationsJsonUrl);
 		if (appState.animationsLoaded) {
 			this.#renderer.start();
 		} else {

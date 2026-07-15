@@ -1,4 +1,4 @@
-# AKVJ - Adventure Kid Video Jockey
+﻿# AKVJ - Adventure Kid Video Jockey
 
 A real-time VJ (Video Jockey) application for live visual performances, built with vanilla JavaScript, Web MIDI API, and HTML5 Canvas. AKVJ delivers pixel-perfect 240x135 graphics at 60fps with low-latency MIDI response, making it ideal for live music performances and interactive visual art.
 
@@ -27,7 +27,7 @@ AKVJ transforms MIDI input into layer-grouped visual animations using a sophisti
     - Notes 64-79: Glitch effects
     - Notes 80-95: Strobe effects
 
-    - Strobe behavior: velocities control strobe intensity and pulse rate. Velocities 1–9 trigger a full-frame white‑out flash; velocities 10–19 → 1 pulse/beat, 20–29 → 2 pulses/beat, … up to 120–127 → 12 pulses/beat. Strobe is **BPM‑synced and deterministic**, and the duty cycle varies slightly within each 10‑velocity bucket for musical variation (approx. 25–50% duty).
+    - Strobe behavior: velocities control strobe intensity and pulse rate. Velocities 1â€“9 trigger a full-frame whiteâ€‘out flash; velocities 10â€“19 â†’ 1 pulse/beat, 20â€“29 â†’ 2 pulses/beat, â€¦ up to 120â€“127 â†’ 12 pulses/beat. Strobe is **BPMâ€‘synced and deterministic**, and the duty cycle varies slightly within each 10â€‘velocity bucket for musical variation (approx. 25â€“50% duty).
 
 - **Channel 13 (Global effects)**: Same effects applied to entire output after Layer Group C
 
@@ -65,10 +65,10 @@ AKVJ uses a modular, component-based architecture built with vanilla JavaScript:
 
 ### Data Flow
 
-1. **MIDI Input** → Web MIDI API captures note on/off events
-2. **Event Processing** → MIDI handler extracts channel, note, and velocity
-3. **Layer Group Management** → LayerManager activates/deactivates animation clips
-4. **Frame Rendering** → Renderer draws all active clips to 240x135 canvas at 60fps
+1. **MIDI Input** â†’ Web MIDI API captures note on/off events
+2. **Event Processing** â†’ MIDI handler extracts channel, note, and velocity
+3. **Layer Group Management** â†’ LayerManager activates/deactivates animation clips
+4. **Frame Rendering** â†’ Renderer draws all active clips to 240x135 canvas at 60fps
 
 ## Technology Stack
 
@@ -93,20 +93,20 @@ AKVJ uses a sophisticated animation system based on PNG sprite sheets and JSON m
 
 ```
 animations/                 # Source animation assets (editable, version controlled)
-├── {channel}/              # Channel folder (1-16, matching DAW display)
-│   ├── {note}/             # MIDI note (0-127)
-│   │   ├── {velocity}/     # Velocity variant (0-127)
-│   │   │   ├── sprite.png  # PNG sprite sheet (source)
-│   │   │   └── meta.json   # Animation metadata
+â”œâ”€â”€ {channel}/              # Channel folder (1-16, matching DAW display)
+â”‚   â”œâ”€â”€ {note}/             # MIDI note (0-127)
+â”‚   â”‚   â”œâ”€â”€ {velocity}/     # Velocity variant (0-127)
+â”‚   â”‚   â”‚   â”œâ”€â”€ sprite.png  # PNG sprite sheet (source)
+â”‚   â”‚   â”‚   â””â”€â”€ meta.json   # Animation metadata
 
 .cache/animations/          # Optimized assets (generated, git-ignored)
-├── {channel}/{note}/{velocity}/
-│   ├── sprite.png          # Optimized PNG
-│   └── sprite.png.hash     # Source file hash for change detection
-└── animations.json         # Generated animation index
+â”œâ”€â”€ {channel}/{note}/{velocity}/
+â”‚   â”œâ”€â”€ sprite.png          # Optimized PNG
+â”‚   â””â”€â”€ sprite.png.hash     # Source file hash for change detection
+â””â”€â”€ animations.json         # Generated animation index
 
 src/public/animations/      # Final build output (generated, git-ignored)
-└── [Same structure as .cache/animations/]
+â””â”€â”€ [Same structure as .cache/animations/]
 ```
 
 The animation pipeline automatically:
@@ -225,33 +225,33 @@ This starts the Vite development server at `http://localhost:5173/`. Open this U
 
 ```
 AKVJ/
-├── src/
-│   ├── main.js                     # Application entry point
-│   ├── index.html                  # Main HTML template
-│   ├── css/                        # Stylesheets
-│   ├── js/                         # Core JavaScript modules
-│   │   ├── core/AdventureKidVideoJockey.js  # Main VJ component
-│   │   ├── midi-input/midi.js     # Web MIDI API integration
-│   │   ├── visuals/LayerManager.js  # Visual layer management
-│   │   ├── visuals/Renderer.js      # Canvas rendering loop
-│   │   ├── visuals/AnimationLoader.js      # Sprite and metadata loading
-│   │   ├── visuals/AnimationClip.js        # Individual animation playback
-│   │   ├── visuals/MaskManager.js          # Layer Group A and Layer Group B crossfade masks
-│   │   ├── visuals/EffectsManager.js       # Visual effects
-│   │   ├── core/settings.js             # Configuration constants
-│   │   ├── core/AppState.js            # Global state management
-│   │   ├── utils/Fullscreen.js         # Fullscreen functionality
-│   │   ├── utils/DebugOverlay.js       # Debug overlay
-│   │   └── utils/velocitySelection.js  # Velocity-based animation selection
-│   └── public/
-│       └── animations/             # Animation assets
-│           ├── {channel}/          # Channel folders (0-15, auto-converted from source)
-│           │   └── {note}/         # MIDI notes (0-127)
-│           │       └── {velocity}/ # Velocity variants
-│           └── animations.json     # Generated animation index
-├── scripts/animations/             # Animation pipeline (validate, optimize, generate)
-├── vite.config.js                 # Vite build configuration
-└── package.json                   # Dependencies and scripts
+â”œâ”€â”€ src/
+â”‚   â”œâ”€â”€ main.js                     # Application entry point
+â”‚   â”œâ”€â”€ index.html                  # Main HTML template
+â”‚   â”œâ”€â”€ css/                        # Stylesheets
+â”‚   â”œâ”€â”€ js/                         # Core JavaScript modules
+â”‚   â”‚   â”œâ”€â”€ core/AdventureKidVideoJockey.js  # Main VJ component
+â”‚   â”‚   â”œâ”€â”€ midi-input/Midi.js     # Web MIDI API integration
+â”‚   â”‚   â”œâ”€â”€ visuals/LayerManager.js  # Visual layer management
+â”‚   â”‚   â”œâ”€â”€ visuals/Renderer.js      # Canvas rendering loop
+â”‚   â”‚   â”œâ”€â”€ visuals/AnimationLoader.js      # Sprite and metadata loading
+â”‚   â”‚   â”œâ”€â”€ visuals/AnimationClip.js        # Individual animation playback
+â”‚   â”‚   â”œâ”€â”€ visuals/MaskManager.js          # Layer Group A and Layer Group B crossfade masks
+â”‚   â”‚   â”œâ”€â”€ visuals/EffectsManager.js       # Visual effects
+â”‚   â”‚   â”œâ”€â”€ core/settings.js             # Configuration constants
+â”‚   â”‚   â”œâ”€â”€ core/AppState.js            # Global state management
+â”‚   â”‚   â”œâ”€â”€ utils/Fullscreen.js         # Fullscreen functionality
+â”‚   â”‚   â”œâ”€â”€ utils/DebugOverlay.js       # Debug overlay
+â”‚   â”‚   â””â”€â”€ utils/velocitySelection.js  # Velocity-based animation selection
+â”‚   â””â”€â”€ public/
+â”‚       â””â”€â”€ animations/             # Animation assets
+â”‚           â”œâ”€â”€ {channel}/          # Channel folders (0-15, auto-converted from source)
+â”‚           â”‚   â””â”€â”€ {note}/         # MIDI notes (0-127)
+â”‚           â”‚       â””â”€â”€ {velocity}/ # Velocity variants
+â”‚           â””â”€â”€ animations.json     # Generated animation index
+â”œâ”€â”€ scripts/animations/             # Animation pipeline (validate, optimize, generate)
+â”œâ”€â”€ vite.config.js                 # Vite build configuration
+â””â”€â”€ package.json                   # Dependencies and scripts
 ```
 
 ## Build & Scripts

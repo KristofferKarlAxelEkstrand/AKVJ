@@ -1,9 +1,9 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, test, expect, vi, beforeEach } from 'vitest';
 import AnimationClip from '../src/js/visuals/AnimationClip.js';
 
 /**
  * Create a minimal mock canvas 2D context (drawImage only).
- * Distinct from test/utils/renderer-fixture.js's createMockContext/createMockCanvasContext —
+ * Distinct from test/utils/rendererFixture.js's createMockContext/createMockCanvasContext —
  * this file only needs drawImage, so it keeps its own local, differently-shaped mock.
  */
 function createMockDrawContext() {
@@ -40,7 +40,7 @@ describe('AnimationClip', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('dispose() unsubscribes from MIDI clock (no further advances)', async () => {
+	test('destroy() unsubscribes from MIDI clock (no further advances)', async () => {
 		const ctx = createMockDrawContext();
 		const appState = (await import('../src/js/core/AppState.js')).default;
 
@@ -73,8 +73,8 @@ describe('AnimationClip', () => {
 		clip.play(100);
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
-		// Dispose the clip (should unsubscribe from clock)
-		clip.dispose();
+		// Destroy the clip (should unsubscribe from clock)
+		clip.destroy();
 
 		// Another pulse should NOT advance the frame further
 		appState.dispatchMIDIClock(200);
@@ -220,11 +220,11 @@ describe('AnimationClip', () => {
 			mockNow.mockRestore();
 		});
 
-		test('returns early if image is null (after dispose)', () => {
+		test('returns early if image is null (after destroy)', () => {
 			const ctx = createMockDrawContext();
 			const clip = new AnimationClip(defaultOptions({ displayContext: ctx }));
 
-			clip.dispose();
+			clip.destroy();
 			clip.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
@@ -496,7 +496,7 @@ describe('AnimationClip', () => {
 		});
 	});
 
-	describe('dispose()', () => {
+	describe('destroy()', () => {
 		test('clears image reference', () => {
 			const ctx = createMockDrawContext();
 			const clip = new AnimationClip(defaultOptions({ displayContext: ctx }));
@@ -505,7 +505,7 @@ describe('AnimationClip', () => {
 			expect(ctx.drawImage).toHaveBeenCalled();
 
 			ctx.drawImage.mockClear();
-			clip.dispose();
+			clip.destroy();
 			clip.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();

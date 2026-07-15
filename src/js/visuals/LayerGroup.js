@@ -53,9 +53,9 @@ class LayerGroup {
 		// Build velocity cache for each channel
 		this.#velocityCache.clear();
 		for (const channel of this.#channels) {
-			const channelData = animations[channel];
-			if (channelData) {
-				this.#velocityCache.set(channel, buildVelocityCache(channelData));
+			const channelAnimations = animations[channel];
+			if (channelAnimations) {
+				this.#velocityCache.set(channel, buildVelocityCache(channelAnimations));
 			}
 		}
 		// Mark cache dirty so the next read rebuilds from the new clip data
@@ -204,8 +204,8 @@ class LayerGroup {
 			for (const clip of channelClips.values()) {
 				if (clip) {
 					clip.stop();
-					if (typeof clip.dispose === 'function') {
-						clip.dispose();
+					if (typeof clip.destroy === 'function') {
+						clip.destroy();
 					}
 				}
 			}

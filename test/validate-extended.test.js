@@ -146,7 +146,7 @@ describe('validate.js extended validation', () => {
 
 				const result = await validate(tempDir);
 				expect(result.errors).toHaveLength(1);
-				expect(result.errors[0].errors.some(e => e.includes('bitDepth'))).toBe(true);
+				expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('bitDepth'))).toBe(true);
 			}
 		});
 
@@ -200,7 +200,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats array length'))).toBe(true);
+			expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('frameDurationBeats array length'))).toBe(true);
 		});
 
 		test('rejects non-positive numbers in array', async () => {
@@ -213,7 +213,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats[1]'))).toBe(true);
+			expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('frameDurationBeats[1]'))).toBe(true);
 		});
 
 		test('rejects negative shorthand value', async () => {
@@ -226,7 +226,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects zero shorthand value', async () => {
@@ -239,7 +239,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects invalid type (string)', async () => {
@@ -252,7 +252,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(tempDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be'))).toBe(true);
+			expect(result.errors[0].errors.some(errorMessage => errorMessage.includes('frameDurationBeats must be'))).toBe(true);
 		});
 
 		test('allows omitting frameDurationBeats entirely', async () => {

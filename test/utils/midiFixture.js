@@ -1,5 +1,5 @@
 import { beforeEach, afterEach } from 'vitest';
-import { createFakeMIDIEnvironment } from './fake-midi.js';
+import { createFakeMIDIEnvironment } from './fakeMidi.js';
 
 /**
  * Sets up a fake MIDI environment before each test and tears it down after.
@@ -14,13 +14,14 @@ import { createFakeMIDIEnvironment } from './fake-midi.js';
 export function useFakeMIDIFixture(defaultInputDefinitions = [{ id: 'fake-1', name: 'Fake MIDI Input' }]) {
 	let env = null;
 
+	let originalRequestMIDIAccess;
+
 	const setupEnv = inputDefinitions => {
 		if (env && typeof env.teardown === 'function') {
 			env.teardown();
 		}
 		env = createFakeMIDIEnvironment(inputDefinitions);
-		const original = globalThis.navigator?.requestMIDIAccess;
-		env._originalRequestMIDIAccess = original;
+		originalRequestMIDIAccess = globalThis.navigator?.requestMIDIAccess;
 		if (!globalThis.navigator) {
 			globalThis.navigator = {};
 		}
@@ -34,7 +35,7 @@ export function useFakeMIDIFixture(defaultInputDefinitions = [{ id: 'fake-1', na
 	afterEach(async () => {
 		// If the midi module was imported by the test, destroy it to clean listeners
 		try {
-			const midiModule = await import('../../src/js/midi-input/midi.js');
+			const midiModule = await import('../../src/js/midi-input/Midi.js');
 			if (midiModule?.default && typeof midiModule.default.destroy === 'function') {
 				midiModule.default.destroy();
 			}
@@ -42,13 +43,12 @@ export function useFakeMIDIFixture(defaultInputDefinitions = [{ id: 'fake-1', na
 			// ignore errors if the module was never imported in the test
 		}
 		// Restore global to original state
-		const original = env && env._originalRequestMIDIAccess;
-		if (original === undefined) {
+		if (originalRequestMIDIAccess === undefined) {
 			if (globalThis.navigator) {
 				delete globalThis.navigator.requestMIDIAccess;
 			}
 		} else if (globalThis.navigator) {
-			globalThis.navigator.requestMIDIAccess = original;
+			globalThis.navigator.requestMIDIAccess = originalRequestMIDIAccess;
 		}
 		if (env && typeof env.teardown === 'function') {
 			env.teardown();

@@ -1,8 +1,8 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+﻿import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import Renderer from '../src/js/visuals/Renderer.js';
 import settings from '../src/js/core/settings.js';
 import appState from '../src/js/core/AppState.js';
-import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockCanvasContext } from './utils/renderer-fixture.js';
+import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockCanvasContext } from './utils/rendererFixture.js';
 
 describe('Renderer strobe (BPM-synced)', () => {
 	let rafMocks;

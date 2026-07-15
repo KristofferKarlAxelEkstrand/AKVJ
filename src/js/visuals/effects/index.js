@@ -1,9 +1,9 @@
-import ColorEffect from './ColorEffect.js';
-import MirrorEffect from './MirrorEffect.js';
-import SplitEffect from './SplitEffect.js';
-import OffsetEffect from './OffsetEffect.js';
-import GlitchEffect from './GlitchEffect.js';
-import StrobeEffect from './StrobeEffect.js';
+import ColorEffect from './colorEffect.js';
+import MirrorEffect from './mirrorEffect.js';
+import SplitEffect from './splitEffect.js';
+import OffsetEffect from './offsetEffect.js';
+import GlitchEffect from './glitchEffect.js';
+import StrobeEffect from './strobeEffect.js';
 
 /**
  * Effect registry keyed by each module's own `type` field.

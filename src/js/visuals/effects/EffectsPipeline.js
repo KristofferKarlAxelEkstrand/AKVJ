@@ -8,6 +8,9 @@ import effectRegistry from './index.js';
  *
  * effectContext contains: width, height, effectParams, effectRanges, bpm, scratchBuffer
  */
+const DEFAULT_BPM_MIN = 1;
+const DEFAULT_BPM = 120;
+
 class EffectsPipeline {
 	/** @type {Uint8ClampedArray|null} */
 	#scratchBuffer = null;
@@ -26,8 +29,8 @@ class EffectsPipeline {
 			effectParams,
 			effectRanges,
 			bpm: 0,
-			bpmMin: 1,
-			bpmDefault: 120,
+			bpmMin: DEFAULT_BPM_MIN,
+			bpmDefault: DEFAULT_BPM,
 			scratchBuffer: null
 		};
 	}
@@ -44,12 +47,12 @@ class EffectsPipeline {
 			return;
 		}
 
-		const { width, height, bpm, bpmMin = 1, bpmDefault = 120 } = renderContext;
+		const { width, height, bpm, bpmMin = DEFAULT_BPM_MIN, bpmDefault = DEFAULT_BPM } = renderContext;
 		const imageData = ctx.getImageData(0, 0, width, height);
-		const dataLength = imageData.data.length;
+		const pixelsLength = imageData.data.length;
 
-		if (!this.#scratchBuffer || this.#scratchBuffer.length < dataLength) {
-			this.#scratchBuffer = new Uint8ClampedArray(dataLength);
+		if (!this.#scratchBuffer || this.#scratchBuffer.length < pixelsLength) {
+			this.#scratchBuffer = new Uint8ClampedArray(pixelsLength);
 		}
 
 		const effectContext = this.#effectContext;

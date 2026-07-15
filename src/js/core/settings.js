@@ -17,7 +17,7 @@ const settings = {
 			min: 0,
 			max: 127
 		},
-		messageMinLength: 3,
+		channelMessageMinLength: 3,
 		velocity: {
 			min: 0,
 			max: 127

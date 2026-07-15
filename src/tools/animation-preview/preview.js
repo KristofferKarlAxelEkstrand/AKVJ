@@ -8,12 +8,12 @@
 const ANIMATIONS_PATH = (window && window.AKVJ_ANIMATIONS_PATH) || '/animations/animations.json';
 
 let animations = {};
-let currentMeta = null;
+let currentAnimationMeta = null;
 let spriteImage = null;
 let currentFrame = 0;
 let isPlaying = true;
 let lastFrameTime = 0;
-let animationId = null;
+let animationFrameId = null;
 
 // DOM elements
 const channelSelect = document.getElementById('channel');
@@ -92,29 +92,29 @@ async function loadAnimation() {
 		return;
 	}
 
-	currentMeta = animations[channel]?.[note]?.[velocity];
-	if (!currentMeta) {
+	currentAnimationMeta = animations[channel]?.[note]?.[velocity];
+	if (!currentAnimationMeta) {
 		metaDisplay.textContent = 'Animation not found';
 		return;
 	}
 
-	metaDisplay.textContent = JSON.stringify(currentMeta, null, 2);
+	metaDisplay.textContent = JSON.stringify(currentAnimationMeta, null, 2);
 
 	// Validate png field exists
-	if (!currentMeta.png) {
-		metaDisplay.textContent += `\n\nError: currentMeta.png is missing for ${channel}/${note}/${velocity}`;
+	if (!currentAnimationMeta.png) {
+		metaDisplay.textContent += `\n\nError: currentAnimationMeta.png is missing for ${channel}/${note}/${velocity}`;
 		return;
 	}
 
 	// Load sprite image
 	const basePath = (window && window.AKVJ_ANIMATIONS_BASE) || '/animations';
-	const pngPath = `${basePath}/${channel}/${note}/${velocity}/${currentMeta.png}`;
+	const pngPath = `${basePath}/${channel}/${note}/${velocity}/${currentAnimationMeta.png}`;
 	spriteImage = new Image();
 	spriteImage.onload = () => {
 		setupCanvas();
 		currentFrame = 0;
 		lastFrameTime = performance.now();
-		if (!animationId) {
+		if (!animationFrameId) {
 			animate();
 		}
 	};
@@ -130,12 +130,12 @@ async function loadAnimation() {
  * Set up canvas based on sprite dimensions.
  */
 function setupCanvas() {
-	if (!spriteImage || !currentMeta) {
+	if (!spriteImage || !currentAnimationMeta) {
 		return;
 	}
 
-	const frameWidth = spriteImage.width / currentMeta.framesPerRow;
-	const rows = Math.ceil(currentMeta.numberOfFrames / currentMeta.framesPerRow);
+	const frameWidth = spriteImage.width / currentAnimationMeta.framesPerRow;
+	const rows = Math.ceil(currentAnimationMeta.numberOfFrames / currentAnimationMeta.framesPerRow);
 	const frameHeight = spriteImage.height / rows;
 
 	// Scale up for visibility (pixel art is small)
@@ -152,13 +152,13 @@ function setupCanvas() {
  * Get frame rate for current frame.
  */
 function getFrameRate() {
-	if (!currentMeta?.frameRatesForFrames) {
+	if (!currentAnimationMeta?.frameRatesForFrames) {
 		return 12;
 	}
 
 	// Find the applicable frame rate (last defined rate <= current frame)
 	let rate = 12;
-	const entries = Object.entries(currentMeta.frameRatesForFrames)
+	const entries = Object.entries(currentAnimationMeta.frameRatesForFrames)
 		.map(([k, v]) => [Number(k), v])
 		.sort((a, b) => a[0] - b[0]);
 
@@ -174,21 +174,21 @@ function getFrameRate() {
  * Draw current frame.
  */
 function drawFrame() {
-	if (!spriteImage || !currentMeta) {
+	if (!spriteImage || !currentAnimationMeta) {
 		return;
 	}
 
-	const frameWidth = spriteImage.width / currentMeta.framesPerRow;
-	const rows = Math.ceil(currentMeta.numberOfFrames / currentMeta.framesPerRow);
+	const frameWidth = spriteImage.width / currentAnimationMeta.framesPerRow;
+	const rows = Math.ceil(currentAnimationMeta.numberOfFrames / currentAnimationMeta.framesPerRow);
 	const frameHeight = spriteImage.height / rows;
 
-	const col = currentFrame % currentMeta.framesPerRow;
-	const row = Math.floor(currentFrame / currentMeta.framesPerRow);
+	const col = currentFrame % currentAnimationMeta.framesPerRow;
+	const row = Math.floor(currentFrame / currentAnimationMeta.framesPerRow);
 
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.drawImage(spriteImage, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, canvas.width, canvas.height);
 
-	frameInfo.textContent = `Frame: ${currentFrame + 1} / ${currentMeta.numberOfFrames}`;
+	frameInfo.textContent = `Frame: ${currentFrame + 1} / ${currentAnimationMeta.numberOfFrames}`;
 }
 
 /**
@@ -200,21 +200,21 @@ function animate() {
 	const frameDuration = 1000 / frameRate;
 
 	if (isPlaying && now - lastFrameTime >= frameDuration) {
-		currentFrame = (currentFrame + 1) % (currentMeta?.numberOfFrames || 1);
+		currentFrame = (currentFrame + 1) % (currentAnimationMeta?.numberOfFrames || 1);
 		lastFrameTime = now;
 	}
 
 	drawFrame();
-	animationId = requestAnimationFrame(animate);
+	animationFrameId = requestAnimationFrame(animate);
 }
 
 /**
  * Stop the animation frame loop.
  */
 function stopAnimation() {
-	if (animationId) {
-		cancelAnimationFrame(animationId);
-		animationId = null;
+	if (animationFrameId) {
+		cancelAnimationFrame(animationFrameId);
+		animationFrameId = null;
 	}
 }
 
@@ -223,7 +223,7 @@ document.addEventListener('visibilitychange', () => {
 	if (document.hidden) {
 		stopAnimation();
 	} else {
-		if (currentMeta && !animationId) {
+		if (currentAnimationMeta && !animationFrameId) {
 			lastFrameTime = performance.now();
 			animate();
 		}
@@ -249,14 +249,14 @@ playPauseBtn.addEventListener('click', () => {
 prevFrameBtn.addEventListener('click', () => {
 	isPlaying = false;
 	playPauseBtn.textContent = 'Play';
-	currentFrame = (currentFrame - 1 + (currentMeta?.numberOfFrames || 1)) % (currentMeta?.numberOfFrames || 1);
+	currentFrame = (currentFrame - 1 + (currentAnimationMeta?.numberOfFrames || 1)) % (currentAnimationMeta?.numberOfFrames || 1);
 	drawFrame();
 });
 
 nextFrameBtn.addEventListener('click', () => {
 	isPlaying = false;
 	playPauseBtn.textContent = 'Play';
-	currentFrame = (currentFrame + 1) % (currentMeta?.numberOfFrames || 1);
+	currentFrame = (currentFrame + 1) % (currentAnimationMeta?.numberOfFrames || 1);
 	drawFrame();
 });
 

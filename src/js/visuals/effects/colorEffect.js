@@ -1,3 +1,5 @@
+import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
+
 /**
  * Color effect: invert or posterize RGB channels based on note and intensity.
  */
@@ -9,24 +11,24 @@ export default {
 	 * @param {{effectRanges: Object, effectParams: Object}} effectContext
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
-		const data = imageData.data;
+		const pixels = imageData.data;
 		const noteInRange = effect.note - effectContext.effectRanges.color.min;
 		const { effectVariantThreshold, posterizeBaseLevels, posterizeIntensityScale } = effectContext.effectParams;
-		const intensity = effect.velocity / 127;
+		const intensity = effect.velocity / MAX_MIDI_VELOCITY;
 
 		if (noteInRange < effectVariantThreshold) {
-			for (let i = 0; i < data.length; i += 4) {
-				data[i] = 255 - data[i];
-				data[i + 1] = 255 - data[i + 1];
-				data[i + 2] = 255 - data[i + 2];
+			for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
+				pixels[i] = MAX_COLOR_VALUE - pixels[i];
+				pixels[i + 1] = MAX_COLOR_VALUE - pixels[i + 1];
+				pixels[i + 2] = MAX_COLOR_VALUE - pixels[i + 2];
 			}
 		} else {
 			const levels = Math.max(2, Math.floor(posterizeBaseLevels - intensity * posterizeIntensityScale));
-			const step = 255 / levels;
-			for (let i = 0; i < data.length; i += 4) {
-				data[i] = Math.floor(data[i] / step) * step;
-				data[i + 1] = Math.floor(data[i + 1] / step) * step;
-				data[i + 2] = Math.floor(data[i + 2] / step) * step;
+			const step = MAX_COLOR_VALUE / levels;
+			for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
+				pixels[i] = Math.floor(pixels[i] / step) * step;
+				pixels[i + 1] = Math.floor(pixels[i + 1] / step) * step;
+				pixels[i + 2] = Math.floor(pixels[i + 2] / step) * step;
 			}
 		}
 		return true;
