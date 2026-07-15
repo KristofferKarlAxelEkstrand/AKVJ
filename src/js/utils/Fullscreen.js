@@ -32,7 +32,10 @@ class Fullscreen {
 	 * Handle keydown events for fullscreen toggle
 	 */
 	#handleKeydown(e) {
-		if (e.key === 'Enter' || e.code === 'Space') {
+		if (e.repeat) {
+			return;
+		}
+		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			this.#toggle();
 		}

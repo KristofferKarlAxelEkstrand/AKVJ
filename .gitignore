@@ -44,4 +44,27 @@ tmp-*.js
 # System files
 Thumbs.db
 
+# Visual test diffs (generated on failure)
+test/visual/__diffs__/
+
+# Vitest browser-mode attachments
+.vitest-attachments/
+
+# Agent skills (machine-local private skills)
+.agents/skills-local/*
+!.agents/skills-local/.gitkeep
+
+# Claude Code runtime artifacts (local to each machine — .claude/skills/ symlinks ARE committed)
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json
+.claude/routines/.state/
+.claude/worktrees/
+.claude/checkpoints/
+.claude/mailbox/
+.claude/agent-registry.json
+.claude/agent-memory-local
+.claude/first-run
+.claude/assistant-daemon-state.json
+.claude/settings.local.json
+
 

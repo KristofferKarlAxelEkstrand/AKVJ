@@ -9,8 +9,8 @@
  *   node scripts/animations/new.js <channel> <note> <velocity>
  *
  * Example:
- *   node scripts/animations/new.js 0 5 0
- *   Creates: animations/0/5/0/meta.json
+ *   node scripts/animations/new.js 1 5 0
+ *   Creates: animations/1/5/0/meta.json
  */
 
 import fs from 'fs/promises';
@@ -68,8 +68,8 @@ if (!channel || !note || !velocity) {
 	console.log('Usage: node scripts/animations/new.js <channel> <note> <velocity>');
 	console.log('');
 	console.log('Example:');
-	console.log('  node scripts/animations/new.js 0 5 0');
-	console.log('  Creates: animations/0/5/0/meta.json with template');
+	console.log('  node scripts/animations/new.js 1 5 0');
+	console.log('  Creates: animations/1/5/0/meta.json with template');
 	if (isCli) {
 		process.exit(1);
 	}

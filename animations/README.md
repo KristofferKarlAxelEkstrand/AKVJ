@@ -15,7 +15,7 @@ animations/
         meta.json       # Animation metadata
 ```
 
-**Example:** `animations/0/5/0/` = DAW Channel 1, Note 5, Velocity layer 0
+**Example:** `animations/0/5/0/` = DAW Channel 1, Note 5, Velocity variant 0
 
 ## Creating a New Animation
 
@@ -24,7 +24,7 @@ animations/
 ```bash
 npm run animations:new 0 5 0
 # Creates: animations/0/5/0/meta.json with template
-# This is DAW Channel 1, Note 5, Velocity layer 0
+# This is DAW Channel 1, Note 5, Velocity variant 0
 ```
 
 Then add your `sprite.png` to the same folder and update `meta.json`.
@@ -190,11 +190,11 @@ Features:
 
 ## MIDI Mapping
 
-| MIDI Parameter   | Animation Parameter                   |
-| ---------------- | ------------------------------------- |
-| Channel (1-16)   | Layer selection (matches folder name) |
-| Note (0-127)     | Animation selection                   |
-| Velocity (1-127) | Animation variant                     |
+| MIDI Parameter   | Animation Parameter                         |
+| ---------------- | ------------------------------------------- |
+| Channel (1-16)   | Layer group selection (matches folder name) |
+| Note (0-127)     | Animation selection                         |
+| Velocity (1-127) | Animation variant                           |
 
 **Note:** Velocity 0 is interpreted as Note Off (stops the animation).
 

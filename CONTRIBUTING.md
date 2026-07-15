@@ -128,17 +128,20 @@ Push your branch and open a PR against `main`.
 
 ### Key Files
 
-| File                                | Purpose                              |
-| ----------------------------------- | ------------------------------------ |
-| `src/js/midi-input/midi.js`         | Web MIDI API handling                |
-| `src/js/visuals/Renderer.js`        | 60fps canvas loop with compositing   |
-| `src/js/visuals/LayerManager.js`    | Coordinates all layer groups         |
-| `src/js/visuals/LayerGroup.js`      | Animation slots per layer            |
-| `src/js/visuals/AnimationLoader.js` | Sprite loading with concurrency      |
-| `src/js/visuals/AnimationLayer.js`  | Animation playback (FPS or BPM sync) |
-| `src/js/visuals/MaskManager.js`     | A/B layer crossfade masks            |
-| `src/js/visuals/EffectsManager.js`  | Visual effects                       |
-| `src/js/core/AppState.js`           | Event-based state management         |
+| File                                     | Purpose                                         |
+| ---------------------------------------- | ----------------------------------------------- |
+| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)              |
+| `src/js/midi-input/midi.js`              | Web MIDI API handling                           |
+| `src/js/visuals/Renderer.js`             | 60fps canvas loop with compositing              |
+| `src/js/visuals/LayerManager.js`         | Coordinates all layer groups                    |
+| `src/js/visuals/LayerGroup.js`           | Clip slots per layer group                      |
+| `src/js/visuals/AnimationLoader.js`      | Sprite loading with concurrency                 |
+| `src/js/visuals/AnimationClip.js`        | Animation playback (FPS or BPM sync)            |
+| `src/js/visuals/MaskManager.js`          | Layer Group A and Layer Group B crossfade masks |
+| `src/js/visuals/EffectsManager.js`       | Visual effects                                  |
+| `src/js/core/AppState.js`                | Event-based state management                    |
+| `src/js/core/settings.js`                | Centralized configuration                       |
+| `src/js/utils/velocitySelection.js`      | Velocity-based animation selection              |
 
 ## Adding Animations
 
@@ -147,12 +150,12 @@ Animations go in `animations/{channel}/{note}/{velocity}/` (source folder, not `
 > **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code.
 
 ```
-animations/0/60/0/
+animations/1/60/0/
   ├── meta.json       # Animation metadata
   └── sprite.png      # Sprite sheet with all frames
 ```
 
-This example is for DAW Channel 1, Note 60, Velocity layer 0.
+This example is for DAW Channel 1, Note 60, Velocity variant 0. Source folders use 1-16 (matching DAWs); the build pipeline converts to 0-15 for code.
 
 After adding animations:
 
@@ -160,17 +163,16 @@ After adding animations:
 npm run animations
 ```
 
-Notes on velocity layer behavior:
+Notes on velocity variant behavior:
 
-- When creating velocity variants for a note, remember the runtime mapping selects the highest configured velocity layer that is <= incoming MIDI velocity. If an input is lower than the lowest configured velocity, the note will not activate any layer (the event is ignored). If you want the system to always select the closest or lowest velocity layer, update `LayerManager.#findVelocityLayer`.
+- When creating velocity variants for a note, remember the runtime mapping selects the highest configured velocity variant that is <= incoming MIDI velocity. If an input is lower than the lowest configured velocity variant, the note will not activate any variant (the event is ignored). If you want the system to always select the closest or lowest velocity threshold, update `findVelocityThreshold` in `src/js/utils/velocitySelection.js`.
 
 ## Questions?
 
 Open an issue or check existing documentation in:
 
 - `README.md` - Project overview
-- `.github/copilot-instructions.md` - Detailed development guide
-- `AGENTS.md` - AI agent instructions
+- `AGENTS.md` - AI agent instructions (single source of truth for all AI tools)
 
 ## License
 

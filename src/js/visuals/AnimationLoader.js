@@ -2,14 +2,14 @@
  * AnimationLoader - Handles loading and parsing of PNG sprites and JSON metadata
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
-import AnimationLayer from './AnimationLayer.js';
+import AnimationClip from './AnimationClip.js';
 import settings from '../core/settings.js';
 
 class AnimationLoader {
-	#canvas2dContext;
+	#displayContext;
 
-	constructor(canvas2dContext) {
-		this.#canvas2dContext = canvas2dContext;
+	constructor(displayContext) {
+		this.#displayContext = displayContext;
 	}
 
 	/**
@@ -32,7 +32,7 @@ class AnimationLoader {
 	}
 
 	/**
-	 * Load and parse animation data from JSON URL
+	 * Load and parse clip data from JSON URL
 	 */
 	async #loadAnimationsJson(jsonUrl) {
 		// Add cache-busting query param during development to ensure fresh data
@@ -70,12 +70,12 @@ class AnimationLoader {
 	}
 
 	/**
-	 * Create an AnimationLayer from animation data and loaded image
+	 * Create an AnimationClip from clip metadata and loaded image
 	 */
-	#createAnimationLayer(image, animationData) {
+	#createAnimationClip(image, animationData) {
 		try {
-			return new AnimationLayer({
-				canvas2dContext: this.#canvas2dContext,
+			return new AnimationClip({
+				displayContext: this.#displayContext,
 				image,
 				numberOfFrames: animationData.numberOfFrames,
 				framesPerRow: animationData.framesPerRow,
@@ -86,18 +86,18 @@ class AnimationLoader {
 				bitDepth: animationData.bitDepth ?? null
 			});
 		} catch (err) {
-			console.error(`AnimationLoader: invalid animation data for image ${animationData.png}:`, err);
+			console.error(`AnimationLoader: invalid clip metadata for image ${animationData.png}:`, err);
 			return null;
 		}
 	}
 
 	/**
-	 * Load a single animation and return its placement info
+	 * Load a single clip and return its placement info
 	 */
-	async #loadAnimation(channel, note, velocityLayer, animationData) {
+	async #loadAnimation(channel, note, velocityThreshold, animationData) {
 		// Validate that channel/note/velocity keys are numeric to avoid path traversal
-		if (!/^\d+$/.test(String(channel)) || !/^\d+$/.test(String(note)) || !/^\d+$/.test(String(velocityLayer))) {
-			console.warn('AnimationLoader: ignoring animation with non-numeric path keys', { channel, note, velocityLayer });
+		if (!/^\d+$/.test(String(channel)) || !/^\d+$/.test(String(note)) || !/^\d+$/.test(String(velocityThreshold))) {
+			console.warn('AnimationLoader: ignoring animation with non-numeric path keys', { channel, note, velocityThreshold });
 			return null;
 		}
 
@@ -110,18 +110,18 @@ class AnimationLoader {
 		}
 		// Normalize base path to avoid double slashes in the constructed URL
 		const normalizedBase = base.replace(/\/$/, '');
-		const imagePath = `${normalizedBase}/animations/${channel}/${note}/${velocityLayer}/${sanitizedFile}`;
+		const imagePath = `${normalizedBase}/animations/${channel}/${note}/${velocityThreshold}/${sanitizedFile}`;
 
 		try {
 			const image = await this.#loadImage(imagePath);
 			return {
 				channel,
 				note,
-				velocityLayer,
-				layer: this.#createAnimationLayer(image, animationData)
+				velocityThreshold,
+				clip: this.#createAnimationClip(image, animationData)
 			};
 		} catch (error) {
-			console.error(`Error loading animation ${channel}/${note}/${velocityLayer}:`, error);
+			console.error(`Error loading animation ${channel}/${note}/${velocityThreshold}:`, error);
 			return null;
 		}
 	}
@@ -137,8 +137,8 @@ class AnimationLoader {
 		const loadFuncs = [];
 		for (const [channel, notes] of Object.entries(jsonData)) {
 			for (const [note, velocities] of Object.entries(notes)) {
-				for (const [velocityLayer, animationData] of Object.entries(velocities)) {
-					loadFuncs.push(() => this.#loadAnimation(channel, note, velocityLayer, animationData));
+				for (const [velocityThreshold, animationData] of Object.entries(velocities)) {
+					loadFuncs.push(() => this.#loadAnimation(channel, note, velocityThreshold, animationData));
 				}
 			}
 		}
@@ -162,10 +162,10 @@ class AnimationLoader {
 		// Build the animations object from successful loads
 		for (const result of results) {
 			if (result) {
-				const { channel, note, velocityLayer, layer } = result;
+				const { channel, note, velocityThreshold, clip } = result;
 				animations[channel] ??= {};
 				animations[channel][note] ??= {};
-				animations[channel][note][velocityLayer] = layer;
+				animations[channel][note][velocityThreshold] = clip;
 			}
 		}
 
@@ -174,11 +174,11 @@ class AnimationLoader {
 
 	/**
 	 * Clean up loaded image resources from animations object.
-	 * Iterates through all layers and calls dispose() to clear image references.
+	 * Iterates through all clips and calls dispose() to clear image references.
 	 *
-	 * @param {Object} animations - Nested object containing loaded animation layers.
-	 * Expected structure: { [channel]: { [note]: { [velocityLayer]: AnimationLayer } } }
-	 * Each AnimationLayer must have a dispose() method.
+	 * @param {Object} animations - Nested object containing loaded clips.
+	 * Expected structure: { [channel]: { [note]: { [velocityThreshold]: AnimationClip } } }
+	 * Each AnimationClip must have a dispose() method.
 	 */
 	cleanup(animations) {
 		if (!animations) {
@@ -187,13 +187,13 @@ class AnimationLoader {
 
 		for (const channel of Object.values(animations)) {
 			for (const note of Object.values(channel)) {
-				for (const layer of Object.values(note)) {
+				for (const clip of Object.values(note)) {
 					try {
-						if (layer && typeof layer.dispose === 'function') {
-							layer.dispose();
+						if (clip && typeof clip.dispose === 'function') {
+							clip.dispose();
 						}
 					} catch (error) {
-						console.error('Failed to dispose animation layer:', error);
+						console.error('Failed to dispose clip:', error);
 					}
 				}
 			}

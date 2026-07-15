@@ -1,14 +1,14 @@
 /**
- * LayerManager - Manages state and updates for all visual layers
+ * LayerManager - Manages state and updates for all visual layer groups
  * Coordinates LayerGroups (A, B, C), MaskManager, and EffectsManager
  *
  * Architecture:
- * - Layer A (channels 0-3): Primary animation deck
- * - Mixer (channel 4): B&W bitmask for A/B crossfading
- * - Layer B (channels 5-8): Secondary animation deck
- * - Effects A/B (channel 9): Effects applied to mixed A/B output
- * - Layer C (channels 10-11): Overlay layer (logos, persistent graphics)
- * - Global Effects (channel 12): Effects applied to entire output
+ * - Layer Group A (channels 0-3): Primary clip deck
+ * - Mixer (channel 4): B&W bitmask for Layer Group A and Layer Group B crossfading
+ * - Layer Group B (channels 5-8): Secondary clip deck
+ * - Mixed output effects (channel 9): Effects applied to mixed Layer Group A and Layer Group B output
+ * - Layer Group C (channels 10-11): Overlay layer (logos, persistent graphics)
+ * - Global effects (channel 12): Effects applied to entire output
  * - Reserved (channels 13-15): Ignored
  */
 import settings from '../core/settings.js';
@@ -17,17 +17,17 @@ import MaskManager from './MaskManager.js';
 import EffectsManager from './EffectsManager.js';
 
 /**
- * @typedef {import('./AnimationLayer.js').default} AnimationLayer
+ * @typedef {import('./AnimationClip.js').default} AnimationClip
  */
 class LayerManager {
 	/** @type {LayerGroup} */
-	#layerA;
+	#layerGroupA;
 
 	/** @type {LayerGroup} */
-	#layerB;
+	#layerGroupB;
 
 	/** @type {LayerGroup} */
-	#layerC;
+	#layerGroupC;
 
 	/** @type {MaskManager} */
 	#maskManager;
@@ -38,13 +38,16 @@ class LayerManager {
 	/** @type {Set<number>} */
 	#reservedChannels;
 
+	/** @type {Array<{name: string, noteOn: Function, noteOff: Function}>} */
+	#handlers;
+
 	constructor() {
 		const { channelMapping } = settings;
 
 		// Initialize layer groups
-		this.#layerA = new LayerGroup(channelMapping.layerA);
-		this.#layerB = new LayerGroup(channelMapping.layerB);
-		this.#layerC = new LayerGroup(channelMapping.layerC);
+		this.#layerGroupA = new LayerGroup(channelMapping.layerGroupA);
+		this.#layerGroupB = new LayerGroup(channelMapping.layerGroupB);
+		this.#layerGroupC = new LayerGroup(channelMapping.layerGroupC);
 
 		// Initialize managers
 		this.#maskManager = new MaskManager();
@@ -52,25 +55,60 @@ class LayerManager {
 
 		// Track reserved channels
 		this.#reservedChannels = new Set(channelMapping.reserved);
+
+		// Handlers are checked in order for every MIDI note on/off event.
+		// This makes the routing logic explicit, easy to reorder, and simple to extend.
+		this.#handlers = this.#buildHandlers();
+	}
+
+	#buildHandlers() {
+		return [
+			{
+				name: 'layerGroupA',
+				noteOn: (...args) => this.#layerGroupA.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupA.noteOff(...args)
+			},
+			{
+				name: 'mask',
+				noteOn: (...args) => this.#maskManager.noteOn(...args),
+				// Masks latch: they stay active until replaced, so note-off is ignored
+				noteOff: () => false
+			},
+			{
+				name: 'layerGroupB',
+				noteOn: (...args) => this.#layerGroupB.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupB.noteOff(...args)
+			},
+			{
+				name: 'effects',
+				noteOn: (...args) => this.#effectsManager.noteOn(...args),
+				noteOff: (...args) => this.#effectsManager.noteOff(...args)
+			},
+			{
+				name: 'layerGroupC',
+				noteOn: (...args) => this.#layerGroupC.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupC.noteOff(...args)
+			}
+		];
 	}
 
 	/**
 	 * Set the loaded animations reference and distribute to groups
-	 * @param {Object<string, Object<string, Object<string, AnimationLayer>>>} animations
-	 *   Nested object: animations[channel][note][velocityLayer] = AnimationLayer
+	 * @param {Object<string, Object<string, Object<string, AnimationClip>>>} animations
+	 *   Nested object: animations[channel][note][velocityThreshold] = AnimationClip
 	 */
 	setAnimations(animations) {
 		// Distribute animations to layer groups
-		this.#layerA.setAnimations(animations);
-		this.#layerB.setAnimations(animations);
-		this.#layerC.setAnimations(animations);
+		this.#layerGroupA.setAnimations(animations);
+		this.#layerGroupB.setAnimations(animations);
+		this.#layerGroupC.setAnimations(animations);
 
-		// Set mask animations
+		// Set mask clips
 		this.#maskManager.setAnimations(animations);
 	}
 
 	/**
-	 * Handle MIDI note on event - activate animation layer
+	 * Handle MIDI note on event - activate clip
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
@@ -82,29 +120,15 @@ class LayerManager {
 		}
 
 		// Try each handler in order - first match wins
-		if (this.#layerA.noteOn(channel, note, velocity)) {
-			return;
-		}
-
-		if (this.#maskManager.noteOn(channel, note, velocity)) {
-			return;
-		}
-
-		if (this.#layerB.noteOn(channel, note, velocity)) {
-			return;
-		}
-
-		if (this.#effectsManager.noteOn(channel, note, velocity)) {
-			return;
-		}
-
-		if (this.#layerC.noteOn(channel, note, velocity)) {
-			return;
+		for (const handler of this.#handlers) {
+			if (handler.noteOn(channel, note, velocity)) {
+				return;
+			}
 		}
 	}
 
 	/**
-	 * Handle MIDI note off event - deactivate animation layer
+	 * Handle MIDI note off event - deactivate clip
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 */
@@ -115,23 +139,10 @@ class LayerManager {
 		}
 
 		// Try each handler in order
-		if (this.#layerA.noteOff(channel, note)) {
-			return;
-		}
-
-		// Mask manager ignores note-off (latching behavior)
-		this.#maskManager.noteOff(channel, note);
-
-		if (this.#layerB.noteOff(channel, note)) {
-			return;
-		}
-
-		if (this.#effectsManager.noteOff(channel, note)) {
-			return;
-		}
-
-		if (this.#layerC.noteOff(channel, note)) {
-			return;
+		for (const handler of this.#handlers) {
+			if (handler.noteOff(channel, note)) {
+				return;
+			}
 		}
 	}
 
@@ -139,24 +150,24 @@ class LayerManager {
 	 * Get Layer Group A
 	 * @returns {LayerGroup}
 	 */
-	getLayerA() {
-		return this.#layerA;
+	getLayerGroupA() {
+		return this.#layerGroupA;
 	}
 
 	/**
 	 * Get Layer Group B
 	 * @returns {LayerGroup}
 	 */
-	getLayerB() {
-		return this.#layerB;
+	getLayerGroupB() {
+		return this.#layerGroupB;
 	}
 
 	/**
 	 * Get Layer Group C
 	 * @returns {LayerGroup}
 	 */
-	getLayerC() {
-		return this.#layerC;
+	getLayerGroupC() {
+		return this.#layerGroupC;
 	}
 
 	/**
@@ -176,24 +187,24 @@ class LayerManager {
 	}
 
 	/**
-	 * Clear all active layers and stop their animations
+	 * Clear all active clips and stop their playback
 	 */
-	clearLayers() {
-		this.#layerA.clearLayers();
-		this.#layerB.clearLayers();
-		this.#layerC.clearLayers();
+	clearClips() {
+		this.#layerGroupA.clearClips();
+		this.#layerGroupB.clearClips();
+		this.#layerGroupC.clearClips();
 		this.#maskManager.clear();
 		this.#effectsManager.clear();
 	}
 
 	/**
-	 * Destroy active layer manager and release references
+	 * Destroy LayerManager and release references
 	 */
 	destroy() {
-		this.clearLayers();
-		this.#layerA.destroy();
-		this.#layerB.destroy();
-		this.#layerC.destroy();
+		this.clearClips();
+		this.#layerGroupA.destroy();
+		this.#layerGroupB.destroy();
+		this.#layerGroupC.destroy();
 		this.#maskManager.destroy();
 		this.#effectsManager.destroy();
 	}

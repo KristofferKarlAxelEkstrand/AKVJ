@@ -7,6 +7,7 @@
 	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
+		"@vitest/browser-playwright": "^4.1.10",
 		"chokidar": "^5.0.0",
 		"concurrently": "^10.0.3",
 		"eslint": "^10.7.0",
@@ -74,10 +75,15 @@
 		"format:prettier": "prettier --write .",
 		"format:stylelint": "stylelint \"**/*.css\" --fix",
 		"lint": "eslint .",
+		"lint:css": "stylelint \"**/*.css\"",
 		"lint:fix": "eslint . --fix",
+		"format:check": "prettier --check .",
 		"prepare": "husky",
 		"preview": "vite preview",
-		"test": "vitest run"
+		"test": "vitest run",
+		"test:ci": "vitest run",
+		"test:visual": "vitest run --config vitest.visual.config.js",
+		"test:visual:update": "vitest run --config vitest.visual.config.js --update"
 	},
 	"type": "module",
 	"version": "0.0.0"

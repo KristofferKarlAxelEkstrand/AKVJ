@@ -1,0 +1,12 @@
+# Ignore dependencies
+node_modules
+
+# Ignore build output
+dist
+
+# Ignore generated animation pipeline output
+.cache
+src/public/animations
+
+# Ignore animation preview tool (standalone, not part of main app)
+src/tools

@@ -4,3 +4,14 @@
 
 # Ignore dependencies
 /node_modules
+
+# Ignore generated animation pipeline output
+/.cache
+/src/public/animations
+
+# Ignore lock files (auto-generated, not worth formatting)
+/package-lock.json
+
+# Ignore agent tooling and test attachments
+/.agents
+/.vitest-attachments

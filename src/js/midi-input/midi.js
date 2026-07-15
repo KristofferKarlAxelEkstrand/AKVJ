@@ -20,7 +20,9 @@ class MIDI {
 		if (this.#isSupported()) {
 			this.#requestAccess();
 		} else {
-			console.log('WebMIDI is not supported in this browser.');
+			if (import.meta.env.DEV) {
+				console.log('WebMIDI is not supported in this browser.');
+			}
 		}
 	}
 
@@ -37,7 +39,9 @@ class MIDI {
 		}
 	}
 	#onMIDISuccess(midiAccess) {
-		console.log('WebMIDI supported');
+		if (import.meta.env.DEV) {
+			console.log('WebMIDI supported');
+		}
 		this.#setupMIDIInputs(midiAccess);
 		this.#setupStateChangeListener(midiAccess);
 		this.#updateConnectionState();
@@ -108,7 +112,9 @@ class MIDI {
 			console.warn('Failed to attach midimessage handler for input:', input?.id, error);
 		}
 		this.#connectedInputs.set(input.id, input);
-		console.log(`MIDI connected: ${input.name}`);
+		if (import.meta.env.DEV) {
+			console.log(`MIDI connected: ${input.name}`);
+		}
 	}
 
 	/**
@@ -129,7 +135,9 @@ class MIDI {
 			console.warn('Failed to clear midimessage handler for input:', input?.id, error);
 		}
 		this.#connectedInputs.delete(input.id);
-		console.log(`MIDI disconnected: ${input.name}`);
+		if (import.meta.env.DEV) {
+			console.log(`MIDI disconnected: ${input.name}`);
+		}
 	}
 
 	/**
@@ -162,13 +170,13 @@ class MIDI {
 			return;
 		}
 
-		const status = message.data[0];
-		const { commands, systemRealTime, messageMinLength } = settings.midi;
+		const statusByte = message.data[0];
+		const { commands, systemRealTime, messageMinLength: minimumMessageLength } = settings.midi;
 
 		// Handle System Real-Time messages (single-byte, no channel)
 		// These are high-priority timing messages and should be processed first
-		if (status >= 0xf8) {
-			switch (status) {
+		if (statusByte >= 0xf8) {
+			switch (statusByte) {
 				case systemRealTime.clock:
 					appState.dispatchMIDIClock(performance.now());
 					break;
@@ -189,28 +197,28 @@ class MIDI {
 		}
 
 		// Channel messages require at least 3 bytes (for Note and CC)
-		if (message.data.length < messageMinLength) {
+		if (message.data.length < minimumMessageLength) {
 			return;
 		}
 
-		const [, note, velocity] = message.data;
-		const command = status >> 4;
-		const channel = status & 0xf;
+		const [, dataByte1, dataByte2] = message.data;
+		const command = statusByte >> 4;
+		const channel = statusByte & 0xf;
 
 		switch (command) {
 			case commands.noteOn:
-				if (velocity > 0) {
-					appState.dispatchMIDINoteOn(channel, note, velocity);
+				if (dataByte2 > 0) {
+					appState.dispatchMIDINoteOn(channel, dataByte1, dataByte2);
 				} else {
-					appState.dispatchMIDINoteOff(channel, note);
+					appState.dispatchMIDINoteOff(channel, dataByte1);
 				}
 				break;
 			case commands.noteOff:
-				appState.dispatchMIDINoteOff(channel, note);
+				appState.dispatchMIDINoteOff(channel, dataByte1);
 				break;
 			case commands.controlChange:
-				// note = controller number, velocity = value
-				appState.dispatchMIDIControlChange(channel, note, velocity);
+				// dataByte1 = controller number, dataByte2 = value
+				appState.dispatchMIDIControlChange(channel, dataByte1, dataByte2);
 				break;
 			default:
 				break;
@@ -228,17 +236,9 @@ class MIDI {
 	 * Safe to call multiple times. Used for teardown in tests and HMR.
 	 */
 	destroy() {
-		// Disconnect all inputs
+		// Disconnect all inputs using the shared disconnect path
 		for (const input of this.#connectedInputs.values()) {
-			try {
-				if (typeof input.removeEventListener === 'function') {
-					input.removeEventListener('midimessage', this.#boundHandleMIDIMessage);
-				} else {
-					input.onmidimessage = null;
-				}
-			} catch (error) {
-				console.warn('Failed to clear midimessage on input:', input?.id, error);
-			}
+			this.#disconnectInput(input);
 		}
 		this.#connectedInputs.clear();
 

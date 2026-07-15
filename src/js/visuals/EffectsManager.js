@@ -2,8 +2,8 @@
  * EffectsManager - Manages visual effects for AKVJ
  *
  * Two effect channels:
- * - Channel 9 (effectsAB): Effects applied to mixed A/B output
- * - Channel 12 (effectsGlobal): Effects applied to entire output (after Layer C)
+ * - Channel 9 (mixedOutputEffects): Effects applied to mixed Layer Group A and Layer Group B output
+ * - Channel 12 (globalEffects): Effects applied to entire output (after Layer Group C)
  *
  * Key behaviors:
  * - Effects are NOT latched - Note Off immediately disables the effect
@@ -28,27 +28,46 @@ import settings from '../core/settings.js';
 
 class EffectsManager {
 	/** @type {number} */
-	#effectsABChannel = settings.channelMapping.effectsAB;
+	#mixedOutputEffectsChannel = settings.channelMapping.mixedOutputEffects;
 
 	/** @type {number} */
-	#effectsGlobalChannel = settings.channelMapping.effectsGlobal;
+	#globalEffectsChannel = settings.channelMapping.globalEffects;
 
 	/** @type {Object} */
 	#effectRanges = settings.effectRanges;
 
 	/**
-	 * Active effects for A/B layer (channel 9)
+	 * Active effects for mixed Layer Group A and Layer Group B output (channel 9)
 	 * Key: effect type, Value: {note, velocity}
 	 * @type {Map<EffectType, ActiveEffect>}
 	 */
-	#activeEffectsAB = new Map();
+	#activeMixedOutputEffects = new Map();
 
 	/**
-	 * Active effects for global layer (channel 12)
+	 * Active global effects (channel 12)
 	 * Key: effect type, Value: {note, velocity}
 	 * @type {Map<EffectType, ActiveEffect>}
 	 */
-	#activeEffectsGlobal = new Map();
+	#activeGlobalEffects = new Map();
+
+	/**
+	 * Precomputed map of MIDI note (0-127) to effect type.
+	 * Excludes reserved notes so callers can treat a missing type as "no effect".
+	 * @type {Map<number, EffectType>}
+	 */
+	#effectTypeByNote;
+
+	constructor() {
+		this.#effectTypeByNote = new Map();
+		for (const [type, range] of Object.entries(this.#effectRanges)) {
+			if (type === 'reserved') {
+				continue;
+			}
+			for (let note = range.min; note <= range.max; note++) {
+				this.#effectTypeByNote.set(note, /** @type {EffectType} */ (type));
+			}
+		}
+	}
 
 	/**
 	 * Check if this manager handles a specific channel
@@ -56,21 +75,24 @@ class EffectsManager {
 	 * @returns {boolean}
 	 */
 	handlesChannel(channel) {
-		return channel === this.#effectsABChannel || channel === this.#effectsGlobalChannel;
+		return channel === this.#mixedOutputEffectsChannel || channel === this.#globalEffectsChannel;
 	}
 
 	/**
-	 * Determine the effect type based on note number
+	 * Determine the effect type based on note number.
+	 * Reserved notes and out-of-range values return null.
 	 * @param {number} note - MIDI note (0-127)
-	 * @returns {EffectType|null} Effect type or null if reserved
+	 * @returns {EffectType|null} Effect type or null if no effect applies
 	 */
 	#getEffectType(note) {
-		for (const [type, range] of Object.entries(this.#effectRanges)) {
-			if (note >= range.min && note <= range.max) {
-				return /** @type {EffectType} */ (type);
-			}
+		if (typeof note !== 'number' || note < 0 || note > 127) {
+			return null;
 		}
-		return null;
+		return this.#effectTypeByNote.get(note) ?? null;
+	}
+
+	#getActiveEffectsForChannel(channel) {
+		return channel === this.#mixedOutputEffectsChannel ? this.#activeMixedOutputEffects : this.#activeGlobalEffects;
 	}
 
 	/**
@@ -91,11 +113,11 @@ class EffectsManager {
 		}
 
 		const effectType = this.#getEffectType(note);
-		if (!effectType || effectType === 'reserved') {
+		if (!effectType) {
 			return false;
 		}
 
-		const activeEffects = channel === this.#effectsABChannel ? this.#activeEffectsAB : this.#activeEffectsGlobal;
+		const activeEffects = this.#getActiveEffectsForChannel(channel);
 
 		// Activate the effect (replaces any existing effect of the same type)
 		activeEffects.set(effectType, {
@@ -119,11 +141,11 @@ class EffectsManager {
 		}
 
 		const effectType = this.#getEffectType(note);
-		if (effectType === null || effectType === 'reserved') {
+		if (!effectType) {
 			return false;
 		}
 
-		const activeEffects = channel === this.#effectsABChannel ? this.#activeEffectsAB : this.#activeEffectsGlobal;
+		const activeEffects = this.#getActiveEffectsForChannel(channel);
 
 		// Only deactivate if the current effect matches the note being released
 		const currentEffect = activeEffects.get(effectType);
@@ -136,43 +158,43 @@ class EffectsManager {
 	}
 
 	/**
-	 * Get all active A/B effects
+	 * Get all active mixed output effects
 	 * @returns {ActiveEffect[]} Array of active effects, sorted by note (ascending)
 	 */
-	getActiveEffectsAB() {
-		return [...this.#activeEffectsAB.values()].sort((a, b) => a.note - b.note);
+	getActiveMixedOutputEffects() {
+		return [...this.#activeMixedOutputEffects.values()].sort((a, b) => a.note - b.note);
 	}
 
 	/**
 	 * Get all active global effects
 	 * @returns {ActiveEffect[]} Array of active effects, sorted by note (ascending)
 	 */
-	getActiveEffectsGlobal() {
-		return [...this.#activeEffectsGlobal.values()].sort((a, b) => a.note - b.note);
+	getActiveGlobalEffects() {
+		return [...this.#activeGlobalEffects.values()].sort((a, b) => a.note - b.note);
 	}
 
 	/**
-	 * Check if any A/B effects are active
+	 * Check if any mixed output effects are active
 	 * @returns {boolean}
 	 */
-	hasEffectsAB() {
-		return this.#activeEffectsAB.size > 0;
+	hasMixedOutputEffects() {
+		return this.#activeMixedOutputEffects.size > 0;
 	}
 
 	/**
 	 * Check if any global effects are active
 	 * @returns {boolean}
 	 */
-	hasEffectsGlobal() {
-		return this.#activeEffectsGlobal.size > 0;
+	hasGlobalEffects() {
+		return this.#activeGlobalEffects.size > 0;
 	}
 
 	/**
 	 * Clear all active effects
 	 */
 	clear() {
-		this.#activeEffectsAB.clear();
-		this.#activeEffectsGlobal.clear();
+		this.#activeMixedOutputEffects.clear();
+		this.#activeGlobalEffects.clear();
 	}
 
 	/**

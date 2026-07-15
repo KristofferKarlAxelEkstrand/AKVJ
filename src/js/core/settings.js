@@ -52,27 +52,27 @@ const settings = {
 		controlChannel: 0 // MIDI channel (0-15)
 	},
 	/**
-	 * Channel assignments for the multi-layer architecture
+	 * Channel assignments for the multi-layer-group architecture
 	 * Maps MIDI channels (0-15) to layer groups and functions
 	 */
 	channelMapping: {
-		// Layer A - Primary animation deck (4 slots)
-		layerA: [0, 1, 2, 3],
-		// Mixer - B&W bitmask animations for A/B crossfading
+		// Layer Group A - Primary clip deck (4 slots)
+		layerGroupA: [0, 1, 2, 3],
+		// Mixer - B&W bitmask clips for Layer Group A and Layer Group B crossfading
 		mixer: 4,
-		// Layer B - Secondary animation deck (4 slots)
-		layerB: [5, 6, 7, 8],
-		// Effects A/B - Effects applied to mixed A/B output
-		effectsAB: 9,
-		// Layer C - Overlay layer (logos, persistent graphics)
-		layerC: [10, 11],
-		// Global Effects - Effects applied to entire output
-		effectsGlobal: 12,
-		// Reserved channels (ignored by layer system)
+		// Layer Group B - Secondary clip deck (4 slots)
+		layerGroupB: [5, 6, 7, 8],
+		// Mixed output effects - applied to mixed Layer Group A and Layer Group B output
+		mixedOutputEffects: 9,
+		// Layer Group C - Overlay layer (logos, persistent graphics)
+		layerGroupC: [10, 11],
+		// Global effects - Effects applied to entire output
+		globalEffects: 12,
+		// Reserved channels (ignored by layer group system)
 		reserved: [13, 14, 15]
 	},
 	/**
-	 * Effect note ranges for channel 9 (Effects A/B) and channel 12 (Global Effects)
+	 * Effect note ranges for channel 9 (mixed output effects) and channel 12 (global effects)
 	 * Each range defines a category of effects
 	 */
 	effectRanges: {
@@ -98,18 +98,14 @@ const settings = {
 		glitchMaxDisplacement: 20,
 		// Probability that a pixel will be glitched (scaled by intensity)
 		glitchPixelProbability: 0.1,
-		// Base probability for strobe flash (scaled by intensity)
-		strobeFlashProbability: 0.3,
 		// Posterize: base levels and intensity scale
 		posterizeBaseLevels: 8,
 		posterizeIntensityScale: 6,
 		// Split effect: min and max number of splits
 		splitMin: 2,
-		splitMax: 8,
-		// Strobe effect: min/max intervals in ms
-		strobeMinInterval: 33, // ~30Hz max strobe rate
-		strobeMaxInterval: 200 // ~5Hz min strobe rate
+		splitMax: 8
 	},
+
 	performance: {
 		// Target frame rate for animations
 		targetFPS: 60,

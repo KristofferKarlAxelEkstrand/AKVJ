@@ -7,7 +7,8 @@ const FIXTURE_BASE = path.join(process.cwd(), 'test', 'fixtures', 'pipeline-fixt
 
 async function setupFixture() {
 	await fs.rm(FIXTURE_BASE, { recursive: true, force: true });
-	const dir = path.join(FIXTURE_BASE, '0', '0', '0');
+	// Channel folders use the 1-16 DAW convention enforced by lib/channel.js
+	const dir = path.join(FIXTURE_BASE, '1', '0', '0');
 	await fs.mkdir(dir, { recursive: true });
 	// 1x1 transparent PNG
 	const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8AABQMBFADsZg8AAAAASUVORK5CYII=';
@@ -28,12 +29,12 @@ describe('scripts/animations/index.js pipeline', () => {
 	});
 
 	test('validate-only returns without throwing', async () => {
-		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE, exitOnError: false })).resolves.toBeUndefined();
+		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE })).resolves.toBeUndefined();
 	});
 
 	test('validate-only fails on invalid animations', async () => {
 		// Corrupt the meta.json to make validation fail
-		await fs.writeFile(path.join(FIXTURE_BASE, '0', '0', '0', 'meta.json'), '{ invalid json');
-		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE, exitOnError: false })).rejects.toThrow();
+		await fs.writeFile(path.join(FIXTURE_BASE, '1', '0', '0', 'meta.json'), '{ invalid json');
+		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE })).rejects.toThrow();
 	});
 });

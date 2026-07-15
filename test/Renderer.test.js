@@ -1,113 +1,72 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../src/js/visuals/Renderer.js';
 import settings from '../src/js/core/settings.js';
-
-function createMockContext() {
-	return {
-		fillRect: vi.fn(),
-		drawImage: vi.fn(),
-		fillStyle: '#000000'
-	};
-}
+import withSettings from './utils/with-settings.js';
+import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockContext } from './utils/renderer-fixture.js';
 
 describe('Renderer', () => {
-	// Mock for requestAnimationFrame - shared across tests in this describe block
-	let rafSpy;
-	let cafSpy;
-	// Original settings to restore after tests that mutate them
-	let originalCanvasWidth;
-	let originalCanvasHeight;
+	let rafMocks;
+	let canvasMock;
 
 	beforeEach(() => {
-		// Save original settings for restoration
-		originalCanvasWidth = settings.canvas.width;
-		originalCanvasHeight = settings.canvas.height;
-
-		// Mock requestAnimationFrame to capture callbacks
-		rafSpy = vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation(_cb => {
-			return 1; // Return a fake frame ID
-		});
-		cafSpy = vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
-
-		// Replace document.createElement for canvas with a mock that returns a context object
-		// so Renderer can create off-screen canvases and their contexts.
-		globalThis.__createElementBackup = document.createElement;
-		globalThis.__createdCanvases = [];
-		document.createElement = tagName => {
-			if (tagName === 'canvas') {
-				const ctx = {
-					fillRect: vi.fn(),
-					drawImage: vi.fn(),
-					createImageData: (w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }),
-					getImageData: vi.fn(() => ({ width: 240, height: 135, data: new Uint8ClampedArray(240 * 135 * 4) })),
-					putImageData: vi.fn(),
-					imageSmoothingEnabled: true,
-					imageSmoothingQuality: 'high'
-				};
-				const canvas = { width: 240, height: 135, getContext: () => ctx };
-				globalThis.__createdCanvases.push(canvas);
-				return canvas;
-			}
-			return globalThis.__createElementBackup(tagName);
-		};
+		rafMocks = installRAFMocks();
+		canvasMock = installMockCanvas();
 	});
 
 	test('reuses output ImageData instance across consecutive frames', () => {
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
-
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const maskLayer = { isFinished: false, playToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 1 };
-		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 1 };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
-		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
-		const ctxA = canvasA.getContext();
-		const ctxB = canvasB.getContext();
-		const ctxMask = canvasMask.getContext();
-		const ctxMixed = canvasMixed.getContext();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+		const layerGroupAContext = layerGroupACanvas.getContext();
+		const layerGroupBContext = layerGroupBCanvas.getContext();
+		const maskContext = maskCanvas.getContext();
+		const mixedOutputContext = mixedOutputCanvas.getContext();
 
 		// Provide deterministic pixel arrays
-		const w = settings.canvas.width;
-		const h = settings.canvas.height;
-		const size = w * h * 4;
-		const aPixels = new Uint8ClampedArray(size);
-		const bPixels = new Uint8ClampedArray(size);
-		const maskPixels = new Uint8ClampedArray(size);
-		for (let i = 0; i < size; i += 4) {
-			aPixels[i] = 0;
-			aPixels[i + 1] = 0;
-			aPixels[i + 2] = 0;
-			aPixels[i + 3] = 255;
-			bPixels[i] = 255;
-			bPixels[i + 1] = 255;
-			bPixels[i + 2] = 255;
-			bPixels[i + 3] = 255;
+		const canvasWidth = settings.canvas.width;
+		const canvasHeight = settings.canvas.height;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const layerGroupAPixels = new Uint8ClampedArray(pixelCount);
+		const layerGroupBPixels = new Uint8ClampedArray(pixelCount);
+		const maskPixels = new Uint8ClampedArray(pixelCount);
+		for (let i = 0; i < pixelCount; i += 4) {
+			layerGroupAPixels[i] = 0;
+			layerGroupAPixels[i + 1] = 0;
+			layerGroupAPixels[i + 2] = 0;
+			layerGroupAPixels[i + 3] = 255;
+			layerGroupBPixels[i] = 255;
+			layerGroupBPixels[i + 1] = 255;
+			layerGroupBPixels[i + 2] = 255;
+			layerGroupBPixels[i + 3] = 255;
 			maskPixels[i] = 0;
 			maskPixels[i + 1] = 0;
 			maskPixels[i + 2] = 0;
 			maskPixels[i + 3] = 255;
 		}
 
-		ctxA.getImageData = () => ({ data: aPixels });
-		ctxB.getImageData = () => ({ data: bPixels });
-		ctxMask.getImageData = () => ({ data: maskPixels });
+		layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels });
+		layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels });
+		maskContext.getImageData = () => ({ data: maskPixels });
 
 		const outputs = [];
-		ctxMixed.putImageData = outData => outputs.push(outData);
+		mixedOutputContext.putImageData = outData => outputs.push(outData);
 
 		// Run two frames
 		renderer.start();
-		const rafCb = rafSpy.mock.calls[0][0];
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
 		rafCb(0);
 		rafCb(1);
 
@@ -117,139 +76,120 @@ describe('Renderer', () => {
 		renderer.destroy();
 	});
 
-	test('allocates ImageData with new dimensions when canvas size changes via settings', () => {
-		// Temporarily change settings for this test (restored by afterEach)
-		settings.canvas.width = 320;
-		settings.canvas.height = 180;
+	test('allocates ImageData with new dimensions when canvas pixelCount changes via settings', () => {
+		withSettings({ canvas: { width: 320, height: 180 } }, () => {
+			const displayContext = createMockContext();
+			const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+			const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+			const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+			const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 8 };
+			const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
+			const layerManager = {
+				getLayerGroupA: () => layerGroupA,
+				getLayerGroupB: () => layerGroupB,
+				getLayerGroupC: () => ({ getActiveClips: () => [] }),
+				getMaskManager: () => maskManager,
+				getEffectsManager: () => effectsManager
+			};
 
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+			const layerGroupAContext = layerGroupACanvas.getContext();
+			const layerGroupBContext = layerGroupBCanvas.getContext();
+			const maskContext = maskCanvas.getContext();
+			const mixedOutputContext = mixedOutputCanvas.getContext();
 
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const maskLayer = { isFinished: false, playToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 8 };
-		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
-		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
-			getMaskManager: () => maskManager,
-			getEffectsManager: () => effectsManager
-		};
+			// Prepare image arrays with new dimensions for getImageData
+			const canvasWidth2 = settings.canvas.width;
+			const canvasHeight2 = settings.canvas.height;
+			const pixelCount2 = canvasWidth2 * canvasHeight2 * 4;
+			const layerGroupAPixels2 = new Uint8ClampedArray(pixelCount2);
+			const layerGroupBPixels2 = new Uint8ClampedArray(pixelCount2);
+			const maskPixels2 = new Uint8ClampedArray(pixelCount2);
+			for (let i = 0; i < pixelCount2; i += 4) {
+				layerGroupAPixels2[i] = 0;
+				layerGroupAPixels2[i + 1] = 0;
+				layerGroupAPixels2[i + 2] = 0;
+				layerGroupAPixels2[i + 3] = 255;
+				layerGroupBPixels2[i] = 255;
+				layerGroupBPixels2[i + 1] = 255;
+				layerGroupBPixels2[i + 2] = 255;
+				layerGroupBPixels2[i + 3] = 255;
+				maskPixels2[i] = 128;
+				maskPixels2[i + 1] = 128;
+				maskPixels2[i + 2] = 128;
+				maskPixels2[i + 3] = 255;
+			}
+			layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels2 });
+			layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels2 });
+			maskContext.getImageData = () => ({ data: maskPixels2 });
 
-		const renderer = new Renderer(mainCtx, layerManager);
-		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
-		const ctxA = canvasA.getContext();
-		const ctxB = canvasB.getContext();
-		const ctxMask = canvasMask.getContext();
-		const ctxMixed = canvasMixed.getContext();
+			let putArg = null;
+			mixedOutputContext.putImageData = out => (putArg = out);
 
-		// Prepare image arrays with new dimensions for getImageData
-		const w2 = settings.canvas.width;
-		const h2 = settings.canvas.height;
-		const size2 = w2 * h2 * 4;
-		const aPixels2 = new Uint8ClampedArray(size2);
-		const bPixels2 = new Uint8ClampedArray(size2);
-		const maskPixels2 = new Uint8ClampedArray(size2);
-		for (let i = 0; i < size2; i += 4) {
-			aPixels2[i] = 0;
-			aPixels2[i + 1] = 0;
-			aPixels2[i + 2] = 0;
-			aPixels2[i + 3] = 255;
-			bPixels2[i] = 255;
-			bPixels2[i + 1] = 255;
-			bPixels2[i + 2] = 255;
-			bPixels2[i + 3] = 255;
-			maskPixels2[i] = 128;
-			maskPixels2[i + 1] = 128;
-			maskPixels2[i + 2] = 128;
-			maskPixels2[i + 3] = 255;
-		}
-		ctxA.getImageData = () => ({ data: aPixels2 });
-		ctxB.getImageData = () => ({ data: bPixels2 });
-		ctxMask.getImageData = () => ({ data: maskPixels2 });
+			renderer.start();
+			const cb = rafMocks.rafSpy.mock.calls[0][0];
+			cb(0);
 
-		let putArg = null;
-		ctxMixed.putImageData = out => (putArg = out);
+			expect(putArg).toBeDefined();
+			expect(putArg.width).toBe(320);
+			expect(putArg.height).toBe(180);
 
-		renderer.start();
-		const cb = rafSpy.mock.calls[0][0];
-		cb(0);
-
-		expect(putArg).toBeDefined();
-		expect(putArg.width).toBe(320);
-		expect(putArg.height).toBe(180);
-
-		renderer.destroy();
+			renderer.destroy();
+		});
 	});
 
 	afterEach(() => {
-		// Restore settings that may have been mutated
-		settings.canvas.width = originalCanvasWidth;
-		settings.canvas.height = originalCanvasHeight;
-
-		// Restore requestAnimationFrame and cancelAnimationFrame mocks
-		if (rafSpy) {
-			rafSpy.mockRestore();
-		}
-		if (cafSpy) {
-			cafSpy.mockRestore();
-		}
-
-		// Restore createElement
-		if (globalThis.__createElementBackup) {
-			document.createElement = globalThis.__createElementBackup;
-			delete globalThis.__createElementBackup;
-		}
+		restoreRAFMocks(rafMocks);
+		canvasMock.restore();
 	});
 
-	test('fills canvas with background color and renders active layers', () => {
-		const ctx = createMockContext();
-		const layer = { playToContext: vi.fn() };
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+	test('fills canvas with background color and renders active clips', () => {
+		const displayContext = createMockContext();
+		const animationClip = { renderToContext: vi.fn() };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
 
-		const renderer = new Renderer(ctx, layerManager);
-		rafSpy.mockClear();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		rafMocks.rafSpy.mockClear();
 		renderer.start();
-		const rafCb = rafSpy.mock.calls[0][0];
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
 		rafCb(0);
 
-		expect(ctx.fillRect).toHaveBeenCalled();
-		expect(layer.playToContext).toHaveBeenCalled();
+		expect(displayContext.fillRect).toHaveBeenCalled();
+		expect(animationClip.renderToContext).toHaveBeenCalled();
 		// stop and destroy should not throw
 		const stopSpy = vi.spyOn(renderer, 'stop');
 		renderer.destroy();
 		expect(stopSpy).toHaveBeenCalled();
 	});
 
-	test('passes RAF timestamp to animation play method', () => {
-		const ctx = createMockContext();
+	test('passes RAF timestamp to clip render method', () => {
+		const displayContext = createMockContext();
 		let receivedTimestamp = null;
-		const layer = {
-			playToContext: (ctx, t) => {
+		const animationClip = {
+			renderToContext: (displayContext, t) => {
 				receivedTimestamp = t;
 			}
 		};
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
 
 		// Set up RAF to immediately invoke the callback with a timestamp
 		let called = false;
-		rafSpy.mockImplementation(cb => {
+		rafMocks.rafSpy.mockImplementation(cb => {
 			if (!called) {
 				called = true;
 				cb(12345);
@@ -257,131 +197,129 @@ describe('Renderer', () => {
 			return 1;
 		});
 
-		const renderer = new Renderer(ctx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		renderer.start();
 		expect(receivedTimestamp).toBe(12345);
 		renderer.destroy();
 	});
 
-	test('skips finished non-looping layers during render', () => {
-		const ctx = createMockContext();
-		const finishedLayer = { playToContext: vi.fn(), isFinished: true };
-		const activeLayer = { playToContext: vi.fn(), isFinished: false };
-		// getActiveLayers() should only return non-finished layers (filtering is done by LayerGroup)
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [activeLayer] };
+	test('skips finished non-looping clips during render', () => {
+		const displayContext = createMockContext();
+		const finishedAnimationClip = { renderToContext: vi.fn(), isFinished: true };
+		const activeAnimationClip = { renderToContext: vi.fn(), isFinished: false };
+		// getActiveClips() should only return non-finished clips (filtering is done by LayerGroup)
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [activeAnimationClip] };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
 
-		const renderer = new Renderer(ctx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		renderer.start();
 
-		// Finished layer should not be in getActiveLayers() result, so playToContext not called
-		expect(finishedLayer.playToContext).not.toHaveBeenCalled();
-		expect(activeLayer.playToContext).toHaveBeenCalled();
+		// Finished animationClip should not be in getActiveClips() result, so renderToContext not called
+		expect(finishedAnimationClip.renderToContext).not.toHaveBeenCalled();
+		expect(activeAnimationClip.renderToContext).toHaveBeenCalled();
 		renderer.destroy();
 	});
 
-	test('continues rendering loop when no active layers present', () => {
-		const ctx = createMockContext();
+	test('continues rendering loop when no active clips present', () => {
+		const displayContext = createMockContext();
 		const layerManager = {
-			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
 
-		rafSpy.mockClear();
-		const renderer = new Renderer(ctx, layerManager);
+		rafMocks.rafSpy.mockClear();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		renderer.start();
 
-		expect(ctx.fillRect).toHaveBeenCalled();
-		// Loop continues even when there are no active layers; ensure RAF was scheduled
-		expect(rafSpy).toHaveBeenCalled();
+		expect(displayContext.fillRect).toHaveBeenCalled();
+		// Loop continues even when there are no active clips; ensure RAF was scheduled
+		expect(rafMocks.rafSpy).toHaveBeenCalled();
 		renderer.destroy();
 	});
 
-	test('mixes Layer B when Layer A is empty and no mask', () => {
-		const mainCtx = createMockContext();
+	test('mixes Layer Group B when Layer Group A is empty and no mask', () => {
+		const displayContext = createMockContext();
 
-		// Layer groups: Layer A has no layers, Layer B has one layer (mock)
-		const layerA = { hasActiveLayers: () => false, getActiveLayers: () => [] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		// Layer groups: Layer Group A has no animations, Layer Group B has one animation (mock)
+		const layerGroupA = { hasActiveClips: () => false, getActiveClips: () => [] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskManager = { getCurrentMask: () => null };
-		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		// Start renderer but don't auto-invoke RAF; call the stored callback manually to simulate a frame
-		rafSpy.mockClear();
+		rafMocks.rafSpy.mockClear();
 		renderer.start();
-		const cbA = rafSpy.mock.calls[0][0];
+		const cbA = rafMocks.rafSpy.mock.calls[0][0];
 		cbA(0);
 
 		// The renderer should draw the mixed canvas to the main canvas
-		expect(mainCtx.drawImage).toHaveBeenCalled();
-		// And since A is empty, ctxMixed.drawImage should have been called with canvasB
-		// The offscreen ctxMixed drew the canvasB onto itself; we can't inspect that directly from this mock,
+		expect(displayContext.drawImage).toHaveBeenCalled();
+		// And since Layer Group A is empty, mixedOutputContext.drawImage should have been called with layerGroupBCanvas
+		// The offscreen mixedOutputContext drew the layerGroupBCanvas onto itself; we can't inspect that directly from this mock,
 		// but verifying that main drawing was triggered suffices for the logic branch coverage.
 		renderer.destroy();
 	});
 
-	test('mixes A and B with 1-bit mask (hard cut)', () => {
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
-
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const maskLayer = { isFinished: false, playToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 1 };
-		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+	test('mixes Layer Group A and Layer Group B with 1-bit mask (hard cut)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 1 };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 
 		// At this point, the internal offscreen canvases should be created in the same order
-		// A, B, Mask, Mixed. Grab contexts to control getImageData/putImageData behavior.
-		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
-		const ctxA = canvasA.getContext();
-		const ctxB = canvasB.getContext();
-		const ctxMask = canvasMask.getContext();
-		const ctxMixed = canvasMixed.getContext();
+		// Layer Group A, Layer Group B, Mask, Mixed. Grab contexts to control getImageData/putImageData behavior.
+		const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+		const layerGroupAContext = layerGroupACanvas.getContext();
+		const layerGroupBContext = layerGroupBCanvas.getContext();
+		const maskContext = maskCanvas.getContext();
+		const mixedOutputContext = mixedOutputCanvas.getContext();
 
-		// Prepare image arrays: A black, B white, Mask either black or white
-		const w = 240;
-		const h = 135;
-		const size = w * h * 4;
-		const aPixels = new Uint8ClampedArray(size);
-		const bPixels = new Uint8ClampedArray(size);
-		const maskPixels = new Uint8ClampedArray(size);
-		for (let i = 0; i < size; i += 4) {
-			// A: black opaque
-			aPixels[i] = 0;
-			aPixels[i + 1] = 0;
-			aPixels[i + 2] = 0;
-			aPixels[i + 3] = 255;
-			// B: white opaque
-			bPixels[i] = 255;
-			bPixels[i + 1] = 255;
-			bPixels[i + 2] = 255;
-			bPixels[i + 3] = 255;
+		// Prepare image arrays: Layer Group A black, Layer Group B white, Mask either black or white
+		const canvasWidth = 240;
+		const canvasHeight = 135;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const layerGroupAPixels = new Uint8ClampedArray(pixelCount);
+		const layerGroupBPixels = new Uint8ClampedArray(pixelCount);
+		const maskPixels = new Uint8ClampedArray(pixelCount);
+		for (let i = 0; i < pixelCount; i += 4) {
+			// Layer Group A: black opaque
+			layerGroupAPixels[i] = 0;
+			layerGroupAPixels[i + 1] = 0;
+			layerGroupAPixels[i + 2] = 0;
+			layerGroupAPixels[i + 3] = 255;
+			// Layer Group B: white opaque
+			layerGroupBPixels[i] = 255;
+			layerGroupBPixels[i + 1] = 255;
+			layerGroupBPixels[i + 2] = 255;
+			layerGroupBPixels[i + 3] = 255;
 			// Mask: first pixel black, second pixel white (for test variety)
 			maskPixels[i] = 0;
 			maskPixels[i + 1] = 0;
@@ -390,26 +328,26 @@ describe('Renderer', () => {
 		}
 
 		// Return arrays from getImageData and capture putImageData output
-		ctxA.getImageData = () => ({ data: aPixels });
-		ctxB.getImageData = () => ({ data: bPixels });
-		ctxMask.getImageData = () => ({ data: maskPixels });
+		layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels });
+		layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels });
+		maskContext.getImageData = () => ({ data: maskPixels });
 
 		let putImageDataArg = null;
-		ctxMixed.putImageData = outData => {
+		mixedOutputContext.putImageData = outData => {
 			putImageDataArg = outData;
 		};
 
 		// Run a single RAF frame to perform mixing using the stored RAF callback
-		rafSpy.mockClear();
+		rafMocks.rafSpy.mockClear();
 		renderer.start();
-		const rafCbLocal = rafSpy.mock.calls[0][0];
+		const rafCbLocal = rafMocks.rafSpy.mock.calls[0][0];
 		rafCbLocal(0);
 
-		// After mixing, ctxMixed.putImageData should have been called with outputImageData
+		// After mixing, mixedOutputContext.putImageData should have been called with outputImageData
 		expect(putImageDataArg).toBeDefined();
-		// For the first pixel, mask = 0 => chooses A (black)
+		// For the first pixel, mask = 0 => chooses Layer Group A (black)
 		expect(putImageDataArg.data[0]).toBe(0);
-		// Change mask to white and rerun: should choose B (white)
+		// Change mask to white and rerun: should choose Layer Group B (white)
 		maskPixels[0] = 255;
 		maskPixels[1] = 255;
 		maskPixels[2] = 255;
@@ -420,110 +358,294 @@ describe('Renderer', () => {
 		renderer.destroy();
 	});
 
-	test('mixes A and B with 8-bit mask (smooth blend)', () => {
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
-
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const maskLayer = { isFinished: false, playToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskLayer, getBitDepth: () => 8 };
-		const effectsManager = { hasEffectsAB: () => false, hasEffectsGlobal: () => false };
+	test('mixes Layer Group A and Layer Group B with 8-bit mask (smooth blend)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 8 };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
-		const [canvasA, canvasB, canvasMask, canvasMixed] = globalThis.__createdCanvases;
-		const ctxA = canvasA.getContext();
-		const ctxB = canvasB.getContext();
-		const ctxMask = canvasMask.getContext();
-		const ctxMixed = canvasMixed.getContext();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+		const layerGroupAContext = layerGroupACanvas.getContext();
+		const layerGroupBContext = layerGroupBCanvas.getContext();
+		const maskContext = maskCanvas.getContext();
+		const mixedOutputContext = mixedOutputCanvas.getContext();
 
-		const w = 240;
-		const h = 135;
-		const size = w * h * 4;
-		const aPixels = new Uint8ClampedArray(size);
-		const bPixels = new Uint8ClampedArray(size);
-		const maskPixels = new Uint8ClampedArray(size);
-		for (let i = 0; i < size; i += 4) {
-			aPixels[i] = 0;
-			aPixels[i + 1] = 0;
-			aPixels[i + 2] = 0;
-			aPixels[i + 3] = 255;
-			bPixels[i] = 255;
-			bPixels[i + 1] = 255;
-			bPixels[i + 2] = 255;
-			bPixels[i + 3] = 255;
+		const canvasWidth = 240;
+		const canvasHeight = 135;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const layerGroupAPixels = new Uint8ClampedArray(pixelCount);
+		const layerGroupBPixels = new Uint8ClampedArray(pixelCount);
+		const maskPixels = new Uint8ClampedArray(pixelCount);
+		for (let i = 0; i < pixelCount; i += 4) {
+			layerGroupAPixels[i] = 0;
+			layerGroupAPixels[i + 1] = 0;
+			layerGroupAPixels[i + 2] = 0;
+			layerGroupAPixels[i + 3] = 255;
+			layerGroupBPixels[i] = 255;
+			layerGroupBPixels[i + 1] = 255;
+			layerGroupBPixels[i + 2] = 255;
+			layerGroupBPixels[i + 3] = 255;
 			maskPixels[i] = 128;
 			maskPixels[i + 1] = 128;
 			maskPixels[i + 2] = 128;
 			maskPixels[i + 3] = 255;
 		}
-		ctxA.getImageData = () => ({ data: aPixels });
-		ctxB.getImageData = () => ({ data: bPixels });
-		ctxMask.getImageData = () => ({ data: maskPixels });
+		layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels });
+		layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels });
+		maskContext.getImageData = () => ({ data: maskPixels });
 
 		let putImageDataArg = null;
-		ctxMixed.putImageData = outData => {
+		mixedOutputContext.putImageData = outData => {
 			putImageDataArg = outData;
 		};
 
-		rafSpy.mockClear();
+		rafMocks.rafSpy.mockClear();
 		renderer.start();
-		const rafCb2 = rafSpy.mock.calls[0][0];
+		const rafCb2 = rafMocks.rafSpy.mock.calls[0][0];
 		rafCb2(0);
 		expect(putImageDataArg).toBeDefined();
-		// For a 50% mask (128/255), output should be around 128 for R channel (blend of 0 and 255)
+		// For a 50% mask (128/255), output should be around 128 for R channel (blend of Layer Group A black and Layer Group B white)
 		const r = putImageDataArg.data[0];
 		expect(r === 127 || r === 128).toBe(true);
 		renderer.destroy();
 	});
 
-	test('applies multiple A/B effects in order (color then strobe)', () => {
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
+	test('mixes Layer Group A and Layer Group B with 2-bit mask (4 quantized levels)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 2 };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
+		const layerManager = {
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
 
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+		const layerGroupAContext = layerGroupACanvas.getContext();
+		const layerGroupBContext = layerGroupBCanvas.getContext();
+		const maskContext = maskCanvas.getContext();
+		const mixedOutputContext = mixedOutputCanvas.getContext();
+
+		const canvasWidth = 240;
+		const canvasHeight = 135;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const layerGroupAPixels = new Uint8ClampedArray(pixelCount);
+		const layerGroupBPixels = new Uint8ClampedArray(pixelCount);
+		const maskPixels = new Uint8ClampedArray(pixelCount);
+		for (let i = 0; i < pixelCount; i += 4) {
+			layerGroupAPixels[i] = 0;
+			layerGroupAPixels[i + 1] = 0;
+			layerGroupAPixels[i + 2] = 0;
+			layerGroupAPixels[i + 3] = 255;
+			layerGroupBPixels[i] = 255;
+			layerGroupBPixels[i + 1] = 255;
+			layerGroupBPixels[i + 2] = 255;
+			layerGroupBPixels[i + 3] = 255;
+			// Mask value 64 -> level 1, alpha = 1/3
+			maskPixels[i] = 64;
+			maskPixels[i + 1] = 64;
+			maskPixels[i + 2] = 64;
+			maskPixels[i + 3] = 255;
+		}
+		layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels });
+		layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels });
+		maskContext.getImageData = () => ({ data: maskPixels });
+
+		let putImageDataArg = null;
+		mixedOutputContext.putImageData = outData => {
+			putImageDataArg = outData;
+		};
+
+		rafMocks.rafSpy.mockClear();
+		renderer.start();
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
+		rafCb(0);
+
+		expect(putImageDataArg).toBeDefined();
+		// 2-bit: level = floor(64/64) = 1, alpha = 1/3
+		// output = Layer Group A + (Layer Group B - Layer Group A) * (1/3) = 85
+		expect(putImageDataArg.data[0]).toBe(85);
+		renderer.destroy();
+	});
+
+	test('mixes Layer Group A and Layer Group B with 4-bit mask (16 quantized levels)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 4 };
+		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
+		const layerManager = {
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [layerGroupACanvas, layerGroupBCanvas, maskCanvas, mixedOutputCanvas] = canvasMock.createdCanvases;
+		const layerGroupAContext = layerGroupACanvas.getContext();
+		const layerGroupBContext = layerGroupBCanvas.getContext();
+		const maskContext = maskCanvas.getContext();
+		const mixedOutputContext = mixedOutputCanvas.getContext();
+
+		const canvasWidth = 240;
+		const canvasHeight = 135;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const layerGroupAPixels = new Uint8ClampedArray(pixelCount);
+		const layerGroupBPixels = new Uint8ClampedArray(pixelCount);
+		const maskPixels = new Uint8ClampedArray(pixelCount);
+		for (let i = 0; i < pixelCount; i += 4) {
+			layerGroupAPixels[i] = 0;
+			layerGroupAPixels[i + 1] = 0;
+			layerGroupAPixels[i + 2] = 0;
+			layerGroupAPixels[i + 3] = 255;
+			layerGroupBPixels[i] = 255;
+			layerGroupBPixels[i + 1] = 255;
+			layerGroupBPixels[i + 2] = 255;
+			layerGroupBPixels[i + 3] = 255;
+			// Mask value 80 -> level = floor(80/16) = 5, alpha = 5/15 = 1/3
+			maskPixels[i] = 80;
+			maskPixels[i + 1] = 80;
+			maskPixels[i + 2] = 80;
+			maskPixels[i + 3] = 255;
+		}
+		layerGroupAContext.getImageData = () => ({ data: layerGroupAPixels });
+		layerGroupBContext.getImageData = () => ({ data: layerGroupBPixels });
+		maskContext.getImageData = () => ({ data: maskPixels });
+
+		let putImageDataArg = null;
+		mixedOutputContext.putImageData = outData => {
+			putImageDataArg = outData;
+		};
+
+		rafMocks.rafSpy.mockClear();
+		renderer.start();
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
+		rafCb(0);
+
+		expect(putImageDataArg).toBeDefined();
+		// 4-bit: level = floor(80/16) = 5, alpha = 5/15
+		// output = Layer Group A + (Layer Group B - Layer Group A) * (5/15) = 85
+		expect(putImageDataArg.data[0]).toBe(85);
+		renderer.destroy();
+	});
+
+	test('glitch effect displaces pixels with mocked Math.random', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => false, getActiveClips: () => [] };
+		const maskManager = { getCurrentMask: () => null };
+		const effectsManager = {
+			hasMixedOutputEffects: () => false,
+			hasGlobalEffects: () => true,
+			getActiveGlobalEffects: () => [{ type: 'glitch', velocity: 127 }]
+		};
+		const layerManager = {
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
+			getMaskManager: () => maskManager,
+			getEffectsManager: () => effectsManager
+		};
+
+		const canvasWidth = settings.canvas.width;
+		const canvasHeight = settings.canvas.height;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const img = { data: new Uint8ClampedArray(pixelCount) };
+		// Set pixel 0 to red, pixel 1 to blue
+		img.data[0] = 255;
+		img.data[1] = 0;
+		img.data[2] = 0;
+		img.data[3] = 255;
+		img.data[4] = 0;
+		img.data[5] = 0;
+		img.data[6] = 255;
+		img.data[7] = 255;
+		displayContext.getImageData = () => img;
+
+		let out = null;
+		displayContext.putImageData = o => (out = o);
+
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+
+		// Mock Math.random to trigger glitch and displace pixels
+		// intensity = 127/127 = 1, glitchPixelProbability = 0.1
+		// 0.05 < 1 * 0.1 = true, glitch triggers
+		// glitchAmount = floor(1 * 20) = 20
+		// offsetPx = floor(0.05 * 21) - floor(20/2) = 1 - 10 = -9
+		// For pixel at x=1 (index 4), srcIdx clamped to rowStart=0, so gets pixel 0's data
+		const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05);
+
+		renderer.start();
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
+		rafCb(0);
+
+		expect(out).toBeDefined();
+		// Pixel at x=1 (blue) should now be red (sampled from x=0 due to displacement)
+		expect(out.data[4]).toBe(255); // R channel now red
+		expect(out.data[5]).toBe(0);
+		expect(out.data[6]).toBe(0);
+
+		randomSpy.mockRestore();
+		renderer.destroy();
+	});
+
+	test('applies multiple mixed output effects in order (color then strobe)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
 		const effectsManager = {
-			hasEffectsAB: () => true,
-			hasEffectsGlobal: () => false,
-			getActiveEffectsAB: () => [
+			hasMixedOutputEffects: () => true,
+			hasGlobalEffects: () => false,
+			getActiveMixedOutputEffects: () => [
 				{ type: 'color', note: settings.effectRanges.color.min, velocity: 127 },
 				{ type: 'strobe', note: settings.effectRanges.strobe.min, velocity: 127 }
 			]
 		};
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
-		const [, , , canvasMixed] = globalThis.__createdCanvases;
-		const ctxMixed = canvasMixed.getContext();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [, , , mixedOutputCanvas] = canvasMock.createdCanvases;
+		const mixedOutputContext = mixedOutputCanvas.getContext();
 
-		const w = settings.canvas.width;
-		const h = settings.canvas.height;
-		const size = w * h * 4;
-		const img = { data: new Uint8ClampedArray(size) };
+		const canvasWidth = settings.canvas.width;
+		const canvasHeight = settings.canvas.height;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const img = { data: new Uint8ClampedArray(pixelCount) };
 		// Initialize a known value
 		img.data[0] = 10;
-		ctxMixed.getImageData = () => img;
+		mixedOutputContext.getImageData = () => img;
 
 		let out = null;
-		ctxMixed.putImageData = o => (out = o);
+		mixedOutputContext.putImageData = o => (out = o);
 
 		renderer.start();
-		const rafCb = globalThis.requestAnimationFrame.mock.calls[0][0];
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
 		rafCb(0);
 
 		expect(out).toBeDefined();
@@ -532,45 +654,43 @@ describe('Renderer', () => {
 		renderer.destroy();
 	});
 
-	test('respects A/B effect order (strobe then color)', () => {
-		const mainCtx = createMockContext();
-		globalThis.__createdCanvases = [];
-
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
-		const layerB = { hasActiveLayers: () => true, getActiveLayers: () => [{ playToContext: vi.fn() }] };
+	test('respects mixed output effect order (strobe then color)', () => {
+		const displayContext = createMockContext();
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
+		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
 		const effectsManager = {
-			hasEffectsAB: () => true,
-			hasEffectsGlobal: () => false,
-			getActiveEffectsAB: () => [
+			hasMixedOutputEffects: () => true,
+			hasGlobalEffects: () => false,
+			getActiveMixedOutputEffects: () => [
 				{ type: 'strobe', note: settings.effectRanges.strobe.min, velocity: 127 },
 				{ type: 'color', note: settings.effectRanges.color.min, velocity: 127 }
 			]
 		};
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => layerB,
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => layerGroupB,
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => maskManager,
 			getEffectsManager: () => effectsManager
 		};
 
-		const renderer = new Renderer(mainCtx, layerManager);
-		const [, , , canvasMixed] = globalThis.__createdCanvases;
-		const ctxMixed = canvasMixed.getContext();
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+		const [, , , mixedOutputCanvas] = canvasMock.createdCanvases;
+		const mixedOutputContext = mixedOutputCanvas.getContext();
 
-		const w = settings.canvas.width;
-		const h = settings.canvas.height;
-		const size = w * h * 4;
-		const img = { data: new Uint8ClampedArray(size) };
+		const canvasWidth = settings.canvas.width;
+		const canvasHeight = settings.canvas.height;
+		const pixelCount = canvasWidth * canvasHeight * 4;
+		const img = { data: new Uint8ClampedArray(pixelCount) };
 		img.data[0] = 10;
-		ctxMixed.getImageData = () => img;
+		mixedOutputContext.getImageData = () => img;
 
 		let out = null;
-		ctxMixed.putImageData = o => (out = o);
+		mixedOutputContext.putImageData = o => (out = o);
 
 		renderer.start();
-		const rafCb = globalThis.requestAnimationFrame.mock.calls[0][0];
+		const rafCb = rafMocks.rafSpy.mock.calls[0][0];
 		rafCb(0);
 
 		expect(out).toBeDefined();
@@ -580,61 +700,61 @@ describe('Renderer', () => {
 	});
 
 	test('handles pending frame after destroy without throwing', () => {
-		const ctx = createMockContext();
-		const layer = { playToContext: vi.fn() };
-		const layerA = { hasActiveLayers: () => true, getActiveLayers: () => [layer] };
+		const displayContext = createMockContext();
+		const animationClip = { renderToContext: vi.fn() };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
 		const layerManager = {
-			getLayerA: () => layerA,
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => layerGroupA,
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
 
 		let frameCallback = null;
-		rafSpy.mockImplementation(cb => {
+		rafMocks.rafSpy.mockImplementation(cb => {
 			frameCallback = cb;
 			return 1;
 		});
 
-		const renderer = new Renderer(ctx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		renderer.start();
 		// Destroy while a frame callback is pending
 		renderer.destroy();
 
 		expect(frameCallback).toBeDefined();
 		// Clear spy and invoke to verify no new RAF scheduled after destroy
-		rafSpy.mockClear();
+		rafMocks.rafSpy.mockClear();
 		expect(() => frameCallback()).not.toThrow();
 		// No new frame should be scheduled after destroy
-		expect(rafSpy).not.toHaveBeenCalled();
+		expect(rafMocks.rafSpy).not.toHaveBeenCalled();
 	});
 
 	test('destroy is idempotent and safe to call multiple times', () => {
-		const ctx = createMockContext();
+		const displayContext = createMockContext();
 		const layerManager = {
-			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
-		const renderer = new Renderer(ctx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 
 		renderer.destroy();
 		expect(() => renderer.destroy()).not.toThrow();
 	});
 
 	test('destroy before start does not throw', () => {
-		const ctx = createMockContext();
+		const displayContext = createMockContext();
 		const layerManager = {
-			getLayerA: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerB: () => ({ hasActiveLayers: () => false, getActiveLayers: () => [] }),
-			getLayerC: () => ({ getActiveLayers: () => [] }),
+			getLayerGroupA: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+			getLayerGroupC: () => ({ getActiveClips: () => [] }),
 			getMaskManager: () => ({ getCurrentMask: () => null }),
-			getEffectsManager: () => ({ hasEffectsAB: () => false, hasEffectsGlobal: () => false })
+			getEffectsManager: () => ({ hasMixedOutputEffects: () => false, hasGlobalEffects: () => false })
 		};
-		const renderer = new Renderer(ctx, layerManager);
+		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 
 		expect(() => renderer.destroy()).not.toThrow();
 	});

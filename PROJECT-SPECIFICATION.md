@@ -18,17 +18,17 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 2. **Note Off**: When a MIDI note is released, stop the animation (behavior depends on animation settings)
 3. **Velocity**: Higher velocity may select a different animation variant or intensity
 
-### Layer System
+### Layer Group System
 
-- **16 channels** mapped to layer groups (shown as DAW channels 1-16):
-    - Channels 1-4: Layer A (primary animation deck)
-    - Channel 5: Mixer (B&W bitmask for A/B crossfading)
-    - Channels 6-9: Layer B (secondary animation deck)
-    - Channel 10: Effects A/B (applied to mixed A/B output)
-    - Channels 11-12: Layer C (overlay layer)
-    - Channel 13: Global Effects (applied to entire output)
+- **16 channels** mapped to layer groups (shown as DAW channels 1-16; the build pipeline converts source folder names from 1-16 to code channels 0-15):
+    - Channels 1-4: Layer Group A (primary clip deck)
+    - Channel 5: Mixer (B&W bitmask for Layer Group A and Layer Group B crossfading)
+    - Channels 6-9: Layer Group B (secondary clip deck)
+    - Channel 10: Mixed output effects (applied to mixed Layer Group A and Layer Group B output)
+    - Channels 11-12: Layer Group C (overlay layer)
+    - Channel 13: Global effects (applied to entire output)
     - Channels 14-16: Reserved
-- Layers composite in order: A+B mixed → Effects A/B → Layer C → Global Effects
+- Layer groups composite in order: Layer Group A + Layer Group B mixed → Mixed output effects → Layer Group C → Global effects
 - Multiple notes can be active simultaneously on different channels
 
 ### Animation Playback
@@ -43,15 +43,15 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 
 ### Effects System
 
-- Effects are triggered via channels 10 (A/B) and 13 (global)
+- Effects are triggered via channels 10 (mixed output effects) and 13 (global effects)
 - Note ranges select effect type: split, mirror, offset, color, glitch, strobe
 - Velocity controls effect intensity
 - Effects are NOT latched (Note Off disables immediately)
 
 ### Mask/Crossfade System
 
-- Channel 5 controls the A/B mixer
-- B&W animations act as crossfade masks between Layer A and B
+- Channel 5 controls the Layer Group A and Layer Group B crossfade mask
+- B&W animations act as crossfade masks between Layer Group A and Layer Group B
 - `bitDepth` controls blend levels (1=hard cut, 8=smooth gradient)
 - Masks ARE latched (stay active until new mask triggered)
 

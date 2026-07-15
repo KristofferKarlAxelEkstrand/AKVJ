@@ -6,12 +6,14 @@ end_of_line = lf
 insert_final_newline = true
 trim_trailing_whitespace = true
 
-[*.{js,json}]
+[*.{js,css}]
+indent_style = tab
+indent_size = 4
+
+[*.{md,json,yml,yaml}]
 indent_style = space
-indent_size = 2
+indent_size = 4
 
 [*.md]
 trim_trailing_whitespace = false
 
-[*.cmd]
-end_of_line = crlf

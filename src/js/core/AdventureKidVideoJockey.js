@@ -6,12 +6,12 @@ import Renderer from '../visuals/Renderer.js';
 
 /**
  * Adventure Kid Video Jockey - Main rendering component
- * Handles canvas rendering, animation management, and layer compositing only
+ * Handles canvas rendering, clip management, and layer group compositing only
  * Receives pre-parsed MIDI events from app state
  */
 class AdventureKidVideoJockey extends HTMLElement {
 	#canvas;
-	#canvas2dContext;
+	#displayContext;
 	#animationLoader;
 	#layerManager;
 	#renderer;
@@ -21,9 +21,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 	constructor() {
 		super();
 		this.#canvas = document.createElement('canvas');
-		this.#canvas2dContext = this.#canvas.getContext('2d');
+		this.#displayContext = this.#canvas.getContext('2d');
 
-		if (!this.#canvas2dContext) {
+		if (!this.#displayContext) {
 			// Canvas is unsupported or context creation failed; keep a noop-safe component
 			console.warn('AdventureKidVideoJockey: 2D canvas context unavailable — visuals will be disabled');
 			this.#animationLoader = null;
@@ -33,9 +33,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 
 		// Initialize modules only when there is a valid 2D context
-		this.#animationLoader = new AnimationLoader(this.#canvas2dContext);
+		this.#animationLoader = new AnimationLoader(this.#displayContext);
 		this.#layerManager = new LayerManager();
-		this.#renderer = new Renderer(this.#canvas2dContext, this.#layerManager);
+		this.#renderer = new Renderer(this.#displayContext, this.#layerManager, settings, appState);
 	}
 
 	/**
@@ -77,10 +77,10 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#canvas.width = settings.canvas.width;
 		this.#canvas.height = settings.canvas.height;
 
-		if (this.#canvas2dContext) {
-			this.#canvas2dContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
-			this.#canvas2dContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
-			this.#canvas2dContext.fillStyle = settings.rendering.backgroundColor;
+		if (this.#displayContext) {
+			this.#displayContext.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
+			this.#displayContext.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
+			this.#displayContext.fillStyle = settings.rendering.backgroundColor;
 		}
 
 		this.appendChild(this.#canvas);
@@ -107,10 +107,10 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 
 		try {
-			this.#layerManager?.clearLayers();
+			this.#layerManager?.clearClips();
 			this.#layerManager?.destroy();
 		} catch (error) {
-			console.error('Error destroying layer manager:', error);
+			console.error('Error destroying LayerManager:', error);
 		}
 
 		try {
@@ -146,7 +146,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			// notify that the Video Jockey is ready and bail out early. No value
 			// is returned because callers do not use the result of `#init()`.
 			appState.animationsLoaded = false;
-			appState.notifyVideoJockeyReady();
+			appState.dispatchVideoJockeyReady();
 			return;
 		}
 
@@ -157,7 +157,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			console.error('Renderer not started: Animations failed to load.');
 		}
 		// Notify after animations are loaded (or failed to load)
-		appState.notifyVideoJockeyReady();
+		appState.dispatchVideoJockeyReady();
 	}
 }
 

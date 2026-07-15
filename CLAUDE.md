@@ -1,5 +1,3 @@
-# Compatibility note
+@AGENTS.md
 
-Project agent instructions now live in `AGENTS.md`.
-
-Keep this file as a compatibility shim for tools that still read `CLAUDE.md`.
+This repo keeps reusable agent assets in `.agents/` and syncs tool-specific adapters with `.agents/scripts/`.

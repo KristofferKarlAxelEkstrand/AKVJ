@@ -3,19 +3,43 @@
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-22-bookworm",
 	"remoteUser": "node",
 
-	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {},
+	// Minimum resources for smooth dev server + animation pipeline (sharp is CPU-heavy)
+	"hostRequirements": {
+		"cpus": 2,
+		"memory": "4gb"
+	},
 
-	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	// Forward Vite dev server (5173) and preview server (4173)
+	"forwardPorts": [5173, 4173],
 
-	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "yarn install",
+	"portsAttributes": {
+		"5173": {
+			"label": "Vite Dev Server",
+			"onAutoForward": "openBrowser"
+		},
+		"4173": {
+			"label": "Vite Preview Server",
+			"onAutoForward": "notify"
+		}
+	},
+
+	// Auto-install dependencies after container creation
+	"postCreateCommand": "npm install",
+
+	// Ensure animations are generated on first start (uses sharp for PNG optimization)
+	"postStartCommand": "npm run animations -- --validate-only 2>/dev/null || true",
+
+	// Fallback env var for file watching on macOS/Windows Docker hosts where inotify doesn't propagate.
+	// The vite.config.js already detects container env vars (REMOTE_CONTAINERS, CODESPACES, GITPOD)
+	// and enables polling automatically. This is a secondary safety net for chokidar-based watchers.
+	"containerEnv": {
+		"REMOTE_CONTAINERS": "true"
+	},
 
 	// Configure tool-specific properties.
 	"customizations": {
 		"vscode": {
-			"extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "stylelint.vscode-stylelint", "eamodio.gitlens", "jdinhlife.gruvbox"],
+			"extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "stylelint.vscode-stylelint", "eamodio.gitlens", "jdinhlife.gruvbox", "vitest.explorer", "antfu.vite", "GitHub.vscode-github-actions"],
 			"settings": {
 				"workbench.colorTheme": "Gruvbox Dark Medium"
 			}

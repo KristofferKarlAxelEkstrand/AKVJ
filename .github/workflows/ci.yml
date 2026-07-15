@@ -50,6 +50,12 @@ jobs:
             - name: Run tests
               run: npm run test
 
+            - name: Install Playwright browser
+              run: npx playwright install --with-deps chromium
+
+            - name: Run visual tests
+              run: npm run test:visual
+
             - name: Build (generate animations + vite build)
               run: npm run build:full
 

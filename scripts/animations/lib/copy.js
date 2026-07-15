@@ -117,8 +117,7 @@ async function removeEmptyDirs(dir) {
 		// Check if directory is now empty
 		const remaining = await fs.readdir(dir);
 		if (remaining.length === 0) {
-			// Use explicit options to remove an empty directory
-			await fs.rm(dir, { recursive: false });
+			await fs.rmdir(dir);
 		}
 	} catch {
 		// Ignore errors

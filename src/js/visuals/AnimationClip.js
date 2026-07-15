@@ -1,5 +1,5 @@
 /**
- * AnimationLayer - Handles individual sprite animation playback and rendering
+ * AnimationClip - Handles individual sprite animation playback and rendering
  * Manages frame-based animations with customizable frame rates and loop behavior
  *
  * Supports two timing modes:
@@ -11,9 +11,9 @@
 import settings from '../core/settings.js';
 import appState from '../core/AppState.js';
 
-class AnimationLayer {
+class AnimationClip {
 	// Configuration (immutable after construction)
-	#canvas2dContext;
+	#displayContext;
 	#image;
 	#numberOfFrames;
 	#framesPerRow;
@@ -39,15 +39,15 @@ class AnimationLayer {
 	#pulseCount = 0; // Accumulated clock pulses since last frame advance
 	#unsubscribeClock = null; // Cleanup for clock subscription
 
-	constructor({ canvas2dContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null }) {
+	constructor({ displayContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
-			throw new Error('AnimationLayer requires numberOfFrames >= 1');
+			throw new Error('AnimationClip requires numberOfFrames >= 1');
 		}
 		if (!framesPerRow || framesPerRow < 1) {
-			throw new Error('AnimationLayer requires framesPerRow >= 1');
+			throw new Error('AnimationClip requires framesPerRow >= 1');
 		}
 
-		this.#canvas2dContext = canvas2dContext;
+		this.#displayContext = displayContext;
 		this.#image = image;
 		this.#numberOfFrames = numberOfFrames;
 		this.#framesPerRow = framesPerRow;
@@ -62,7 +62,7 @@ class AnimationLayer {
 			if (Array.isArray(frameDurationBeats)) {
 				// Enforce strict array length equal to numberOfFrames
 				if (frameDurationBeats.length !== numberOfFrames) {
-					throw new Error(`AnimationLayer: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
+					throw new Error(`AnimationClip: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
 				this.#frameDurationBeats = frameDurationBeats;
 				// Pre-calculate pulsesPerFrame for when clock is active (PPQN from settings)
@@ -72,7 +72,7 @@ class AnimationLayer {
 				this.#frameDurationBeats = Array(numberOfFrames).fill(frameDurationBeats);
 				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
 			} else {
-				throw new Error('AnimationLayer: invalid frameDurationBeats');
+				throw new Error('AnimationClip: invalid frameDurationBeats');
 			}
 
 			// Subscribe to MIDI clock events for real-time sync when clock is active
@@ -86,20 +86,20 @@ class AnimationLayer {
 		for (const [k, v] of Object.entries(frameRatesForFrames)) {
 			const idx = Number(k);
 			if (!Number.isInteger(idx) || idx < 0 || idx >= numberOfFrames) {
-				console.warn(`AnimationLayer: frame rate key ${k} is not a valid frame index; skipping`);
+				console.warn(`AnimationClip: frame rate key ${k} is not a valid frame index; skipping`);
 				continue;
 			}
 			if (typeof v === 'number' && v > 0) {
 				this.#frameRatesForFrames[idx] = v;
 			} else {
 				// If invalid, log and skip - constructor enforces valid metadata
-				console.warn(`AnimationLayer: invalid frame rate for frame ${k}: ${v}; skipping`);
+				console.warn(`AnimationClip: invalid frame rate for frame ${k}: ${v}; skipping`);
 			}
 		}
 		this.#frameWidth = image.width / framesPerRow;
 		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
 		if (!this.#frameWidth || !this.#frameHeight) {
-			throw new Error('AnimationLayer: Invalid image dimensions');
+			throw new Error('AnimationClip: Invalid image dimensions');
 		}
 		this.#loop = loop;
 		this.#retrigger = retrigger;
@@ -113,38 +113,42 @@ class AnimationLayer {
 	}
 
 	/**
-	 * Render the current animation frame and advance to the next frame if enough time has passed.
-	 * Accepts an optional timestamp (from requestAnimationFrame) to use as timing source, which
-	 * improves determinism during rendering and tests.
-	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
-	 */
-	play(timestamp = performance.now()) {
-		// Non-looping animation completed - stop rendering
-		if (this.#isFinished) {
-			return;
-		}
-		this.#advanceFrame(timestamp);
-		this.#drawToContext(this.#canvas2dContext);
-	}
-
-	/**
-	 * Render the current animation frame to a specific context.
-	 * Useful for off-screen rendering in multi-layer compositing.
-	 *
-	 * Note: This method advances the animation frame based on the timestamp.
-	 * To prevent double-advancement, ensure only one of play() or playToContext()
-	 * is called per animation per frame with the same timestamp.
-	 *
+	 * Internal render step: advance frame and draw to the provided context.
 	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
-	 * @param {number} [timestamp] - Optional performance.now() timestamp
+	 * @param {number} timestamp - performance.now() timestamp
 	 */
-	playToContext(ctx, timestamp = performance.now()) {
+	#renderFrame(ctx, timestamp) {
 		// Non-looping animation completed - stop rendering
 		if (this.#isFinished) {
 			return;
 		}
 		this.#advanceFrame(timestamp);
 		this.#drawToContext(ctx);
+	}
+
+	/**
+	 * Render the current animation frame and advance to the next frame if enough time has passed.
+	 * Accepts an optional timestamp (from requestAnimationFrame) to use as timing source, which
+	 * improves determinism during rendering and tests.
+	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
+	 */
+	play(timestamp = performance.now()) {
+		this.#renderFrame(this.#displayContext, timestamp);
+	}
+
+	/**
+	 * Render the current animation frame to a specific context.
+	 * Useful for off-screen rendering in multi-layer-group compositing.
+	 *
+	 * Note: This method advances the animation frame based on the timestamp.
+	 * To prevent double-advancement, ensure only one of play() or renderToContext()
+	 * is called per clip per frame with the same timestamp.
+	 *
+	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
+	 * @param {number} [timestamp] - Optional performance.now() timestamp
+	 */
+	renderToContext(ctx, timestamp = performance.now()) {
+		this.#renderFrame(ctx, timestamp);
 	}
 
 	/**
@@ -253,8 +257,8 @@ class AnimationLayer {
 	}
 
 	/**
-	 * Whether this animation is completed and won't draw anymore.
-	 * Useful for external managers or renderers to clear finished layers.
+	 * Whether this clip is completed and won't draw anymore.
+	 * Useful for external managers or renderers to clear finished clips.
 	 * @returns {boolean}
 	 */
 	get isFinished() {
@@ -262,7 +266,7 @@ class AnimationLayer {
 	}
 
 	/**
-	 * Get the bit depth for this animation (used for mask mixing)
+	 * Get the bit depth for this clip (used for mask mixing)
 	 * @returns {number|null} Bit depth (1, 2, 4, or 8) or null if not specified
 	 */
 	get bitDepth() {
@@ -270,8 +274,8 @@ class AnimationLayer {
 	}
 
 	/**
-	 * Stop the animation and optionally reset to the first frame.
-	 * Called when a MIDI note off event is received for this layer.
+	 * Stop the clip and optionally reset to the first frame.
+	 * Called when a MIDI note off event is received for this clip.
 	 */
 	stop() {
 		if (this.#retrigger) {
@@ -280,13 +284,14 @@ class AnimationLayer {
 	}
 
 	/**
-	 * Reset animation to first frame if retrigger is enabled.
-	 * Called when a MIDI note on event activates this layer.
+	 * Reset clip to first frame if retrigger is enabled.
+	 * Called when a MIDI note on event activates this clip.
 	 */
 	reset() {
-		if (this.#retrigger) {
-			this.#resetState();
+		if (!this.#retrigger && !this.#isFinished) {
+			return;
 		}
+		this.#resetState();
 	}
 
 	#resetState() {
@@ -294,6 +299,7 @@ class AnimationLayer {
 		this.#lastTime = null;
 		this.#isFinished = false;
 		this.#pulseCount = 0; // Reset clock pulse counter
+		this.#lastAdvanceTimestamp = null;
 	}
 
 	/**
@@ -306,8 +312,8 @@ class AnimationLayer {
 			this.#unsubscribeClock = null;
 		}
 		// Only clear image reference so GC can reclaim memory but leave the
-		// canvas2dContext intact. Clearing the context is a breaking change;
-		// if a layer is disposed while still referenced by the renderer, we
+		// displayContext intact. Clearing the context is a breaking change;
+		// if a clip is disposed while still referenced by the renderer, we
 		// should still allow play() to return early safely.
 		this.#image = null;
 	}
@@ -349,4 +355,4 @@ class AnimationLayer {
 	}
 }
 
-export default AnimationLayer;
+export default AnimationClip;

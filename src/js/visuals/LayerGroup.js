@@ -1,22 +1,22 @@
 /**
- * LayerGroup - Manages a group of animation slots for a layer (A, B, or C)
- * Each group can have multiple channels, each with multiple active animations
+ * LayerGroup - Manages a group of clip slots for a layer group (A, B, or C)
+ * Each group can have multiple channels, each with multiple active clips
  *
  * Compositing order within a group:
  * - Lower channel renders first (bottom)
  * - Within a channel, lower note number renders first (bottom)
  */
-import { buildVelocityCache, findVelocityLayer } from '../utils/velocityLayer.js';
+import { buildVelocityCache, resolveAnimationClip } from '../utils/velocitySelection.js';
 
 /**
- * @typedef {import('./AnimationLayer.js').default} AnimationLayer
+ * @typedef {import('./AnimationClip.js').default} AnimationClip
  */
 class LayerGroup {
 	/** @type {number[]} */
 	#channels;
 
-	/** @type {Map<number, Map<number, AnimationLayer>>} */
-	#activeLayers = new Map();
+	/** @type {Map<number, Map<number, AnimationClip>>} */
+	#activeClips = new Map();
 
 	/** @type {Object} */
 	#animations = {};
@@ -24,11 +24,11 @@ class LayerGroup {
 	/** @type {Map<number, Map<number, number[]>>} */
 	#velocityCache = new Map();
 
-	/** @type {AnimationLayer[]|null} Cached sorted active layers array */
-	#cachedActiveLayers = null;
+	/** @type {AnimationClip[]|null} Cached sorted active clips array */
+	#cachedActiveClips = null;
 
 	/** @type {boolean} Flag indicating cache needs rebuild */
-	#layersDirty = true;
+	#clipsDirty = true;
 
 	/**
 	 * Create a new LayerGroup
@@ -37,9 +37,9 @@ class LayerGroup {
 	constructor(channels) {
 		this.#channels = channels;
 
-		// Initialize active layers map for each channel
+		// Initialize active clips map for each channel
 		for (const channel of channels) {
-			this.#activeLayers.set(channel, new Map());
+			this.#activeClips.set(channel, new Map());
 		}
 	}
 
@@ -58,66 +58,58 @@ class LayerGroup {
 				this.#velocityCache.set(channel, buildVelocityCache(channelData));
 			}
 		}
+		// Mark cache dirty so the next read rebuilds from the new clip data
+		this.#clipsDirty = true;
 	}
 
 	/**
-	 * Handle MIDI note on event - activate animation layer
+	 * Handle MIDI note on event - activate clip
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
-	 * @returns {boolean} True if an animation was activated
+	 * @returns {boolean} True if a clip was activated
 	 */
 	noteOn(channel, note, velocity) {
-		const channelLayers = this.#activeLayers.get(channel);
-		if (!channelLayers) {
+		const activeClipsByNote = this.#activeClips.get(channel);
+		if (!activeClipsByNote) {
 			return false;
 		}
 
-		if (!this.#animations[channel]?.[note]) {
+		const clip = resolveAnimationClip(this.#animations[channel], note, velocity, this.#velocityCache.get(channel));
+		if (!clip) {
 			return false;
 		}
 
-		const velocities = this.#velocityCache.get(channel)?.get(note);
-		const velocityLayer = findVelocityLayer(velocities, velocity);
-		if (velocityLayer === null) {
-			return false;
+		// Stop any existing clip on this note before replacing (cleanup on rapid retriggers)
+		const existingClip = activeClipsByNote.get(note);
+		if (existingClip && existingClip !== clip) {
+			existingClip.stop();
 		}
 
-		const layer = this.#animations[channel][note][velocityLayer];
-		if (!layer) {
-			return false;
-		}
-
-		// Stop any existing layer on this note before replacing (cleanup on rapid retriggers)
-		const existing = channelLayers.get(note);
-		if (existing && existing !== layer) {
-			existing.stop();
-		}
-
-		layer.reset();
-		channelLayers.set(note, layer);
-		this.#layersDirty = true;
+		clip.reset();
+		activeClipsByNote.set(note, clip);
+		this.#clipsDirty = true;
 
 		return true;
 	}
 
 	/**
-	 * Handle MIDI note off event - deactivate animation layer
+	 * Handle MIDI note off event - deactivate clip
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
-	 * @returns {boolean} True if an animation was deactivated
+	 * @returns {boolean} True if a clip was deactivated
 	 */
 	noteOff(channel, note) {
-		const channelLayers = this.#activeLayers.get(channel);
-		if (!channelLayers) {
+		const activeClipsByNote = this.#activeClips.get(channel);
+		if (!activeClipsByNote) {
 			return false;
 		}
 
-		const layer = channelLayers.get(note);
-		if (layer) {
-			layer.stop();
-			channelLayers.delete(note);
-			this.#layersDirty = true;
+		const clip = activeClipsByNote.get(note);
+		if (clip) {
+			clip.stop();
+			activeClipsByNote.delete(note);
+			this.#clipsDirty = true;
 			return true;
 		}
 
@@ -125,64 +117,64 @@ class LayerGroup {
 	}
 
 	/**
-	 * Get all active layers for rendering, sorted by channel then note.
-	 * Results are cached and only rebuilt when layers change.
-	 * Also cleans up finished layers from the Map to prevent memory leaks.
-	 * @returns {AnimationLayer[]} Array of active animation layers
+	 * Get all active clips for rendering, sorted by channel then note.
+	 * Results are cached and only rebuilt when clips change.
+	 * Also cleans up finished clips from the Map to prevent memory leaks.
+	 * @returns {AnimationClip[]} Array of active clips
 	 */
-	getActiveLayers() {
+	getActiveClips() {
 		// Return cached array if still valid
-		if (!this.#layersDirty && this.#cachedActiveLayers !== null) {
-			// Filter out finished layers (may have finished since last cache)
-			const stillActive = this.#cachedActiveLayers.filter(layer => !layer.isFinished);
-			if (stillActive.length !== this.#cachedActiveLayers.length) {
-				this.#cachedActiveLayers = stillActive;
-				// Also clean up finished layers from the Map to prevent memory leaks
-				this.#cleanupFinishedLayers();
+		if (!this.#clipsDirty && this.#cachedActiveClips !== null) {
+			// Filter out finished clips (may have finished since last cache)
+			const stillActive = this.#cachedActiveClips.filter(clip => !clip.isFinished);
+			if (stillActive.length !== this.#cachedActiveClips.length) {
+				this.#cachedActiveClips = stillActive;
+				// Also clean up finished clips from the Map to prevent memory leaks
+				this.#cleanupFinishedClips();
 			}
-			return this.#cachedActiveLayers;
+			return this.#cachedActiveClips;
 		}
 
 		// Rebuild cache
-		const layers = [];
+		const clips = [];
 
 		// Sort channels in ascending order (lower channel = bottom)
 		const sortedChannels = [...this.#channels].sort((a, b) => a - b);
 
 		for (const channel of sortedChannels) {
-			const channelLayers = this.#activeLayers.get(channel);
-			if (!channelLayers || channelLayers.size === 0) {
+			const noteClips = this.#activeClips.get(channel);
+			if (!noteClips || noteClips.size === 0) {
 				continue;
 			}
 
 			// Sort notes in ascending order (lower note = bottom)
-			const sortedNotes = [...channelLayers.keys()].sort((a, b) => a - b);
+			const sortedNotes = [...noteClips.keys()].sort((a, b) => a - b);
 
 			for (const note of sortedNotes) {
-				const layer = channelLayers.get(note);
-				if (layer && !layer.isFinished) {
-					layers.push(layer);
+				const clip = noteClips.get(note);
+				if (clip && !clip.isFinished) {
+					clips.push(clip);
 				}
 			}
 		}
 
-		this.#cachedActiveLayers = layers;
-		this.#layersDirty = false;
-		return layers;
+		this.#cachedActiveClips = clips;
+		this.#clipsDirty = false;
+		return clips;
 	}
 
 	/**
-	 * Clean up finished layers from the activeLayers Map.
+	 * Clean up finished clips from the activeClips Map.
 	 * This prevents memory leaks by removing references to non-looping
-	 * animations that have completed playback.
+	 * clips that have completed playback.
 	 */
-	#cleanupFinishedLayers() {
+	#cleanupFinishedClips() {
 		for (const channel of this.#channels) {
-			const channelLayers = this.#activeLayers.get(channel);
-			if (channelLayers) {
-				for (const [note, layer] of channelLayers.entries()) {
-					if (layer && layer.isFinished) {
-						channelLayers.delete(note);
+			const noteClips = this.#activeClips.get(channel);
+			if (noteClips) {
+				for (const [note, clip] of noteClips.entries()) {
+					if (clip && clip.isFinished) {
+						noteClips.delete(note);
 					}
 				}
 			}
@@ -190,46 +182,48 @@ class LayerGroup {
 	}
 
 	/**
-	 * Check if the group has any active layers
+	 * Check if the group has any active clips
 	 * @returns {boolean}
 	 */
-	hasActiveLayers() {
-		for (const channelLayers of this.#activeLayers.values()) {
-			if (channelLayers.size > 0) {
-				return true;
+	hasActiveClips() {
+		for (const channelClips of this.#activeClips.values()) {
+			for (const clip of channelClips.values()) {
+				if (clip && !clip.isFinished) {
+					return true;
+				}
 			}
 		}
 		return false;
 	}
 
 	/**
-	 * Clear all active layers and stop their animations
+	 * Clear all active clips and stop their playback
 	 */
-	clearLayers() {
-		for (const channelLayers of this.#activeLayers.values()) {
-			for (const layer of channelLayers.values()) {
-				if (layer) {
-					layer.stop();
-					if (typeof layer.dispose === 'function') {
-						layer.dispose();
+	clearClips() {
+		for (const channelClips of this.#activeClips.values()) {
+			for (const clip of channelClips.values()) {
+				if (clip) {
+					clip.stop();
+					if (typeof clip.dispose === 'function') {
+						clip.dispose();
 					}
 				}
 			}
-			channelLayers.clear();
+			channelClips.clear();
 		}
-		this.#cachedActiveLayers = null;
-		this.#layersDirty = true;
+		this.#cachedActiveClips = null;
+		this.#clipsDirty = true;
 	}
 
 	/**
 	 * Destroy the layer group and release resources
 	 */
 	destroy() {
-		this.clearLayers();
+		this.clearClips();
 		this.#animations = {};
 		this.#velocityCache.clear();
-		this.#cachedActiveLayers = null;
-		this.#layersDirty = true;
+		this.#cachedActiveClips = null;
+		this.#clipsDirty = true;
 	}
 }
 

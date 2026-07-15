@@ -38,7 +38,15 @@ export default [
 			'prefer-const': 'error',
 			'no-var': 'error',
 			eqeqeq: ['error', 'always'],
-			curly: ['error', 'all']
+			curly: ['error', 'all'],
+			'no-duplicate-imports': 'error',
+			'no-throw-literal': 'error',
+			'no-return-await': 'error',
+			'no-self-compare': 'error',
+			'no-redeclare': 'error',
+			'no-unreachable': 'error',
+			'no-use-before-define': ['error', { functions: false, classes: true, variables: true }],
+			'default-case-last': 'error'
 		}
 	},
 	// Node config for build/dev tools

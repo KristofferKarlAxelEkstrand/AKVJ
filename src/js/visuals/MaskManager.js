@@ -1,29 +1,29 @@
 /**
- * MaskManager - Manages the bitmask animation for A/B layer mixing
+ * MaskManager - Manages the bitmask clip for Layer Group A and Layer Group B mixing
  *
  * Key behaviors:
  * - Only one mask can be active at a time
  * - Masks latch to the last triggered note/velocity
  * - Note-off is ignored (mask stays latched)
- * - Before first trigger, returns null (show Layer A only)
+ * - Before first trigger, returns null (show Layer Group A only)
  * - Each note = different transition type
  * - Velocity = variant/intensity of the transition
  */
 import settings from '../core/settings.js';
-import { buildVelocityCache, findVelocityLayer } from '../utils/velocityLayer.js';
+import { buildVelocityCache, resolveAnimationClip } from '../utils/velocitySelection.js';
 
 /**
- * @typedef {import('./AnimationLayer.js').default} AnimationLayer
+ * @typedef {import('./AnimationClip.js').default} AnimationClip
  */
 class MaskManager {
-	/** @type {AnimationLayer|null} */
+	/** @type {AnimationClip|null} */
 	#currentMask = null;
 
 	/** @type {number|null} */
 	#currentBitDepth = null;
 
 	/** @type {Object} */
-	#maskAnimations = {};
+	#maskClips = {};
 
 	/** @type {Map<number, number[]>} */
 	#velocityCache = new Map();
@@ -32,13 +32,13 @@ class MaskManager {
 	#mixerChannel = settings.channelMapping.mixer;
 
 	/**
-	 * Set the loaded mask animations
-	 * @param {Object} animations - All animation data keyed by channel/note/velocity
+	 * Set the loaded mask clips
+	 * @param {Object} animations - All clip data keyed by channel/note/velocity
 	 */
 	setAnimations(animations) {
 		const mixerData = animations[this.#mixerChannel];
-		this.#maskAnimations = mixerData || {};
-		this.#velocityCache = buildVelocityCache(this.#maskAnimations);
+		this.#maskClips = mixerData || {};
+		this.#velocityCache = buildVelocityCache(this.#maskClips);
 	}
 
 	/**
@@ -62,35 +62,22 @@ class MaskManager {
 			return false;
 		}
 
-		const velocities = this.#velocityCache.get(note);
-		const velocityLayer = findVelocityLayer(velocities, velocity);
-		if (velocityLayer === null) {
-			return false;
-		}
-
-		const maskData = this.#maskAnimations[note]?.[velocityLayer];
-		if (!maskData) {
-			return false;
-		}
-
-		// Get the AnimationLayer from the mask data
-		// The mask data structure matches animations - it has the layer directly
-		const layer = maskData;
-		if (!layer || typeof layer.reset !== 'function') {
+		const clip = resolveAnimationClip(this.#maskClips, note, velocity, this.#velocityCache);
+		if (!clip || typeof clip.reset !== 'function') {
 			return false;
 		}
 
 		// Stop and cleanup previous mask if different
-		if (this.#currentMask && this.#currentMask !== layer) {
+		if (this.#currentMask && this.#currentMask !== clip) {
 			this.#currentMask.stop();
 		}
 
 		// Set new mask
-		this.#currentMask = layer;
-		// Get bitDepth from animation layer (defaults to 1-bit for crisp B&W masks)
-		this.#currentBitDepth = layer.bitDepth ?? 1;
+		this.#currentMask = clip;
+		// Get bitDepth from clip (defaults to 1-bit for crisp B&W masks)
+		this.#currentBitDepth = clip.bitDepth ?? 1;
 
-		// Reset the mask animation
+		// Reset the mask clip
 		this.#currentMask.reset();
 
 		return true;
@@ -109,8 +96,8 @@ class MaskManager {
 	}
 
 	/**
-	 * Get the current active mask layer
-	 * @returns {AnimationLayer|null} Current mask or null if no mask triggered yet
+	 * Get the current active mask clip
+	 * @returns {AnimationClip|null} Current mask or null if no mask triggered yet
 	 */
 	getCurrentMask() {
 		return this.#currentMask;
@@ -150,7 +137,7 @@ class MaskManager {
 	 */
 	destroy() {
 		this.clear();
-		this.#maskAnimations = {};
+		this.#maskClips = {};
 		this.#velocityCache.clear();
 	}
 }

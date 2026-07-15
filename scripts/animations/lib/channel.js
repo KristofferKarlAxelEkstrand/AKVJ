@@ -7,13 +7,22 @@
  * This module provides conversion functions for the animation build pipeline.
  */
 
+const MIN_SOURCE_CHANNEL = 1;
+const MAX_SOURCE_CHANNEL = 16;
+const MIN_CODE_CHANNEL = 0;
+const MAX_CODE_CHANNEL = 15;
+
 /**
  * Convert source channel number (1-16) to code channel (0-15).
  * @param {string|number} sourceChannel - Channel from source folder (1-16)
  * @returns {number} Code channel (0-15)
+ * @throws {Error} If sourceChannel is outside the 1-16 range
  */
 export function toCodeChannel(sourceChannel) {
 	const num = typeof sourceChannel === 'string' ? parseInt(sourceChannel, 10) : sourceChannel;
+	if (!Number.isFinite(num) || num < MIN_SOURCE_CHANNEL || num > MAX_SOURCE_CHANNEL) {
+		throw new Error(`Invalid source channel "${sourceChannel}". Expected ${MIN_SOURCE_CHANNEL}-${MAX_SOURCE_CHANNEL}.`);
+	}
 	return num - 1;
 }
 
@@ -21,8 +30,12 @@ export function toCodeChannel(sourceChannel) {
  * Convert code channel (0-15) to source channel (1-16).
  * @param {number} codeChannel - Code channel (0-15)
  * @returns {number} Source channel (1-16)
+ * @throws {Error} If codeChannel is outside the 0-15 range
  */
 export function toSourceChannel(codeChannel) {
+	if (!Number.isFinite(codeChannel) || codeChannel < MIN_CODE_CHANNEL || codeChannel > MAX_CODE_CHANNEL) {
+		throw new Error(`Invalid code channel "${codeChannel}". Expected ${MIN_CODE_CHANNEL}-${MAX_CODE_CHANNEL}.`);
+	}
 	return codeChannel + 1;
 }
 

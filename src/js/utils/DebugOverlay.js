@@ -46,6 +46,7 @@ class DebugOverlay {
 	#applyStyles() {
 		// Check if style already exists (e.g., from HMR)
 		if (document.getElementById('debug-overlay-styles')) {
+			this.#styleElement = document.getElementById('debug-overlay-styles');
 			return;
 		}
 		const style = document.createElement('style');
@@ -114,9 +115,10 @@ class DebugOverlay {
 
 	#handleKeydown(e) {
 		if (e.key === 'd' || e.key === 'D') {
-			// Don't toggle if user is typing in an input
-			const targetTag = e.target?.tagName?.toUpperCase();
-			if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') {
+			// Don't toggle if user is typing in an input or contenteditable element
+			const target = e.target;
+			const targetTag = target?.tagName?.toUpperCase();
+			if (targetTag === 'INPUT' || targetTag === 'TEXTAREA' || target?.isContentEditable) {
 				return;
 			}
 			this.#visible = !this.#visible;
