@@ -1,9 +1,9 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import AnimationClip from '../src/js/visuals/AnimationClip.js';
+import Clip from '../src/js/visuals/Clip.js';
 
 /**
  * Create a minimal mock canvas 2D context (drawImage only).
- * Distinct from test/utils/renderer-fixture.js's createMockContext/createMockCanvasContext —
+ * Distinct from test/utils/rendererFixture.js's createMockContext/createMockCanvasContext —
  * this file only needs drawImage, so it keeps its own local, differently-shaped mock.
  */
 function createMockDrawContext() {
@@ -20,7 +20,7 @@ function createMockImage(width = 240, height = 135) {
 }
 
 /**
- * Default options for creating an AnimationClip
+ * Default options for creating an Clip
  */
 function defaultOptions(overrides = {}) {
 	return {
@@ -35,7 +35,7 @@ function defaultOptions(overrides = {}) {
 	};
 }
 
-describe('AnimationClip', () => {
+describe('Clip', () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
 	});
@@ -47,7 +47,7 @@ describe('AnimationClip', () => {
 		// Use a frameDuration that maps to 1 pulse per frame (1/PPQN beats)
 		const beatsPerFrame = 1 / 24; // 1 pulse when PPQN=24
 
-		const clip = new AnimationClip(
+		const clip = new Clip(
 			defaultOptions({
 				displayContext: ctx,
 				numberOfFrames: 2,
@@ -74,7 +74,7 @@ describe('AnimationClip', () => {
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
 		// Dispose the clip (should unsubscribe from clock)
-		clip.dispose();
+		clip.destroy();
 
 		// Another pulse should NOT advance the frame further
 		appState.dispatchMIDIClock(200);
@@ -99,7 +99,7 @@ describe('AnimationClip', () => {
 
 		// numberOfFrames = 3, framesPerRow = 3
 		// Provide a frameDurationBeats array with explicit per-frame values
-		const clip = new AnimationClip({
+		const clip = new Clip({
 			displayContext: ctx,
 			image,
 			numberOfFrames: 3,
@@ -123,7 +123,7 @@ describe('AnimationClip', () => {
 		// If frameDurationBeats array length doesn't match numberOfFrames, constructor should throw
 		expect(
 			() =>
-				new AnimationClip({
+				new Clip({
 					displayContext: ctx,
 					image,
 					numberOfFrames: 4,
@@ -136,26 +136,26 @@ describe('AnimationClip', () => {
 
 	describe('constructor', () => {
 		test('throws if numberOfFrames is missing or less than 1', () => {
-			expect(() => new AnimationClip(defaultOptions({ numberOfFrames: 0 }))).toThrow('AnimationClip requires numberOfFrames >= 1');
-			expect(() => new AnimationClip(defaultOptions({ numberOfFrames: undefined }))).toThrow('AnimationClip requires numberOfFrames >= 1');
+			expect(() => new Clip(defaultOptions({ numberOfFrames: 0 }))).toThrow('Clip requires numberOfFrames >= 1');
+			expect(() => new Clip(defaultOptions({ numberOfFrames: undefined }))).toThrow('Clip requires numberOfFrames >= 1');
 		});
 
 		test('throws if framesPerRow is missing or less than 1', () => {
-			expect(() => new AnimationClip(defaultOptions({ framesPerRow: 0 }))).toThrow('AnimationClip requires framesPerRow >= 1');
+			expect(() => new Clip(defaultOptions({ framesPerRow: 0 }))).toThrow('Clip requires framesPerRow >= 1');
 		});
 
 		test('throws if image dimensions result in invalid frame size', () => {
-			expect(() => new AnimationClip(defaultOptions({ image: { width: 0, height: 135 } }))).toThrow('AnimationClip: Invalid image dimensions');
+			expect(() => new Clip(defaultOptions({ image: { width: 0, height: 135 } }))).toThrow('Clip: Invalid image dimensions');
 		});
 
 		test('creates successfully with valid options', () => {
-			const clip = new AnimationClip(defaultOptions());
-			expect(clip).toBeInstanceOf(AnimationClip);
+			const clip = new Clip(defaultOptions());
+			expect(clip).toBeInstanceOf(Clip);
 		});
 
 		test('filters invalid frame rates and logs warnings', () => {
 			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-			new AnimationClip(defaultOptions({ frameRatesForFrames: { 0: -1, 1: 0, 2: 'invalid', 3: 60 } }));
+			new Clip(defaultOptions({ frameRatesForFrames: { 0: -1, 1: 0, 2: 'invalid', 3: 60 } }));
 			// Should have logged a warning for the three invalid values
 			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
 			consoleWarnSpy.mockRestore();
@@ -165,7 +165,7 @@ describe('AnimationClip', () => {
 			const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
 			// Keys: '-1' (negative), '999' (>= numberOfFrames), '1.5' (non-integer)
-			new AnimationClip(defaultOptions({ frameRatesForFrames: { '-1': 10, 999: 20, 1.5: 30, 1: 60 } }));
+			new Clip(defaultOptions({ frameRatesForFrames: { '-1': 10, 999: 20, 1.5: 30, 1: 60 } }));
 
 			// Three invalid keys should have caused warnings
 			expect(consoleWarnSpy).toHaveBeenCalledTimes(3);
@@ -177,7 +177,7 @@ describe('AnimationClip', () => {
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
 
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
 			// Play once at t=0
 			clip.play();
 			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
@@ -192,7 +192,7 @@ describe('AnimationClip', () => {
 		test('coerces numeric string keys to numeric indices', () => {
 			const ctx = createMockDrawContext();
 			// Use string keys to ensure coercion happens (JSON always parses keys as strings)
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			clip.play(0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
@@ -206,7 +206,7 @@ describe('AnimationClip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// Set frame rate so interval is 1ms for easy testing
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, numberOfFrames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
 			clip.play();
@@ -222,9 +222,9 @@ describe('AnimationClip', () => {
 
 		test('returns early if image is null (after dispose)', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx }));
 
-			clip.dispose();
+			clip.destroy();
 			clip.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
@@ -233,13 +233,13 @@ describe('AnimationClip', () => {
 		test('returns early if displayContext is null', () => {
 			// Creating a clip with a null canvas context should return early
 			// (no errors and no drawing occurs).
-			const clipWithNullCtx = new AnimationClip(defaultOptions({ displayContext: null }));
+			const clipWithNullCtx = new Clip(defaultOptions({ displayContext: null }));
 			expect(() => clipWithNullCtx.play()).not.toThrow();
 		});
 
 		test('draws frame 0 on first play call without skipping', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 4,
@@ -260,7 +260,7 @@ describe('AnimationClip', () => {
 
 		test('does not advance frame until interval has passed', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 4,
@@ -288,7 +288,7 @@ describe('AnimationClip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// Set a low FPS so interval is large for easy testing (10 fps = 100ms)
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, numberOfFrames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, numberOfFrames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
 			clip.play();
@@ -315,7 +315,7 @@ describe('AnimationClip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// frame 0 = 10fps (100ms), frame 1 = 20fps (50ms) so 130ms should advance 1 frame
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, numberOfFrames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, numberOfFrames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
 			mockNow.mockReturnValue(0);
 			clip.play();
 			mockNow.mockReturnValue(130);
@@ -327,9 +327,9 @@ describe('AnimationClip', () => {
 			mockNow.mockRestore();
 		});
 
-		test('stops rendering non-looping animation after last frame', () => {
+		test('stops rendering non-looping clip after last frame', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 2,
@@ -366,7 +366,7 @@ describe('AnimationClip', () => {
 
 		test('wraps back to frame 0 when looping is enabled', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 2,
@@ -394,7 +394,7 @@ describe('AnimationClip', () => {
 	describe('stop()', () => {
 		test('resets state when retrigger is enabled', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, retrigger: true }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -418,7 +418,7 @@ describe('AnimationClip', () => {
 	describe('reset()', () => {
 		test('resets to frame 0 when retrigger is enabled', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx, retrigger: true }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx, retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -438,7 +438,7 @@ describe('AnimationClip', () => {
 
 		test('restarts a finished non-retrigger clip so it can play again', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					retrigger: false,
@@ -469,7 +469,7 @@ describe('AnimationClip', () => {
 
 		test('does not restart a non-retrigger clip mid-playback', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					retrigger: false,
@@ -499,13 +499,13 @@ describe('AnimationClip', () => {
 	describe('dispose()', () => {
 		test('clears image reference', () => {
 			const ctx = createMockDrawContext();
-			const clip = new AnimationClip(defaultOptions({ displayContext: ctx }));
+			const clip = new Clip(defaultOptions({ displayContext: ctx }));
 
 			clip.play();
 			expect(ctx.drawImage).toHaveBeenCalled();
 
 			ctx.drawImage.mockClear();
-			clip.dispose();
+			clip.destroy();
 			clip.play();
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
@@ -519,7 +519,7 @@ describe('AnimationClip', () => {
 			const appState = (await import('../src/js/core/AppState.js')).default;
 			appState.bpm = 120; // 120 BPM
 
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 4,
@@ -547,7 +547,7 @@ describe('AnimationClip', () => {
 			const appState = (await import('../src/js/core/AppState.js')).default;
 			appState.bpm = 120; // 120 BPM
 
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 4,
@@ -575,7 +575,7 @@ describe('AnimationClip', () => {
 			const appState = (await import('../src/js/core/AppState.js')).default;
 			appState.bpm = 60; // Start at 60 BPM (0.5 beat = 500ms)
 
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 4,
@@ -601,7 +601,7 @@ describe('AnimationClip', () => {
 
 			expect(
 				() =>
-					new AnimationClip(
+					new Clip(
 						defaultOptions({
 							displayContext: ctx,
 							numberOfFrames: 2,
@@ -618,7 +618,7 @@ describe('AnimationClip', () => {
 			const appState = (await import('../src/js/core/AppState.js')).default;
 			appState.bpm = 120;
 
-			const clip = new AnimationClip(
+			const clip = new Clip(
 				defaultOptions({
 					displayContext: ctx,
 					numberOfFrames: 2,

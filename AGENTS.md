@@ -17,7 +17,7 @@ When assigned a task for this repository:
 
 **Well-suited:**
 
-- Bug fixes in MIDI handling, canvas rendering, or animation loading
+- Bug fixes in MIDI handling, canvas rendering, or clip loading
 - Performance optimizations for real-time rendering
 - Code refactoring while maintaining vanilla JavaScript architecture
 - Documentation updates and code comments
@@ -51,7 +51,7 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 - **60fps rendering** - Never introduce blocking operations in the render loop
 - **<20ms MIDI latency** - MIDI input to visual output must be near-instant
-- **Memory efficiency** - Properly clean up animation resources
+- **Memory efficiency** - Properly clean up clip resources
 
 ### Architecture Rules
 
@@ -68,32 +68,32 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 | `src/js/visuals/Renderer.js`             | 60fps canvas rendering with layer group compositing         |
 | `src/js/visuals/LayerManager.js`         | Coordinates layer groups, mask, and effects                 |
 | `src/js/visuals/LayerGroup.js`           | Clip slots per layer group (A, B, C)                        |
-| `src/js/visuals/AnimationLoader.js`      | Sprite and metadata loading                                 |
-| `src/js/visuals/AnimationClip.js`        | Animation playback (FPS or BPM sync)                        |
+| `src/js/visuals/ClipLoader.js`           | Sprite and metadata loading                                 |
+| `src/js/visuals/Clip.js`                 | Clip playback (FPS or BPM sync)                             |
 | `src/js/visuals/MaskManager.js`          | B&W bitmask for Layer Group A and Layer Group B crossfading |
 | `src/js/visuals/EffectsManager.js`       | Visual effects (split, mirror, glitch)                      |
 | `src/js/core/AppState.js`                | Event-based state management (EventTarget)                  |
 | `src/js/core/settings.js`                | Centralized configuration (canvas, MIDI, FX)                |
 | `src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)                    |
 | `src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)                         |
-| `src/js/utils/velocitySelection.js`      | Velocity-based animation selection utilities                |
+| `src/js/utils/velocitySelection.js`      | Velocity-based clip selection utilities                     |
 
 ## Common Commands
 
 ```bash
 npm run dev              # Start development server (localhost:5173)
 npm run build            # Production build (<1 second)
-npm run build:full       # Rebuild animations + production build
+npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
 npm run test             # Run unit tests with Vitest
 npm run lint             # Check code quality
 npm run lint:fix         # Auto-fix lint issues
 npm run format:prettier  # Format JS/JSON/Markdown
 npm run format:stylelint # Format & lint CSS
-npm run animations       # Full animation pipeline (validate, optimize, generate, copy)
-npm run animations:watch # Watch mode for animation changes
-npm run animations:clean # Remove cache and generated output
-npm run animations:new   # Scaffold new animation (requires channel/note/velocity args)
+npm run clips            # Full clip pipeline (validate, optimize, generate, copy)
+npm run clips:watch      # Watch mode for clip changes
+npm run clips:clean      # Remove cache and generated output
+npm run clips:new        # Scaffold new clip (requires channel/note/velocity args)
 ```
 
 ## MIDI Mapping
@@ -114,10 +114,10 @@ Channels shown as displayed in DAWs (1-16). Source folders use 1-16; the build p
 
 ### Note/Velocity
 
-- **Note (0-127)** → Animation selection
+- **Note (0-127)** → Clip selection
 - **Velocity (0-127)** → Velocity variant/intensity
 
-## Animation Metadata
+## Clip Metadata
 
 Key fields in `meta.json`:
 
@@ -132,15 +132,15 @@ Key fields in `meta.json`:
 | `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame) |
 | `bitDepth`            | number       | For masks: 1, 2, 4, or 8            |
 
-## Animation Structure
+## Clip Structure
 
-Source animations live in `animations/` (build pipeline copies to `src/public/animations/`):
+Source clips live in `clips/` (build pipeline copies to `src/public/clips/`):
 
 > **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code output.
 
 ```
-animations/{channel}/{note}/{velocity}/
-  ├── meta.json       # Animation metadata
+clips/{channel}/{note}/{velocity}/
+  ├── meta.json       # Clip metadata
   └── sprite.png      # Sprite sheet
 ```
 
@@ -151,7 +151,7 @@ animations/{channel}/{note}/{velocity}/
 - **Private fields**: `#fieldName` for all internal state
 - **Private methods**: `#methodName()` for internal logic
 - **Modern syntax**: `for...of`, `?.`, `??`, `??=`, `.at(-1)`, `flatMap()`
-- **Timing**: Use `performance.now()` for animation timing, not `Date.now()`
+- **Timing**: Use `performance.now()` for clip timing, not `Date.now()`
 - **Bound handlers**: Cache bound methods for event listeners (e.g., `#boundHandleMIDIMessage`)
 - **Named constants**: Extract magic numbers to descriptive constants
 - **Use `const` over `let`** where possible
@@ -210,41 +210,41 @@ if (import.meta.hot) {
 
 ## Build Scripts
 
-| File                                           | Purpose                                             |
-| ---------------------------------------------- | --------------------------------------------------- |
-| `scripts/animations/index.js`                  | CLI entry point (args, help, watch mode)            |
-| `scripts/animations/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy) |
-| `scripts/animations/new.js`                    | Scaffold new animation meta.json                    |
-| `scripts/animations/spritesheet.js`            | Sprite sheet utilities                              |
-| `scripts/animations/lib/validate.js`           | Re-export shim for `lib/validate/`                  |
-| `scripts/animations/lib/validate/index.js`     | Validation scan loop and per-animation checks       |
-| `scripts/animations/lib/validate/meta.js`      | Metadata field validation                           |
-| `scripts/animations/lib/validate/image.js`     | Image dimension validation (sharp)                  |
-| `scripts/animations/lib/validate/structure.js` | Folder/file structure helpers                       |
-| `scripts/animations/lib/optimize.js`           | PNG optimization with sharp                         |
-| `scripts/animations/lib/generate.js`           | Generate animations.json                            |
-| `scripts/animations/lib/copy.js`               | Sync to public folder                               |
-| `scripts/animations/lib/hash.js`               | File hashing for cache invalidation                 |
-| `scripts/animations/lib/channel.js`            | Channel mapping (1-16 source to 0-15 code)          |
+| File                                      | Purpose                                             |
+| ----------------------------------------- | --------------------------------------------------- |
+| `scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)            |
+| `scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy) |
+| `scripts/clips/new.js`                    | Scaffold new clip meta.json                         |
+| `scripts/clips/spritesheet.js`            | Sprite sheet utilities                              |
+| `scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                  |
+| `scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks            |
+| `scripts/clips/lib/validate/meta.js`      | Metadata field validation                           |
+| `scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                  |
+| `scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                       |
+| `scripts/clips/lib/optimize.js`           | PNG optimization with sharp                         |
+| `scripts/clips/lib/generate.js`           | Generate clips.json                                 |
+| `scripts/clips/lib/copy.js`               | Sync to public folder                               |
+| `scripts/clips/lib/hash.js`               | File hashing for cache invalidation                 |
+| `scripts/clips/lib/channel.js`            | Channel mapping (1-16 source to 0-15 code)          |
 
 ## Test Structure
 
-| Test File                        | Coverage                           |
-| -------------------------------- | ---------------------------------- |
-| `test/AnimationClip.test.js`     | Frame timing, BPM sync, disposal   |
-| `test/AnimationLoader.test.js`   | Image loading, path sanitization   |
-| `test/Renderer.test.js`          | Canvas compositing, effects        |
-| `test/Renderer.strobe.test.js`   | Strobe effect timing               |
-| `test/velocitySelection.test.js` | Velocity-based animation selection |
-| `test/LayerManager.test.js`      | Layer group coordination           |
-| `test/integration.test.js`       | Full MIDI to visual pipeline       |
-| `test/AppState.test.js`          | Event dispatching                  |
-| `test/midi.test.js`              | MIDI message handling              |
-| `test/validate-extended.test.js` | Animation metadata validation      |
-| `test/generate.test.js`          | animations.json generation         |
-| `test/pipeline.test.js`          | Build pipeline                     |
-| `test/new.test.js`               | Animation scaffolding              |
-| `test/visual/canvas.test.js`     | Visual regression (browser mode)   |
+| Test File                        | Coverage                         |
+| -------------------------------- | -------------------------------- |
+| `test/Clip.test.js`              | Frame timing, BPM sync, disposal |
+| `test/ClipLoader.test.js`        | Image loading, path sanitization |
+| `test/Renderer.test.js`          | Canvas compositing, effects      |
+| `test/Renderer.strobe.test.js`   | Strobe effect timing             |
+| `test/velocitySelection.test.js` | Velocity-based clip selection    |
+| `test/LayerManager.test.js`      | Layer group coordination         |
+| `test/integration.test.js`       | Full MIDI to visual pipeline     |
+| `test/AppState.test.js`          | Event dispatching                |
+| `test/midi.test.js`              | MIDI message handling            |
+| `test/validate-extended.test.js` | Clip metadata validation         |
+| `test/generate.test.js`          | clips.json generation            |
+| `test/pipeline.test.js`          | Build pipeline                   |
+| `test/new.test.js`               | Clip scaffolding                 |
+| `test/visual/canvas.test.js`     | Visual regression (browser mode) |
 
 ### Visual Regression Tests
 
@@ -255,7 +255,7 @@ Visual tests run in **real Chromium** via Vitest browser mode with `@vitest/brow
 - **Update references**: `npm run test:visual:update`
 - **Reference screenshots**: `test/visual/__screenshots__/` (committed to git, ~7KB total)
 - **Diff images**: `test/visual/__diffs__/` (gitignored, generated on failure)
-- **Mock visuals**: `test/visual/helpers/visualTestHelpers.js` provides deterministic canvas drawing utilities, mock animation clips, and a mock `LayerManager`
+- **Mock visuals**: `test/visual/helpers/visualTestHelpers.js` provides deterministic canvas drawing utilities, mock clips, and a mock `LayerManager`
 
 Tests cover all 4 mask bit depths (1/2/4/8-bit), all 6 effect types (color, mirror, split, offset, glitch, strobe), effect stacking, layer group passthrough, and edge cases. Deterministic rendering is ensured by mocking `Math.random` for glitch and using controlled pixel patterns.
 
@@ -272,7 +272,7 @@ Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync sym
 
 ## Security & Boundaries
 
-- **Never hand-edit `src/public/animations/`** — it's fully generated by `npm run animations` from source files in `animations/` and will be silently overwritten on the next build.
+- **Never hand-edit `src/public/clips/`** — it's fully generated by `npm run clips` from source files in `clips/` and will be silently overwritten on the next build.
 - **Never commit `.env` files or MIDI-device-specific local config.**
 - Commit conventions and the PR workflow live in [CONTRIBUTING.md](CONTRIBUTING.md) — don't duplicate them here.
 
@@ -284,7 +284,7 @@ After making changes, always verify:
 2. `npm run test` - All unit tests pass (jsdom)
 3. `npm run test:visual` - All visual regression tests pass (Chromium)
 4. `npm run build` - Builds successfully
-5. Browser console - No errors, "JSON for animations loaded" message
+5. Browser console - No errors, "JSON for clips loaded" message
 6. Manual test in Chrome/Chromium
 
 ## Developer workflow
@@ -328,9 +328,9 @@ Common issues and steps to investigate:
     - Check `navigator.requestMIDIAccess` in the console and ensure you have granted permission.
     - Verify MIDI device is connected. Use `getConnectedDevices()` from the `midi` singleton to list device names.
 
-- Black canvas or animations not loading
-    - Confirm `src/public/animations/animations.json` exists and was generated: `npm run animations`.
-    - Look for the console message: "JSON for animations loaded".
+- Black canvas or clips not loading
+    - Confirm `src/public/clips/clips.json` exists and was generated: `npm run clips`.
+    - Look for the console message: "JSON for clips loaded".
     - Verify the build step was successful and static assets are present.
 
 - MIDI input not triggering visuals
@@ -340,7 +340,7 @@ Common issues and steps to investigate:
 
 - Performance issues / dropped frames
     - Confirm you are not running CPU-heavy work in the render loop. Keep 60fps by profiling canvas draw operations.
-    - Monitor memory usage and remove unused animation clips via `LayerManager` to reduce memory churn.
+    - Monitor memory usage and remove unused clips via `LayerManager` to reduce memory churn.
 
 - Prettier/ESLint failing in CI
     - Locally run `npm run format:prettier` and `npm run lint:fix` to auto-correct style issues.
@@ -392,7 +392,7 @@ This project includes a `.devcontainer/devcontainer.json` for use with VS Code D
 - **All code editing, linting, and formatting** — ESLint, Prettier, Stylelint run natively
 - **Unit tests** — Vitest with jsdom environment runs fully in-container
 - **Production builds** — `npm run build` and `npm run build:full` work (sharp has prebuilt binaries for linux-x64)
-- **Animation pipeline** — `npm run animations` (validate, optimize, generate, copy) works fully
+- **Clip pipeline** — `npm run clips` (validate, optimize, generate, copy) works fully
 - **Git operations** — Commit, branch, push (see Git push troubleshooting above for token issues)
 - **HMR / file watching** — Vite polling is auto-enabled via env var detection in `vite.config.js`
 
@@ -434,22 +434,22 @@ Access the dev server from the host at `http://localhost:5173`.
 #### Lifecycle Commands
 
 - **`postCreateCommand`**: Runs `npm install` automatically after container creation
-- **`postStartCommand`**: Validates animation metadata on each start (non-blocking)
+- **`postStartCommand`**: Validates clip metadata on each start (non-blocking)
 
 #### Resource Requirements
 
-The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image processing library (used in the animation pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
+The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image processing library (used in the clip pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
 
 ### Best Practices for AI Agents in the Container
 
 1. **Never assume MIDI works** — When testing, use the fake MIDI utilities in `test/utils/fake-midi.js` rather than expecting real hardware
 2. **Run validation commands, not browser tests** — Use `npm run lint && npm run test && npm run build` to validate changes. Do not attempt to launch a browser.
-3. **Use `npm run animations` for animation changes** — The full pipeline (validate, optimize, generate, copy) works in-container
+3. **Use `npm run clips` for clip changes** — The full pipeline (validate, optimize, generate, copy) works in-container
 4. **Be patient with `npm install`** — The first install takes ~13 seconds. `sharp` downloads prebuilt binaries; no native compilation needed.
 5. **Check env vars before debugging file watching** — If HMR seems broken, first check `echo $REMOTE_CONTAINERS` and verify polling is enabled
 6. **Node version** — The container uses Node 22 (via `javascript-node:4-22-bookworm`). CI uses Node 20. Code must be compatible with both.
 7. **Don't install Chrome in the container** — It adds significant image size. Instead, use port forwarding to test from the host browser.
-8. **Use `concurrently` output** — `npm run dev` runs both Vite and the animation watcher concurrently. Check both output streams for errors.
+8. **Use `concurrently` output** — `npm run dev` runs both Vite and the clip watcher concurrently. Check both output streams for errors.
 
 ### Container vs Host Development
 
@@ -459,7 +459,7 @@ The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image pr
 | Lint / format            | ✅          | ✅                        |
 | Unit tests               | ✅          | ✅                        |
 | Build                    | ✅          | ✅                        |
-| Animation pipeline       | ✅          | ✅                        |
+| Clip pipeline            | ✅          | ✅                        |
 | MIDI testing             | ❌          | ✅ (Chrome + MIDI device) |
 | Visual / browser testing | ❌          | ✅ (Chrome required)      |
 | Performance profiling    | ⚠️ (no GPU) | ✅                        |
@@ -477,7 +477,7 @@ The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image pr
     - Fallback: `CHOKIDAR_USEPOLLING=true npm run dev`
     - On WSL2: keep the repo inside the Linux filesystem, not on a Windows mount
 
-- **`sharp` errors during animation pipeline**
+- **`sharp` errors during clip pipeline**
     - Ensure sufficient memory (minimum 4 GB)
     - `sharp` uses prebuilt binaries for linux-x64; if missing, run `npm rebuild sharp`
 

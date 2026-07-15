@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { hashFile, writeHashFile, isCacheValid } from './hash.js';
 import { toCodePath, BITMASK_CHANNEL_SOURCE } from './channel.js';
+import { copyFileWithFallback } from './fsUtils.js';
 
 /**
  * Valid bit depth values for grayscale conversion.
@@ -138,19 +139,19 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 	let optimizedSize = originalSize;
 
 	if (sharp) {
-		// Try palette optimization first and ensure temp cleanup
-		const tempPath = cachePath + '.tmp';
-		let tempExists = false;
+		// Try palette optimization first and ensure temporary file cleanup
+		const tempFilePath = cachePath + '.tmp';
+		let tempFileExists = false;
 		let cleanupNeeded = false;
 		try {
 			let pipeline = sharp(sourcePath);
 			pipeline = applyBitDepthPipeline(pipeline, bitDepth);
 
-			await pipeline.toFile(tempPath);
-			tempExists = true;
+			await pipeline.toFile(tempFilePath);
+			tempFileExists = true;
 			cleanupNeeded = true;
 
-			const tempStats = await fs.stat(tempPath);
+			const tempStats = await fs.stat(tempFilePath);
 
 			// When converting to bit depth we prioritize correctness; warn if size increased dramatically
 			if (bitDepth !== null && tempStats.size > originalSize * 1.5) {
@@ -160,26 +161,26 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 			// For bit depth conversions, always use the converted version (correctness over size)
 			// For regular images, only keep optimized version if it's smaller
 			if (bitDepth !== null || tempStats.size < originalSize) {
-				await fs.rename(tempPath, cachePath);
+				await fs.rename(tempFilePath, cachePath);
 				optimizedSize = tempStats.size;
 				cleanupNeeded = false;
 			} else {
 				// Original is smaller, just copy it
-				await fs.unlink(tempPath);
+				await fs.unlink(tempFilePath);
 				cleanupNeeded = false;
-				await fs.copyFile(sourcePath, cachePath);
+				await copyFileWithFallback(sourcePath, cachePath);
 			}
 		} catch (err) {
-			// If optimization fails, ensure temp cleanup and copy original
+			// If optimization fails, ensure temporary file cleanup and copy original
 			try {
-				if (tempExists && cleanupNeeded) {
-					await fs.unlink(tempPath);
+				if (tempFileExists && cleanupNeeded) {
+					await fs.unlink(tempFilePath);
 				}
 			} catch {
 				// Ignore cleanup errors
 			}
 			try {
-				await fs.copyFile(sourcePath, cachePath);
+				await copyFileWithFallback(sourcePath, cachePath);
 			} catch (copyErr) {
 				// If copying fails, rethrow optimization error with additional context
 				throw new Error(`optimize error: ${err instanceof Error ? err.message : String(err)}; copy failed: ${copyErr instanceof Error ? copyErr.message : String(copyErr)}`, {
@@ -193,7 +194,7 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 		}
 	} else {
 		// No sharp available, just copy
-		await fs.copyFile(sourcePath, cachePath);
+		await copyFileWithFallback(sourcePath, cachePath);
 	}
 
 	// Write hash sidecar based on the cached file we just wrote (avoids a race where source may change)
@@ -273,7 +274,7 @@ export async function optimize(clips, cacheDir) {
 				const srcJson = path.join(clip.dir, file);
 				const destJson = path.join(cacheDir, codePath, file);
 				await fs.mkdir(path.dirname(destJson), { recursive: true });
-				await fs.copyFile(srcJson, destJson);
+				await copyFileWithFallback(srcJson, destJson);
 			}
 		}
 	}

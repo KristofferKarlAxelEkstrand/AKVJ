@@ -1,7 +1,7 @@
 import defaultSettings from './settings.js';
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
-const EVENT_ANIMATIONS_LOADED_CHANGED = 'animationsLoadedChanged';
+const EVENT_CLIPS_LOADED_CHANGED = 'clipsLoadedChanged';
 const EVENT_BPM_CHANGED = 'bpmChanged';
 const EVENT_BPM_SOURCE_CHANGED = 'bpmSourceChanged';
 const EVENT_MIDI_NOTE_ON = 'midiNoteOn';
@@ -16,6 +16,8 @@ const BPM_SOURCE_DEFAULT = 'default';
 const BPM_SOURCE_MANUAL = 'manual';
 const BPM_SOURCE_CLOCK = 'clock';
 const BPM_SOURCE_CC = 'cc';
+const MAX_MIDI_VALUE = 127;
+const MIN_CLOCK_INTERVALS_FOR_BPM = 6;
 
 /**
  * AppState - Event-based state management for AKVJ
@@ -28,8 +30,8 @@ const BPM_SOURCE_CC = 'cc';
  */
 class AppState extends EventTarget {
 	#settings;
-	#midiConnected = false;
-	#animationsLoaded = false;
+	#isMidiConnected = false;
+	#isClipsLoaded = false;
 
 	// BPM state
 	#currentBPM;
@@ -54,10 +56,10 @@ class AppState extends EventTarget {
 	 * @param {number} ccValue - CC value (0-127)
 	 * @returns {number} BPM value within configured min/max range
 	 */
-	#ccToBPM(ccValue) {
+	#convertCCToBPM(ccValue) {
 		const { min, max } = this.#settings.bpm;
 		const range = max - min;
-		return min + (ccValue / 127) * range;
+		return min + (ccValue / MAX_MIDI_VALUE) * range;
 	}
 
 	#dispatchStateEvent(eventName, detail) {
@@ -70,25 +72,25 @@ class AppState extends EventTarget {
 	}
 
 	set midiConnected(connected) {
-		if (this.#midiConnected !== connected) {
-			this.#midiConnected = connected;
+		if (this.#isMidiConnected !== connected) {
+			this.#isMidiConnected = connected;
 			this.#dispatchStateEvent(EVENT_MIDI_CONNECTION_CHANGED, { connected });
 		}
 	}
 
 	get midiConnected() {
-		return this.#midiConnected;
+		return this.#isMidiConnected;
 	}
 
-	set animationsLoaded(loaded) {
-		if (this.#animationsLoaded !== loaded) {
-			this.#animationsLoaded = loaded;
-			this.#dispatchStateEvent(EVENT_ANIMATIONS_LOADED_CHANGED, { loaded });
+	set clipsLoaded(loaded) {
+		if (this.#isClipsLoaded !== loaded) {
+			this.#isClipsLoaded = loaded;
+			this.#dispatchStateEvent(EVENT_CLIPS_LOADED_CHANGED, { loaded });
 		}
 	}
 
-	get animationsLoaded() {
-		return this.#animationsLoaded;
+	get clipsLoaded() {
+		return this.#isClipsLoaded;
 	}
 
 	/**
@@ -159,7 +161,7 @@ class AppState extends EventTarget {
 	dispatchMIDIControlChange(channel, controller, value) {
 		// Check if this is the BPM controller and clock is not active
 		if (channel === this.#settings.bpm.controlChannel && controller === this.#settings.bpm.controlCC && this.#bpmSource !== BPM_SOURCE_CLOCK) {
-			this.#setBPM(this.#ccToBPM(value), BPM_SOURCE_CC);
+			this.#setBPM(this.#convertCCToBPM(value), BPM_SOURCE_CC);
 		}
 
 		// Dispatch generic CC event for other uses
@@ -206,18 +208,18 @@ class AppState extends EventTarget {
 
 				// Calculate BPM from average interval
 				// Need at least 6 intervals for reasonable accuracy (16th note)
-				if (this.#recentPulseIntervals.length >= 6) {
+				if (this.#recentPulseIntervals.length >= MIN_CLOCK_INTERVALS_FOR_BPM) {
 					const avgInterval = this.#recentPulseIntervals.reduce((a, b) => a + b, 0) / this.#recentPulseIntervals.length;
 					const msPerBeat = avgInterval * this.#settings.midi.ppqn; // PPQN
 					const bpm = 60000 / msPerBeat;
 
-					this.#setBPM(bpm, 'clock');
+					this.#setBPM(bpm, BPM_SOURCE_CLOCK);
 				}
 			}
 		}
 		this.#lastClockTime = timestamp;
 
-		// Dispatch clock event for animation sync
+		// Dispatch clock event for clip sync
 		this.#dispatchStateEvent(EVENT_MIDI_CLOCK, { timestamp });
 	}
 
@@ -299,8 +301,8 @@ class AppState extends EventTarget {
 	 * });
 	 */
 	reset() {
-		this.#midiConnected = false;
-		this.#animationsLoaded = false;
+		this.#isMidiConnected = false;
+		this.#isClipsLoaded = false;
 
 		// Reset BPM state
 		this.#currentBPM = this.#settings.bpm.default;
@@ -317,5 +319,5 @@ class AppState extends EventTarget {
 
 const appState = new AppState();
 
-export { AppState };
+export { AppState, EVENT_MIDI_CLOCK, BPM_SOURCE_CLOCK };
 export default appState;

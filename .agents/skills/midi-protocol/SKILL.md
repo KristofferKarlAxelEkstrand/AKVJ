@@ -3,7 +3,7 @@ name: midi-protocol
 description: >
   Deep MIDI protocol and Web MIDI API expertise for the AKVJ project.
   Use this skill when working on MIDI-related code, Web MIDI API usage,
-  MIDI message parsing, channel mapping, BPM synchronization, animation
+  MIDI message parsing, channel mapping, BPM synchronization, clip
   triggering via MIDI, hot-plug device handling, or writing tests that
   involve MIDI input. Also use when debugging MIDI issues, adding new
   MIDI channels or effects, or modifying the MIDI-to-visual pipeline.
@@ -314,7 +314,7 @@ Running status omits repeated status bytes to save bandwidth. **The Web MIDI API
 
 MIDI uses 0â€“15 internally (in the status byte's lower nibble). DAWs and hardware display channels as 1â€“16. This is an industry-wide convention.
 
-**In AKVJ**: Source animation folders use 1â€“16 (matching DAWs). The build pipeline converts to 0â€“15 for code. Always use 0â€“15 in code and 1â€“16 when communicating with users.
+**In AKVJ**: Source clip folders use 1â€“16 (matching DAWs). The build pipeline converts to 0â€“15 for code. Always use 0â€“15 in code and 1â€“16 when communicating with users.
 
 ### Note Number Reference
 
@@ -358,7 +358,7 @@ Where `n` = MIDI note number, `f` = frequency in Hz. Based on equal temperament 
 | ff      | 97â€“112         |
 | fff     | 113â€“127        |
 
-In AKVJ, velocity selects animation variants (not volume). The `findVelocityThreshold()` function uses a floor strategy: returns the highest configured velocity threshold that doesn't exceed the input velocity.
+In AKVJ, velocity selects clip variants (not volume). The `findVelocityThreshold()` function uses a floor strategy: returns the highest configured velocity threshold that doesn't exceed the input velocity.
 
 ### General MIDI Reference
 
@@ -467,7 +467,7 @@ MIDI Hardware â†’ Web MIDI API â†’ Midi.js (singleton) â†’ AppSta
 | `src/js/midi-input/Midi.js` | Web MIDI API singleton, device management, message parsing |
 | `src/js/core/AppState.js` | Event-based state, BPM calculation, event dispatch |
 | `src/js/core/settings.js` | Channel mapping, command codes, PPQN, BPM config |
-| `src/js/utils/velocitySelection.js` | Velocity-based animation selection (floor strategy) |
+| `src/js/utils/velocitySelection.js` | Velocity-based clip selection (floor strategy) |
 
 ### Message Parsing Flow (`Midi.js`)
 
@@ -505,7 +505,7 @@ Note: AKVJ passes `performance.now()` to `dispatchMIDIClock()`, not `message.tim
 | `bpmChanged`              | `{ bpm, source }` â€” source: `'clock'`/`'cc'`/`'manual'` |
 | `bpmSourceChanged`        | `{ source, bpm }` â€” fired when clock times out, source: `'default'` |
 | `midiConnectionChanged`   | `{ connected }`                                 |
-| `animationsLoadedChanged` | `{ loaded }`                                    |
+| `clipsLoadedChanged`      | `{ loaded }`                                    |
 | `videoJockeyReady`        | (no detail)                                     |
 
 ### BPM Synchronization
@@ -592,12 +592,12 @@ This is called during HMR disposal and in tests.
 - Synchronized to current BPM (MIDI Clock when available, CC/default fallback)
 - Deterministic (no random flashes)
 
-### Animation Folder Structure
+### Clip Folder Structure
 
 Source folders use 1â€“16 (DAW convention). Build pipeline converts to 0â€“15.
 
 ```
-animations/{channel_1-16}/{note}/{velocity}/
+clips/{channel_1-16}/{note}/{velocity}/
   â”œâ”€â”€ meta.json
   â””â”€â”€ sprite.png
 ```
@@ -671,7 +671,7 @@ expect(appState.midiConnected).toBe(false);
 
 ### Channel Numbers
 - **Code uses 0â€“15**, DAWs display 1â€“16. Always clarify which convention you're using.
-- Source animation folders use 1â€“16; the build pipeline converts to 0â€“15.
+- Source clip folders use 1â€“16; the build pipeline converts to 0â€“15.
 
 ### Note On Velocity 0
 - Note On with velocity 0 is equivalent to Note Off. Always handle both `0x8n` and `0x9n` with velocity 0.

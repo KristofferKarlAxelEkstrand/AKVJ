@@ -17,7 +17,7 @@ import MaskManager from './MaskManager.js';
 import EffectsManager from './EffectsManager.js';
 
 /**
- * @typedef {import('./AnimationClip.js').default} AnimationClip
+ * @typedef {import('./Clip.js').default} Clip
  */
 class LayerManager {
 	/** @type {LayerGroup} */
@@ -93,18 +93,18 @@ class LayerManager {
 	}
 
 	/**
-	 * Set the loaded animations reference and distribute to groups
-	 * @param {Object<string, Object<string, Object<string, AnimationClip>>>} animations
-	 *   Nested object: animations[channel][note][velocityThreshold] = AnimationClip
+	 * Set the loaded clips reference and distribute to groups
+	 * @param {Object<string, Object<string, Object<string, Clip>>>} clips
+	 *   Nested object: clips[channel][note][velocityThreshold] = Clip
 	 */
-	setAnimations(animations) {
-		// Distribute animations to layer groups
-		this.#layerGroupA.setAnimations(animations);
-		this.#layerGroupB.setAnimations(animations);
-		this.#layerGroupC.setAnimations(animations);
+	setClips(clips) {
+		// Distribute clips to layer groups
+		this.#layerGroupA.setClips(clips);
+		this.#layerGroupB.setClips(clips);
+		this.#layerGroupC.setClips(clips);
 
 		// Set mask clips
-		this.#maskManager.setAnimations(animations);
+		this.#maskManager.setClips(clips);
 	}
 
 	/**
@@ -201,12 +201,36 @@ class LayerManager {
 	 * Destroy LayerManager and release references
 	 */
 	destroy() {
-		this.clearClips();
-		this.#layerGroupA.destroy();
-		this.#layerGroupB.destroy();
-		this.#layerGroupC.destroy();
-		this.#maskManager.destroy();
-		this.#effectsManager.destroy();
+		try {
+			this.clearClips();
+		} catch (error) {
+			console.error('Error clearing clips in LayerManager:', error);
+		}
+		try {
+			this.#layerGroupA.destroy();
+		} catch (error) {
+			console.error('Error destroying layerGroupA:', error);
+		}
+		try {
+			this.#layerGroupB.destroy();
+		} catch (error) {
+			console.error('Error destroying layerGroupB:', error);
+		}
+		try {
+			this.#layerGroupC.destroy();
+		} catch (error) {
+			console.error('Error destroying layerGroupC:', error);
+		}
+		try {
+			this.#maskManager.destroy();
+		} catch (error) {
+			console.error('Error destroying maskManager:', error);
+		}
+		try {
+			this.#effectsManager.destroy();
+		} catch (error) {
+			console.error('Error destroying effectsManager:', error);
+		}
 	}
 }
 

@@ -1,6 +1,8 @@
 /**
  * Strobe effect: flash white at BPM-synced subdivisions based on velocity.
  */
+import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
+
 const WHITE_PIXEL_VALUE = 255;
 const STROBE_WHITEOUT_MAX_VELOCITY = 9;
 const STROBE_PULSE_MIN_VELOCITY = 10;
@@ -9,7 +11,6 @@ const STROBE_MAX_PULSES_PER_BEAT = 12;
 const STROBE_DUTY_CYCLE_BASE = 0.25;
 const STROBE_DUTY_CYCLE_RANGE = 0.25;
 const MS_PER_MINUTE = 60000;
-const RGBA_CHANNEL_COUNT = 4;
 
 export default {
 	/**

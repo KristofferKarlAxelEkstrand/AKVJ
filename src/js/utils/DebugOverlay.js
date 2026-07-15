@@ -4,17 +4,19 @@
  */
 import appState from '../core/AppState.js';
 
+const MAX_LOG_ENTRIES = 8;
+const NOTES_PER_OCTAVE = 12;
+
 class DebugOverlay {
 	#element;
 	#styleElement;
 	#midiLog = [];
-	#maxLogEntries = 8;
 	#unsubscribers = [];
-	#boundToggle;
-	#visible = false;
+	#boundHandleKeydown;
+	#isVisible = false;
 
 	constructor() {
-		this.#boundToggle = this.#handleKeydown.bind(this);
+		this.#boundHandleKeydown = this.#handleKeydown.bind(this);
 		this.#createOverlay();
 	}
 
@@ -121,8 +123,8 @@ class DebugOverlay {
 			if (targetTag === 'INPUT' || targetTag === 'TEXTAREA' || target?.isContentEditable) {
 				return;
 			}
-			this.#visible = !this.#visible;
-			this.#element.classList.toggle('visible', this.#visible);
+			this.#isVisible = !this.#isVisible;
+			this.#element.classList.toggle('visible', this.#isVisible);
 		}
 	}
 
@@ -147,7 +149,7 @@ class DebugOverlay {
 
 	#addLogEntry(type, message) {
 		this.#midiLog.unshift({ type, message, time: performance.now() });
-		if (this.#midiLog.length > this.#maxLogEntries) {
+		if (this.#midiLog.length > MAX_LOG_ENTRIES) {
 			this.#midiLog.pop();
 		}
 		this.#renderLog();
@@ -171,13 +173,13 @@ class DebugOverlay {
 
 	#formatNote(note) {
 		const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-		const octave = Math.floor(note / 12) - 1;
-		return `${notes[note % 12]}${octave}`;
+		const octave = Math.floor(note / NOTES_PER_OCTAVE) - 1;
+		return `${notes[note % NOTES_PER_OCTAVE]}${octave}`;
 	}
 
-	init() {
+	setup() {
 		document.body.appendChild(this.#element);
-		document.addEventListener('keydown', this.#boundToggle);
+		document.addEventListener('keydown', this.#boundHandleKeydown);
 
 		// Subscribe to BPM changes
 		this.#unsubscribers.push(
@@ -223,13 +225,29 @@ class DebugOverlay {
 	}
 
 	destroy() {
-		document.removeEventListener('keydown', this.#boundToggle);
+		try {
+			document.removeEventListener('keydown', this.#boundHandleKeydown);
+		} catch (error) {
+			console.error('Error removing keydown listener in DebugOverlay:', error);
+		}
 		for (const unsubscribe of this.#unsubscribers) {
-			unsubscribe();
+			try {
+				unsubscribe();
+			} catch (error) {
+				console.error('Error unsubscribing in DebugOverlay:', error);
+			}
 		}
 		this.#unsubscribers = [];
-		this.#element?.remove();
-		this.#styleElement?.remove();
+		try {
+			this.#element?.remove();
+		} catch (error) {
+			console.error('Error removing DebugOverlay element:', error);
+		}
+		try {
+			this.#styleElement?.remove();
+		} catch (error) {
+			console.error('Error removing DebugOverlay style element:', error);
+		}
 		this.#midiLog = [];
 	}
 }

@@ -96,5 +96,6 @@
 		"plaintext": true,
 		"markdown": true
 	},
-	"chat.agent.maxRequests": 500
+	"chat.agent.maxRequests": 500,
+	"cSpell.words": ["AKVJ"]
 }

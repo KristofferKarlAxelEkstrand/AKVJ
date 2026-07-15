@@ -14,9 +14,9 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 
 ### MIDI Input → Visual Output
 
-1. **Note On**: When a MIDI note is pressed, immediately display the corresponding animation
-2. **Note Off**: When a MIDI note is released, stop the animation (behavior depends on animation settings)
-3. **Velocity**: Higher velocity may select a different animation variant or intensity
+1. **Note On**: When a MIDI note is pressed, immediately display the corresponding clip
+2. **Note Off**: When a MIDI note is released, stop the clip (behavior depends on clip settings)
+3. **Velocity**: Higher velocity may select a different clip variant or intensity
 
 ### Layer Group System
 
@@ -31,13 +31,13 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 - Layer groups composite in order: Layer Group A + Layer Group B mixed → Mixed output effects → Layer Group C → Global effects
 - Multiple notes can be active simultaneously on different channels
 
-### Animation Playback
+### Clip Playback
 
-- Animations are sprite-based (PNG sheets)
-- Each animation can have custom frame rates per frame
-- Animations can loop or play once
-- Retrigger behavior is configurable per animation
-- **BPM Sync**: Animations can sync to tempo using `frameDurationBeats`
+- Clips are sprite-based (PNG sheets)
+- Each clip can have custom frame rates per frame
+- Clips can loop or play once
+- Retrigger behavior is configurable per clip
+- **BPM Sync**: Clips can sync to tempo using `frameDurationBeats`
     - Uses MIDI clock pulses (24 PPQN) when available (configurable via `settings.midi.ppqn`)
     - Falls back to time-based BPM calculation
 
@@ -51,7 +51,7 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 ### Mask/Crossfade System
 
 - Channel 5 controls the Layer Group A and Layer Group B crossfade mask
-- B&W animations act as crossfade masks between Layer Group A and Layer Group B
+- B&W clips act as crossfade masks between Layer Group A and Layer Group B
 - `bitDepth` controls blend levels (1=hard cut, 8=smooth gradient)
 - Masks ARE latched (stay active until new mask triggered)
 
@@ -80,12 +80,12 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
 
 - **60fps** at all times
 - **<20ms** MIDI-to-visual latency
-- Smooth playback with multiple simultaneous animations
+- Smooth playback with multiple simultaneous clips
 
 ### Constraints
 
 - No heavy computations in the render loop
-- Preload all animation assets
+- Preload all clip assets
 - Efficient memory usage (clean up unused resources)
 
 ---

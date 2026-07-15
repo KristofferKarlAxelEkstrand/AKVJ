@@ -6,29 +6,29 @@
  * - Lower channel renders first (bottom)
  * - Within a channel, lower note number renders first (bottom)
  */
-import { buildVelocityCache, resolveAnimationClip } from '../utils/velocitySelection.js';
+import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
 
 /**
- * @typedef {import('./AnimationClip.js').default} AnimationClip
+ * @typedef {import('./Clip.js').default} Clip
  */
 class LayerGroup {
 	/** @type {number[]} */
 	#channels;
 
-	/** @type {Map<number, Map<number, AnimationClip>>} */
+	/** @type {Map<number, Map<number, Clip>>} */
 	#activeClips = new Map();
 
 	/** @type {Object} */
-	#animations = {};
+	#clips = {};
 
 	/** @type {Map<number, Map<number, number[]>>} */
 	#velocityCache = new Map();
 
-	/** @type {AnimationClip[]|null} Cached sorted active clips array */
+	/** @type {Clip[]|null} Cached sorted active clips array */
 	#cachedActiveClips = null;
 
 	/** @type {boolean} Flag indicating cache needs rebuild */
-	#clipsDirty = true;
+	#isClipsDirty = true;
 
 	/**
 	 * Create a new LayerGroup
@@ -44,22 +44,22 @@ class LayerGroup {
 	}
 
 	/**
-	 * Set the loaded animations reference and build velocity cache
-	 * @param {Object} animations - Animation data keyed by channel/note/velocity
+	 * Set the loaded clips reference and build velocity cache
+	 * @param {Object} clips - Clip data keyed by channel/note/velocity
 	 */
-	setAnimations(animations) {
-		this.#animations = animations;
+	setClips(clips) {
+		this.#clips = clips;
 
 		// Build velocity cache for each channel
 		this.#velocityCache.clear();
 		for (const channel of this.#channels) {
-			const channelData = animations[channel];
-			if (channelData) {
-				this.#velocityCache.set(channel, buildVelocityCache(channelData));
+			const channelClips = clips[channel];
+			if (channelClips) {
+				this.#velocityCache.set(channel, buildVelocityCache(channelClips));
 			}
 		}
 		// Mark cache dirty so the next read rebuilds from the new clip data
-		this.#clipsDirty = true;
+		this.#isClipsDirty = true;
 	}
 
 	/**
@@ -75,7 +75,7 @@ class LayerGroup {
 			return false;
 		}
 
-		const clip = resolveAnimationClip(this.#animations[channel], note, velocity, this.#velocityCache.get(channel));
+		const clip = resolveClip(this.#clips[channel], note, velocity, this.#velocityCache.get(channel));
 		if (!clip) {
 			return false;
 		}
@@ -88,7 +88,7 @@ class LayerGroup {
 
 		clip.reset();
 		activeClipsByNote.set(note, clip);
-		this.#clipsDirty = true;
+		this.#isClipsDirty = true;
 
 		return true;
 	}
@@ -109,7 +109,7 @@ class LayerGroup {
 		if (clip) {
 			clip.stop();
 			activeClipsByNote.delete(note);
-			this.#clipsDirty = true;
+			this.#isClipsDirty = true;
 			return true;
 		}
 
@@ -120,11 +120,11 @@ class LayerGroup {
 	 * Get all active clips for rendering, sorted by channel then note.
 	 * Results are cached and only rebuilt when clips change.
 	 * Also cleans up finished clips from the Map to prevent memory leaks.
-	 * @returns {AnimationClip[]} Array of active clips
+	 * @returns {Clip[]} Array of active clips
 	 */
 	getActiveClips() {
 		// Return cached array if still valid
-		if (!this.#clipsDirty && this.#cachedActiveClips !== null) {
+		if (!this.#isClipsDirty && this.#cachedActiveClips !== null) {
 			// Filter out finished clips (may have finished since last cache)
 			const stillActive = this.#cachedActiveClips.filter(clip => !clip.isFinished);
 			if (stillActive.length !== this.#cachedActiveClips.length) {
@@ -159,7 +159,7 @@ class LayerGroup {
 		}
 
 		this.#cachedActiveClips = clips;
-		this.#clipsDirty = false;
+		this.#isClipsDirty = false;
 		return clips;
 	}
 
@@ -204,26 +204,31 @@ class LayerGroup {
 			for (const clip of channelClips.values()) {
 				if (clip) {
 					clip.stop();
-					if (typeof clip.dispose === 'function') {
-						clip.dispose();
-					}
 				}
 			}
 			channelClips.clear();
 		}
 		this.#cachedActiveClips = null;
-		this.#clipsDirty = true;
+		this.#isClipsDirty = true;
 	}
 
 	/**
 	 * Destroy the layer group and release resources
 	 */
 	destroy() {
-		this.clearClips();
-		this.#animations = {};
-		this.#velocityCache.clear();
+		try {
+			this.clearClips();
+		} catch (error) {
+			console.error('Error clearing clips in LayerGroup:', error);
+		}
+		this.#clips = {};
+		try {
+			this.#velocityCache.clear();
+		} catch (error) {
+			console.error('Error clearing velocityCache in LayerGroup:', error);
+		}
 		this.#cachedActiveClips = null;
-		this.#clipsDirty = true;
+		this.#isClipsDirty = true;
 	}
 }
 

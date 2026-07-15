@@ -1,6 +1,6 @@
 import appState from './AppState.js';
 import settings from './settings.js';
-import AnimationLoader from '../visuals/AnimationLoader.js';
+import ClipLoader from '../visuals/ClipLoader.js';
 import LayerManager from '../visuals/LayerManager.js';
 import Renderer from '../visuals/Renderer.js';
 
@@ -12,10 +12,10 @@ import Renderer from '../visuals/Renderer.js';
 class AdventureKidVideoJockey extends HTMLElement {
 	#canvas;
 	#displayContext;
-	#animationLoader;
+	#clipLoader;
 	#layerManager;
 	#renderer;
-	#animations = {};
+	#clips = {};
 	#unsubscribers = [];
 
 	constructor() {
@@ -26,14 +26,14 @@ class AdventureKidVideoJockey extends HTMLElement {
 		if (!this.#displayContext) {
 			// Canvas is unsupported or context creation failed; keep a noop-safe component
 			console.warn('AdventureKidVideoJockey: 2D canvas context unavailable — visuals will be disabled');
-			this.#animationLoader = null;
+			this.#clipLoader = null;
 			this.#layerManager = null;
 			this.#renderer = null;
 			return;
 		}
 
 		// Initialize modules only when there is a valid 2D context
-		this.#animationLoader = new AnimationLoader(this.#displayContext);
+		this.#clipLoader = new ClipLoader(this.#displayContext);
 		this.#layerManager = new LayerManager();
 		this.#renderer = new Renderer(this.#displayContext, this.#layerManager, settings, appState);
 	}
@@ -88,7 +88,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 		// Set up MIDI event listeners (safe to register even when visuals are disabled)
 		this.#setupMIDIEventListeners();
 
-		this.#init();
+		this.#setup();
 	}
 
 	disconnectedCallback() {
@@ -114,24 +114,24 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 
 		try {
-			this.#animationLoader?.cleanup(this.#animations);
-			this.#animations = {};
+			this.#clipLoader?.destroy(this.#clips);
+			this.#clips = {};
 		} catch (error) {
-			console.error('Error cleaning up animation loader:', error);
+			console.error('Error destroying clip loader:', error);
 		}
 	}
 
-	async #setUpAnimations(jsonUrl) {
+	async #setupClips(jsonUrl) {
 		try {
-			this.#animations = await this.#animationLoader.setUpAnimations(jsonUrl);
-			this.#layerManager.setAnimations(this.#animations);
-			appState.animationsLoaded = true;
-			return this.#animations;
+			this.#clips = await this.#clipLoader.setupClips(jsonUrl);
+			this.#layerManager.setClips(this.#clips);
+			appState.clipsLoaded = true;
+			return this.#clips;
 		} catch (error) {
-			console.error(`Failed to set up animations from ${jsonUrl}:`, error);
-			appState.animationsLoaded = false;
+			console.error(`Failed to set up clips from ${jsonUrl}:`, error);
+			appState.clipsLoaded = false;
 			appState.dispatchEvent(
-				new CustomEvent('animationLoadError', {
+				new CustomEvent('clipLoadError', {
 					detail: { url: jsonUrl, error: error.message }
 				})
 			);
@@ -139,24 +139,24 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 	}
 
-	async #init() {
+	async #setup() {
 		// If we do not have a context, skip loading visuals but still notify readiness
-		if (!this.#animationLoader) {
-			// If we do not have an animation loader (no 2D context available),
+		if (!this.#clipLoader) {
+			// If we do not have a clip loader (no 2D context available),
 			// notify that the Video Jockey is ready and bail out early. No value
-			// is returned because callers do not use the result of `#init()`.
-			appState.animationsLoaded = false;
+			// is returned because callers do not use the result of `#setup()`.
+			appState.clipsLoaded = false;
 			appState.dispatchVideoJockeyReady();
 			return;
 		}
 
-		await this.#setUpAnimations(settings.performance.animationsJsonUrl);
-		if (appState.animationsLoaded) {
+		await this.#setupClips(settings.performance.clipsJsonUrl);
+		if (appState.clipsLoaded) {
 			this.#renderer.start();
 		} else {
-			console.error('Renderer not started: Animations failed to load.');
+			console.error('Renderer not started: Clips failed to load.');
 		}
-		// Notify after animations are loaded (or failed to load)
+		// Notify after clips are loaded (or failed to load)
 		appState.dispatchVideoJockeyReady();
 	}
 }

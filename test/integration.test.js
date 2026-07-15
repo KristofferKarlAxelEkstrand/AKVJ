@@ -10,11 +10,11 @@ import EffectsManager from '../src/js/visuals/EffectsManager.js';
 import settings from '../src/js/core/settings.js';
 
 /**
- * Create a mock animation clip with spied methods
- * @param {string} id - Unique identifier for the animation clip
- * @returns {Object} Mock animation clip with vi.fn() spies for all methods
+ * Create a mock clip with spied methods
+ * @param {string} id - Unique identifier for the clip
+ * @returns {Object} Mock clip with vi.fn() spies for all methods
  */
-function createMockAnimationClip(id = 'mock') {
+function createMockClip(id = 'mock') {
 	return {
 		id,
 		play: vi.fn(),
@@ -30,64 +30,64 @@ describe('LayerGroup', () => {
 	test('manages clip slots correctly', () => {
 		// LayerGroup expects an array of channels
 		const group = new LayerGroup([0, 1, 2, 3]);
-		const animationClip1 = createMockAnimationClip('animationClip1');
-		const animationClip2 = createMockAnimationClip('animationClip2');
+		const clip1 = createMockClip('clip1');
+		const clip2 = createMockClip('clip2');
 
-		// Create animations map keyed by channel, then note, then velocity
-		const animations = {
+		// Create clips map keyed by channel, then note, then velocity
+		const clips = {
 			0: {
-				60: { 0: animationClip1 },
-				61: { 0: animationClip2 }
+				60: { 0: clip1 },
+				61: { 0: clip2 }
 			}
 		};
-		group.setAnimations(animations);
+		group.setClips(clips);
 
 		// Trigger note on for channel 0
 		group.noteOn(0, 60, 127);
-		expect(group.getActiveClips()).toContain(animationClip1);
+		expect(group.getActiveClips()).toContain(clip1);
 
 		group.noteOn(0, 61, 127);
-		expect(group.getActiveClips()).toContain(animationClip1);
-		expect(group.getActiveClips()).toContain(animationClip2);
+		expect(group.getActiveClips()).toContain(clip1);
+		expect(group.getActiveClips()).toContain(clip2);
 
 		// Note off should deactivate
 		group.noteOff(0, 60);
-		expect(group.getActiveClips()).not.toContain(animationClip1);
-		expect(group.getActiveClips()).toContain(animationClip2);
+		expect(group.getActiveClips()).not.toContain(clip1);
+		expect(group.getActiveClips()).toContain(clip2);
 	});
 
 	test('velocity clip selection', () => {
 		const group = new LayerGroup([0]);
-		const lowVelocityAnimationClip = createMockAnimationClip('low');
-		const highVelocityAnimationClip = createMockAnimationClip('high');
+		const lowVelocityClip = createMockClip('low');
+		const highVelocityClip = createMockClip('high');
 
-		const animations = {
+		const clips = {
 			0: {
 				60: {
-					0: lowVelocityAnimationClip, // velocity 0-63
-					64: highVelocityAnimationClip // velocity 64-127
+					0: lowVelocityClip, // velocity 0-63
+					64: highVelocityClip // velocity 64-127
 				}
 			}
 		};
-		group.setAnimations(animations);
+		group.setClips(clips);
 
-		// Low velocity should get the lowVelocityAnimationClip
+		// Low velocity should get the lowVelocityClip
 		group.noteOn(0, 60, 32);
-		expect(group.getActiveClips()).toContain(lowVelocityAnimationClip);
+		expect(group.getActiveClips()).toContain(lowVelocityClip);
 
 		group.noteOff(0, 60);
 
-		// High velocity should get the highVelocityAnimationClip
+		// High velocity should get the highVelocityClip
 		group.noteOn(0, 60, 100);
-		expect(group.getActiveClips()).toContain(highVelocityAnimationClip);
+		expect(group.getActiveClips()).toContain(highVelocityClip);
 	});
 
 	test('active clips have renderToContext method for off-screen rendering', () => {
 		const group = new LayerGroup([0]);
-		const animationClip = createMockAnimationClip('animationClip');
+		const clip = createMockClip('clip');
 
-		const animations = { 0: { 60: { 0: animationClip } } };
-		group.setAnimations(animations);
+		const clips = { 0: { 60: { 0: clip } } };
+		group.setClips(clips);
 
 		group.noteOn(0, 60, 127);
 		const activeClips = group.getActiveClips();
@@ -100,33 +100,33 @@ describe('LayerGroup', () => {
 });
 
 describe('MaskManager', () => {
-	test('latches to last triggered mask animation', () => {
+	test('latches to last triggered mask clip', () => {
 		const mask = new MaskManager();
-		const maskAnimationClip1 = createMockAnimationClip('mask1');
-		const maskAnimationClip2 = createMockAnimationClip('mask2');
+		const maskClip1 = createMockClip('mask1');
+		const maskClip2 = createMockClip('mask2');
 
-		// MaskManager expects full animations object keyed by channel
+		// MaskManager expects full clips object keyed by channel
 		// The mixer channel is 4 (from settings.channelMapping.mixer)
 		const mixerChannel = settings.channelMapping.mixer;
-		const animations = {
+		const clips = {
 			[mixerChannel]: {
-				60: { 0: maskAnimationClip1 },
-				61: { 0: maskAnimationClip2 }
+				60: { 0: maskClip1 },
+				61: { 0: maskClip2 }
 			}
 		};
-		mask.setAnimations(animations);
+		mask.setClips(clips);
 
 		// Trigger first mask
 		mask.noteOn(mixerChannel, 60, 127);
-		expect(mask.getCurrentMask()).toBe(maskAnimationClip1);
+		expect(mask.getCurrentMask()).toBe(maskClip1);
 
 		// Trigger second mask - should replace first
 		mask.noteOn(mixerChannel, 61, 127);
-		expect(mask.getCurrentMask()).toBe(maskAnimationClip2);
+		expect(mask.getCurrentMask()).toBe(maskClip2);
 
 		// Note off is ignored - mask stays latched
 		mask.noteOff(mixerChannel, 61);
-		expect(mask.getCurrentMask()).toBe(maskAnimationClip2);
+		expect(mask.getCurrentMask()).toBe(maskClip2);
 	});
 
 	test('returns null for bit depth when no mask is active', () => {
@@ -249,44 +249,44 @@ describe('LayerManager - Multi-Layer-Group Architecture', () => {
 	});
 
 	test('routes MIDI to correct layer group based on channel', () => {
-		const animationClipA = createMockAnimationClip('animationClipA');
-		const animationClipB = createMockAnimationClip('animationClipB');
-		const animationClipC = createMockAnimationClip('animationClipC');
+		const clipA = createMockClip('clipA');
+		const clipB = createMockClip('clipB');
+		const clipC = createMockClip('clipC');
 
-		const animations = {
-			0: { 60: { 0: animationClipA } }, // Channel 0 -> Layer Group A
-			5: { 60: { 0: animationClipB } }, // Channel 5 -> Layer Group B
-			10: { 60: { 0: animationClipC } } // Channel 10 -> Layer Group C
+		const clips = {
+			0: { 60: { 0: clipA } }, // Channel 0 -> Layer Group A
+			5: { 60: { 0: clipB } }, // Channel 5 -> Layer Group B
+			10: { 60: { 0: clipC } } // Channel 10 -> Layer Group C
 		};
-		lm.setAnimations(animations);
+		lm.setClips(clips);
 
 		// Trigger on Layer Group A channel
 		lm.noteOn(0, 60, 127);
-		expect(lm.getLayerGroupA().getActiveClips()).toContain(animationClipA);
+		expect(lm.getLayerGroupA().getActiveClips()).toContain(clipA);
 
 		// Trigger on Layer Group B channel
 		lm.noteOn(5, 60, 127);
-		expect(lm.getLayerGroupB().getActiveClips()).toContain(animationClipB);
+		expect(lm.getLayerGroupB().getActiveClips()).toContain(clipB);
 
 		// Trigger on Layer Group C channel
 		lm.noteOn(10, 60, 127);
-		expect(lm.getLayerGroupC().getActiveClips()).toContain(animationClipC);
+		expect(lm.getLayerGroupC().getActiveClips()).toContain(clipC);
 	});
 
 	test('routes channel 4 to MaskManager', () => {
-		const maskAnimationClip = createMockAnimationClip('mask');
-		const animations = {
-			4: { 60: { 0: maskAnimationClip } } // Channel 4 -> Mixer/Mask
+		const maskClip = createMockClip('mask');
+		const clips = {
+			4: { 60: { 0: maskClip } } // Channel 4 -> Mixer/Mask
 		};
-		lm.setAnimations(animations);
+		lm.setClips(clips);
 
 		lm.noteOn(4, 60, 127);
-		expect(lm.getMaskManager().getCurrentMask()).toBe(maskAnimationClip);
+		expect(lm.getMaskManager().getCurrentMask()).toBe(maskClip);
 	});
 
 	test('routes effect channels to EffectsManager', () => {
-		const animations = {};
-		lm.setAnimations(animations);
+		const clips = {};
+		lm.setClips(clips);
 
 		// Effect on channel 9 (mixedOutputEffects)
 		lm.noteOn(9, 50, 100); // Color effect

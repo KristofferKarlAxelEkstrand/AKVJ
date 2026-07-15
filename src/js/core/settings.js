@@ -36,11 +36,13 @@ const settings = {
 			stop: 0xfc // Stop playback
 		},
 		// Pulses Per Quarter Note (PPQN) for MIDI clock pulses. Standard MIDI clock is 24 PPQN.
-		ppqn: 24
+		ppqn: 24,
+		// Minimum byte length for channel messages (note on/off, CC)
+		channelMessageMinLength: 3
 	},
 	/**
 	 * BPM (Beats Per Minute) synchronization settings
-	 * Used for tempo-synced animation playback
+	 * Used for tempo-synced clip playback
 	 */
 	bpm: {
 		default: 120, // Default BPM when no clock/CC received
@@ -107,24 +109,24 @@ const settings = {
 	},
 
 	performance: {
-		// Target frame rate for animations
+		// Target frame rate for clips
 		targetFPS: 60,
-		// Animation JSON URL
-		animationsJsonUrl: '/animations/animations.json',
-		// Optional base path for animation assets. For apps served under a subpath
+		// Clip JSON URL
+		clipsJsonUrl: '/clips/clips.json',
+		// Optional base path for clip assets. For apps served under a subpath
 		// this should include a trailing slash, e.g. '/subpath/'. Falls back to
 		// `import.meta.env.BASE_URL` or '/'.
-		animationsBasePath: import.meta.env?.BASE_URL ?? '/',
-		// Cross origin policy to apply to loaded animation images. Set to null to
+		clipsBasePath: import.meta.env?.BASE_URL ?? '/',
+		// Cross origin policy to apply to loaded clip images. Set to null to
 		// disable crossOrigin attribute.
 		imageCrossOrigin: 'anonymous',
 		/**
-		 * Maximum number of concurrent animation image loads to run at once.
+		 * Maximum number of concurrent clip image loads to run at once.
 		 * Recommended range: 4-16. Larger values improve load speed at the cost of higher
 		 * memory usage and potentially increased network saturation. This is used by
-		 * `AnimationLoader` for batching image load requests.
+		 * `ClipLoader` for batching image load requests.
 		 */
-		maxConcurrentAnimationLoads: 8
+		maxConcurrentClipLoads: 8
 	},
 	rendering: {
 		// Canvas rendering settings

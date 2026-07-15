@@ -4,261 +4,305 @@
  * Loads and plays clips from the clips.json manifest.
  */
 
-// Allow overriding the clips path from the host page (useful in dev/proxy)
-const ANIMATIONS_PATH = (window && window.AKVJ_ANIMATIONS_PATH) || '/clips/clips.json';
+const PREVIEW_MAX_SCALE = 4;
+const PREVIEW_TARGET_WIDTH = 400;
+const DEFAULT_PREVIEW_FRAME_RATE = 12;
+const MS_PER_SECOND = 1000;
+const DEFAULT_CLIP_BASE_PATH = '/clips';
+const DEFAULT_CLIPS_JSON_PATH = '/clips/clips.json';
 
-let clips = {};
-let currentClipMeta = null;
-let spriteImage = null;
-let currentFrame = 0;
-let isPlaying = true;
-let lastFrameTime = 0;
-let clipFrameId = null;
+class ClipPreview {
+	#clips = {};
+	#currentClipMeta = null;
+	#spriteImage = null;
+	#currentFrame = 0;
+	#isPlaying = true;
+	#lastFrameTime = 0;
+	#clipFrameId = null;
 
-// DOM elements
-const channelSelect = document.getElementById('channel');
-const noteSelect = document.getElementById('note');
-const velocitySelect = document.getElementById('velocity');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const playPauseBtn = document.getElementById('play-pause');
-const prevFrameBtn = document.getElementById('prev-frame');
-const nextFrameBtn = document.getElementById('next-frame');
-const frameInfo = document.getElementById('frame-info');
-const metaDisplay = document.getElementById('meta-display');
-const reloadBtn = document.getElementById('reload');
+	#channelSelect;
+	#noteSelect;
+	#velocitySelect;
+	#canvas;
+	#ctx;
+	#playPauseBtn;
+	#prevFrameBtn;
+	#nextFrameBtn;
+	#frameInfo;
+	#metaDisplay;
+	#reloadBtn;
 
-/**
- * Load clips.json and populate selects.
- */
-async function loadClips() {
-	try {
-		const response = await fetch(ANIMATIONS_PATH);
-		clips = await response.json();
-		populateChannels();
-	} catch (err) {
-		metaDisplay.textContent = `Error loading clips.json: ${err.message}`;
-	}
-}
+	#boundLoadClips;
+	#boundPopulateNotes;
+	#boundPopulateVelocities;
+	#boundLoadClip;
+	#boundAnimate;
+	#boundHandleVisibilityChange;
+	#boundStopClip;
+	#boundTogglePlayPause;
+	#boundStepToPrevFrame;
+	#boundStepToNextFrame;
 
-/**
- * Populate channel select.
- */
-function populateChannels() {
-	const channels = Object.keys(clips).sort((a, b) => Number(a) - Number(b));
-	channelSelect.innerHTML = channels.map(c => `<option value="${c}">${c}</option>`).join('');
-
-	if (channels.length > 0) {
-		populateNotes();
-	}
-}
-
-/**
- * Populate note select based on selected channel.
- */
-function populateNotes() {
-	const channel = channelSelect.value;
-	const notes = Object.keys(clips[channel] || {}).sort((a, b) => Number(a) - Number(b));
-	noteSelect.innerHTML = notes.map(n => `<option value="${n}">${n}</option>`).join('');
-
-	if (notes.length > 0) {
-		populateVelocities();
-	}
-}
-
-/**
- * Populate velocity select based on selected channel/note.
- */
-function populateVelocities() {
-	const channel = channelSelect.value;
-	const note = noteSelect.value;
-	const velocities = Object.keys(clips[channel]?.[note] || {}).sort((a, b) => Number(a) - Number(b));
-	velocitySelect.innerHTML = velocities.map(v => `<option value="${v}">${v}</option>`).join('');
-
-	if (velocities.length > 0) {
-		loadClip();
-	}
-}
-
-/**
- * Load the currently selected clip.
- */
-async function loadClip() {
-	const channel = channelSelect.value;
-	const note = noteSelect.value;
-	const velocity = velocitySelect.value;
-
-	if (!channel || !note || !velocity) {
-		return;
+	constructor() {
+		this.#cacheDOMElements();
+		this.#bindHandlers();
 	}
 
-	currentClipMeta = clips[channel]?.[note]?.[velocity];
-	if (!currentClipMeta) {
-		metaDisplay.textContent = 'Clip not found';
-		return;
+	#cacheDOMElements() {
+		this.#channelSelect = document.getElementById('channel');
+		this.#noteSelect = document.getElementById('note');
+		this.#velocitySelect = document.getElementById('velocity');
+		this.#canvas = document.getElementById('canvas');
+		this.#ctx = this.#canvas.getContext('2d');
+		this.#playPauseBtn = document.getElementById('play-pause');
+		this.#prevFrameBtn = document.getElementById('prev-frame');
+		this.#nextFrameBtn = document.getElementById('next-frame');
+		this.#frameInfo = document.getElementById('frame-info');
+		this.#metaDisplay = document.getElementById('meta-display');
+		this.#reloadBtn = document.getElementById('reload');
 	}
 
-	metaDisplay.textContent = JSON.stringify(currentClipMeta, null, 2);
-
-	// Validate png field exists
-	if (!currentClipMeta.png) {
-		metaDisplay.textContent += `\n\nError: currentClipMeta.png is missing for ${channel}/${note}/${velocity}`;
-		return;
+	#bindHandlers() {
+		this.#boundLoadClips = this.#loadClips.bind(this);
+		this.#boundPopulateNotes = this.#populateNotes.bind(this);
+		this.#boundPopulateVelocities = this.#populateVelocities.bind(this);
+		this.#boundLoadClip = this.#loadClip.bind(this);
+		this.#boundAnimate = this.#animate.bind(this);
+		this.#boundHandleVisibilityChange = this.#handleVisibilityChange.bind(this);
+		this.#boundStopClip = this.#stopClip.bind(this);
+		this.#boundTogglePlayPause = this.#togglePlayPause.bind(this);
+		this.#boundStepToPrevFrame = this.#stepToPrevFrame.bind(this);
+		this.#boundStepToNextFrame = this.#stepToNextFrame.bind(this);
 	}
 
-	// Load sprite image
-	const basePath = (window && window.AKVJ_ANIMATIONS_BASE) || '/clips';
-	const pngPath = `${basePath}/${channel}/${note}/${velocity}/${currentClipMeta.png}`;
-	spriteImage = new Image();
-	spriteImage.onload = () => {
-		setupCanvas();
-		currentFrame = 0;
-		lastFrameTime = performance.now();
-		if (!clipFrameId) {
-			animate();
-		}
-	};
-	spriteImage.onerror = () => {
-		metaDisplay.textContent += `\n\nError loading: ${pngPath}`;
-	};
-	// Stop any previous clip frame while loading new image
-	stopClip();
-	spriteImage.src = pngPath;
-}
-
-/**
- * Set up canvas based on sprite dimensions.
- */
-function setupCanvas() {
-	if (!spriteImage || !currentClipMeta) {
-		return;
+	setup() {
+		this.#registerEventListeners();
+		this.#loadClips();
 	}
 
-	const frameWidth = spriteImage.width / currentClipMeta.framesPerRow;
-	const rows = Math.ceil(currentClipMeta.numberOfFrames / currentClipMeta.framesPerRow);
-	const frameHeight = spriteImage.height / rows;
-
-	// Scale up for visibility (pixel art is small)
-	const scale = Math.min(4, Math.floor(400 / frameWidth));
-	canvas.width = frameWidth * scale;
-	canvas.height = frameHeight * scale;
-	canvas.style.width = `${canvas.width}px`;
-	canvas.style.height = `${canvas.height}px`;
-
-	ctx.imageSmoothingEnabled = false;
-}
-
-/**
- * Get frame rate for current frame.
- */
-function getFrameRate() {
-	if (!currentClipMeta?.frameRatesForFrames) {
-		return 12;
+	#registerEventListeners() {
+		this.#channelSelect.addEventListener('change', this.#boundPopulateNotes);
+		this.#noteSelect.addEventListener('change', this.#boundPopulateVelocities);
+		this.#velocitySelect.addEventListener('change', this.#boundLoadClip);
+		this.#reloadBtn.addEventListener('click', this.#boundLoadClips);
+		this.#playPauseBtn.addEventListener('click', this.#boundTogglePlayPause);
+		this.#prevFrameBtn.addEventListener('click', this.#boundStepToPrevFrame);
+		this.#nextFrameBtn.addEventListener('click', this.#boundStepToNextFrame);
+		document.addEventListener('visibilitychange', this.#boundHandleVisibilityChange);
+		window.addEventListener('beforeunload', this.#boundStopClip);
 	}
 
-	// Find the applicable frame rate (last defined rate <= current frame)
-	let rate = 12;
-	const entries = Object.entries(currentClipMeta.frameRatesForFrames)
-		.map(([k, v]) => [Number(k), v])
-		.sort((a, b) => a[0] - b[0]);
-
-	for (const [frame, r] of entries) {
-		if (Number(frame) <= currentFrame) {
-			rate = r;
+	async #loadClips() {
+		const clipsPath = (window && window.AKVJ_CLIPS_PATH) || DEFAULT_CLIPS_JSON_PATH;
+		try {
+			const response = await fetch(clipsPath);
+			this.#clips = await response.json();
+			this.#populateChannels();
+		} catch (error) {
+			this.#metaDisplay.textContent = `Error loading clips.json: ${error.message}`;
 		}
 	}
-	return rate;
-}
 
-/**
- * Draw current frame.
- */
-function drawFrame() {
-	if (!spriteImage || !currentClipMeta) {
-		return;
-	}
-
-	const frameWidth = spriteImage.width / currentClipMeta.framesPerRow;
-	const rows = Math.ceil(currentClipMeta.numberOfFrames / currentClipMeta.framesPerRow);
-	const frameHeight = spriteImage.height / rows;
-
-	const col = currentFrame % currentClipMeta.framesPerRow;
-	const row = Math.floor(currentFrame / currentClipMeta.framesPerRow);
-
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	ctx.drawImage(spriteImage, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, canvas.width, canvas.height);
-
-	frameInfo.textContent = `Frame: ${currentFrame + 1} / ${currentClipMeta.numberOfFrames}`;
-}
-
-/**
- * Clip loop.
- */
-function animate() {
-	const now = performance.now();
-	const frameRate = getFrameRate();
-	const frameDuration = 1000 / frameRate;
-
-	if (isPlaying && now - lastFrameTime >= frameDuration) {
-		currentFrame = (currentFrame + 1) % (currentClipMeta?.numberOfFrames || 1);
-		lastFrameTime = now;
-	}
-
-	drawFrame();
-	clipFrameId = requestClipFrame(animate);
-}
-
-/**
- * Stop the clip frame loop.
- */
-function stopClip() {
-	if (clipFrameId) {
-		cancelClipFrame(clipFrameId);
-		clipFrameId = null;
-	}
-}
-
-// Pause/Resume on page visibility to avoid unnecessary CPU usage
-document.addEventListener('visibilitychange', () => {
-	if (document.hidden) {
-		stopClip();
-	} else {
-		if (currentClipMeta && !clipFrameId) {
-			lastFrameTime = performance.now();
-			animate();
+	#populateChannels() {
+		const channels = Object.keys(this.#clips).sort((a, b) => Number(a) - Number(b));
+		this.#channelSelect.innerHTML = channels.map(channel => `<option value="${channel}">${channel}</option>`).join('');
+		if (channels.length > 0) {
+			this.#populateNotes();
 		}
 	}
-});
 
-// Ensure clip loop is cleaned up on page unload
-window.addEventListener('beforeunload', () => {
-	stopClip();
-});
+	#populateNotes() {
+		const channel = this.#channelSelect.value;
+		const notes = Object.keys(this.#clips[channel] || {}).sort((a, b) => Number(a) - Number(b));
+		this.#noteSelect.innerHTML = notes.map(note => `<option value="${note}">${note}</option>`).join('');
+		if (notes.length > 0) {
+			this.#populateVelocities();
+		}
+	}
 
-// Event listeners
-channelSelect.addEventListener('change', populateNotes);
-noteSelect.addEventListener('change', populateVelocities);
-velocitySelect.addEventListener('change', loadClip);
-reloadBtn.addEventListener('click', loadClips);
+	#populateVelocities() {
+		const channel = this.#channelSelect.value;
+		const note = this.#noteSelect.value;
+		const velocities = Object.keys(this.#clips[channel]?.[note] || {}).sort((a, b) => Number(a) - Number(b));
+		this.#velocitySelect.innerHTML = velocities.map(velocity => `<option value="${velocity}">${velocity}</option>`).join('');
+		if (velocities.length > 0) {
+			this.#loadClip();
+		}
+	}
 
-playPauseBtn.addEventListener('click', () => {
-	isPlaying = !isPlaying;
-	playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
-});
+	async #loadClip() {
+		const channel = this.#channelSelect.value;
+		const note = this.#noteSelect.value;
+		const velocity = this.#velocitySelect.value;
+		if (!channel || !note || !velocity) {
+			return;
+		}
 
-prevFrameBtn.addEventListener('click', () => {
-	isPlaying = false;
-	playPauseBtn.textContent = 'Play';
-	currentFrame = (currentFrame - 1 + (currentClipMeta?.numberOfFrames || 1)) % (currentClipMeta?.numberOfFrames || 1);
-	drawFrame();
-});
+		this.#currentClipMeta = this.#clips[channel]?.[note]?.[velocity];
+		if (!this.#currentClipMeta) {
+			this.#metaDisplay.textContent = 'Clip not found';
+			return;
+		}
 
-nextFrameBtn.addEventListener('click', () => {
-	isPlaying = false;
-	playPauseBtn.textContent = 'Play';
-	currentFrame = (currentFrame + 1) % (currentClipMeta?.numberOfFrames || 1);
-	drawFrame();
-});
+		this.#metaDisplay.textContent = JSON.stringify(this.#currentClipMeta, null, 2);
+		if (!this.#currentClipMeta.png) {
+			this.#metaDisplay.textContent += `\n\nError: currentClipMeta.png is missing for ${channel}/${note}/${velocity}`;
+			return;
+		}
 
-// Initialize
-loadClips();
+		this.#stopClip();
+		this.#loadSpriteImage(channel, note, velocity);
+	}
+
+	#loadSpriteImage(channel, note, velocity) {
+		const basePath = (window && window.AKVJ_CLIPS_BASE) || DEFAULT_CLIP_BASE_PATH;
+		const pngPath = `${basePath}/${channel}/${note}/${velocity}/${this.#currentClipMeta.png}`;
+		this.#spriteImage = new Image();
+		this.#spriteImage.onload = () => this.#onSpriteLoaded();
+		this.#spriteImage.onerror = () => {
+			this.#metaDisplay.textContent += `\n\nError loading: ${pngPath}`;
+		};
+		this.#spriteImage.src = pngPath;
+	}
+
+	#onSpriteLoaded() {
+		this.#setupCanvas();
+		this.#currentFrame = 0;
+		this.#lastFrameTime = performance.now();
+		if (!this.#clipFrameId) {
+			this.#animate();
+		}
+	}
+
+	#setupCanvas() {
+		if (!this.#spriteImage || !this.#currentClipMeta) {
+			return;
+		}
+		const { frameWidth, frameHeight } = this.#getFrameDimensions();
+		const scale = Math.min(PREVIEW_MAX_SCALE, Math.floor(PREVIEW_TARGET_WIDTH / frameWidth));
+		this.#canvas.width = frameWidth * scale;
+		this.#canvas.height = frameHeight * scale;
+		this.#canvas.style.width = `${this.#canvas.width}px`;
+		this.#canvas.style.height = `${this.#canvas.height}px`;
+		this.#ctx.imageSmoothingEnabled = false;
+	}
+
+	#getFrameDimensions() {
+		const frameWidth = this.#spriteImage.width / this.#currentClipMeta.framesPerRow;
+		const rows = Math.ceil(this.#currentClipMeta.numberOfFrames / this.#currentClipMeta.framesPerRow);
+		const frameHeight = this.#spriteImage.height / rows;
+		return { frameWidth, frameHeight };
+	}
+
+	#getFrameRate() {
+		if (!this.#currentClipMeta?.frameRatesForFrames) {
+			return DEFAULT_PREVIEW_FRAME_RATE;
+		}
+		const entries = Object.entries(this.#currentClipMeta.frameRatesForFrames)
+			.map(([key, rate]) => [Number(key), rate])
+			.sort((a, b) => a[0] - b[0]);
+
+		let resolvedRate = DEFAULT_PREVIEW_FRAME_RATE;
+		for (const [frame, rate] of entries) {
+			if (Number(frame) <= this.#currentFrame) {
+				resolvedRate = rate;
+			}
+		}
+		return resolvedRate;
+	}
+
+	#drawFrame() {
+		if (!this.#spriteImage || !this.#currentClipMeta) {
+			return;
+		}
+		const { frameWidth, frameHeight } = this.#getFrameDimensions();
+		const col = this.#currentFrame % this.#currentClipMeta.framesPerRow;
+		const row = Math.floor(this.#currentFrame / this.#currentClipMeta.framesPerRow);
+		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+		this.#ctx.drawImage(this.#spriteImage, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, this.#canvas.width, this.#canvas.height);
+		this.#frameInfo.textContent = `Frame: ${this.#currentFrame + 1} / ${this.#currentClipMeta.numberOfFrames}`;
+	}
+
+	#animate() {
+		const now = performance.now();
+		const frameDuration = MS_PER_SECOND / this.#getFrameRate();
+		if (this.#isPlaying && now - this.#lastFrameTime >= frameDuration) {
+			this.#currentFrame = (this.#currentFrame + 1) % (this.#currentClipMeta?.numberOfFrames || 1);
+			this.#lastFrameTime = now;
+		}
+		this.#drawFrame();
+		this.#clipFrameId = requestAnimationFrame(this.#boundAnimate);
+	}
+
+	#stopClip() {
+		if (this.#clipFrameId) {
+			cancelAnimationFrame(this.#clipFrameId);
+			this.#clipFrameId = null;
+		}
+	}
+
+	#handleVisibilityChange() {
+		if (document.hidden) {
+			this.#stopClip();
+		} else if (this.#currentClipMeta && !this.#clipFrameId) {
+			this.#lastFrameTime = performance.now();
+			this.#animate();
+		}
+	}
+
+	#togglePlayPause() {
+		this.#isPlaying = !this.#isPlaying;
+		this.#playPauseBtn.textContent = this.#isPlaying ? 'Pause' : 'Play';
+	}
+
+	#stepToPrevFrame() {
+		this.#isPlaying = false;
+		this.#playPauseBtn.textContent = 'Play';
+		const totalFrames = this.#currentClipMeta?.numberOfFrames || 1;
+		this.#currentFrame = (this.#currentFrame - 1 + totalFrames) % totalFrames;
+		this.#drawFrame();
+	}
+
+	#stepToNextFrame() {
+		this.#isPlaying = false;
+		this.#playPauseBtn.textContent = 'Play';
+		const totalFrames = this.#currentClipMeta?.numberOfFrames || 1;
+		this.#currentFrame = (this.#currentFrame + 1) % totalFrames;
+		this.#drawFrame();
+	}
+
+	destroy() {
+		try {
+			this.#stopClip();
+		} catch (error) {
+			console.error('Error stopping clip in ClipPreview:', error);
+		}
+		try {
+			this.#channelSelect.removeEventListener('change', this.#boundPopulateNotes);
+			this.#noteSelect.removeEventListener('change', this.#boundPopulateVelocities);
+			this.#velocitySelect.removeEventListener('change', this.#boundLoadClip);
+			this.#reloadBtn.removeEventListener('click', this.#boundLoadClips);
+			this.#playPauseBtn.removeEventListener('click', this.#boundTogglePlayPause);
+			this.#prevFrameBtn.removeEventListener('click', this.#boundStepToPrevFrame);
+			this.#nextFrameBtn.removeEventListener('click', this.#boundStepToNextFrame);
+		} catch (error) {
+			console.error('Error removing DOM listeners in ClipPreview:', error);
+		}
+		try {
+			document.removeEventListener('visibilitychange', this.#boundHandleVisibilityChange);
+		} catch (error) {
+			console.error('Error removing visibilitychange listener in ClipPreview:', error);
+		}
+		try {
+			window.removeEventListener('beforeunload', this.#boundStopClip);
+		} catch (error) {
+			console.error('Error removing beforeunload listener in ClipPreview:', error);
+		}
+		this.#spriteImage = null;
+		this.#currentClipMeta = null;
+		this.#clips = {};
+	}
+}
+
+const clipPreview = new ClipPreview();
+clipPreview.setup();

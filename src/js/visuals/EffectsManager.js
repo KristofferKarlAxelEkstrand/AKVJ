@@ -12,6 +12,7 @@
  * - Velocity (0-127) controls effect intensity
  */
 import settings from '../core/settings.js';
+import { MAX_MIDI_VELOCITY } from './effects/effectConstants.js';
 
 /**
  * Effect type based on note range
@@ -85,7 +86,7 @@ class EffectsManager {
 	 * @returns {EffectType|null} Effect type or null if no effect applies
 	 */
 	#getEffectType(note) {
-		if (typeof note !== 'number' || note < 0 || note > 127) {
+		if (typeof note !== 'number' || note < 0 || note > MAX_MIDI_VELOCITY) {
 			return null;
 		}
 		return this.#effectTypeByNote.get(note) ?? null;
@@ -201,7 +202,11 @@ class EffectsManager {
 	 * Destroy and release resources
 	 */
 	destroy() {
-		this.clear();
+		try {
+			this.clear();
+		} catch (error) {
+			console.error('Error clearing effects in EffectsManager:', error);
+		}
 	}
 }
 

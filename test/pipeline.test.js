@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { run } from '../scripts/animations/index.js';
+import { run } from '../scripts/clips/index.js';
 
 const FIXTURE_BASE = path.join(process.cwd(), 'test', 'fixtures', 'pipeline-fixture');
 
@@ -20,7 +20,7 @@ async function cleanupFixture() {
 	await fs.rm(FIXTURE_BASE, { recursive: true, force: true });
 }
 
-describe('scripts/animations/index.js pipeline', () => {
+describe('scripts/clips/index.js pipeline', () => {
 	beforeEach(async () => {
 		await setupFixture();
 	});
@@ -32,7 +32,7 @@ describe('scripts/animations/index.js pipeline', () => {
 		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE })).resolves.toBeUndefined();
 	});
 
-	test('validate-only fails on invalid animations', async () => {
+	test('validate-only fails on invalid clips', async () => {
 		// Corrupt the meta.json to make validation fail
 		await fs.writeFile(path.join(FIXTURE_BASE, '1', '0', '0', 'meta.json'), '{ invalid json');
 		await expect(run({ validateOnly: true, sourceDir: FIXTURE_BASE })).rejects.toThrow();

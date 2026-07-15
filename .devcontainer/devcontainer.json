@@ -3,7 +3,7 @@
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-22-bookworm",
 	"remoteUser": "node",
 
-	// Minimum resources for smooth dev server + animation pipeline (sharp is CPU-heavy)
+	// Minimum resources for smooth dev server + clip pipeline (sharp is CPU-heavy)
 	"hostRequirements": {
 		"cpus": 2,
 		"memory": "4gb"
@@ -26,8 +26,8 @@
 	// Auto-install dependencies after container creation
 	"postCreateCommand": "npm install",
 
-	// Ensure animations are generated on first start (uses sharp for PNG optimization)
-	"postStartCommand": "npm run animations -- --validate-only 2>/dev/null || true",
+	// Ensure clips are generated on first start (uses sharp for PNG optimization)
+	"postStartCommand": "npm run clips -- --validate-only 2>/dev/null || true",
 
 	// Fallback env var for file watching on macOS/Windows Docker hosts where inotify doesn't propagate.
 	// The vite.config.js already detects container env vars (REMOTE_CONTAINERS, CODESPACES, GITPOD)

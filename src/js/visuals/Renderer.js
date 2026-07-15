@@ -17,7 +17,7 @@ class Renderer {
 	#displayContext;
 	#layerManager;
 	#isRunning = false;
-	#animationFrameId = null;
+	#renderFrameId = null;
 	#canvasWidth;
 	#canvasHeight;
 	#compositor;
@@ -48,8 +48,8 @@ class Renderer {
 		this.#compositingInput = {
 			mask: null,
 			bitDepth: 1,
-			layerGroupAEmpty: true,
-			layerGroupBEmpty: true
+			isLayerGroupAEmpty: true,
+			isLayerGroupBEmpty: true
 		};
 	}
 
@@ -66,7 +66,7 @@ class Renderer {
 			// frame (mixing + effects). This avoids double-mutation across
 			// an initial synchronous pass and the first RAF-driven frame.
 			this.#warmup(performance.now());
-			this.#animationFrameId = requestAnimationFrame(this.#renderLoop);
+			this.#renderFrameId = requestAnimationFrame(this.#renderLoop);
 		}
 	}
 
@@ -100,9 +100,9 @@ class Renderer {
 	 */
 	stop() {
 		this.#isRunning = false;
-		if (this.#animationFrameId) {
-			cancelAnimationFrame(this.#animationFrameId);
-			this.#animationFrameId = null;
+		if (this.#renderFrameId) {
+			cancelAnimationFrame(this.#renderFrameId);
+			this.#renderFrameId = null;
 		}
 	}
 
@@ -110,10 +110,18 @@ class Renderer {
 	 * Destroy renderer and release references for GC
 	 */
 	destroy() {
-		this.stop();
+		try {
+			this.stop();
+		} catch (error) {
+			console.error('Error stopping renderer:', error);
+		}
 		this.#displayContext = null;
 		this.#layerManager = null;
-		this.#compositor?.destroy();
+		try {
+			this.#compositor?.destroy();
+		} catch (error) {
+			console.error('Error destroying compositor:', error);
+		}
 		this.#compositor = null;
 		this.#effectsPipeline = null;
 	}
@@ -136,7 +144,7 @@ class Renderer {
 		const effectsManager = this.#layerManager?.getEffectsManager();
 
 		if (!layerGroupA || !this.#compositor?.ctxA) {
-			this.#animationFrameId = requestAnimationFrame(this.#renderLoop);
+			this.#renderFrameId = requestAnimationFrame(this.#renderLoop);
 			return;
 		}
 
@@ -151,8 +159,8 @@ class Renderer {
 		const mask = maskManager?.getCurrentMask() ?? null;
 		this.#compositingInput.mask = mask;
 		this.#compositingInput.bitDepth = mask ? (maskManager.getBitDepth() ?? 1) : 1;
-		this.#compositingInput.layerGroupAEmpty = !layerGroupA?.hasActiveClips();
-		this.#compositingInput.layerGroupBEmpty = !layerGroupB?.hasActiveClips();
+		this.#compositingInput.isLayerGroupAEmpty = !layerGroupA?.hasActiveClips();
+		this.#compositingInput.isLayerGroupBEmpty = !layerGroupB?.hasActiveClips();
 		this.#compositor.mixLayerGroups(this.#compositingInput, timestamp);
 
 		this.#effectRenderContext.bpm = this.#bpmProvider.bpm;
@@ -173,7 +181,7 @@ class Renderer {
 			this.#effectsPipeline.apply(this.#displayContext, effectsManager.getActiveGlobalEffects(), timestamp, this.#effectRenderContext);
 		}
 
-		this.#animationFrameId = requestAnimationFrame(this.#renderLoop);
+		this.#renderFrameId = requestAnimationFrame(this.#renderLoop);
 	};
 
 	/**

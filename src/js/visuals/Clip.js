@@ -1,5 +1,5 @@
 ﻿/**
- * ClipClip - Handles individual sprite clip playback and rendering
+ * Clip - Handles individual sprite clip playback and rendering
  * Manages frame-based clips with customizable frame rates and loop behavior
  *
  * Supports two timing modes:
@@ -16,7 +16,7 @@ const MS_PER_SECOND = 1000;
 const DEFAULT_FRAME_DURATION_BEATS = 0.25;
 const DEFAULT_PULSES_PER_FRAME = 6;
 
-class ClipClip {
+class Clip {
 	// Configuration (immutable after construction)
 	#displayContext;
 	#image;
@@ -26,8 +26,8 @@ class ClipClip {
 	#frameDurationBeats; // Array or single number for BPM sync
 	#frameWidth;
 	#frameHeight;
-	#loop;
-	#retrigger;
+	#isLooping;
+	#shouldRetrigger;
 	#bitDepth; // For mask mixing (1, 2, 4, or 8 bit)
 	#canvasWidth;
 	#canvasHeight;
@@ -39,17 +39,17 @@ class ClipClip {
 	#lastAdvanceTimestamp = null; // Prevent double-advancement within same timestamp
 	#isFinished = false;
 	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
-	#useBPMSync = false; // Whether to use BPM sync mode
+	#isUsingBPMSync = false; // Whether to use BPM sync mode
 	#pulsesPerFrame; // Array of pulses per frame for clock sync (derived from frameDurationBeats)
 	#pulseCount = 0; // Accumulated clock pulses since last frame advance
 	#unsubscribeClock = null; // Cleanup for clock subscription
 
 	constructor({ displayContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
-			throw new Error('ClipClip requires numberOfFrames >= 1');
+			throw new Error('Clip requires numberOfFrames >= 1');
 		}
 		if (!framesPerRow || framesPerRow < 1) {
-			throw new Error('ClipClip requires framesPerRow >= 1');
+			throw new Error('Clip requires framesPerRow >= 1');
 		}
 
 		this.#displayContext = displayContext;
@@ -62,12 +62,12 @@ class ClipClip {
 		// When MIDI clock is active, uses clock pulses for real-time sync (24 PPQN)
 		// When no clock, falls back to time-based BPM calculation
 		if (frameDurationBeats !== null && frameDurationBeats !== undefined) {
-			this.#useBPMSync = true;
+			this.#isUsingBPMSync = true;
 
 			if (Array.isArray(frameDurationBeats)) {
 				// Enforce strict array length equal to numberOfFrames
 				if (frameDurationBeats.length !== numberOfFrames) {
-					throw new Error(`ClipClip: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
+					throw new Error(`Clip: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
 				this.#frameDurationBeats = frameDurationBeats;
 				// Pre-calculate pulsesPerFrame for when clock is active (PPQN from settings)
@@ -77,11 +77,11 @@ class ClipClip {
 				this.#frameDurationBeats = Array(numberOfFrames).fill(frameDurationBeats);
 				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
 			} else {
-				throw new Error('ClipClip: invalid frameDurationBeats');
+				throw new Error('Clip: invalid frameDurationBeats');
 			}
 
 			// Subscribe to MIDI clock events for real-time sync when clock is active
-			this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#onClockPulse());
+			this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse());
 		}
 
 		// Make a defensive shallow copy and validate the provided frame rates.
@@ -91,23 +91,23 @@ class ClipClip {
 		for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
 			const numericFrameIndex = Number(frameIndex);
 			if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= numberOfFrames) {
-				console.warn(`ClipClip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
+				console.warn(`Clip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
 				continue;
 			}
 			if (typeof frameRate === 'number' && frameRate > 0) {
 				this.#frameRatesForFrames[numericFrameIndex] = frameRate;
 			} else {
 				// If invalid, log and skip - constructor enforces valid metadata
-				console.warn(`ClipClip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
+				console.warn(`Clip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
 			}
 		}
 		this.#frameWidth = image.width / framesPerRow;
 		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
 		if (!this.#frameWidth || !this.#frameHeight) {
-			throw new Error('ClipClip: Invalid image dimensions');
+			throw new Error('Clip: Invalid image dimensions');
 		}
-		this.#loop = loop;
-		this.#retrigger = retrigger;
+		this.#isLooping = loop;
+		this.#shouldRetrigger = retrigger;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
 		// Cache the default frame rate - prefer frame 0, otherwise use first defined value
@@ -164,7 +164,7 @@ class ClipClip {
 	 */
 	#advanceFrame(timestamp) {
 		// When clock is active and we have frameDurationBeats, let pulses drive frames
-		if (this.#useBPMSync && this.#pulsesPerFrame && appState.bpmSource === BPM_SOURCE_CLOCK) {
+		if (this.#isUsingBPMSync && this.#pulsesPerFrame && appState.bpmSource === BPM_SOURCE_CLOCK) {
 			return;
 		}
 		// Prevent double-advancement when the same timestamp is used to advance
@@ -202,7 +202,7 @@ class ClipClip {
 
 			// Handle wrapping / completion for the advanced frame
 			if (this.#frame >= this.#numberOfFrames) {
-				if (this.#loop) {
+				if (this.#isLooping) {
 					this.#frame %= this.#numberOfFrames;
 				} else {
 					// Non-looping clips are considered finished; keep
@@ -228,7 +228,7 @@ class ClipClip {
 	 * @returns {number} - Interval in milliseconds
 	 */
 	#getFrameInterval(frameIndex) {
-		if (this.#useBPMSync && this.#frameDurationBeats) {
+		if (this.#isUsingBPMSync && this.#frameDurationBeats) {
 			// BPM sync mode: interval = (frameDurationBeats * 60000) / bpm
 			// frameDurationBeats[i] = number of beats this frame should last
 			// e.g., frameDurationBeats=0.25 at 120 BPM = 125ms (16th note)
@@ -283,7 +283,7 @@ class ClipClip {
 	 * Called when a MIDI note off event is received for this clip.
 	 */
 	stop() {
-		if (this.#retrigger) {
+		if (this.#shouldRetrigger) {
 			this.#resetState();
 		}
 	}
@@ -293,7 +293,7 @@ class ClipClip {
 	 * Called when a MIDI note on event activates this clip.
 	 */
 	reset() {
-		if (!this.#retrigger && !this.#isFinished) {
+		if (!this.#shouldRetrigger && !this.#isFinished) {
 			return;
 		}
 		this.#resetState();
@@ -316,7 +316,7 @@ class ClipClip {
 			try {
 				this.#unsubscribeClock();
 			} catch (error) {
-				console.error('Error unsubscribing from clock events in ClipClip:', error);
+				console.error('Error unsubscribing from clock events in Clip:', error);
 			}
 			this.#unsubscribeClock = null;
 		}
@@ -328,7 +328,7 @@ class ClipClip {
 	 * Advances frame when enough pulses have accumulated
 	 * Only active when MIDI clock is the BPM source
 	 */
-	#onClockPulse() {
+	#handleClockPulse() {
 		if (this.#isFinished || !this.#pulsesPerFrame) {
 			return;
 		}
@@ -349,7 +349,7 @@ class ClipClip {
 
 			// Handle wrapping / completion
 			if (this.#frame >= this.#numberOfFrames) {
-				if (this.#loop) {
+				if (this.#isLooping) {
 					this.#frame %= this.#numberOfFrames;
 				} else {
 					this.#frame = this.#numberOfFrames - 1;
@@ -360,4 +360,4 @@ class ClipClip {
 	}
 }
 
-export default ClipClip;
+export default Clip;

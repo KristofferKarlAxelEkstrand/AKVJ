@@ -63,16 +63,16 @@ class EffectsPipeline {
 		effectContext.bpmDefault = bpmDefault;
 		effectContext.scratchBuffer = this.#scratchBuffer;
 
-		let modified = false;
+		let isModified = false;
 		for (const effect of activeEffects) {
 			const effectModule = effectRegistry[effect.type];
 			if (!effectModule || (effectModule.requiresNote && typeof effect.note !== 'number')) {
 				continue;
 			}
-			modified = effectModule.apply(imageData, effect, timestamp, effectContext) || modified;
+			isModified = effectModule.apply(imageData, effect, timestamp, effectContext) || isModified;
 		}
 
-		if (modified) {
+		if (isModified) {
 			ctx.putImageData(imageData, 0, 0);
 		}
 	}

@@ -11,17 +11,17 @@
  * Pre-sorts velocity thresholds for efficient lookup during MIDI processing.
  *
  * @public
- * @param {Object<string, Object>} animationData - Clip data keyed by note, then velocity
+ * @param {Object<string, Object>} clipsByNote - Clips keyed by note, then velocity
  * @returns {Map<number, number[]>} Map of note number -> sorted velocity threshold array
  * @example
- * const animations = { 60: { 0: clip1, 64: clip2, 100: clip3 } };
- * const cache = buildVelocityCache(animations);
+ * const clips = { 60: { 0: clip1, 64: clip2, 100: clip3 } };
+ * const cache = buildVelocityCache(clips);
  * // cache.get(60) returns [0, 64, 100]
  */
-export function buildVelocityCache(animationData) {
+export function buildVelocityCache(clipsByNote) {
 	const cache = new Map();
 
-	for (const [note, velocities] of Object.entries(animationData)) {
+	for (const [note, velocities] of Object.entries(clipsByNote)) {
 		const sorted = Object.keys(velocities)
 			.map(Number)
 			.sort((a, b) => a - b);
@@ -61,23 +61,23 @@ export function findVelocityThreshold(velocities, velocity) {
 }
 
 /**
- * Resolve the animation clip for a given note and velocity.
+ * Resolve the clip for a given note and velocity.
  * Combines velocity cache lookup, velocity clip selection, and clip lookup.
  *
  * @public
- * @param {Object<string, Object<string, AnimationClip>>} notesData - Clip data keyed by note, then velocity threshold
+ * @param {Object<string, Object<string, Clip>} clipsByNote - Clips keyed by note, then velocity threshold
  * @param {number} note - MIDI note (0-127)
  * @param {number} velocity - MIDI velocity (0-127)
  * @param {Map<number, number[]>} velocityCache - Map of note number -> sorted velocity threshold array
- * @returns {AnimationClip|null} The matching animation clip, or null if none
+ * @returns {Clip|null} The matching clip, or null if none
  * @example
- * const clip = resolveAnimationClip(animations[channel], 60, 100, velocityCache.get(channel));
+ * const clip = resolveClip(clips[channel], 60, 100, velocityCache.get(channel));
  */
-export function resolveAnimationClip(notesData, note, velocity, velocityCache) {
+export function resolveClip(clipsByNote, note, velocity, velocityCache) {
 	const velocities = velocityCache?.get(note);
 	const velocityThreshold = findVelocityThreshold(velocities, velocity);
 	if (velocityThreshold === null) {
 		return null;
 	}
-	return notesData?.[note]?.[velocityThreshold] ?? null;
+	return clipsByNote?.[note]?.[velocityThreshold] ?? null;
 }

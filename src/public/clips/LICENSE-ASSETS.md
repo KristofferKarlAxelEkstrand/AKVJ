@@ -1,4 +1,4 @@
-All files, including images (.png) and metadata (.json), within this 'animations' directory and its subdirectories are proprietary and are the exclusive property of KristofferKarlAxelEkstrand.
+All files, including images (.png) and metadata (.json), within this 'clips' directory and its subdirectories are proprietary and are the exclusive property of KristofferKarlAxelEkstrand.
 
 Copyright (c) 2025 KristofferKarlAxelEkstrand. All Rights Reserved.
 

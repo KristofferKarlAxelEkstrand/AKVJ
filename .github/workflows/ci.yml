@@ -23,10 +23,10 @@ jobs:
             - name: Install dependencies
               run: npm ci
 
-            - name: Validate animations
-              run: npm run animations -- --validate-only
+            - name: Validate clips
+              run: npm run clips -- --validate-only
 
-            # Skip extra post-validation check for generated public animations — build will fail if files are missing
+            # Skip extra post-validation check for generated public clips — build will fail if files are missing
 
             - name: Lint JavaScript
               run: npm run lint
@@ -56,12 +56,12 @@ jobs:
             - name: Run visual tests
               run: npm run test:visual
 
-            - name: Build (generate animations + vite build)
+            - name: Build (generate clips + vite build)
               run: npm run build:full
 
-            - name: Verify public animations generated
+            - name: Verify public clips generated
               run: |
-                  if [ ! -d "src/public/animations" ] || [ -z "$(find src/public/animations -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
-                    echo "::error::No generated animation files found in src/public/animations/. Build step should generate these files."
+                  if [ ! -d "src/public/clips" ] || [ -z "$(find src/public/clips -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
+                    echo "::error::No generated clip files found in src/public/clips/. Build step should generate these files."
                     exit 1
                   fi

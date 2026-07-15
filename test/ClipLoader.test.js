@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import AnimationLoader from '../src/js/visuals/AnimationLoader.js';
+import ClipLoader from '../src/js/visuals/ClipLoader.js';
 import settings from '../src/js/core/settings.js';
 
-describe('AnimationLoader', () => {
+describe('ClipLoader', () => {
 	let originalFetch;
 	let originalImage;
 	let originalConcurrency;
@@ -10,19 +10,19 @@ describe('AnimationLoader', () => {
 	beforeEach(() => {
 		originalFetch = globalThis.fetch;
 		originalImage = globalThis.Image;
-		originalConcurrency = settings.performance.maxConcurrentAnimationLoads;
+		originalConcurrency = settings.performance.maxConcurrentClipLoads;
 	});
 	afterEach(() => {
 		globalThis.fetch = originalFetch;
 		globalThis.Image = originalImage;
-		settings.performance.maxConcurrentAnimationLoads = originalConcurrency;
+		settings.performance.maxConcurrentClipLoads = originalConcurrency;
 	});
 
-	test('setUpAnimations loads images using configured concurrency setting', async () => {
+	test('setupClips loads images using configured concurrency setting', async () => {
 		// Configure small concurrency for the test
-		settings.performance.maxConcurrentAnimationLoads = 1;
+		settings.performance.maxConcurrentClipLoads = 1;
 
-		// Stub fetch of JSON to return simple animations mapping
+		// Stub fetch of JSON to return simple clips mapping
 		const simpleJson = {
 			0: {
 				60: {
@@ -50,14 +50,14 @@ describe('AnimationLoader', () => {
 		globalThis.Image = MockImage;
 
 		const ctx = {}; // not used by loader in our test
-		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setUpAnimations('/fake.json');
-		expect(animations).toBeTruthy();
-		expect(animations[0][60]).toBeDefined();
+		const loader = new ClipLoader(ctx);
+		const clips = await loader.setupClips('/fake.json');
+		expect(clips).toBeTruthy();
+		expect(clips[0][60]).toBeDefined();
 	});
 });
 
-describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
+describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 	let originalFetch;
 	let originalImage;
 
@@ -104,12 +104,12 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 		globalThis.Image = MockImage;
 
 		const ctx = {};
-		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setUpAnimations('/fake.json');
+		const loader = new ClipLoader(ctx);
+		const clips = await loader.setupClips('/fake.json');
 		// Sanitizer warns about invalid filename
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '../secret.png');
-		// Animation should not be loaded due to sanitization
-		expect(animations[0]?.[60]?.[0]).toBeUndefined();
+		// Clip should not be loaded due to sanitization
+		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
 	});
 
@@ -139,9 +139,9 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 		globalThis.Image = MockImage;
 
 		const ctx = {};
-		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setUpAnimations('/fake.json');
-		expect(animations[0][60][0]).toBeDefined();
+		const loader = new ClipLoader(ctx);
+		const clips = await loader.setupClips('/fake.json');
+		expect(clips[0][60][0]).toBeDefined();
 	});
 
 	test('rejects filenames with invalid patterns like ....png or -.png', async () => {
@@ -175,11 +175,11 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 		globalThis.Image = MockImage;
 
 		const ctx = {};
-		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setUpAnimations('/fake.json');
+		const loader = new ClipLoader(ctx);
+		const clips = await loader.setupClips('/fake.json');
 		// Sanitizer should warn about the invalid filename
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '....png');
-		expect(animations[0]?.[60]?.[0]).toBeUndefined();
+		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
 	});
 
@@ -212,12 +212,12 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 		globalThis.Image = MockImage;
 
 		const ctx = {};
-		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setUpAnimations('/fake.json');
+		const loader = new ClipLoader(ctx);
+		const clips = await loader.setupClips('/fake.json');
 
-		// Should have warned about non-numeric keys and not loaded any animations
-		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring animation with non-numeric path keys'), expect.any(Object));
-		expect(Object.keys(animations).length).toBe(0);
+		// Should have warned about non-numeric keys and not loaded any clips
+		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring clip with non-numeric path keys'), expect.any(Object));
+		expect(Object.keys(clips).length).toBe(0);
 
 		consoleWarnSpy.mockRestore();
 	});

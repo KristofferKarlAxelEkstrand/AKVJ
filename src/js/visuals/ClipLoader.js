@@ -2,8 +2,10 @@
  * ClipLoader - Handles loading and parsing of PNG sprites and JSON metadata
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
-import ClipClip from './ClipClip.js';
+import Clip from './Clip.js';
 import settings from '../core/settings.js';
+
+const DEFAULT_MAX_CONCURRENT_LOADS = 8;
 
 class ClipLoader {
 	#displayContext;
@@ -70,11 +72,11 @@ class ClipLoader {
 	}
 
 	/**
-	 * Create an ClipClip from clip metadata and loaded image
+	 * Create an Clip from clip metadata and loaded image
 	 */
-	#createClipClip(image, clipMetadata) {
+	#createClip(image, clipMetadata) {
 		try {
-			return new ClipClip({
+			return new Clip({
 				displayContext: this.#displayContext,
 				image,
 				numberOfFrames: clipMetadata.numberOfFrames,
@@ -118,7 +120,7 @@ class ClipLoader {
 				channel,
 				note,
 				velocityThreshold,
-				clip: this.#createClipClip(image, clipMetadata)
+				clip: this.#createClip(image, clipMetadata)
 			};
 		} catch (error) {
 			console.error(`Error loading clip ${channel}/${note}/${velocityThreshold}:`, error);
@@ -131,9 +133,17 @@ class ClipLoader {
 	 */
 	async setupClips(jsonUrl) {
 		const clipsMetadata = await this.#loadClipsJson(jsonUrl);
-		const clips = {};
+		const loadTasks = this.#collectLoadTasks(clipsMetadata);
+		const loadResults = await this.#runBatchedLoads(loadTasks);
+		return this.#buildClipsObject(loadResults);
+	}
 
-		// Collect all load functions for each clip so we can control concurrency
+	/**
+	 * Collect load task functions for each clip in the metadata.
+	 * @param {Object} clipsMetadata - Nested clip metadata keyed by channel/note/velocity
+	 * @returns {Function[]} Array of async load functions
+	 */
+	#collectLoadTasks(clipsMetadata) {
 		const loadTasks = [];
 		for (const [channel, notes] of Object.entries(clipsMetadata)) {
 			for (const [note, velocities] of Object.entries(notes)) {
@@ -142,24 +152,32 @@ class ClipLoader {
 				}
 			}
 		}
+		return loadTasks;
+	}
 
-		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets.
-		// Process clips in batches of maxConcurrentLoads size; the final batch may be smaller if the
-		// total count is not evenly divisible. This is handled correctly by slice().
-		//
-		// Note: A pooling pattern (starting new loads immediately when one completes) could provide
-		// marginally faster load times. For typical clip counts (< 50) the difference is minimal,
-		// and the batching approach is simpler to maintain and reason about. If load performance
-		// becomes critical for large asset libraries, consider refactoring to a concurrency pool.
-		const maxConcurrentLoads = settings.performance?.maxConcurrentClipLoads ?? 8;
+	/**
+	 * Run load tasks in batches with a concurrency limit.
+	 * @param {Function[]} loadTasks - Array of async load functions
+	 * @returns {Promise<Array>} Flattened array of load results
+	 */
+	async #runBatchedLoads(loadTasks) {
+		const maxConcurrentLoads = settings.performance?.maxConcurrentClipLoads ?? DEFAULT_MAX_CONCURRENT_LOADS;
 		const loadResults = [];
 		for (let i = 0; i < loadTasks.length; i += maxConcurrentLoads) {
 			const loadBatch = loadTasks.slice(i, i + maxConcurrentLoads).map(loadTask => loadTask());
 			const batchResults = await Promise.all(loadBatch);
 			loadResults.push(...batchResults);
 		}
+		return loadResults;
+	}
 
-		// Build the clips object from successful loads
+	/**
+	 * Build the nested clips object from successful load results.
+	 * @param {Array} loadResults - Array of load result objects (or null for failures)
+	 * @returns {Object} Nested clips object keyed by channel/note/velocityThreshold
+	 */
+	#buildClipsObject(loadResults) {
+		const clips = {};
 		for (const loadResult of loadResults) {
 			if (loadResult) {
 				const { channel, note, velocityThreshold, clip } = loadResult;
@@ -168,19 +186,18 @@ class ClipLoader {
 				clips[channel][note][velocityThreshold] = clip;
 			}
 		}
-
 		return clips;
 	}
 
 	/**
-	 * Clean up loaded image resources from clips object.
+	 * Destroy loaded image resources from clips object.
 	 * Iterates through all clips and calls destroy() to clear image references.
 	 *
 	 * @param {Object} clips - Nested object containing loaded clips.
-	 * Expected structure: { [channel]: { [note]: { [velocityThreshold]: ClipClip } } }
-	 * Each ClipClip must have a destroy() method.
+	 * Expected structure: { [channel]: { [note]: { [velocityThreshold]: Clip } } }
+	 * Each Clip must have a destroy() method.
 	 */
-	cleanup(clips) {
+	destroy(clips) {
 		if (!clips) {
 			return;
 		}

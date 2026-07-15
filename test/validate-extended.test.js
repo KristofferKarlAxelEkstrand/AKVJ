@@ -6,29 +6,29 @@ import os from 'os';
 // We'll create a minimal test directory structure and test the validation
 
 describe('validate.js extended validation', () => {
-	let tempDir;
+	let testClipsDir;
 	let validate;
 
 	beforeEach(async () => {
-		// Create a temp directory for test animations
-		tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
+		// Create a temp directory for test clips
+		testClipsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
 
 		// Import the validate function
-		const module = await import('../scripts/animations/lib/validate.js');
+		const module = await import('../scripts/clips/lib/validate.js');
 		validate = module.validate;
 	});
 
 	afterEach(async () => {
 		// Clean up temp directory
-		if (tempDir) {
-			await fs.rm(tempDir, { recursive: true, force: true });
+		if (testClipsDir) {
+			await fs.rm(testClipsDir, { recursive: true, force: true });
 		}
 	});
 
-	async function createTestAnimation(channelNoteVelocity, meta, hasPng = true) {
-		const animDir = path.join(tempDir, channelNoteVelocity);
-		await fs.mkdir(animDir, { recursive: true });
-		await fs.writeFile(path.join(animDir, 'meta.json'), JSON.stringify(meta));
+	async function createTestClip(channelNoteVelocity, meta, hasPng = true) {
+		const clipDir = path.join(testClipsDir, channelNoteVelocity);
+		await fs.mkdir(clipDir, { recursive: true });
+		await fs.writeFile(path.join(clipDir, 'meta.json'), JSON.stringify(meta));
 		if (hasPng) {
 			// Create a minimal valid 1x1 PNG
 			// This is a minimal valid 1x1 pixel transparent PNG
@@ -103,7 +103,7 @@ describe('validate.js extended validation', () => {
 				0x60,
 				0x82
 			]);
-			await fs.writeFile(path.join(animDir, 'sprite.png'), minimalPng);
+			await fs.writeFile(path.join(clipDir, 'sprite.png'), minimalPng);
 		}
 	}
 
@@ -113,17 +113,17 @@ describe('validate.js extended validation', () => {
 
 			for (const bitDepth of validBitDepths) {
 				// Clean and recreate temp dir for each test
-				await fs.rm(tempDir, { recursive: true, force: true });
-				tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
+				await fs.rm(testClipsDir, { recursive: true, force: true });
+				testClipsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
 
-				await createTestAnimation('0/0/0', {
+				await createTestClip('0/0/0', {
 					png: 'sprite.png',
 					numberOfFrames: 1,
 					framesPerRow: 1,
 					bitDepth
 				});
 
-				const result = await validate(tempDir);
+				const result = await validate(testClipsDir);
 				expect(result.errors).toHaveLength(0);
 				expect(result.valid).toHaveLength(1);
 				expect(result.valid[0].meta.bitDepth).toBe(bitDepth);
@@ -134,30 +134,30 @@ describe('validate.js extended validation', () => {
 			const invalidBitDepths = [0, 3, 5, 16, 'invalid', null];
 
 			for (const bitDepth of invalidBitDepths) {
-				await fs.rm(tempDir, { recursive: true, force: true });
-				tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
+				await fs.rm(testClipsDir, { recursive: true, force: true });
+				testClipsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
 
-				await createTestAnimation('0/0/0', {
+				await createTestClip('0/0/0', {
 					png: 'sprite.png',
 					numberOfFrames: 1,
 					framesPerRow: 1,
 					bitDepth
 				});
 
-				const result = await validate(tempDir);
+				const result = await validate(testClipsDir);
 				expect(result.errors).toHaveLength(1);
 				expect(result.errors[0].errors.some(e => e.includes('bitDepth'))).toBe(true);
 			}
 		});
 
 		test('allows omitting bitDepth entirely', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(0);
 			expect(result.valid).toHaveLength(1);
 		});
@@ -165,104 +165,104 @@ describe('validate.js extended validation', () => {
 
 	describe('frameDurationBeats validation', () => {
 		test('accepts single positive number (shorthand)', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
 				frameDurationBeats: 0.5
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(0);
 			expect(result.valid[0].meta.frameDurationBeats).toBe(0.5);
 		});
 
 		test('accepts array of positive numbers matching numberOfFrames', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
 				frameDurationBeats: [0.5]
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(0);
 			expect(result.valid[0].meta.frameDurationBeats).toEqual([0.5]);
 		});
 
 		test('rejects array with wrong length', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 4,
 				framesPerRow: 1, // Note: will fail dimension check, but we test frameDurationBeats first
 				frameDurationBeats: [1, 0.5] // Only 2 elements, should be 4
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
 			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats array length'))).toBe(true);
 		});
 
 		test('rejects non-positive numbers in array', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 4,
 				framesPerRow: 1,
 				frameDurationBeats: [1, 0, 0.5, 2] // 0 is not positive
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
 			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats[1]'))).toBe(true);
 		});
 
 		test('rejects negative shorthand value', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
 				frameDurationBeats: -1
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
 			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects zero shorthand value', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
 				frameDurationBeats: 0
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
 			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
 		});
 
 		test('rejects invalid type (string)', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1,
 				frameDurationBeats: 'invalid'
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
 			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be'))).toBe(true);
 		});
 
 		test('allows omitting frameDurationBeats entirely', async () => {
-			await createTestAnimation('0/0/0', {
+			await createTestClip('0/0/0', {
 				png: 'sprite.png',
 				numberOfFrames: 1,
 				framesPerRow: 1
 			});
 
-			const result = await validate(tempDir);
+			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(0);
 		});
 	});

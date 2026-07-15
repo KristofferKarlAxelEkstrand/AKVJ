@@ -40,7 +40,7 @@ afterEach(() => {
 	}
 	appState.reset();
 
-	const renderer = canvas._renderer;
+	const renderer = canvas.testRenderer;
 	if (renderer) {
 		renderer.destroy();
 	}
@@ -55,7 +55,7 @@ afterEach(() => {
  */
 function renderFrame(layerManager, timestamp = 0) {
 	const renderer = new Renderer(ctx, layerManager, settings, appState);
-	canvas._renderer = renderer;
+	canvas.testRenderer = renderer;
 	renderer.start();
 
 	// The warmup call already happened synchronously in start().
@@ -68,40 +68,40 @@ function renderFrame(layerManager, timestamp = 0) {
 
 describe('Mask mixing visual tests', () => {
 	test('1-bit mask: hard cut between A and B', async () => {
-		const animationClipA = createSolidFillClip(255, 0, 0);
-		const animationClipB = createSolidFillClip(0, 0, 255);
-		const maskAnimationClip = createMaskClip('1bit-split');
-		const lm = createMockLayerManager({ animationClipA, animationClipB, maskAnimationClip, maskBitDepth: 1 });
+		const clipA = createSolidFillClip(255, 0, 0);
+		const clipB = createSolidFillClip(0, 0, 255);
+		const maskClip = createMaskClip('1bit-split');
+		const lm = createMockLayerManager({ clipA, clipB, maskClip, maskBitDepth: 1 });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('mask-1bit-split');
 	});
 
 	test('2-bit mask: 4 quantized gray levels', async () => {
-		const animationClipA = createSolidFillClip(0, 0, 0);
-		const animationClipB = createSolidFillClip(255, 255, 255);
-		const maskAnimationClip = createMaskClip('2bit-gradient');
-		const lm = createMockLayerManager({ animationClipA, animationClipB, maskAnimationClip, maskBitDepth: 2 });
+		const clipA = createSolidFillClip(0, 0, 0);
+		const clipB = createSolidFillClip(255, 255, 255);
+		const maskClip = createMaskClip('2bit-gradient');
+		const lm = createMockLayerManager({ clipA, clipB, maskClip, maskBitDepth: 2 });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('mask-2bit-gradient');
 	});
 
 	test('4-bit mask: 16 quantized gray levels', async () => {
-		const animationClipA = createSolidFillClip(0, 0, 0);
-		const animationClipB = createSolidFillClip(255, 255, 255);
-		const maskAnimationClip = createMaskClip('4bit-gradient');
-		const lm = createMockLayerManager({ animationClipA, animationClipB, maskAnimationClip, maskBitDepth: 4 });
+		const clipA = createSolidFillClip(0, 0, 0);
+		const clipB = createSolidFillClip(255, 255, 255);
+		const maskClip = createMaskClip('4bit-gradient');
+		const lm = createMockLayerManager({ clipA, clipB, maskClip, maskBitDepth: 4 });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('mask-4bit-gradient');
 	});
 
 	test('8-bit mask: 50% gray blend', async () => {
-		const animationClipA = createSolidFillClip(0, 0, 0);
-		const animationClipB = createSolidFillClip(255, 255, 255);
-		const maskAnimationClip = createMaskClip('8bit-50gray');
-		const lm = createMockLayerManager({ animationClipA, animationClipB, maskAnimationClip, maskBitDepth: 8 });
+		const clipA = createSolidFillClip(0, 0, 0);
+		const clipB = createSolidFillClip(255, 255, 255);
+		const maskClip = createMaskClip('8bit-50gray');
+		const lm = createMockLayerManager({ clipA, clipB, maskClip, maskBitDepth: 8 });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('mask-8bit-50gray');
@@ -110,16 +110,16 @@ describe('Mask mixing visual tests', () => {
 
 describe('Layer Group passthrough visual tests', () => {
 	test('Layer Group A only (no mask, Layer Group B empty)', async () => {
-		const animationClipA = createStripedClip([255, 0, 0], [0, 255, 0], 15);
-		const lm = createMockLayerManager({ animationClipA });
+		const clipA = createStripedClip([255, 0, 0], [0, 255, 0], 15);
+		const lm = createMockLayerManager({ clipA });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('layer-group-a-only');
 	});
 
 	test('Layer Group B only (no mask, Layer Group A empty)', async () => {
-		const animationClipB = createStripedClip([0, 0, 255], [255, 255, 0], 15);
-		const lm = createMockLayerManager({ animationClipB });
+		const clipB = createStripedClip([0, 0, 255], [255, 255, 0], 15);
+		const lm = createMockLayerManager({ clipB });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('layer-group-b-only');
@@ -128,45 +128,45 @@ describe('Layer Group passthrough visual tests', () => {
 
 describe('Effect visual tests', () => {
 	test('color invert', async () => {
-		const animationClipA = createStripedClip([255, 100, 50], [50, 200, 100], 20);
+		const clipA = createStripedClip([255, 100, 50], [50, 200, 100], 20);
 		const mixedOutputEffects = [createEffect('color', settings.effectRanges.color.min, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('color-invert');
 	});
 
 	test('color posterize', async () => {
-		const animationClipA = createGradientClip('horizontal', [0, 0, 0], [255, 255, 255]);
+		const clipA = createGradientClip('horizontal', [0, 0, 0], [255, 255, 255]);
 		const mixedOutputEffects = [createEffect('color', settings.effectRanges.color.min + 10, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('color-posterize');
 	});
 
 	test('mirror horizontal', async () => {
-		const animationClipA = createAsymmetricPatternClip();
+		const clipA = createAsymmetricPatternClip();
 		const mixedOutputEffects = [createEffect('mirror', settings.effectRanges.mirror.min, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('mirror-horizontal');
 	});
 
 	test('split horizontal', async () => {
-		const animationClipA = createAsymmetricPatternClip();
+		const clipA = createAsymmetricPatternClip();
 		const mixedOutputEffects = [createEffect('split', settings.effectRanges.split.min, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('split-horizontal');
 	});
 
 	test('offset horizontal', async () => {
-		const animationClipA = createAsymmetricPatternClip();
+		const clipA = createAsymmetricPatternClip();
 		const mixedOutputEffects = [createEffect('offset', settings.effectRanges.offset.min, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('offset-horizontal');
@@ -174,9 +174,9 @@ describe('Effect visual tests', () => {
 
 	test('glitch (deterministic)', async () => {
 		randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
-		const animationClipA = createAsymmetricPatternClip();
+		const clipA = createAsymmetricPatternClip();
 		const globalEffects = [createEffect('glitch', settings.effectRanges.glitch.min, 63)];
-		const lm = createMockLayerManager({ animationClipA, globalEffects });
+		const lm = createMockLayerManager({ clipA, globalEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('glitch');
@@ -185,18 +185,18 @@ describe('Effect visual tests', () => {
 
 describe('Effect stacking visual tests', () => {
 	test('color invert + strobe white-out', async () => {
-		const animationClipA = createSolidFillClip(100, 150, 200);
+		const clipA = createSolidFillClip(100, 150, 200);
 		const globalEffects = [createEffect('color', settings.effectRanges.color.min, 127), createEffect('strobe', settings.effectRanges.strobe.min, 5)];
-		const lm = createMockLayerManager({ animationClipA, globalEffects });
+		const lm = createMockLayerManager({ clipA, globalEffects });
 
 		renderFrame(lm, 0);
 		await expect(canvas).toMatchScreenshot('stack-color-strobe');
 	});
 
 	test('mirror horizontal + color invert', async () => {
-		const animationClipA = createAsymmetricPatternClip();
+		const clipA = createAsymmetricPatternClip();
 		const mixedOutputEffects = [createEffect('mirror', settings.effectRanges.mirror.min, 127), createEffect('color', settings.effectRanges.color.min, 127)];
-		const lm = createMockLayerManager({ animationClipA, mixedOutputEffects });
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('stack-mirror-color');
@@ -212,9 +212,9 @@ describe('Edge case visual tests', () => {
 	});
 
 	test('Layer Group C overlay on top of Layer Group A', async () => {
-		const animationClipA = createSolidFillClip(255, 0, 0);
-		const animationClipC = createStripedClip([0, 0, 0], [255, 255, 255], 10);
-		const lm = createMockLayerManager({ animationClipA, animationClipC });
+		const clipA = createSolidFillClip(255, 0, 0);
+		const clipC = createStripedClip([0, 0, 0], [255, 255, 255], 10);
+		const lm = createMockLayerManager({ clipA, clipC });
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('layer-group-c-overlay');

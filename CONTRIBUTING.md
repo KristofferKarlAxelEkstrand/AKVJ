@@ -86,7 +86,7 @@ npm run dev           # Test in browser
 **Manual testing checklist:**
 
 - [ ] Application loads with black canvas
-- [ ] Console shows "JSON for animations loaded"
+- [ ] Console shows "JSON for clips loaded"
 - [ ] 60fps rendering is maintained
 - [ ] MIDI input works (if applicable)
 
@@ -135,32 +135,32 @@ Push your branch and open a PR against `main`.
 | `src/js/visuals/Renderer.js`             | 60fps canvas loop with compositing              |
 | `src/js/visuals/LayerManager.js`         | Coordinates all layer groups                    |
 | `src/js/visuals/LayerGroup.js`           | Clip slots per layer group                      |
-| `src/js/visuals/AnimationLoader.js`      | Sprite loading with concurrency                 |
-| `src/js/visuals/AnimationClip.js`        | Animation playback (FPS or BPM sync)            |
+| `src/js/visuals/ClipLoader.js`           | Sprite loading with concurrency                 |
+| `src/js/visuals/Clip.js`                 | Clip playback (FPS or BPM sync)                 |
 | `src/js/visuals/MaskManager.js`          | Layer Group A and Layer Group B crossfade masks |
 | `src/js/visuals/EffectsManager.js`       | Visual effects                                  |
 | `src/js/core/AppState.js`                | Event-based state management                    |
 | `src/js/core/settings.js`                | Centralized configuration                       |
-| `src/js/utils/velocitySelection.js`      | Velocity-based animation selection              |
+| `src/js/utils/velocitySelection.js`      | Velocity-based clip selection                   |
 
-## Adding Animations
+## Adding Clips
 
-Animations go in `animations/{channel}/{note}/{velocity}/` (source folder, not `src/public/`):
+Clips go in `clips/{channel}/{note}/{velocity}/` (source folder, not `src/public/`):
 
 > **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code.
 
 ```
-animations/1/60/0/
-  ├── meta.json       # Animation metadata
+clips/1/60/0/
+  ├── meta.json       # Clip metadata
   └── sprite.png      # Sprite sheet with all frames
 ```
 
 This example is for DAW Channel 1, Note 60, Velocity variant 0. Source folders use 1-16 (matching DAWs); the build pipeline converts to 0-15 for code.
 
-After adding animations:
+After adding clips:
 
 ```bash
-npm run animations
+npm run clips
 ```
 
 Notes on velocity variant behavior:

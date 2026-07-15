@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { generate } from '../scripts/animations/lib/generate.js';
+import { generate } from '../scripts/clips/lib/generate.js';
 
 const FIXTURE_BASE = path.join(process.cwd(), 'test', 'fixtures', 'generate-fixture');
 
@@ -23,7 +23,7 @@ async function cleanupFixture() {
 	await fs.rm(FIXTURE_BASE, { recursive: true, force: true });
 }
 
-describe('scripts/animations/lib/generate.js', () => {
+describe('scripts/clips/lib/generate.js', () => {
 	beforeEach(async () => {
 		await setupFixture();
 	});
@@ -31,8 +31,8 @@ describe('scripts/animations/lib/generate.js', () => {
 		await cleanupFixture();
 	});
 
-	test('generates animations.json with explicit png from metadata', async () => {
-		const outPath = path.join(FIXTURE_BASE, 'animations.json');
+	test('generates clips.json with explicit png from metadata', async () => {
+		const outPath = path.join(FIXTURE_BASE, 'clips.json');
 		const result = await generate(FIXTURE_BASE, outPath);
 		expect(result).toHaveProperty('0');
 		expect(result['0']).toHaveProperty('0');
@@ -43,7 +43,7 @@ describe('scripts/animations/lib/generate.js', () => {
 	});
 
 	test('uses png filename when metadata lacks png field', async () => {
-		const outPath = path.join(FIXTURE_BASE, 'animations.json');
+		const outPath = path.join(FIXTURE_BASE, 'clips.json');
 		const result = await generate(FIXTURE_BASE, outPath);
 		const entry = result['0']['0']['1'];
 		expect(entry.png).toBe('frames.png');

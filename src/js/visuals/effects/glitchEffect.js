@@ -21,7 +21,7 @@ export default {
 
 		const rowBytes = width * RGBA_CHANNEL_COUNT;
 		const glitchAmount = Math.floor(intensity * glitchMaxDisplacement);
-		let mutated = false;
+		let isMutated = false;
 
 		for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
 			if (Math.random() < intensity * glitchPixelProbability) {
@@ -33,10 +33,10 @@ export default {
 				pixels[i] = original[sourcePixelIndex];
 				pixels[i + 1] = original[sourcePixelIndex + 1];
 				pixels[i + 2] = original[sourcePixelIndex + 2];
-				mutated = true;
+				isMutated = true;
 			}
 		}
-		return mutated;
+		return isMutated;
 	},
 
 	type: 'glitch'

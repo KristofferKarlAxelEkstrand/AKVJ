@@ -11,11 +11,11 @@ import DebugOverlay from './js/utils/DebugOverlay.js';
 
 // Enable fullscreen functionality
 const fullscreenManager = new Fullscreen();
-fullscreenManager.init();
+fullscreenManager.setup();
 
 // Enable debug overlay (press 'D' to toggle)
 const debugOverlay = new DebugOverlay();
-debugOverlay.init();
+debugOverlay.setup();
 
 // Cleanup on hot module replacement (HMR)
 if (import.meta.hot) {

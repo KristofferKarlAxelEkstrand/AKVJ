@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { copyFileWithFallback } from './fsUtils.js';
 
 /**
  * Recursively get all files in a directory.
@@ -75,7 +76,7 @@ export async function copyToPublic(cacheDir, publicDir) {
 
 		// Copy file
 		await fs.mkdir(path.dirname(destPath), { recursive: true });
-		await fs.copyFile(srcPath, destPath);
+		await copyFileWithFallback(srcPath, destPath);
 		stats.copied++;
 	}
 

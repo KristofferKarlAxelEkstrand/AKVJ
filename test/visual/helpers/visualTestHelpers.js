@@ -4,13 +4,13 @@ import settings from '../../../src/js/core/settings.js';
 const { width, height } = settings.canvas;
 
 /**
- * Create a mock animation clip with a custom draw function.
- * The animation clip's renderToContext method calls drawFn(ctx, timestamp).
+ * Create a mock clip with a custom draw function.
+ * The clip's renderToContext method calls drawFn(ctx, timestamp).
  *
- * @param {Function} drawFn - Function called with (ctx, timestamp) to draw the animation clip
- * @returns {Object} Mock AnimationClip
+ * @param {Function} drawFn - Function called with (ctx, timestamp) to draw the clip
+ * @returns {Object} Mock Clip
  */
-export function createMockAnimationClip(drawFn) {
+export function createMockClip(drawFn) {
 	return {
 		renderToContext: drawFn,
 		play: vi.fn(),
@@ -22,30 +22,30 @@ export function createMockAnimationClip(drawFn) {
 }
 
 /**
- * Create an animation clip that fills the canvas with a solid RGB color.
+ * Create a clip that fills the canvas with a solid RGB color.
  *
  * @param {number} r - Red channel (0-255)
  * @param {number} g - Green channel (0-255)
  * @param {number} b - Blue channel (0-255)
- * @returns {Object} Mock AnimationClip
+ * @returns {Object} Mock Clip
  */
 export function createSolidFillClip(r, g, b) {
-	return createMockAnimationClip(ctx => {
+	return createMockClip(ctx => {
 		ctx.fillStyle = `rgb(${r},${g},${b})`;
 		ctx.fillRect(0, 0, width, height);
 	});
 }
 
 /**
- * Create an animation clip that draws a horizontal or vertical gradient.
+ * Create a clip that draws a horizontal or vertical gradient.
  *
  * @param {'horizontal'|'vertical'} direction - Gradient direction
  * @param {[number,number,number]} fromColor - Starting RGB color
  * @param {[number,number,number]} toColor - Ending RGB color
- * @returns {Object} Mock AnimationClip
+ * @returns {Object} Mock Clip
  */
 export function createGradientClip(direction, fromColor, toColor) {
-	return createMockAnimationClip(ctx => {
+	return createMockClip(ctx => {
 		let gradient;
 		if (direction === 'horizontal') {
 			gradient = ctx.createLinearGradient(0, 0, width, 0);
@@ -60,15 +60,15 @@ export function createGradientClip(direction, fromColor, toColor) {
 }
 
 /**
- * Create an animationClip that draws horizontal stripes of alternating colors.
+ * Create a clip that draws horizontal stripes of alternating colors.
  *
  * @param {[number,number,number]} colorA - First stripe color
  * @param {[number,number,number]} colorB - Second stripe color
  * @param {number} stripeWidth - Width of each stripe in pixels
- * @returns {Object} Mock AnimationClip
+ * @returns {Object} Mock Clip
  */
 export function createStripedClip(colorA, colorB, stripeWidth = 10) {
-	return createMockAnimationClip(ctx => {
+	return createMockClip(ctx => {
 		for (let y = 0; y < height; y += stripeWidth * 2) {
 			ctx.fillStyle = `rgb(${colorA[0]},${colorA[1]},${colorA[2]})`;
 			ctx.fillRect(0, y, width, stripeWidth);
@@ -79,13 +79,13 @@ export function createStripedClip(colorA, colorB, stripeWidth = 10) {
 }
 
 /**
- * Create an animationClip that draws an asymmetric pattern (useful for mirror/split tests).
+ * Create a clip that draws an asymmetric pattern (useful for mirror/split tests).
  * Left half is red, right half is blue with a green square in the top-left.
  *
- * @returns {Object} Mock AnimationClip
+ * @returns {Object} Mock Clip
  */
 export function createAsymmetricPatternClip() {
-	return createMockAnimationClip(ctx => {
+	return createMockClip(ctx => {
 		ctx.fillStyle = 'rgb(255,0,0)';
 		ctx.fillRect(0, 0, Math.floor(width / 2), height);
 		ctx.fillStyle = 'rgb(0,0,255)';
@@ -96,11 +96,11 @@ export function createAsymmetricPatternClip() {
 }
 
 /**
- * Create a mask animation clip that draws specific mask patterns.
+ * Create a mask clip that draws specific mask patterns.
  * Mask clips use grayscale values (R=G=B) where 0=show A, 255=show B.
  *
  * @param {string} type - Mask type: '1bit-split', '2bit-gradient', '4bit-gradient', '8bit-gradient', '8bit-50gray'
- * @returns {Object} Mock AnimationClip
+ * @returns {Object} Mock Clip
  */
 export function createMaskClip(type) {
 	const drawFns = {
@@ -113,8 +113,8 @@ export function createMaskClip(type) {
 		'2bit-gradient': ctx => {
 			const levels = [0, 64, 128, 192];
 			const segmentWidth = Math.floor(width / levels.length);
-			levels.forEach((val, i) => {
-				ctx.fillStyle = `rgb(${val},${val},${val})`;
+			levels.forEach((grayLevel, i) => {
+				ctx.fillStyle = `rgb(${grayLevel},${grayLevel},${grayLevel})`;
 				ctx.fillRect(i * segmentWidth, 0, segmentWidth, height);
 			});
 		},
@@ -122,8 +122,8 @@ export function createMaskClip(type) {
 			const levels = 16;
 			const segmentWidth = Math.floor(width / levels);
 			for (let i = 0; i < levels; i++) {
-				const val = Math.floor((i * 255) / (levels - 1));
-				ctx.fillStyle = `rgb(${val},${val},${val})`;
+				const grayLevel = Math.floor((i * 255) / (levels - 1));
+				ctx.fillStyle = `rgb(${grayLevel},${grayLevel},${grayLevel})`;
 				ctx.fillRect(i * segmentWidth, 0, segmentWidth, height);
 			}
 		},
@@ -140,43 +140,43 @@ export function createMaskClip(type) {
 		}
 	};
 
-	return createMockAnimationClip(drawFns[type]);
+	return createMockClip(drawFns[type]);
 }
 
 /**
  * Create a mock LayerManager with configurable active clips, mask, and effects.
  *
  * @param {Object} options
- * @param {Object} [options.animationClipA] - Mock AnimationClip for Layer Group A (or null for empty)
- * @param {Object} [options.animationClipB] - Mock AnimationClip for Layer Group B (or null for empty)
- * @param {Object} [options.animationClipC] - Mock AnimationClip for Layer Group C (or null for empty)
- * @param {Object} [options.maskAnimationClip] - Mock mask animation clip (or null for no mask)
- * @param {number} [options.maskBitDepth] - Bit depth for the mask animation clip
+ * @param {Object} [options.clipA] - Mock Clip for Layer Group A (or null for empty)
+ * @param {Object} [options.clipB] - Mock Clip for Layer Group B (or null for empty)
+ * @param {Object} [options.clipC] - Mock Clip for Layer Group C (or null for empty)
+ * @param {Object} [options.maskClip] - Mock mask clip (or null for no mask)
+ * @param {number} [options.maskBitDepth] - Bit depth for the mask clip
  * @param {Array} [options.mixedOutputEffects] - Array of effect objects for mixed Layer Group A and Layer Group B output effects
  * @param {Array} [options.globalEffects] - Array of effect objects for global effects
  * @returns {Object} Mock LayerManager
  */
-export function createMockLayerManager({ animationClipA = null, animationClipB = null, animationClipC = null, maskAnimationClip = null, maskBitDepth = 1, mixedOutputEffects = [], globalEffects = [] }) {
+export function createMockLayerManager({ clipA = null, clipB = null, clipC = null, maskClip = null, maskBitDepth = 1, mixedOutputEffects = [], globalEffects = [] }) {
 	const emptyGroup = {
 		hasActiveClips: () => false,
 		getActiveClips: () => []
 	};
 
-	const makeGroup = animationClip =>
-		animationClip
+	const makeGroup = clip =>
+		clip
 			? {
 					hasActiveClips: () => true,
-					getActiveClips: () => [animationClip]
+					getActiveClips: () => [clip]
 				}
 			: emptyGroup;
 
 	return {
-		getLayerGroupA: () => makeGroup(animationClipA),
-		getLayerGroupB: () => makeGroup(animationClipB),
-		getLayerGroupC: () => makeGroup(animationClipC),
+		getLayerGroupA: () => makeGroup(clipA),
+		getLayerGroupB: () => makeGroup(clipB),
+		getLayerGroupC: () => makeGroup(clipC),
 		getMaskManager: () => ({
-			getCurrentMask: () => maskAnimationClip,
-			getBitDepth: () => (maskAnimationClip ? maskBitDepth : null)
+			getCurrentMask: () => maskClip,
+			getBitDepth: () => (maskClip ? maskBitDepth : null)
 		}),
 		getEffectsManager: () => ({
 			hasMixedOutputEffects: () => mixedOutputEffects.length > 0,

@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../src/js/visuals/Renderer.js';
 import settings from '../src/js/core/settings.js';
-import withSettings from './utils/with-settings.js';
-import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockContext } from './utils/renderer-fixture.js';
+import withSettings from './utils/withSettings.js';
+import { installRAFMocks, restoreRAFMocks, installMockCanvas, createMockContext } from './utils/rendererFixture.js';
 
 describe('Renderer', () => {
 	let rafMocks;
@@ -17,8 +17,8 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 1 };
+		const maskClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 1 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -81,8 +81,8 @@ describe('Renderer', () => {
 			const displayContext = createMockContext();
 			const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 			const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-			const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-			const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 8 };
+			const maskClip = { isFinished: false, renderToContext: vi.fn() };
+			const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 8 };
 			const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 			const layerManager = {
 				getLayerGroupA: () => layerGroupA,
@@ -146,8 +146,8 @@ describe('Renderer', () => {
 
 	test('fills canvas with background color and renders active clips', () => {
 		const displayContext = createMockContext();
-		const animationClip = { renderToContext: vi.fn() };
-		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
+		const clip = { renderToContext: vi.fn() };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [clip] };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
 			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
@@ -163,7 +163,7 @@ describe('Renderer', () => {
 		rafCb(0);
 
 		expect(displayContext.fillRect).toHaveBeenCalled();
-		expect(animationClip.renderToContext).toHaveBeenCalled();
+		expect(clip.renderToContext).toHaveBeenCalled();
 		// stop and destroy should not throw
 		const stopSpy = vi.spyOn(renderer, 'stop');
 		renderer.destroy();
@@ -173,12 +173,12 @@ describe('Renderer', () => {
 	test('passes RAF timestamp to clip render method', () => {
 		const displayContext = createMockContext();
 		let receivedTimestamp = null;
-		const animationClip = {
+		const clip = {
 			renderToContext: (displayContext, t) => {
 				receivedTimestamp = t;
 			}
 		};
-		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [clip] };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
 			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
@@ -205,10 +205,10 @@ describe('Renderer', () => {
 
 	test('skips finished non-looping clips during render', () => {
 		const displayContext = createMockContext();
-		const finishedAnimationClip = { renderToContext: vi.fn(), isFinished: true };
-		const activeAnimationClip = { renderToContext: vi.fn(), isFinished: false };
+		const finishedClip = { renderToContext: vi.fn(), isFinished: true };
+		const activeClip = { renderToContext: vi.fn(), isFinished: false };
 		// getActiveClips() should only return non-finished clips (filtering is done by LayerGroup)
-		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [activeAnimationClip] };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [activeClip] };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
 			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
@@ -220,9 +220,9 @@ describe('Renderer', () => {
 		const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
 		renderer.start();
 
-		// Finished animationClip should not be in getActiveClips() result, so renderToContext not called
-		expect(finishedAnimationClip.renderToContext).not.toHaveBeenCalled();
-		expect(activeAnimationClip.renderToContext).toHaveBeenCalled();
+		// Finished clip should not be in getActiveClips() result, so renderToContext not called
+		expect(finishedClip.renderToContext).not.toHaveBeenCalled();
+		expect(activeClip.renderToContext).toHaveBeenCalled();
 		renderer.destroy();
 	});
 
@@ -249,7 +249,7 @@ describe('Renderer', () => {
 	test('mixes Layer Group B when Layer Group A is empty and no mask', () => {
 		const displayContext = createMockContext();
 
-		// Layer groups: Layer Group A has no animations, Layer Group B has one animation (mock)
+		// Layer groups: Layer Group A has no clips, Layer Group B has one clip (mock)
 		const layerGroupA = { hasActiveClips: () => false, getActiveClips: () => [] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskManager = { getCurrentMask: () => null };
@@ -281,8 +281,8 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 1 };
+		const maskClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 1 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -362,8 +362,8 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 8 };
+		const maskClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 8 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -424,8 +424,8 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 2 };
+		const maskClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 2 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -488,8 +488,8 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskAnimationClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskAnimationClip, getBitDepth: () => 4 };
+		const maskClip = { isFinished: false, renderToContext: vi.fn() };
+		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 4 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -701,8 +701,8 @@ describe('Renderer', () => {
 
 	test('handles pending frame after destroy without throwing', () => {
 		const displayContext = createMockContext();
-		const animationClip = { renderToContext: vi.fn() };
-		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [animationClip] };
+		const clip = { renderToContext: vi.fn() };
+		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [clip] };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
 			getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),

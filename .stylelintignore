@@ -4,9 +4,9 @@ node_modules
 # Ignore build output
 dist
 
-# Ignore generated animation pipeline output
+# Ignore generated clip pipeline output
 .cache
-src/public/animations
+src/public/clips
 
-# Ignore animation preview tool (standalone, not part of main app)
+# Ignore clip preview tool (standalone, not part of main app)
 src/tools

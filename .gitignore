@@ -37,9 +37,9 @@ tmp/
 temp/
 tmp-*.js
 
-# Animation pipeline outputs
+# Clip pipeline outputs
 .cache/
-/src/public/animations/
+/src/public/clips/
 
 # System files
 Thumbs.db

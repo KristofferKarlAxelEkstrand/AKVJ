@@ -44,7 +44,7 @@ class Fullscreen {
 	/**
 	 * Initialize fullscreen toggle listeners
 	 */
-	init() {
+	setup() {
 		document.addEventListener('keydown', this.#boundHandleKeydown);
 		document.addEventListener('dblclick', this.#boundToggle);
 	}
@@ -53,8 +53,16 @@ class Fullscreen {
 	 * Remove fullscreen toggle listeners
 	 */
 	destroy() {
-		document.removeEventListener('keydown', this.#boundHandleKeydown);
-		document.removeEventListener('dblclick', this.#boundToggle);
+		try {
+			document.removeEventListener('keydown', this.#boundHandleKeydown);
+		} catch (error) {
+			console.error('Error removing keydown listener in Fullscreen:', error);
+		}
+		try {
+			document.removeEventListener('dblclick', this.#boundToggle);
+		} catch (error) {
+			console.error('Error removing dblclick listener in Fullscreen:', error);
+		}
 	}
 }
 

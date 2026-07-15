@@ -1,6 +1,9 @@
 ﻿import appState from '../core/AppState.js';
 import settings from '../core/settings.js';
 
+const SYSTEM_REAL_TIME_THRESHOLD = 0xf8;
+const CHANNEL_NIBBLE_MASK = 0xf;
+
 /**
  * MIDI module - Handles Web MIDI API and device management only
  * Dispatches parsed MIDI events through app state for loose coupling
@@ -13,10 +16,10 @@ class Midi {
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
 
 	constructor() {
-		this.#init();
+		this.#setup();
 	}
 
-	#init() {
+	#setup() {
 		if (this.#isSupported()) {
 			this.#requestAccess();
 		} else {
@@ -33,12 +36,12 @@ class Midi {
 	async #requestAccess() {
 		try {
 			this.#midiAccess = await navigator.requestMIDIAccess();
-			this.#onMIDISuccess(this.#midiAccess);
+			this.#handleMIDISuccess(this.#midiAccess);
 		} catch (error) {
-			this.#onMIDIFailure(error);
+			this.#handleMIDIFailure(error);
 		}
 	}
-	#onMIDISuccess(midiAccess) {
+	#handleMIDISuccess(midiAccess) {
 		if (import.meta.env.DEV) {
 			console.log('WebMIDI supported');
 		}
@@ -47,7 +50,7 @@ class Midi {
 		this.#updateConnectionState();
 	}
 
-	#onMIDIFailure(error) {
+	#handleMIDIFailure(error) {
 		console.error('Failed to get MIDI access:', error);
 		try {
 			appState.midiConnected = false;
@@ -175,7 +178,7 @@ class Midi {
 
 		// Handle System Real-Time messages (single-byte, no channel)
 		// These are high-priority timing messages and should be processed first
-		if (statusByte >= 0xf8) {
+		if (statusByte >= SYSTEM_REAL_TIME_THRESHOLD) {
 			switch (statusByte) {
 				case systemRealTime.clock:
 					appState.dispatchMIDIClock(performance.now());
@@ -203,7 +206,7 @@ class Midi {
 
 		const [, firstDataByte, secondDataByte] = message.data;
 		const command = statusByte >> 4;
-		const channel = statusByte & 0xf;
+		const channel = statusByte & CHANNEL_NIBBLE_MASK;
 
 		switch (command) {
 			case commands.noteOn:

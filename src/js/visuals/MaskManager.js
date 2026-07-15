@@ -10,13 +10,13 @@
  * - Velocity = variant/intensity of the transition
  */
 import settings from '../core/settings.js';
-import { buildVelocityCache, resolveAnimationClip } from '../utils/velocitySelection.js';
+import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
 
 /**
- * @typedef {import('./AnimationClip.js').default} AnimationClip
+ * @typedef {import('./Clip.js').default} Clip
  */
 class MaskManager {
-	/** @type {AnimationClip|null} */
+	/** @type {Clip|null} */
 	#currentMask = null;
 
 	/** @type {number|null} */
@@ -33,11 +33,11 @@ class MaskManager {
 
 	/**
 	 * Set the loaded mask clips
-	 * @param {Object} animations - All clip data keyed by channel/note/velocity
+	 * @param {Object} clips - All clip data keyed by channel/note/velocity
 	 */
-	setAnimations(animations) {
-		const mixerData = animations[this.#mixerChannel];
-		this.#maskClips = mixerData || {};
+	setClips(clips) {
+		const mixerClips = clips[this.#mixerChannel];
+		this.#maskClips = mixerClips || {};
 		this.#velocityCache = buildVelocityCache(this.#maskClips);
 	}
 
@@ -62,7 +62,7 @@ class MaskManager {
 			return false;
 		}
 
-		const clip = resolveAnimationClip(this.#maskClips, note, velocity, this.#velocityCache);
+		const clip = resolveClip(this.#maskClips, note, velocity, this.#velocityCache);
 		if (!clip || typeof clip.reset !== 'function') {
 			return false;
 		}
@@ -97,7 +97,7 @@ class MaskManager {
 
 	/**
 	 * Get the current active mask clip
-	 * @returns {AnimationClip|null} Current mask or null if no mask triggered yet
+	 * @returns {Clip|null} Current mask or null if no mask triggered yet
 	 */
 	getCurrentMask() {
 		return this.#currentMask;
@@ -109,14 +109,6 @@ class MaskManager {
 	 */
 	getBitDepth() {
 		return this.#currentBitDepth;
-	}
-
-	/**
-	 * Check if a mask is currently active
-	 * @returns {boolean}
-	 */
-	hasMask() {
-		return this.#currentMask !== null;
 	}
 
 	/**
@@ -136,9 +128,17 @@ class MaskManager {
 	 * Destroy and release resources
 	 */
 	destroy() {
-		this.clear();
+		try {
+			this.clear();
+		} catch (error) {
+			console.error('Error clearing mask in MaskManager:', error);
+		}
 		this.#maskClips = {};
-		this.#velocityCache.clear();
+		try {
+			this.#velocityCache.clear();
+		} catch (error) {
+			console.error('Error clearing velocityCache in MaskManager:', error);
+		}
 	}
 }
 

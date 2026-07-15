@@ -23,7 +23,7 @@ Brief description of the changes in this PR.
 ## Performance Impact
 
 - [ ] No impact on rendering performance
-- [ ] Tested with multiple concurrent animations
+- [ ] Tested with multiple concurrent clips
 - [ ] MIDI latency remains under 20ms
 
 ## Screenshots/Videos
