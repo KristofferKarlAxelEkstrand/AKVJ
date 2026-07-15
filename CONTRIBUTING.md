@@ -1,4 +1,4 @@
-﻿# Contributing to AKVJ
+# Contributing to AKVJ
 
 Thank you for your interest in contributing to AKVJ! This document provides guidelines and information for contributors.
 
@@ -61,7 +61,7 @@ code --install-extension esbenp.prettier-vscode
 code --install-extension dbaeumer.vscode-eslint
 ```
 
-If you prefer to enable these settings globally rather than per-workspace, open **Preferences â€º Settings**, use the JSON editor, and add the following global settings:
+If you prefer to enable these settings globally rather than per-workspace, open **Preferences › Settings**, use the JSON editor, and add the following global settings:
 
 ```json
 {
@@ -131,7 +131,7 @@ Push your branch and open a PR against `main`.
 | File                                     | Purpose                                         |
 | ---------------------------------------- | ----------------------------------------------- |
 | `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)              |
-| `src/js/midi-input/Midi.js`              | Web MIDI API handling                           |
+| `src/js/midi-input/midi.js`              | Web MIDI API handling                           |
 | `src/js/visuals/Renderer.js`             | 60fps canvas loop with compositing              |
 | `src/js/visuals/LayerManager.js`         | Coordinates all layer groups                    |
 | `src/js/visuals/LayerGroup.js`           | Clip slots per layer group                      |
@@ -151,8 +151,8 @@ Animations go in `animations/{channel}/{note}/{velocity}/` (source folder, not `
 
 ```
 animations/1/60/0/
-  â”œâ”€â”€ meta.json       # Animation metadata
-  â””â”€â”€ sprite.png      # Sprite sheet with all frames
+  ├── meta.json       # Animation metadata
+  └── sprite.png      # Sprite sheet with all frames
 ```
 
 This example is for DAW Channel 1, Note 60, Velocity variant 0. Source folders use 1-16 (matching DAWs); the build pipeline converts to 0-15 for code.

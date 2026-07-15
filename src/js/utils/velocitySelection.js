@@ -11,17 +11,17 @@
  * Pre-sorts velocity thresholds for efficient lookup during MIDI processing.
  *
  * @public
- * @param {Object<string, Object>} animationsByNote - Clip data keyed by note, then velocity
+ * @param {Object<string, Object>} animationData - Clip data keyed by note, then velocity
  * @returns {Map<number, number[]>} Map of note number -> sorted velocity threshold array
  * @example
  * const animations = { 60: { 0: clip1, 64: clip2, 100: clip3 } };
  * const cache = buildVelocityCache(animations);
  * // cache.get(60) returns [0, 64, 100]
  */
-export function buildVelocityCache(animationsByNote) {
+export function buildVelocityCache(animationData) {
 	const cache = new Map();
 
-	for (const [note, velocities] of Object.entries(animationsByNote)) {
+	for (const [note, velocities] of Object.entries(animationData)) {
 		const sorted = Object.keys(velocities)
 			.map(Number)
 			.sort((a, b) => a - b);
@@ -65,7 +65,7 @@ export function findVelocityThreshold(velocities, velocity) {
  * Combines velocity cache lookup, velocity clip selection, and clip lookup.
  *
  * @public
- * @param {Object<string, Object<string, AnimationClip>>} animationsByNote - Clip data keyed by note, then velocity threshold
+ * @param {Object<string, Object<string, AnimationClip>>} notesData - Clip data keyed by note, then velocity threshold
  * @param {number} note - MIDI note (0-127)
  * @param {number} velocity - MIDI velocity (0-127)
  * @param {Map<number, number[]>} velocityCache - Map of note number -> sorted velocity threshold array
@@ -73,11 +73,11 @@ export function findVelocityThreshold(velocities, velocity) {
  * @example
  * const clip = resolveAnimationClip(animations[channel], 60, 100, velocityCache.get(channel));
  */
-export function resolveAnimationClip(animationsByNote, note, velocity, velocityCache) {
+export function resolveAnimationClip(notesData, note, velocity, velocityCache) {
 	const velocities = velocityCache?.get(note);
 	const velocityThreshold = findVelocityThreshold(velocities, velocity);
 	if (velocityThreshold === null) {
 		return null;
 	}
-	return animationsByNote?.[note]?.[velocityThreshold] ?? null;
+	return notesData?.[note]?.[velocityThreshold] ?? null;
 }

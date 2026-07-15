@@ -1,8 +1,8 @@
-﻿/**
+/**
  * DebugOverlay - Displays real-time MIDI and timing information
  * Toggle visibility with 'D' key
  */
-import appState, { EVENT_BPM_CHANGED, EVENT_MIDI_CONNECTION_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE } from '../core/AppState.js';
+import appState from '../core/AppState.js';
 
 class DebugOverlay {
 	#element;
@@ -10,11 +10,11 @@ class DebugOverlay {
 	#midiLog = [];
 	#maxLogEntries = 8;
 	#unsubscribers = [];
-	#boundHandleKeydown;
+	#boundToggle;
 	#visible = false;
 
 	constructor() {
-		this.#boundHandleKeydown = this.#handleKeydown.bind(this);
+		this.#boundToggle = this.#handleKeydown.bind(this);
 		this.#createOverlay();
 	}
 
@@ -113,10 +113,10 @@ class DebugOverlay {
 		document.head.appendChild(style);
 	}
 
-	#handleKeydown(keyEvent) {
-		if (keyEvent.key === 'd' || keyEvent.key === 'D') {
+	#handleKeydown(e) {
+		if (e.key === 'd' || e.key === 'D') {
 			// Don't toggle if user is typing in an input or contenteditable element
-			const target = keyEvent.target;
+			const target = e.target;
 			const targetTag = target?.tagName?.toUpperCase();
 			if (targetTag === 'INPUT' || targetTag === 'TEXTAREA' || target?.isContentEditable) {
 				return;
@@ -127,21 +127,21 @@ class DebugOverlay {
 	}
 
 	#updateBPM(bpm, source) {
-		const bpmDisplayElement = document.getElementById('debug-bpm');
-		const bpmSourceDisplayElement = document.getElementById('debug-bpm-source');
-		if (bpmDisplayElement) {
-			bpmDisplayElement.textContent = bpm.toFixed(1);
+		const bpmEl = document.getElementById('debug-bpm');
+		const sourceEl = document.getElementById('debug-bpm-source');
+		if (bpmEl) {
+			bpmEl.textContent = bpm.toFixed(1);
 		}
-		if (bpmSourceDisplayElement) {
-			bpmSourceDisplayElement.textContent = source;
+		if (sourceEl) {
+			sourceEl.textContent = source;
 		}
 	}
 
 	#updateMIDIStatus(connected) {
-		const midiStatusElement = document.getElementById('debug-midi-status');
-		if (midiStatusElement) {
-			midiStatusElement.textContent = connected ? 'Connected' : 'Disconnected';
-			midiStatusElement.style.color = connected ? '#0f0' : '#f00';
+		const el = document.getElementById('debug-midi-status');
+		if (el) {
+			el.textContent = connected ? 'Connected' : 'Disconnected';
+			el.style.color = connected ? '#0f0' : '#f00';
 		}
 	}
 
@@ -154,18 +154,18 @@ class DebugOverlay {
 	}
 
 	#renderLog() {
-		const midiLogElement = document.getElementById('debug-midi-log');
-		if (!midiLogElement) {
+		const el = document.getElementById('debug-midi-log');
+		if (!el) {
 			return;
 		}
 		// Clear existing content
-		midiLogElement.textContent = '';
+		el.textContent = '';
 		// Build DOM safely (avoid innerHTML with dynamic content)
 		for (const entry of this.#midiLog) {
-			const logEntryElement = document.createElement('div');
-			logEntryElement.className = `debug-log-entry ${entry.type}`;
-			logEntryElement.textContent = entry.message;
-			midiLogElement.appendChild(logEntryElement);
+			const div = document.createElement('div');
+			div.className = `debug-log-entry ${entry.type}`;
+			div.textContent = entry.message;
+			el.appendChild(div);
 		}
 	}
 
@@ -177,42 +177,42 @@ class DebugOverlay {
 
 	init() {
 		document.body.appendChild(this.#element);
-		document.addEventListener('keydown', this.#boundHandleKeydown);
+		document.addEventListener('keydown', this.#boundToggle);
 
 		// Subscribe to BPM changes
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_BPM_CHANGED, event => {
-				this.#updateBPM(event.detail.bpm, event.detail.source);
+			appState.subscribe('bpmChanged', e => {
+				this.#updateBPM(e.detail.bpm, e.detail.source);
 			})
 		);
 
 		// Subscribe to MIDI connection
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_MIDI_CONNECTION_CHANGED, event => {
-				this.#updateMIDIStatus(event.detail.connected);
+			appState.subscribe('midiConnectionChanged', e => {
+				this.#updateMIDIStatus(e.detail.connected);
 			})
 		);
 
 		// Subscribe to Note On
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_MIDI_NOTE_ON, event => {
-				const { channel, note, velocity } = event.detail;
+			appState.subscribe('midiNoteOn', e => {
+				const { channel, note, velocity } = e.detail;
 				this.#addLogEntry('note-on', `CH${channel + 1} ${this.#formatNote(note)} v${velocity}`);
 			})
 		);
 
 		// Subscribe to Note Off
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_MIDI_NOTE_OFF, event => {
-				const { channel, note } = event.detail;
+			appState.subscribe('midiNoteOff', e => {
+				const { channel, note } = e.detail;
 				this.#addLogEntry('note-off', `CH${channel + 1} ${this.#formatNote(note)} OFF`);
 			})
 		);
 
 		// Subscribe to CC
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, event => {
-				const { channel, controller, value } = event.detail;
+			appState.subscribe('midiControlChange', e => {
+				const { channel, controller, value } = e.detail;
 				this.#addLogEntry('cc', `CH${channel + 1} CC${controller}=${value}`);
 			})
 		);
@@ -223,25 +223,13 @@ class DebugOverlay {
 	}
 
 	destroy() {
-		document.removeEventListener('keydown', this.#boundHandleKeydown);
+		document.removeEventListener('keydown', this.#boundToggle);
 		for (const unsubscribe of this.#unsubscribers) {
-			try {
-				unsubscribe();
-			} catch (error) {
-				console.error('Error unsubscribing in DebugOverlay:', error);
-			}
+			unsubscribe();
 		}
 		this.#unsubscribers = [];
-		try {
-			this.#element?.remove();
-		} catch (error) {
-			console.error('Error removing DebugOverlay element:', error);
-		}
-		try {
-			this.#styleElement?.remove();
-		} catch (error) {
-			console.error('Error removing DebugOverlay style element:', error);
-		}
+		this.#element?.remove();
+		this.#styleElement?.remove();
 		this.#midiLog = [];
 	}
 }

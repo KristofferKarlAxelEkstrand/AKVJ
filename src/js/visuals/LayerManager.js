@@ -65,29 +65,29 @@ class LayerManager {
 		return [
 			{
 				name: 'layerGroupA',
-				noteOn: (channel, note, velocity) => this.#layerGroupA.noteOn(channel, note, velocity),
-				noteOff: (channel, note) => this.#layerGroupA.noteOff(channel, note)
+				noteOn: (...args) => this.#layerGroupA.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupA.noteOff(...args)
 			},
 			{
-				name: 'maskManager',
-				noteOn: (channel, note, velocity) => this.#maskManager.noteOn(channel, note, velocity),
+				name: 'mask',
+				noteOn: (...args) => this.#maskManager.noteOn(...args),
 				// Masks latch: they stay active until replaced, so note-off is ignored
 				noteOff: () => false
 			},
 			{
 				name: 'layerGroupB',
-				noteOn: (channel, note, velocity) => this.#layerGroupB.noteOn(channel, note, velocity),
-				noteOff: (channel, note) => this.#layerGroupB.noteOff(channel, note)
+				noteOn: (...args) => this.#layerGroupB.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupB.noteOff(...args)
 			},
 			{
-				name: 'effectsManager',
-				noteOn: (channel, note, velocity) => this.#effectsManager.noteOn(channel, note, velocity),
-				noteOff: (channel, note) => this.#effectsManager.noteOff(channel, note)
+				name: 'effects',
+				noteOn: (...args) => this.#effectsManager.noteOn(...args),
+				noteOff: (...args) => this.#effectsManager.noteOff(...args)
 			},
 			{
 				name: 'layerGroupC',
-				noteOn: (channel, note, velocity) => this.#layerGroupC.noteOn(channel, note, velocity),
-				noteOff: (channel, note) => this.#layerGroupC.noteOff(channel, note)
+				noteOn: (...args) => this.#layerGroupC.noteOn(...args),
+				noteOff: (...args) => this.#layerGroupC.noteOff(...args)
 			}
 		];
 	}
@@ -193,44 +193,20 @@ class LayerManager {
 		this.#layerGroupA.clearClips();
 		this.#layerGroupB.clearClips();
 		this.#layerGroupC.clearClips();
-		this.#maskManager.clearMask();
-		this.#effectsManager.clearEffects();
+		this.#maskManager.clear();
+		this.#effectsManager.clear();
 	}
 
 	/**
 	 * Destroy LayerManager and release references
 	 */
 	destroy() {
-		try {
-			this.clearClips();
-		} catch (error) {
-			console.error('Error clearing clips in LayerManager:', error);
-		}
-		try {
-			this.#layerGroupA.destroy();
-		} catch (error) {
-			console.error('Error destroying layerGroupA:', error);
-		}
-		try {
-			this.#layerGroupB.destroy();
-		} catch (error) {
-			console.error('Error destroying layerGroupB:', error);
-		}
-		try {
-			this.#layerGroupC.destroy();
-		} catch (error) {
-			console.error('Error destroying layerGroupC:', error);
-		}
-		try {
-			this.#maskManager.destroy();
-		} catch (error) {
-			console.error('Error destroying maskManager:', error);
-		}
-		try {
-			this.#effectsManager.destroy();
-		} catch (error) {
-			console.error('Error destroying effectsManager:', error);
-		}
+		this.clearClips();
+		this.#layerGroupA.destroy();
+		this.#layerGroupB.destroy();
+		this.#layerGroupC.destroy();
+		this.#maskManager.destroy();
+		this.#effectsManager.destroy();
 	}
 }
 

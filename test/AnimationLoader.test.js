@@ -18,7 +18,7 @@ describe('AnimationLoader', () => {
 		settings.performance.maxConcurrentAnimationLoads = originalConcurrency;
 	});
 
-	test('setupAnimations loads images using configured concurrency setting', async () => {
+	test('setUpAnimations loads images using configured concurrency setting', async () => {
 		// Configure small concurrency for the test
 		settings.performance.maxConcurrentAnimationLoads = 1;
 
@@ -51,7 +51,7 @@ describe('AnimationLoader', () => {
 
 		const ctx = {}; // not used by loader in our test
 		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setupAnimations('/fake.json');
+		const animations = await loader.setUpAnimations('/fake.json');
 		expect(animations).toBeTruthy();
 		expect(animations[0][60]).toBeDefined();
 	});
@@ -105,7 +105,7 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 
 		const ctx = {};
 		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setupAnimations('/fake.json');
+		const animations = await loader.setUpAnimations('/fake.json');
 		// Sanitizer warns about invalid filename
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '../secret.png');
 		// Animation should not be loaded due to sanitization
@@ -140,7 +140,7 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 
 		const ctx = {};
 		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setupAnimations('/fake.json');
+		const animations = await loader.setUpAnimations('/fake.json');
 		expect(animations[0][60][0]).toBeDefined();
 	});
 
@@ -176,7 +176,7 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 
 		const ctx = {};
 		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setupAnimations('/fake.json');
+		const animations = await loader.setUpAnimations('/fake.json');
 		// Sanitizer should warn about the invalid filename
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '....png');
 		expect(animations[0]?.[60]?.[0]).toBeUndefined();
@@ -213,7 +213,7 @@ describe('AnimationLoader - sanitizeFileName (indirect tests)', () => {
 
 		const ctx = {};
 		const loader = new AnimationLoader(ctx);
-		const animations = await loader.setupAnimations('/fake.json');
+		const animations = await loader.setUpAnimations('/fake.json');
 
 		// Should have warned about non-numeric keys and not loaded any animations
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring animation with non-numeric path keys'), expect.any(Object));

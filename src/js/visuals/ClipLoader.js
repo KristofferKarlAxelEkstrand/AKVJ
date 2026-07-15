@@ -1,11 +1,11 @@
 /**
- * AnimationLoader - Handles loading and parsing of PNG sprites and JSON metadata
+ * ClipLoader - Handles loading and parsing of PNG sprites and JSON metadata
  * Extracted from AdventureKidVideoJockey.js (src/js/core/) for better separation of concerns
  */
-import AnimationClip from './AnimationClip.js';
+import ClipClip from './ClipClip.js';
 import settings from '../core/settings.js';
 
-class AnimationLoader {
+class ClipLoader {
 	#displayContext;
 
 	constructor(displayContext) {
@@ -13,7 +13,7 @@ class AnimationLoader {
 	}
 
 	/**
-	 * Sanitize animation file name - prevents path traversal and ensures a safe filename.
+	 * Sanitize clip file name - prevents path traversal and ensures a safe filename.
 	 * Only allows alphanumeric names with valid image extensions; prevents edge cases
 	 * like '..png' or '-.png'.
 	 */
@@ -25,7 +25,7 @@ class AnimationLoader {
 		// Name must start and end with alphanumeric characters
 		const filenameMatch = filename.match(/^([a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?\.(png|jpg|jpeg|gif))$/i);
 		if (!filenameMatch) {
-			console.warn('AnimationLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
+			console.warn('ClipLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
 			return '';
 		}
 		return filenameMatch[1];
@@ -34,7 +34,7 @@ class AnimationLoader {
 	/**
 	 * Load and parse clip data from JSON URL
 	 */
-	async #loadAnimationsJson(jsonUrl) {
+	async #loadClipsJson(jsonUrl) {
 		// Add cache-busting query param during development to ensure fresh data
 		const fetchUrl = import.meta.env.DEV ? `${jsonUrl}?t=${performance.now()}` : jsonUrl;
 		const response = await fetch(fetchUrl);
@@ -43,12 +43,12 @@ class AnimationLoader {
 			throw new Error(`HTTP error! status: ${response.status} for ${jsonUrl}`);
 		}
 
-		const animationsMetadata = await response.json();
+		const clipsMetadata = await response.json();
 		// Debug logging only in development mode
 		if (import.meta.env.DEV) {
-			console.log('JSON for animations loaded:', animationsMetadata);
+			console.log('JSON for clips loaded:', clipsMetadata);
 		}
-		return animationsMetadata;
+		return clipsMetadata;
 	}
 
 	/**
@@ -70,11 +70,11 @@ class AnimationLoader {
 	}
 
 	/**
-	 * Create an AnimationClip from clip metadata and loaded image
+	 * Create an ClipClip from clip metadata and loaded image
 	 */
-	#createAnimationClip(image, clipMetadata) {
+	#createClipClip(image, clipMetadata) {
 		try {
-			return new AnimationClip({
+			return new ClipClip({
 				displayContext: this.#displayContext,
 				image,
 				numberOfFrames: clipMetadata.numberOfFrames,
@@ -86,7 +86,7 @@ class AnimationLoader {
 				bitDepth: clipMetadata.bitDepth ?? null
 			});
 		} catch (error) {
-			console.error(`AnimationLoader: invalid clip metadata for image ${clipMetadata.png}:`, error);
+			console.error(`ClipLoader: invalid clip metadata for image ${clipMetadata.png}:`, error);
 			return null;
 		}
 	}
@@ -94,23 +94,23 @@ class AnimationLoader {
 	/**
 	 * Load a single clip and return its placement info
 	 */
-	async #loadAnimation(channel, note, velocityThreshold, clipMetadata) {
+	async #loadClip(channel, note, velocityThreshold, clipMetadata) {
 		// Validate that channel/note/velocity keys are numeric to avoid path traversal
 		if (!/^\d+$/.test(String(channel)) || !/^\d+$/.test(String(note)) || !/^\d+$/.test(String(velocityThreshold))) {
-			console.warn('AnimationLoader: ignoring animation with non-numeric path keys', { channel, note, velocityThreshold });
+			console.warn('ClipLoader: ignoring clip with non-numeric path keys', { channel, note, velocityThreshold });
 			return null;
 		}
 
 		// Construct image path using configurable base path to support subpath deployments
-		const animationsBasePath = settings.performance.animationsBasePath;
+		const clipsBasePath = settings.performance.clipsBasePath;
 		const sanitizedFilename = this.#sanitizeFileName(clipMetadata.png);
 		// Early return if filename was invalid (warning already logged in #sanitizeFileName)
 		if (!sanitizedFilename) {
 			return null;
 		}
 		// Normalize base path to avoid double slashes in the constructed URL
-		const normalizedBasePath = animationsBasePath.replace(/\/$/, '');
-		const imagePath = `${normalizedBasePath}/animations/${channel}/${note}/${velocityThreshold}/${sanitizedFilename}`;
+		const normalizedBasePath = clipsBasePath.replace(/\/$/, '');
+		const imagePath = `${normalizedBasePath}/clips/${channel}/${note}/${velocityThreshold}/${sanitizedFilename}`;
 
 		try {
 			const image = await this.#loadImage(imagePath);
@@ -118,40 +118,40 @@ class AnimationLoader {
 				channel,
 				note,
 				velocityThreshold,
-				clip: this.#createAnimationClip(image, clipMetadata)
+				clip: this.#createClipClip(image, clipMetadata)
 			};
 		} catch (error) {
-			console.error(`Error loading animation ${channel}/${note}/${velocityThreshold}:`, error);
+			console.error(`Error loading clip ${channel}/${note}/${velocityThreshold}:`, error);
 			return null;
 		}
 	}
 
 	/**
-	 * Set up all animations from JSON metadata
+	 * Set up all clips from JSON metadata
 	 */
-	async setupAnimations(jsonUrl) {
-		const animationsMetadata = await this.#loadAnimationsJson(jsonUrl);
-		const animations = {};
+	async setupClips(jsonUrl) {
+		const clipsMetadata = await this.#loadClipsJson(jsonUrl);
+		const clips = {};
 
-		// Collect all load functions for each animation so we can control concurrency
+		// Collect all load functions for each clip so we can control concurrency
 		const loadTasks = [];
-		for (const [channel, notes] of Object.entries(animationsMetadata)) {
+		for (const [channel, notes] of Object.entries(clipsMetadata)) {
 			for (const [note, velocities] of Object.entries(notes)) {
 				for (const [velocityThreshold, clipMetadata] of Object.entries(velocities)) {
-					loadTasks.push(() => this.#loadAnimation(channel, note, velocityThreshold, clipMetadata));
+					loadTasks.push(() => this.#loadClip(channel, note, velocityThreshold, clipMetadata));
 				}
 			}
 		}
 
 		// Run loads with a simple concurrency limit to avoid network flooding for large numbers of assets.
-		// Process animations in batches of maxConcurrentLoads size; the final batch may be smaller if the
+		// Process clips in batches of maxConcurrentLoads size; the final batch may be smaller if the
 		// total count is not evenly divisible. This is handled correctly by slice().
 		//
 		// Note: A pooling pattern (starting new loads immediately when one completes) could provide
-		// marginally faster load times. For typical animation counts (< 50) the difference is minimal,
+		// marginally faster load times. For typical clip counts (< 50) the difference is minimal,
 		// and the batching approach is simpler to maintain and reason about. If load performance
 		// becomes critical for large asset libraries, consider refactoring to a concurrency pool.
-		const maxConcurrentLoads = settings.performance?.maxConcurrentAnimationLoads ?? 8;
+		const maxConcurrentLoads = settings.performance?.maxConcurrentClipLoads ?? 8;
 		const loadResults = [];
 		for (let i = 0; i < loadTasks.length; i += maxConcurrentLoads) {
 			const loadBatch = loadTasks.slice(i, i + maxConcurrentLoads).map(loadTask => loadTask());
@@ -159,33 +159,33 @@ class AnimationLoader {
 			loadResults.push(...batchResults);
 		}
 
-		// Build the animations object from successful loads
+		// Build the clips object from successful loads
 		for (const loadResult of loadResults) {
 			if (loadResult) {
 				const { channel, note, velocityThreshold, clip } = loadResult;
-				animations[channel] ??= {};
-				animations[channel][note] ??= {};
-				animations[channel][note][velocityThreshold] = clip;
+				clips[channel] ??= {};
+				clips[channel][note] ??= {};
+				clips[channel][note][velocityThreshold] = clip;
 			}
 		}
 
-		return animations;
+		return clips;
 	}
 
 	/**
-	 * Clean up loaded image resources from animations object.
+	 * Clean up loaded image resources from clips object.
 	 * Iterates through all clips and calls destroy() to clear image references.
 	 *
-	 * @param {Object} animations - Nested object containing loaded clips.
-	 * Expected structure: { [channel]: { [note]: { [velocityThreshold]: AnimationClip } } }
-	 * Each AnimationClip must have a destroy() method.
+	 * @param {Object} clips - Nested object containing loaded clips.
+	 * Expected structure: { [channel]: { [note]: { [velocityThreshold]: ClipClip } } }
+	 * Each ClipClip must have a destroy() method.
 	 */
-	cleanup(animations) {
-		if (!animations) {
+	cleanup(clips) {
+		if (!clips) {
 			return;
 		}
 
-		for (const channel of Object.values(animations)) {
+		for (const channel of Object.values(clips)) {
 			for (const note of Object.values(channel)) {
 				for (const clip of Object.values(note)) {
 					try {
@@ -201,4 +201,4 @@ class AnimationLoader {
 	}
 }
 
-export default AnimationLoader;
+export default ClipLoader;

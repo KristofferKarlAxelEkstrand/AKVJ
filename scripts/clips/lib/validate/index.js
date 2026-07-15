@@ -5,32 +5,32 @@ import { validateMetaFields } from './meta.js';
 import { validateImageDimensions } from './image.js';
 
 /**
- * Validation result for a single animation.
+ * Validation result for a single clip.
  * @typedef {Object} ValidationResult
- * @property {string} path - Animation path (channel/note/velocity)
+ * @property {string} path - Clip path (channel/note/velocity)
  * @property {Object} meta - Parsed metadata
  * @property {string} pngPath - Path to PNG file
  * @property {string[]} errors - List of validation errors
  */
 
 /**
- * Validate a single animation directory.
- * @param {string} animationDir - Path to animation directory
- * @param {string} animationPath - Logical path (e.g., "0/1/0")
+ * Validate a single clip directory.
+ * @param {string} clipDir - Path to clip directory
+ * @param {string} clipPath - Logical path (e.g., "0/1/0")
  * @returns {Promise<ValidationResult>}
  */
-async function validateAnimation(animationDir, animationPath) {
+async function validateClip(clipDir, clipPath) {
 	const errors = [];
 	let meta = null;
 	let pngPath = null;
 
 	// Check for meta.json or any .json file
-	const jsonFiles = await getFilesWithExtension(animationDir, '.json');
+	const jsonFiles = await getFilesWithExtension(clipDir, '.json');
 	if (jsonFiles.length === 0) {
 		errors.push('Missing meta.json file');
 	} else {
 		const metaFile = jsonFiles.find(f => f === 'meta.json') || jsonFiles[0];
-		const metaPath = path.join(animationDir, metaFile);
+		const metaPath = path.join(clipDir, metaFile);
 
 		try {
 			const content = await fs.readFile(metaPath, 'utf8');
@@ -41,7 +41,7 @@ async function validateAnimation(animationDir, animationPath) {
 	}
 
 	// Check for PNG file
-	const pngFiles = await getFilesWithExtension(animationDir, '.png');
+	const pngFiles = await getFilesWithExtension(clipDir, '.png');
 	if (pngFiles.length === 0) {
 		// Check if meta has a 'src' field pointing elsewhere
 		if (!meta?.src) {
@@ -51,18 +51,18 @@ async function validateAnimation(animationDir, animationPath) {
 		// If meta.png is specified, verify it matches an existing file
 		if (meta?.png) {
 			if (pngFiles.includes(meta.png)) {
-				pngPath = path.join(animationDir, meta.png);
+				pngPath = path.join(clipDir, meta.png);
 			} else {
 				errors.push(`meta.json specifies png "${meta.png}" but file not found`);
 				// Use the found png as a fallback and update meta to reflect the used file
 				const fallback = pngFiles[0];
-				pngPath = path.join(animationDir, fallback);
+				pngPath = path.join(clipDir, fallback);
 				if (meta) {
 					meta.png = fallback;
 				}
 			}
 		} else {
-			pngPath = path.join(animationDir, pngFiles[0]);
+			pngPath = path.join(clipDir, pngFiles[0]);
 		}
 	}
 
@@ -73,8 +73,8 @@ async function validateAnimation(animationDir, animationPath) {
 	}
 
 	return {
-		path: animationPath,
-		dir: animationDir,
+		path: clipPath,
+		dir: clipDir,
 		meta,
 		pngPath,
 		errors
@@ -82,12 +82,12 @@ async function validateAnimation(animationDir, animationPath) {
 }
 
 /**
- * Scan and validate all animations in a source directory.
- * @param {string} sourceDir - Root animations directory
- * @returns {Promise<{valid: ValidationResult[], errors: {path: string, errors: string[]}[]}>} `valid` holds successfully validated animations
+ * Scan and validate all clips in a source directory.
+ * @param {string} sourceDir - Root clips directory
+ * @returns {Promise<{valid: ValidationResult[], errors: {path: string, errors: string[]}[]}>} `valid` holds successfully validated clips
  */
 export async function validate(sourceDir) {
-	const validAnimations = [];
+	const validClips = [];
 	const errors = [];
 
 	const channels = await getSubfolders(sourceDir);
@@ -102,20 +102,20 @@ export async function validate(sourceDir) {
 
 			for (const velocity of velocities) {
 				const velocityDir = path.join(noteDir, velocity);
-				const animationPath = `${channel}/${note}/${velocity}`;
+				const clipPath = `${channel}/${note}/${velocity}`;
 
-				const result = await validateAnimation(velocityDir, animationPath);
+				const result = await validateClip(velocityDir, clipPath);
 
 				if (result.errors.length > 0) {
-					errors.push({ path: animationPath, errors: result.errors });
+					errors.push({ path: clipPath, errors: result.errors });
 				} else {
-					validAnimations.push(result);
+					validClips.push(result);
 				}
 			}
 		}
 	}
 
-	return { valid: validAnimations, errors };
+	return { valid: validClips, errors };
 }
 
 export { getSubfolders, getFilesWithExtension } from './structure.js';

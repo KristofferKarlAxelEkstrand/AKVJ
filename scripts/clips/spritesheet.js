@@ -6,14 +6,14 @@
  * Combines individual frame images into a single sprite sheet.
  *
  * Usage:
- *   node scripts/animations/spritesheet.js <input-folder> <output-folder> [options]
+ *   node scripts/clips/spritesheet.js <input-folder> <output-folder> [options]
  *
  * Options:
  *   --frames-per-row <n>  Number of frames per row (default: 8)
  *   --frame-rate <n>      Default frame rate (default: 12)
  *
  * Example:
- *   node scripts/animations/spritesheet.js ./my-frames ./animations/0/3/0
+ *   node scripts/clips/spritesheet.js ./my-frames ./clips/0/3/0
  */
 
 import fs from 'fs/promises';
@@ -140,14 +140,14 @@ const options = parseArgs();
 if (!options.inputDir || !options.outputDir) {
 	console.log('Sprite Sheet Generator');
 	console.log('');
-	console.log('Usage: node scripts/animations/spritesheet.js <input-folder> <output-folder> [options]');
+	console.log('Usage: node scripts/clips/spritesheet.js <input-folder> <output-folder> [options]');
 	console.log('');
 	console.log('Options:');
 	console.log('  --frames-per-row <n>  Number of frames per row (default: 8)');
 	console.log('  --frame-rate <n>      Default frame rate in fps (default: 12)');
 	console.log('');
 	console.log('Example:');
-	console.log('  node scripts/animations/spritesheet.js ./my-frames ./animations/0/3/0');
+	console.log('  node scripts/clips/spritesheet.js ./my-frames ./clips/0/3/0');
 	console.log('');
 	console.log('Input folder should contain numbered image files like:');
 	console.log('  frame001.png, frame002.png, ...');

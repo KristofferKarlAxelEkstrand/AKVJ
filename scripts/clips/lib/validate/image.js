@@ -1,5 +1,5 @@
 /**
- * Image dimension validation for animation spritesheets.
+ * Image dimension validation for clip spritesheets.
  */
 
 /**

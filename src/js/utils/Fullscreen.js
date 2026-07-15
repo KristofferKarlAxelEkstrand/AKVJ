@@ -17,13 +17,13 @@ class Fullscreen {
 	#toggle() {
 		if (!document.fullscreenElement) {
 			if (document.documentElement.requestFullscreen) {
-				document.documentElement.requestFullscreen().catch(error => {
-					console.error(`Error attempting to enable full-screen mode: ${error.message} (${error.name})`);
+				document.documentElement.requestFullscreen().catch(err => {
+					console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
 				});
 			}
 		} else if (document.exitFullscreen) {
-			document.exitFullscreen().catch(error => {
-				console.error(`Error attempting to exit full-screen mode: ${error.message} (${error.name})`);
+			document.exitFullscreen().catch(err => {
+				console.error(`Error attempting to exit full-screen mode: ${err.message} (${err.name})`);
 			});
 		}
 	}
@@ -31,12 +31,12 @@ class Fullscreen {
 	/**
 	 * Handle keydown events for fullscreen toggle
 	 */
-	#handleKeydown(event) {
-		if (event.repeat) {
+	#handleKeydown(e) {
+		if (e.repeat) {
 			return;
 		}
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
 			this.#toggle();
 		}
 	}

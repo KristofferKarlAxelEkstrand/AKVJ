@@ -1,5 +1,3 @@
-import { RGBA_CHANNEL_COUNT } from './effects/effectConstants.js';
-
 /**
  * Bit depth mixing constants.
  * Define how mask grayscale values (0-255) are quantized for Layer Group A and Layer Group B blending.
@@ -189,57 +187,57 @@ class Compositor {
 	 * @param {number} bitDepth - Mask bit depth (1, 2, 4, or 8)
 	 */
 	#mixWithMask(bitDepth) {
-		const layerGroupAImageData = this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const layerGroupBImageData = this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const maskImageData = this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
+		const layerGroupAData = this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
+		const layerGroupBData = this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
+		const maskData = this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
 
 		if (!this.#mixedImageData || this.#mixedImageData.width !== this.#canvasWidth || this.#mixedImageData.height !== this.#canvasHeight) {
 			this.#mixedImageData = this.#ctxMixed.createImageData(this.#canvasWidth, this.#canvasHeight);
 		}
 
-		const layerGroupAPixels = layerGroupAImageData.data;
-		const layerGroupBPixels = layerGroupBImageData.data;
-		const maskPixels = maskImageData.data;
+		const layerGroupAPixels = layerGroupAData.data;
+		const layerGroupBPixels = layerGroupBData.data;
+		const maskPixels = maskData.data;
 		const outPixels = this.#mixedImageData.data;
 		const pixelCount = this.#canvasWidth * this.#canvasHeight;
 
 		// Mix pixels based on bit depth.
 		// Alpha is preserved from whichever layer group has higher opacity.
 		for (let i = 0; i < pixelCount; i++) {
-			const pixelByteIndex = i * RGBA_CHANNEL_COUNT;
-			const maskValue = maskPixels[pixelByteIndex];
+			const idx = i * 4;
+			const maskValue = maskPixels[idx];
 
 			if (bitDepth === 1) {
 				if (maskValue < BIT_DEPTH_MIXING.THRESHOLD_1BIT) {
-					outPixels[pixelByteIndex] = layerGroupAPixels[pixelByteIndex];
-					outPixels[pixelByteIndex + 1] = layerGroupAPixels[pixelByteIndex + 1];
-					outPixels[pixelByteIndex + 2] = layerGroupAPixels[pixelByteIndex + 2];
+					outPixels[idx] = layerGroupAPixels[idx];
+					outPixels[idx + 1] = layerGroupAPixels[idx + 1];
+					outPixels[idx + 2] = layerGroupAPixels[idx + 2];
 				} else {
-					outPixels[pixelByteIndex] = layerGroupBPixels[pixelByteIndex];
-					outPixels[pixelByteIndex + 1] = layerGroupBPixels[pixelByteIndex + 1];
-					outPixels[pixelByteIndex + 2] = layerGroupBPixels[pixelByteIndex + 2];
+					outPixels[idx] = layerGroupBPixels[idx];
+					outPixels[idx + 1] = layerGroupBPixels[idx + 1];
+					outPixels[idx + 2] = layerGroupBPixels[idx + 2];
 				}
-				outPixels[pixelByteIndex + 3] = Math.max(layerGroupAPixels[pixelByteIndex + 3], layerGroupBPixels[pixelByteIndex + 3]);
+				outPixels[idx + 3] = Math.max(layerGroupAPixels[idx + 3], layerGroupBPixels[idx + 3]);
 			} else if (bitDepth === 2) {
 				const level2 = Math.floor(maskValue / BIT_DEPTH_MIXING.DIVISOR_2BIT);
 				const alpha2 = level2 / BIT_DEPTH_MIXING.MAX_LEVEL_2BIT;
-				outPixels[pixelByteIndex] = layerGroupAPixels[pixelByteIndex] + (layerGroupBPixels[pixelByteIndex] - layerGroupAPixels[pixelByteIndex]) * alpha2;
-				outPixels[pixelByteIndex + 1] = layerGroupAPixels[pixelByteIndex + 1] + (layerGroupBPixels[pixelByteIndex + 1] - layerGroupAPixels[pixelByteIndex + 1]) * alpha2;
-				outPixels[pixelByteIndex + 2] = layerGroupAPixels[pixelByteIndex + 2] + (layerGroupBPixels[pixelByteIndex + 2] - layerGroupAPixels[pixelByteIndex + 2]) * alpha2;
-				outPixels[pixelByteIndex + 3] = Math.max(layerGroupAPixels[pixelByteIndex + 3], layerGroupBPixels[pixelByteIndex + 3]);
+				outPixels[idx] = layerGroupAPixels[idx] + (layerGroupBPixels[idx] - layerGroupAPixels[idx]) * alpha2;
+				outPixels[idx + 1] = layerGroupAPixels[idx + 1] + (layerGroupBPixels[idx + 1] - layerGroupAPixels[idx + 1]) * alpha2;
+				outPixels[idx + 2] = layerGroupAPixels[idx + 2] + (layerGroupBPixels[idx + 2] - layerGroupAPixels[idx + 2]) * alpha2;
+				outPixels[idx + 3] = Math.max(layerGroupAPixels[idx + 3], layerGroupBPixels[idx + 3]);
 			} else if (bitDepth === 4) {
 				const level4 = Math.floor(maskValue / BIT_DEPTH_MIXING.DIVISOR_4BIT);
 				const alpha4 = level4 / BIT_DEPTH_MIXING.MAX_LEVEL_4BIT;
-				outPixels[pixelByteIndex] = layerGroupAPixels[pixelByteIndex] + (layerGroupBPixels[pixelByteIndex] - layerGroupAPixels[pixelByteIndex]) * alpha4;
-				outPixels[pixelByteIndex + 1] = layerGroupAPixels[pixelByteIndex + 1] + (layerGroupBPixels[pixelByteIndex + 1] - layerGroupAPixels[pixelByteIndex + 1]) * alpha4;
-				outPixels[pixelByteIndex + 2] = layerGroupAPixels[pixelByteIndex + 2] + (layerGroupBPixels[pixelByteIndex + 2] - layerGroupAPixels[pixelByteIndex + 2]) * alpha4;
-				outPixels[pixelByteIndex + 3] = Math.max(layerGroupAPixels[pixelByteIndex + 3], layerGroupBPixels[pixelByteIndex + 3]);
+				outPixels[idx] = layerGroupAPixels[idx] + (layerGroupBPixels[idx] - layerGroupAPixels[idx]) * alpha4;
+				outPixels[idx + 1] = layerGroupAPixels[idx + 1] + (layerGroupBPixels[idx + 1] - layerGroupAPixels[idx + 1]) * alpha4;
+				outPixels[idx + 2] = layerGroupAPixels[idx + 2] + (layerGroupBPixels[idx + 2] - layerGroupAPixels[idx + 2]) * alpha4;
+				outPixels[idx + 3] = Math.max(layerGroupAPixels[idx + 3], layerGroupBPixels[idx + 3]);
 			} else {
 				const alpha = maskValue / BIT_DEPTH_MIXING.MAX_VALUE_8BIT;
-				outPixels[pixelByteIndex] = layerGroupAPixels[pixelByteIndex] + (layerGroupBPixels[pixelByteIndex] - layerGroupAPixels[pixelByteIndex]) * alpha;
-				outPixels[pixelByteIndex + 1] = layerGroupAPixels[pixelByteIndex + 1] + (layerGroupBPixels[pixelByteIndex + 1] - layerGroupAPixels[pixelByteIndex + 1]) * alpha;
-				outPixels[pixelByteIndex + 2] = layerGroupAPixels[pixelByteIndex + 2] + (layerGroupBPixels[pixelByteIndex + 2] - layerGroupAPixels[pixelByteIndex + 2]) * alpha;
-				outPixels[pixelByteIndex + 3] = Math.max(layerGroupAPixels[pixelByteIndex + 3], layerGroupBPixels[pixelByteIndex + 3]);
+				outPixels[idx] = layerGroupAPixels[idx] + (layerGroupBPixels[idx] - layerGroupAPixels[idx]) * alpha;
+				outPixels[idx + 1] = layerGroupAPixels[idx + 1] + (layerGroupBPixels[idx + 1] - layerGroupAPixels[idx + 1]) * alpha;
+				outPixels[idx + 2] = layerGroupAPixels[idx + 2] + (layerGroupBPixels[idx + 2] - layerGroupAPixels[idx + 2]) * alpha;
+				outPixels[idx + 3] = Math.max(layerGroupAPixels[idx + 3], layerGroupBPixels[idx + 3]);
 			}
 		}
 

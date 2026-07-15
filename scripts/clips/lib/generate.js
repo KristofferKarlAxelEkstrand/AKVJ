@@ -18,13 +18,13 @@ async function parseJsonFile(filePath) {
 }
 
 /**
- * Generate animations.json from a directory of animations.
+ * Generate clips.json from a directory of clips.
  * @param {string} sourceDir - Directory containing channel/note/velocity structure
- * @param {string} outputPath - Path to write animations.json
- * @returns {Promise<Object>} The generated animations object
+ * @param {string} outputPath - Path to write clips.json
+ * @returns {Promise<Object>} The generated clips object
  */
 export async function generate(sourceDir, outputPath) {
-	console.log(`Generating animations.json from ${sourceDir}`);
+	console.log(`Generating clips.json from ${sourceDir}`);
 	const output = {};
 
 	const channels = await getSubfolders(sourceDir);

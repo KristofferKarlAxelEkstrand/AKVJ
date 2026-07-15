@@ -12,7 +12,7 @@ const VALID_BIT_DEPTHS = new Set([1, 2, 4, 8]);
 /**
  * Optimization result for a single file.
  * @typedef {Object} OptimizeResult
- * @property {string} path - Animation path
+ * @property {string} path - Clip path
  * @property {boolean} skipped - True if file was unchanged
  * @property {boolean} optimized - True if file was optimized
  * @property {number|null} [bitDepth] - Bit depth used for conversion, null if standard optimization
@@ -35,34 +35,34 @@ async function loadSharp() {
 }
 
 /**
- * Determine the target bit depth for an animation.
+ * Determine the target bit depth for an clip.
  * Priority:
  * 1. Explicit bitDepth in meta.json takes priority
  * 2. Channel 5 in source (code channel 4, bitmask) defaults to 1-bit
- * 3. Regular animations: null (no bit depth conversion)
+ * 3. Regular clips: null (no bit depth conversion)
  *
- * @param {string} animationPath - Source path like "5/0/0" (1-16 based channel)
+ * @param {string} clipPath - Source path like "5/0/0" (1-16 based channel)
  * @param {Object|null} meta - Parsed meta.json object
  * @returns {number|null} Target bit depth (1, 2, 4, 8) or null for standard optimization
  */
-function getTargetBitDepth(animationPath, meta) {
+function getTargetBitDepth(clipPath, meta) {
 	// Explicit bitDepth in meta.json takes priority
 	if (meta?.bitDepth !== undefined) {
 		const depth = meta.bitDepth;
 		if (VALID_BIT_DEPTHS.has(depth)) {
 			return depth;
 		}
-		console.warn(`Invalid bitDepth ${depth} in ${animationPath}/meta.json, ignoring`);
+		console.warn(`Invalid bitDepth ${depth} in ${clipPath}/meta.json, ignoring`);
 	}
 
 	// Channel 5 in source (1-16) = code channel 4 defaults to 1-bit for bitmasks
-	const pathParts = animationPath.split('/');
+	const pathParts = clipPath.split('/');
 	const sourceChannel = pathParts.length > 0 ? parseInt(pathParts[0], 10) : NaN;
 	if (!isNaN(sourceChannel) && sourceChannel === BITMASK_CHANNEL_SOURCE) {
 		return 1;
 	}
 
-	// Regular animations: no bit depth conversion
+	// Regular clips: no bit depth conversion
 	return null;
 }
 
@@ -211,15 +211,15 @@ async function optimizeFile(sourcePath, cachePath, sharp, bitDepth = null) {
 }
 
 /**
- * Optimize all PNG files from validated animations.
+ * Optimize all PNG files from validated clips.
  * Supports configurable bit depth conversion via meta.json bitDepth field.
  * Channel 4 (bitmask) defaults to 1-bit if no bitDepth specified.
  *
- * @param {Array<{path: string, dir: string, pngPath: string|null, meta: Object}>} animations - Validated animations
+ * @param {Array<{path: string, dir: string, pngPath: string|null, meta: Object}>} clips - Validated clips
  * @param {string} cacheDir - Cache output directory
  * @returns {Promise<{results: OptimizeResult[], sharp: boolean, bitDepthCounts: Object}>}
  */
-export async function optimize(animations, cacheDir) {
+export async function optimize(clips, cacheDir) {
 	const sharp = await loadSharp();
 
 	if (!sharp) {
@@ -230,19 +230,19 @@ export async function optimize(animations, cacheDir) {
 	const results = [];
 	const bitDepthCounts = { 1: 0, 2: 0, 4: 0, 8: 0, standard: 0 };
 
-	for (const animation of animations) {
-		if (!animation.pngPath) {
-			// Animation uses 'src' field referencing another animation
+	for (const clip of clips) {
+		if (!clip.pngPath) {
+			// Clip uses 'src' field referencing another clip
 			continue;
 		}
 
 		// Source path (1-16 based) from validation
-		const sourcePath = animation.path;
+		const sourcePath = clip.path;
 		// Convert to code path (0-15 based) for cache and output
 		const codePath = toCodePath(sourcePath);
-		const pngName = path.basename(animation.pngPath);
+		const pngName = path.basename(clip.pngPath);
 		const cachePath = path.join(cacheDir, codePath, pngName);
-		const bitDepth = getTargetBitDepth(sourcePath, animation.meta);
+		const bitDepth = getTargetBitDepth(sourcePath, clip.meta);
 
 		// Track counts
 		if (bitDepth !== null) {
@@ -252,13 +252,13 @@ export async function optimize(animations, cacheDir) {
 		}
 
 		try {
-			const result = await optimizeFile(animation.pngPath, cachePath, sharp, bitDepth);
-			result.animationPath = codePath;
+			const result = await optimizeFile(clip.pngPath, cachePath, sharp, bitDepth);
+			result.clipPath = codePath;
 			results.push(result);
 		} catch (error) {
 			results.push({
-				path: animation.pngPath,
-				animationPath: codePath,
+				path: clip.pngPath,
+				clipPath: codePath,
 				skipped: false,
 				optimized: false,
 				bitDepth,
@@ -267,10 +267,10 @@ export async function optimize(animations, cacheDir) {
 		}
 
 		// Also copy meta.json to cache (use codePath for output structure)
-		const jsonFiles = await fs.readdir(animation.dir);
+		const jsonFiles = await fs.readdir(clip.dir);
 		for (const file of jsonFiles) {
 			if (path.extname(file) === '.json') {
-				const srcJson = path.join(animation.dir, file);
+				const srcJson = path.join(clip.dir, file);
 				const destJson = path.join(cacheDir, codePath, file);
 				await fs.mkdir(path.dirname(destJson), { recursive: true });
 				await fs.copyFile(srcJson, destJson);

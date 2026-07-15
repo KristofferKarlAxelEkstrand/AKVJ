@@ -113,11 +113,7 @@ class Renderer {
 		this.stop();
 		this.#displayContext = null;
 		this.#layerManager = null;
-		try {
-			this.#compositor?.destroy();
-		} catch (error) {
-			console.error('Error destroying compositor:', error);
-		}
+		this.#compositor?.destroy();
 		this.#compositor = null;
 		this.#effectsPipeline = null;
 	}

@@ -91,7 +91,7 @@ describe('LayerManager - velocity selection', () => {
 describe('LayerManager - clearClips', () => {
 	test('clearClips clears all layer groups', () => {
 		const lm = new LayerManager();
-		const mockAnimationClip = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), destroy: vi.fn() };
+		const mockAnimationClip = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
 
 		const animations = {
 			0: {
@@ -113,7 +113,7 @@ describe('LayerManager - clearClips', () => {
 describe('LayerManager - destroy', () => {
 	test('destroy clears clips and can be called multiple times safely', () => {
 		const lm = new LayerManager();
-		const mockAnimationClip = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), destroy: vi.fn() };
+		const mockAnimationClip = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), dispose: vi.fn() };
 
 		const animations = {
 			0: {

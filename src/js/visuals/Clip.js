@@ -1,6 +1,6 @@
 ﻿/**
- * AnimationClip - Handles individual sprite animation playback and rendering
- * Manages frame-based animations with customizable frame rates and loop behavior
+ * ClipClip - Handles individual sprite clip playback and rendering
+ * Manages frame-based clips with customizable frame rates and loop behavior
  *
  * Supports two timing modes:
  * 1. frameRatesForFrames (FPS) - Frame timing in frames-per-second (default)
@@ -16,7 +16,7 @@ const MS_PER_SECOND = 1000;
 const DEFAULT_FRAME_DURATION_BEATS = 0.25;
 const DEFAULT_PULSES_PER_FRAME = 6;
 
-class AnimationClip {
+class ClipClip {
 	// Configuration (immutable after construction)
 	#displayContext;
 	#image;
@@ -32,7 +32,7 @@ class AnimationClip {
 	#canvasWidth;
 	#canvasHeight;
 
-	// Animation state (mutable)
+	// Clip state (mutable)
 	#frame = 0;
 	/** @type {number|null} Last timestamp from performance.now(), null if never played */
 	#lastTime = null;
@@ -46,10 +46,10 @@ class AnimationClip {
 
 	constructor({ displayContext, image, numberOfFrames, framesPerRow, loop = true, frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null }) {
 		if (!numberOfFrames || numberOfFrames < 1) {
-			throw new Error('AnimationClip requires numberOfFrames >= 1');
+			throw new Error('ClipClip requires numberOfFrames >= 1');
 		}
 		if (!framesPerRow || framesPerRow < 1) {
-			throw new Error('AnimationClip requires framesPerRow >= 1');
+			throw new Error('ClipClip requires framesPerRow >= 1');
 		}
 
 		this.#displayContext = displayContext;
@@ -67,7 +67,7 @@ class AnimationClip {
 			if (Array.isArray(frameDurationBeats)) {
 				// Enforce strict array length equal to numberOfFrames
 				if (frameDurationBeats.length !== numberOfFrames) {
-					throw new Error(`AnimationClip: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
+					throw new Error(`ClipClip: frameDurationBeats array length (${frameDurationBeats.length}) must equal numberOfFrames (${numberOfFrames})`);
 				}
 				this.#frameDurationBeats = frameDurationBeats;
 				// Pre-calculate pulsesPerFrame for when clock is active (PPQN from settings)
@@ -77,7 +77,7 @@ class AnimationClip {
 				this.#frameDurationBeats = Array(numberOfFrames).fill(frameDurationBeats);
 				this.#pulsesPerFrame = Array(numberOfFrames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
 			} else {
-				throw new Error('AnimationClip: invalid frameDurationBeats');
+				throw new Error('ClipClip: invalid frameDurationBeats');
 			}
 
 			// Subscribe to MIDI clock events for real-time sync when clock is active
@@ -86,25 +86,25 @@ class AnimationClip {
 
 		// Make a defensive shallow copy and validate the provided frame rates.
 		// Ensure we only store positive numeric values to avoid division by zero
-		// and to fail-fast on invalid animation metadata.
+		// and to fail-fast on invalid clip metadata.
 		this.#frameRatesForFrames = {};
 		for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
 			const numericFrameIndex = Number(frameIndex);
 			if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= numberOfFrames) {
-				console.warn(`AnimationClip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
+				console.warn(`ClipClip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
 				continue;
 			}
 			if (typeof frameRate === 'number' && frameRate > 0) {
 				this.#frameRatesForFrames[numericFrameIndex] = frameRate;
 			} else {
 				// If invalid, log and skip - constructor enforces valid metadata
-				console.warn(`AnimationClip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
+				console.warn(`ClipClip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
 			}
 		}
 		this.#frameWidth = image.width / framesPerRow;
 		this.#frameHeight = image.height / Math.ceil(numberOfFrames / framesPerRow);
 		if (!this.#frameWidth || !this.#frameHeight) {
-			throw new Error('AnimationClip: Invalid image dimensions');
+			throw new Error('ClipClip: Invalid image dimensions');
 		}
 		this.#loop = loop;
 		this.#retrigger = retrigger;
@@ -123,7 +123,7 @@ class AnimationClip {
 	 * @param {number} timestamp - performance.now() timestamp
 	 */
 	#renderFrame(ctx, timestamp) {
-		// Non-looping animation completed - stop rendering
+		// Non-looping clip completed - stop rendering
 		if (this.#isFinished) {
 			return;
 		}
@@ -132,8 +132,8 @@ class AnimationClip {
 	}
 
 	/**
-	 * Render the current animation frame and advance to the next frame if enough time has passed.
-	 * Accepts an optional timestamp (from requestAnimationFrame) to use as timing source, which
+	 * Render the current clip frame and advance to the next frame if enough time has passed.
+	 * Accepts an optional timestamp (from requestClipFrame) to use as timing source, which
 	 * improves determinism during rendering and tests.
 	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
 	 */
@@ -142,10 +142,10 @@ class AnimationClip {
 	}
 
 	/**
-	 * Render the current animation frame to a specific context.
+	 * Render the current clip frame to a specific context.
 	 * Useful for off-screen rendering in multi-layer-group compositing.
 	 *
-	 * Note: This method advances the animation frame based on the timestamp.
+	 * Note: This method advances the clip frame based on the timestamp.
 	 * To prevent double-advancement, ensure only one of play() or renderToContext()
 	 * is called per clip per frame with the same timestamp.
 	 *
@@ -157,7 +157,7 @@ class AnimationClip {
 	}
 
 	/**
-	 * Advance the animation frame based on elapsed time
+	 * Advance the clip frame based on elapsed time
 	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames
 	 * Clock sync mode skips time-based advancement (pulses drive frames directly)
 	 * @param {number} timestamp - Current timestamp
@@ -205,8 +205,8 @@ class AnimationClip {
 				if (this.#loop) {
 					this.#frame %= this.#numberOfFrames;
 				} else {
-					// Non-looping animations are considered finished; keep
-					// a state that indicates a completed animation.
+					// Non-looping clips are considered finished; keep
+					// a state that indicates a completed clip.
 					// Clamp to last valid frame index for consistency with clock-driven path
 					this.#frame = this.#numberOfFrames - 1;
 					this.#isFinished = true;
@@ -316,7 +316,7 @@ class AnimationClip {
 			try {
 				this.#unsubscribeClock();
 			} catch (error) {
-				console.error('Error unsubscribing from clock events in AnimationClip:', error);
+				console.error('Error unsubscribing from clock events in ClipClip:', error);
 			}
 			this.#unsubscribeClock = null;
 		}
@@ -360,4 +360,4 @@ class AnimationClip {
 	}
 }
 
-export default AnimationClip;
+export default ClipClip;

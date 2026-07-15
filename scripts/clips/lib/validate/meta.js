@@ -1,5 +1,5 @@
 /**
- * Metadata validation rules for animation meta.json.
+ * Metadata validation rules for clip meta.json.
  */
 
 /**
@@ -37,7 +37,7 @@ export function validateMetaFields(meta) {
 	// Validate frameDurationBeats - must be positive number or array of positive numbers matching numberOfFrames
 	if (meta.frameDurationBeats !== undefined) {
 		if (Array.isArray(meta.frameDurationBeats)) {
-			// Check for empty array (AnimationClip will warn and fall back, but we should catch it here)
+			// Check for empty array (ClipClip will warn and fall back, but we should catch it here)
 			if (meta.frameDurationBeats.length === 0) {
 				errors.push('meta.json: frameDurationBeats array cannot be empty');
 			}

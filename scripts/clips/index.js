@@ -1,20 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Animation Pipeline Orchestrator
+ * Clip Pipeline Orchestrator
  *
- * Handles the full animation build pipeline:
- * 1. Validate source animations
+ * Handles the full clip build pipeline:
+ * 1. Validate source clips
  * 2. Optimize PNGs (if sharp is installed)
- * 3. Generate animations.json
+ * 3. Generate clips.json
  * 4. Copy to public folder
  *
  * Usage:
- *   node scripts/animations                  # Full pipeline
- *   node scripts/animations --watch          # Watch mode
- *   node scripts/animations --validate-only  # Validation only
- *   node scripts/animations --no-optimize    # Skip optimization
- *   node scripts/animations --clean          # Remove cache and output
+ *   node scripts/clips                  # Full pipeline
+ *   node scripts/clips --watch          # Watch mode
+ *   node scripts/clips --validate-only  # Validation only
+ *   node scripts/clips --no-optimize    # Skip optimization
+ *   node scripts/clips --clean          # Remove cache and output
  */
 
 import path from 'path';
@@ -25,9 +25,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
 
 // Directory paths
-const SOURCE_DIR = path.join(ROOT, 'animations');
-const CACHE_DIR = path.join(ROOT, '.cache/animations');
-const PUBLIC_DIR = path.join(ROOT, 'src/public/animations');
+const SOURCE_DIR = path.join(ROOT, 'clips');
+const CACHE_DIR = path.join(ROOT, '.cache/clips');
+const PUBLIC_DIR = path.join(ROOT, 'src/public/clips');
 
 const pipeline = new Pipeline({ sourceDir: SOURCE_DIR, cacheDir: CACHE_DIR, publicDir: PUBLIC_DIR });
 
@@ -51,10 +51,10 @@ function parseArgs() {
  */
 function printHelp() {
 	console.log(`
-Animation Pipeline
+Clip Pipeline
 
 Usage:
-  node scripts/animations [options]
+  node scripts/clips [options]
 
 Options:
   --watch          Watch for changes and rebuild automatically
@@ -64,9 +64,9 @@ Options:
   --help, -h       Show this help message
 
 Directories:
-  Source:  animations/
-  Cache:   .cache/animations/
-  Output:  src/public/animations/
+  Source:  clips/
+  Cache:   .cache/clips/
+  Output:  src/public/clips/
 `);
 }
 
@@ -95,10 +95,10 @@ async function watchMode() {
 		process.exit(1);
 	}
 
-	// Initial build (animations:watch is the only entry point in dev)
+	// Initial build (clips:watch is the only entry point in dev)
 	await run();
 
-	console.log('\nWatching for changes in animations/...\n');
+	console.log('\nWatching for changes in clips/...\n');
 
 	// Debounce function
 	let timeout;
@@ -134,9 +134,10 @@ async function watchMode() {
 export { watchMode };
 
 // Execute the pipeline only when run as a CLI, not when imported as a module
-// Handles both `node scripts/animations/index.js` and `node scripts/animations` (folder)
+// Handles both `node scripts/clips/index.js` and `node scripts/clips` (folder)
 const scriptPath = process.argv[1] ?? '';
-const isCli = import.meta.url === `file://${scriptPath}` || import.meta.url === `file://${scriptPath}/index.js` || scriptPath.endsWith('index.js');
+const fileUrlPath = fileURLToPath(import.meta.url);
+const isCli = scriptPath && (fileUrlPath === scriptPath || path.join(scriptPath, 'index.js') === fileUrlPath);
 
 if (isCli) {
 	(async () => {

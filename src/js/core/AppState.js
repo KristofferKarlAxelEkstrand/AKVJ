@@ -12,16 +12,10 @@ const EVENT_MIDI_START = 'midiStart';
 const EVENT_MIDI_CONTINUE = 'midiContinue';
 const EVENT_MIDI_STOP = 'midiStop';
 const EVENT_VIDEO_JOCKEY_READY = 'videoJockeyReady';
-const EVENT_ANIMATION_LOAD_ERROR = 'animationLoadError';
 const BPM_SOURCE_DEFAULT = 'default';
 const BPM_SOURCE_MANUAL = 'manual';
 const BPM_SOURCE_CLOCK = 'clock';
 const BPM_SOURCE_CC = 'cc';
-
-const MAX_MIDI_CC_VALUE = 127;
-const MIN_PULSE_INTERVAL_MS = 1;
-const MIN_PULSE_INTERVALS_FOR_BPM = 6;
-const MS_PER_MINUTE = 60000;
 
 /**
  * AppState - Event-based state management for AKVJ
@@ -63,7 +57,7 @@ class AppState extends EventTarget {
 	#ccToBPM(ccValue) {
 		const { min, max } = this.#settings.bpm;
 		const range = max - min;
-		return min + (ccValue / MAX_MIDI_CC_VALUE) * range;
+		return min + (ccValue / 127) * range;
 	}
 
 	#dispatchStateEvent(eventName, detail) {
@@ -203,7 +197,7 @@ class AppState extends EventTarget {
 			const interval = timestamp - this.#lastClockTime;
 
 			// Ignore impossibly fast pulses (< 1ms = > 2500 BPM)
-			if (interval >= MIN_PULSE_INTERVAL_MS) {
+			if (interval >= 1) {
 				// Keep last PPQN intervals (one beat worth)
 				this.#recentPulseIntervals.push(interval);
 				if (this.#recentPulseIntervals.length > this.#settings.midi.ppqn) {
@@ -212,12 +206,12 @@ class AppState extends EventTarget {
 
 				// Calculate BPM from average interval
 				// Need at least 6 intervals for reasonable accuracy (16th note)
-				if (this.#recentPulseIntervals.length >= MIN_PULSE_INTERVALS_FOR_BPM) {
+				if (this.#recentPulseIntervals.length >= 6) {
 					const avgInterval = this.#recentPulseIntervals.reduce((a, b) => a + b, 0) / this.#recentPulseIntervals.length;
 					const msPerBeat = avgInterval * this.#settings.midi.ppqn; // PPQN
-					const bpm = MS_PER_MINUTE / msPerBeat;
+					const bpm = 60000 / msPerBeat;
 
-					this.#setBPM(bpm, BPM_SOURCE_CLOCK);
+					this.#setBPM(bpm, 'clock');
 				}
 			}
 		}
@@ -285,15 +279,6 @@ class AppState extends EventTarget {
 	}
 
 	/**
-	 * Dispatch an animation load error event.
-	 * @param {string} url - URL that failed to load
-	 * @param {string} errorMessage - Error message from the failure
-	 */
-	dispatchAnimationLoadError(url, errorMessage) {
-		this.#dispatchStateEvent(EVENT_ANIMATION_LOAD_ERROR, { url, error: errorMessage });
-	}
-
-	/**
 	 * Reset state to initial values.
 	 *
 	 * This method is intended for use in tests or controlled cleanup scenarios,
@@ -308,7 +293,7 @@ class AppState extends EventTarget {
 	 *
 	 * @example
 	 * // In a test setup/teardown:
-	 * import appState from './AppState.js';
+	 * import appState from './AppState';
 	 * beforeEach(() => {
 	 *   appState.reset();
 	 * });
@@ -332,5 +317,5 @@ class AppState extends EventTarget {
 
 const appState = new AppState();
 
-export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_ANIMATIONS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_ANIMATION_LOAD_ERROR, BPM_SOURCE_DEFAULT, BPM_SOURCE_MANUAL, BPM_SOURCE_CLOCK, BPM_SOURCE_CC };
+export { AppState };
 export default appState;

@@ -6,18 +6,18 @@ import { generate } from './lib/generate.js';
 import { copyToPublic, clean } from './lib/copy.js';
 
 /**
- * Pipeline - Orchestrates the animation build process.
+ * Pipeline - Orchestrates the clip build process.
  *
  * Phases:
- * 1. Validate source animations
+ * 1. Validate source clips
  * 2. Optimize PNGs (or copy if sharp is missing / --no-optimize)
- * 3. Generate animations.json in cache
+ * 3. Generate clips.json in cache
  * 4. Copy cache to public folder
  */
 export class Pipeline {
 	/**
 	 * @param {Object} config
-	 * @param {string} config.sourceDir - Source animations directory
+	 * @param {string} config.sourceDir - Source clips directory
 	 * @param {string} config.cacheDir - Cache directory
 	 * @param {string} config.publicDir - Public output directory
 	 */
@@ -36,31 +36,31 @@ export class Pipeline {
 	 * @throws {Error} When validation fails
 	 */
 	async run(options = {}) {
-		console.log('Animation Pipeline');
+		console.log('Clip Pipeline');
 		console.log('==================\n');
 
 		const sourceDir = options.sourceDir ?? this.sourceDir;
 
-		const { valid: validAnimations, errors } = await this.#validate(sourceDir);
+		const { valid: validClips, errors } = await this.#validate(sourceDir);
 		if (errors.length > 0) {
 			this.#logValidationErrors(errors);
 			throw new Error('Validation failed');
 		}
 
-		console.log(`  Found ${validAnimations.length} valid animations\n`);
+		console.log(`  Found ${validClips.length} valid clips\n`);
 
 		if (options.validateOnly) {
 			console.log('Validation complete (--validate-only)');
 			return;
 		}
 
-		await this.#optimize(validAnimations, options.noOptimize);
+		await this.#optimize(validClips, options.noOptimize);
 		await this.#generate(sourceDir);
 		await this.#copy();
 	}
 
 	#validate(sourceDir) {
-		console.log(`Step 1: Validating animations from ${sourceDir}...`);
+		console.log(`Step 1: Validating clips from ${sourceDir}...`);
 		return validate(sourceDir);
 	}
 
@@ -72,19 +72,19 @@ export class Pipeline {
 				console.error(`    - ${err}`);
 			}
 		}
-		console.error(`\n${errors.length} animation(s) have errors`);
+		console.error(`\n${errors.length} clip(s) have errors`);
 	}
 
-	async #optimize(validAnimations, noOptimize) {
+	async #optimize(validClips, noOptimize) {
 		if (noOptimize) {
 			console.log('Step 2: Skipping optimization (--no-optimize)\n');
-			const { results } = await optimize(validAnimations, this.cacheDir);
+			const { results } = await optimize(validClips, this.cacheDir);
 			console.log(`  Copied ${results.filter(r => r.optimized).length} files to cache\n`);
 			return;
 		}
 
 		console.log('Step 2: Optimizing PNGs...');
-		const { results, sharp, bitDepthCounts } = await optimize(validAnimations, this.cacheDir);
+		const { results, sharp, bitDepthCounts } = await optimize(validClips, this.cacheDir);
 
 		const optimized = results.filter(r => r.optimized).length;
 		const skipped = results.filter(r => r.skipped).length;
@@ -107,15 +107,15 @@ export class Pipeline {
 
 		if (failed > 0) {
 			for (const r of results.filter(r => r.error)) {
-				console.error(`  Error: ${r.animationPath}: ${r.error}`);
+				console.error(`  Error: ${r.clipPath}: ${r.error}`);
 			}
 		}
 		console.log();
 	}
 
 	async #generate(sourceDir) {
-		console.log('Step 3: Generating animations.json...');
-		await generate(this.cacheDir, path.join(this.cacheDir, 'animations.json'));
+		console.log('Step 3: Generating clips.json...');
+		await generate(this.cacheDir, path.join(this.cacheDir, 'clips.json'));
 
 		// Copy LICENSE file from source to cache if it exists
 		const licensePath = path.join(sourceDir, 'LICENSE-ASSETS.md');
