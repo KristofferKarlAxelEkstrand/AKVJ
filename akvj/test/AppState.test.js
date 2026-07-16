@@ -1,5 +1,5 @@
 import appState, { AppState } from '../src/js/core/AppState.js';
-import { waitForEvent } from './utils/wait-for-event.js';
+import { waitForEvent } from './utils/waitForEvent.js';
 import settings from '../src/js/core/settings.js';
 
 describe('AppState', () => {
@@ -23,28 +23,28 @@ describe('AppState', () => {
 	test('reset() clears state without dispatching events', () => {
 		// Set state to non-default values
 		appState.midiConnected = true;
-		appState.animationsLoaded = true;
+		appState.clipsLoaded = true;
 
 		// Subscribe to events - these should NOT fire during reset
 		const midiHandler = vi.fn();
-		const animationsHandler = vi.fn();
+		const clipsHandler = vi.fn();
 		const unsubMidi = appState.subscribe('midiConnectionChanged', midiHandler);
-		const unsubAnimations = appState.subscribe('animationsLoadedChanged', animationsHandler);
+		const unsubClips = appState.subscribe('clipsLoadedChanged', clipsHandler);
 
 		// Reset state
 		appState.reset();
 
 		// Verify state was reset
 		expect(appState.midiConnected).toBe(false);
-		expect(appState.animationsLoaded).toBe(false);
+		expect(appState.clipsLoaded).toBe(false);
 
 		// Verify no events were dispatched during reset
 		expect(midiHandler).not.toHaveBeenCalled();
-		expect(animationsHandler).not.toHaveBeenCalled();
+		expect(clipsHandler).not.toHaveBeenCalled();
 
 		// Cleanup
 		unsubMidi();
-		unsubAnimations();
+		unsubClips();
 	});
 
 	test('dispatchMIDIClock uses configured ppqn for BPM calculation', async () => {
