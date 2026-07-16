@@ -55,11 +55,11 @@ jobs:
 
             - name: Verify public clips generated
               run: |
-                  if [ ! -f "vj-server/src/public/clips/clips.json" ] || [ ! -f "vj-server/src/public/clips/set-mapping.json" ]; then
-                    echo "::error::Missing clips.json or set-mapping.json in vj-server/src/public/clips/."
+                  if [ ! -f "akvj/src/public/clips/clips.json" ] || [ ! -f "akvj/src/public/clips/set-mapping.json" ]; then
+                    echo "::error::Missing clips.json or set-mapping.json in akvj/src/public/clips/."
                     exit 1
                   fi
-                  if [ -z "$(find vj-server/src/public/clips -type f -name '*.png' -print -quit)" ]; then
-                    echo "::error::No generated PNG clip files found in vj-server/src/public/clips/."
+                  if [ -z "$(find akvj/src/public/clips -type f -name '*.png' -print -quit)" ]; then
+                    echo "::error::No generated PNG clip files found in akvj/src/public/clips/."
                     exit 1
                   fi

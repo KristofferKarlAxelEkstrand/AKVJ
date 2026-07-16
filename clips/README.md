@@ -30,7 +30,7 @@ Channel numbers in `set-mapping.json` use DAW display numbering (1–16). Runtim
 ### Option 1: Admin UI
 
 ```bash
-npm run dev:admin
+npm run admin
 ```
 
 Use **Upload** to ingest frames, **Mapping** to assign MIDI slots, then **Run pipeline**.

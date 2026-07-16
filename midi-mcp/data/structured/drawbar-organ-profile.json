@@ -1,0 +1,875 @@
+{
+  "metadata": {
+    "title": "Drawbar Organ Profile",
+    "doc_id": "M2-121-UM",
+    "protocol": "midi2",
+    "version": "1.0.2",
+    "date": "2024-01-24"
+  },
+  "version_history": [
+    {
+      "publication_date": "2024-01-24",
+      "version": "1.0.2",
+      "changes": "Initial release"
+    }
+  ],
+  "normative_references": [
+    {
+      "ref_id": "MA01",
+      "description": "Complete MIDI 1.0 Detailed Specification, Document Version 96.1, Third Edition, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA02",
+      "description": "M2-100-U MIDI 2.0 Specification Overview, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA03",
+      "description": "M2-101-UM MIDI Capability Inquiry (MIDI-CI), Version 1.2, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA04",
+      "description": "M2-102-U Common Rules for MIDI-CI Profiles, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA05",
+      "description": "M2-103-UM Common Rules for Property Exchange, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA06",
+      "description": "M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA07",
+      "description": "M2-115-U MIDI 2.0 Bit Scaling and Resolution, Version 1.0.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA08",
+      "description": "M2-122-UM MIDI-CI Profile Specification for Rotary Speaker Version 1.0, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    }
+  ],
+  "definitions": [
+    {
+      "term": "100-Cent Unit",
+      "description": "A unit of measure for musical intervals, corresponding to one-twelfth of an octave measured logarithmically. This term is preferred over “semitone” which may refer to various intervals."
+    },
+    {
+      "term": "AMEI",
+      "description": "Association of Musical Electronics Industry. Authority for MIDI Specifications in Japan."
+    },
+    {
+      "term": "Device",
+      "description": "An entity, whether hardware or software, which can send and/or receive MIDI messages."
+    },
+    {
+      "term": "Group",
+      "description": "A field in the UMP Format addressing every UMP Format MIDI message (and every UMP comprising any given MIDI message) to one of 16 Groups. See the M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "HCU",
+      "description": "See 100-Cent-Unit."
+    },
+    {
+      "term": "Initiator",
+      "description": "One of two MIDI-CI Devices with a bidirectional communication between them. Initiator has the management role of setting and negotiating parameters for interoperability between the two Devices. The primary goal of Initiator is usually (but not strictly required to be) configuring two Devices for subsequent communication from Initiator as MIDI transmitter to Responder as MIDI receiver. The role of Initiator and Responder may alternate between the two MIDI-CI Devices. Either MIDI-CI Device may initiate a MIDI Transaction (act as Initiator) at any time. Also see Responder."
+    },
+    {
+      "term": "Inquiry",
+      "description": "A message sent by an Initiator to begin a Transaction."
+    },
+    {
+      "term": "MA",
+      "description": "MIDI Association. Authority for MIDI specifications worldwide except Japan. See also MMA."
+    },
+    {
+      "term": "MIDI 1.0 Protocol",
+      "description": "Version 1.0 of the MIDI Protocol as originally specified in [MA01] and extended by MA and AMEI with numerous additional MIDI message definitions and Recommended Practices. The native format for the MIDI 1.0 Protocol is a byte stream, but it has been adapted for many different transports. MIDI 1.0 messages can be carried in UMP packets. The UMP format for the MIDI 1.0 Protocol is defined in the M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "MIDI 1.0 Specification",
+      "description": "Complete MIDI 1.0 Detailed Specification, Document Version 96.1, Third Edition [MA01]."
+    },
+    {
+      "term": "MIDI 2.0",
+      "description": "The MIDI environment that encompasses all of MIDI 1.0, MIDI-CI, Universal MIDI Packet (UMP), MIDI 2.0 Protocol, MIDI 2.0 messages, and other extensions to MIDI as described in AMEI and MA specifications."
+    },
+    {
+      "term": "MIDI 2.0 Protocol",
+      "description": "Version 2.0 of the MIDI Protocol. The native format for MIDI 2.0 Protocol messages is UMP as defined in M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "MIDI-CI",
+      "description": "MIDI Capability Inquiry [MA03], a specification published by The MIDI Association and AMEI."
+    },
+    {
+      "term": "MIDI-CI Device",
+      "description": "A Device that has the ability to act as a Responder that replies to inquiries received from an Initiator. The ability to act as an Initiator is recommended but optional."
+    },
+    {
+      "term": "MIDI-CI Transaction",
+      "description": "A Transaction using a set of MIDI-CI messages that includes an Inquiry sent by an Initiator and a reply to the Inquiry returned by the Responder. The Responder’s reply to an Inquiry might be a single message that satisfies the Inquiry, a set of multiple messages that satisfy the Inquiry, or an error message. See also Transaction."
+    },
+    {
+      "term": "MIDI Transport",
+      "description": "A hardware or software MIDI connection used by a Device to transmit and/or receive MIDI messages to and/or from another Device."
+    },
+    {
+      "term": "MMA",
+      "description": "MIDI Manufacturers Association, a California nonprofit 501(c)6 trade organization, and the legal entity name of the MIDI Association."
+    },
+    {
+      "term": "MUID (MIDI Unique Identifier)",
+      "description": "A 28-bit random number generated by a Device used to uniquely identify the Device in MIDI-CI messages sent to or from that Device."
+    },
+    {
+      "term": "Profile",
+      "description": "An MA/AMEI specification that includes a set of MIDI messages and defined responses to those messages. A Profile is controlled by MIDI-CI Profile Negotiation Transactions. A Profile may have a defined minimum set of mandatory messages and features, along with some optional or recommended messages and features. See the MIDI-CI specification [MA03] and the Common Rules for MIDI-CI Profiles [MA04]."
+    },
+    {
+      "term": "Protocol",
+      "description": "There are two defined MIDI Protocols: the MIDI 1.0 Protocol and the MIDI 2.0 Protocol, each with a data structure that defines the semantics for MIDI messages. See [MA01] and [MA06]."
+    },
+    {
+      "term": "Responder",
+      "description": "One of two MIDI-CI Devices with a bidirectional communication between them. The Responder is the Device that receives an Inquiry message from an Initiator Device as part of a MIDI-CI Transaction and acts based on negotiation messages managed by the Initiator Device. Also see Initiator."
+    },
+    {
+      "term": "Transaction",
+      "description": "An exchange of MIDI messages between two MIDI Devices with a bidirectional connection. All the MIDI messages in a single Transaction are associated and work together to accomplish one function. The simplest Transaction generally consists of an inquiry sent by one MIDI Device and an associated reply returned by a second MIDI Device. A Transaction may also consist of an inquiry from one MIDI Device and several associated replies from a second MIDI Device. A Transaction may be a more complex set of message exchanges, started by an initial inquiry from one MIDI Device and multiple, associated replies exchanged between the first MIDI Device and a second MIDI Device. Also see MIDI-CI Transaction."
+    },
+    {
+      "term": "UMP",
+      "description": "Universal MIDI Packet, see [MA06]."
+    },
+    {
+      "term": "UMP Format",
+      "description": "Data format for fields and messages in the Universal MIDI Packet, see [MA06]."
+    },
+    {
+      "term": "UMP MIDI 1.0 Device",
+      "description": "any Device that sends or receives MIDI 1.0 Protocol messages using the UMP [MA06]. Such Devices may use UMP Message Types that extend the functionality beyond Non-UMP MIDI 1.0 Systems."
+    },
+    {
+      "term": "Universal MIDI Packet (UMP)",
+      "description": "The Universal MIDI Packet is a data container which defines the data format for all MIDI 1.0 Protocol messages and all MIDI 2.0 Protocol messages. UMP is intended to be universally applicable, i.e., technically suitable for use in any transport where MA/AMEI elects to officially support UMP. For detailed definition see M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    }
+  ],
+  "conformance_words": {
+    "relating_to_conformance": [
+      {
+        "word": "shall",
+        "reserved_for": "Statements of requirement",
+        "relation": "Mandatory A conformant implementation conforms to all ‘shall’ statements."
+      },
+      {
+        "word": "should",
+        "reserved_for": "Statements of recommendation",
+        "relation": "Recommended but not mandatory An implementation that does not conform to some or all ‘should’ statements is still conformant, providing all ‘shall’ statements are conformed to."
+      },
+      {
+        "word": "may",
+        "reserved_for": "Statements of permission",
+        "relation": "Optional An implementation that does not conform to some or all ‘may’ statements is still conformant, providing that all ‘shall’ statements are conformed to."
+      }
+    ],
+    "not_relating_to_conformance": [
+      {
+        "word": "must",
+        "reserved_for": "Statements of unavoidability",
+        "relation": "Describes an action to be taken that, while not required (or at least not directly required) by this specification, is unavoidable. Not used for statements of conformance requirement (see ‘shall’ above)."
+      },
+      {
+        "word": "will",
+        "reserved_for": "Statements of fact",
+        "relation": "Describes a condition that as a question of fact is necessarily going to be true, or an action that as a question of fact is necessarily going to occur, but not as a requirement (or at least not as a direct requirement) of this specification. Not used for statements of conformance requirements (see ‘shall’ above)."
+      },
+      {
+        "word": "can",
+        "reserved_for": "Statements of capability",
+        "relation": "Describes a condition or action that a system element is capable of possessing or taking. Not used for statements of conformance permission (see ‘may’ above)."
+      },
+      {
+        "word": "might",
+        "reserved_for": "Statements of possibility",
+        "relation": "Describes a condition or action that a system element is capable of electing to possess or take. Not used for statements of conformance permission (see ‘may’ above)."
+      }
+    ]
+  },
+  "profile_id": [
+    {
+      "byte": 1,
+      "value": "0x7E",
+      "description": "Standard Defined Profile"
+    },
+    {
+      "byte": 2,
+      "value": "0x20",
+      "description": "Drawbar Organ Profile Number MSB"
+    },
+    {
+      "byte": 3,
+      "value": "0x01",
+      "description": "Drawbar Organ Profile Number LSB"
+    },
+    {
+      "byte": 4,
+      "value": "0x01",
+      "description": "Drawbar Organ Profile Version"
+    },
+    {
+      "byte": 5,
+      "value": "0xXX",
+      "description": "Drawbar Organ Profile Level"
+    }
+  ],
+  "profile_levels": [
+    {
+      "level": "0x00",
+      "description": "Some implementation but does not comply with minimum requirements"
+    },
+    {
+      "level": "0x01",
+      "description": "Meets the minimum requirements"
+    },
+    {
+      "level": "0x02",
+      "description": "Implements some extended/optional features"
+    },
+    {
+      "level": "0x03-0x7E",
+      "description": "Reserved"
+    },
+    {
+      "level": "0x7F",
+      "description": "Highest level of Profile support (Same as 0x02 in this Profile)"
+    }
+  ],
+  "optional_features_bitmap": [
+    {
+      "bit": "D0",
+      "message": "CC#67 Supports Soft Pedal = Volume Normal/Soft Tab",
+      "description": ""
+    },
+    {
+      "bit": "D1",
+      "message": "RC 0x40 0x39 RC 0x40 0x3A",
+      "description": "Supports both Vibrato/Chorus parameters"
+    },
+    {
+      "bit": "D2",
+      "message": "RC 0x40 0x3B RC 0x40 0x3C RC 0x40 0x3D RC 0x40 0x3E",
+      "description": "Supports all four Percussion parameters"
+    },
+    {
+      "bit": "D3",
+      "message": "RC 0x40 0x40 Amount of Key Click",
+      "description": ""
+    },
+    {
+      "bit": "D4",
+      "message": "RC 0x40 0x41 Amount of Crosstalk/Leakage",
+      "description": ""
+    },
+    {
+      "bit": "D5-6",
+      "message": "reserved Reserved for Future Expansion",
+      "description": ""
+    },
+    {
+      "bit": "D7",
+      "message": "reserved 0 == status bit",
+      "description": ""
+    }
+  ],
+  "drawbar_settings": [
+    {
+      "setting": "Off/In/0",
+      "range_start": "0x00000000",
+      "range_end": "0x1C71C71B",
+      "discrete_value": "0x0E38E38E"
+    },
+    {
+      "setting": "1",
+      "range_start": "0x1C71C71C",
+      "range_end": "0x38E38E37",
+      "discrete_value": "0x2AAAAAAB"
+    },
+    {
+      "setting": "2",
+      "range_start": "0x38E38E38",
+      "range_end": "0x55555554",
+      "discrete_value": "0x471C71C7"
+    },
+    {
+      "setting": "3",
+      "range_start": "0x55555555",
+      "range_end": "0x71C71C70",
+      "discrete_value": "0x638E38E4"
+    },
+    {
+      "setting": "4",
+      "range_start": "0x71C71C71",
+      "range_end": "0x8E38E38C",
+      "discrete_value": "0x80000000"
+    },
+    {
+      "setting": "5",
+      "range_start": "0x8E38E38D",
+      "range_end": "0xAAAAAAA9",
+      "discrete_value": "0x9C71C71D"
+    },
+    {
+      "setting": "6",
+      "range_start": "0xAAAAAAAA",
+      "range_end": "0xC71C71C5",
+      "discrete_value": "0xB8E38E39"
+    },
+    {
+      "setting": "7",
+      "range_start": "0xC71C71C6",
+      "range_end": "0xE38E38E1",
+      "discrete_value": "0xD5555556"
+    },
+    {
+      "setting": "Full/Out/8",
+      "range_start": "0xE38E38E2",
+      "range_end": "0xFFFFFFFF",
+      "discrete_value": "0xF1C71C72"
+    }
+  ],
+  "drawbar_rcs": [
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x30",
+      "parameter": "16’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x31",
+      "parameter": "5-1/3’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x32",
+      "parameter": "8’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x33",
+      "parameter": "4’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x34",
+      "parameter": "2-2/3’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x35",
+      "parameter": "2’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x36",
+      "parameter": "1-3/5’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x37",
+      "parameter": "1-1/3’ Drawbar"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x38",
+      "parameter": "1’ Drawbar"
+    }
+  ],
+  "cc7_volume_response": [
+    {
+      "value": "0xFFFFFFFF",
+      "amplitude": "0 dB"
+    },
+    {
+      "value": "0xC1041041",
+      "amplitude": "-4.9 dB"
+    },
+    {
+      "value": "0x80000000",
+      "amplitude": "-11.9 dB"
+    },
+    {
+      "value": "0x40000000",
+      "amplitude": "-23.9 dB"
+    },
+    {
+      "value": "0x20000000",
+      "amplitude": "-36.0 dB"
+    },
+    {
+      "value": "0x00000000",
+      "amplitude": "-infinity"
+    }
+  ],
+  "cc11_expression_response": [
+    {
+      "value": "0xFFFFFFFF",
+      "amplitude": "0 dB"
+    },
+    {
+      "value": "0xC1041041",
+      "amplitude": "-4.9 dB"
+    },
+    {
+      "value": "0x80000000",
+      "amplitude": "-11.9 dB"
+    },
+    {
+      "value": "0x40000000",
+      "amplitude": "-23.9 dB"
+    },
+    {
+      "value": "0x20000000",
+      "amplitude": "-36.0 dB"
+    },
+    {
+      "value": "0x00000000",
+      "amplitude": "-infinity"
+    }
+  ],
+  "channel_mode_messages": [
+    {
+      "section": "5.1.4.1",
+      "name": "All Sound Off",
+      "cc_number": 120,
+      "description": "Value: 0x00000000 When this message is received, all the Notes sounding shall be immediately released, and the sound is muted as quickly as possible without producing a click or other audible noise."
+    },
+    {
+      "section": "5.1.4.2",
+      "name": "Reset All Controllers",
+      "cc_number": 121,
+      "description": "Default Value: 0x00000000 When value is 0x00000000, this message shall reset the status of Control Change messages (except as noted below) to default values, Channel pressure to 0x00000000, and Pitch Bend to 0x80000000(center) on the specified Channel. Program Change, Bank Select (0/32), Channel Volume (7), Pan (10), and Expression (11) shall not be reset."
+    },
+    {
+      "section": "5.1.4.3",
+      "name": "All Notes Off",
+      "cc_number": 123,
+      "description": "This message shall turn off all Notes sounding on the drawbar organ."
+    },
+    {
+      "section": "5.1.4.4",
+      "name": "Omni Mode Off",
+      "cc_number": 124,
+      "description": "This message shall turn off all Notes sounding on the drawbar organ. Messages shall not change the mode."
+    },
+    {
+      "section": "5.1.4.5",
+      "name": "Omni Mode On",
+      "cc_number": 125,
+      "description": "This message shall turn off all Notes sounding on the drawbar organ. Messages shall not change the mode."
+    },
+    {
+      "section": "5.1.4.6",
+      "name": "Mono Mode On",
+      "cc_number": 126,
+      "description": "This message shall turn off all Notes sounding on the drawbar organ. Messages shall not change the mode."
+    },
+    {
+      "section": "5.1.4.7",
+      "name": "Poly Mode On",
+      "cc_number": 127,
+      "description": "This message shall turn off all Notes sounding on the drawbar organ and switch the operation to Mode 3 (Omni Off, Poly)."
+    }
+  ],
+  "optional_cc_messages": [
+    {
+      "section": "6.1.1.1",
+      "name": "Hold1(Damper/Sustain)",
+      "cc_number": 64,
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Off"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "On"
+        }
+      ],
+      "default_value": "0x00000000",
+      "description": ""
+    },
+    {
+      "section": "6.1.1.2",
+      "name": "Soft Pedal",
+      "cc_number": 67,
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Off"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "Soft"
+        }
+      ],
+      "default_value": "0x00000000",
+      "description": "Soft Pedal controls a drawbar organ’s “Soft” tab/switch."
+    }
+  ],
+  "optional_rcs": [
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x39",
+      "parameter": "Vibrato / Chorus Type"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3A",
+      "parameter": "Vibrato / Chorus On / Off"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3B",
+      "parameter": "Percussion Off/On"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3C",
+      "parameter": "Percussion Normal/Soft"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3D",
+      "parameter": "Percussion Slow/Fast"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3E",
+      "parameter": "Percussion Type 2nd/3rd"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3F",
+      "parameter": "Reserved"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x40",
+      "parameter": "Amount of Key Click"
+    },
+    {
+      "controller_msb": "0x40",
+      "controller_lsb": "0x41",
+      "parameter": "Amount of Crosstalk/Leakage"
+    }
+  ],
+  "optional_rc_details": [
+    {
+      "section": "6.1.2.1",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x39",
+      "name": "Vibrato / Chorus Type",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x2AAAAAA9",
+          "label": "V1"
+        },
+        {
+          "range_start": "0x2AAAAAAA",
+          "range_end": "0x55555554",
+          "label": "C1"
+        },
+        {
+          "range_start": "0x55555555",
+          "range_end": "0x7FFFFFFF",
+          "label": "V2"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xAAAAAAA9",
+          "label": "C2"
+        },
+        {
+          "range_start": "0xAAAAAAAA",
+          "range_end": "0xD5555554",
+          "label": "V3"
+        },
+        {
+          "range_start": "0xD5555555",
+          "range_end": "0xFFFFFFFF",
+          "label": "C3"
+        }
+      ],
+      "default_value": "",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.2",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3A",
+      "name": "Vibrato / Chorus Off/On",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Off"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "On"
+        }
+      ],
+      "default_value": "0x00000000",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.3",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3B",
+      "name": "Percussion Off/On",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Off"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "On"
+        }
+      ],
+      "default_value": "",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.4",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3C",
+      "name": "Percussion Normal/Soft",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Normal"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "Soft"
+        }
+      ],
+      "default_value": "",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.5",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3D",
+      "name": "Percussion Slow/Fast",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "Slow"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "Fast"
+        }
+      ],
+      "default_value": "",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.6",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x3E",
+      "name": "Percussion Type 2nd/3rd",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0x7FFFFFFF",
+          "label": "2nd Harmonic"
+        },
+        {
+          "range_start": "0x80000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "3rd Harmonic"
+        }
+      ],
+      "default_value": "",
+      "description": ""
+    },
+    {
+      "section": "6.1.2.7",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x40",
+      "name": "Amount of Key Click",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "None to Full"
+        }
+      ],
+      "default_value": "0x80000000",
+      "description": "This parameter value usually sets the amount of Key Click noise that occurs at a Note On. The Device is free to decide if it wants to use the same parameter value to apply a relative amount of Key Click noise for Note Off events. The Device may also use its own proprietary controller to set the amount of Key Click noise for a Note Off."
+    },
+    {
+      "section": "6.1.2.8",
+      "controller_msb": "0x40",
+      "controller_lsb": "0x41",
+      "name": "Amount of Crosstalk/Leakage",
+      "value_ranges": [
+        {
+          "range_start": "0x00000000",
+          "range_end": "0xFFFFFFFF",
+          "label": "None to Full"
+        }
+      ],
+      "default_value": "0x80000000",
+      "description": ""
+    }
+  ],
+  "other_optional_messages": [
+    {
+      "section": "6.1.3",
+      "name": "Poly Pressure",
+      "description": "The Device should not respond to Poly Pressure by default. This may be overridden by user settings on the Device."
+    },
+    {
+      "section": "6.1.4",
+      "name": "Channel Pressure",
+      "description": "The Device should not respond to Channel Pressure as a default. This may be overridden by user settings on the Device."
+    },
+    {
+      "section": "6.1.5",
+      "name": "Pitch Bend",
+      "description": "Default Value: 0x80000000 (center) Adjusts the Pitch up or down on the specified Channel. Default sensitivity (range) is +/- 2 HCU. 0x00000000 specifies maximum pitch bend down. 0xFFFFFFFF specifies maximum pitch bend up. Pitch Bend Sensitivity may be adjusted using RC 0x00 00."
+    }
+  ],
+  "midi_messages_summary": [
+    {
+      "message": "Note On/Off",
+      "parameter": "",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x30",
+      "parameter": "16’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x31",
+      "parameter": "5-1/3’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x32",
+      "parameter": "8’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x33",
+      "parameter": "4’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x34",
+      "parameter": "2-2/3’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x35",
+      "parameter": "2’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x36",
+      "parameter": "1-3/5’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x37",
+      "parameter": "1-1/3’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "RC 0x40 0x38",
+      "parameter": "1’ Drawbar",
+      "requirement": "required"
+    },
+    {
+      "message": "CC#7",
+      "parameter": "Volume",
+      "requirement": "required"
+    },
+    {
+      "message": "CC#11",
+      "parameter": "Expression Pedal",
+      "requirement": "required"
+    },
+    {
+      "message": "CC#64",
+      "parameter": "Sustain",
+      "requirement": "optional"
+    },
+    {
+      "message": "CC#67",
+      "parameter": "Soft",
+      "requirement": "optional"
+    },
+    {
+      "message": "CC#120",
+      "parameter": "All Sound Off",
+      "requirement": "required"
+    },
+    {
+      "message": "CC#121",
+      "parameter": "Reset All Controllers",
+      "requirement": "required"
+    },
+    {
+      "message": "CC#122",
+      "parameter": "All Notes Off",
+      "requirement": "required"
+    },
+    {
+      "message": "Pitch Bend",
+      "parameter": "Pitch Bend",
+      "requirement": "optional"
+    },
+    {
+      "message": "Profile Specific Data",
+      "parameter": "Discover Optional Features",
+      "requirement": "optional"
+    }
+  ],
+  "summary": {
+    "version_history_count": 1,
+    "normative_reference_count": 8,
+    "definition_count": 26,
+    "conformance_relating_count": 3,
+    "conformance_not_relating_count": 4,
+    "profile_id_byte_count": 5,
+    "profile_level_count": 5,
+    "optional_features_bitmap_count": 7,
+    "drawbar_setting_count": 9,
+    "drawbar_rc_count": 9,
+    "cc7_volume_response_count": 6,
+    "cc11_expression_response_count": 6,
+    "channel_mode_message_count": 7,
+    "optional_cc_message_count": 2,
+    "optional_rc_count": 9,
+    "optional_rc_detail_count": 8,
+    "other_optional_message_count": 3,
+    "midi_messages_summary_count": 19
+  }
+}

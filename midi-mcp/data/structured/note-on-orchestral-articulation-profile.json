@@ -1,0 +1,2698 @@
+{
+  "metadata": {
+    "title": "Note-On Orchestral Articulation Profile",
+    "doc_id": "M2-123-UM",
+    "protocol": "midi2",
+    "source": "m2-123-um-note-on-orchestral-articulation-profile.md",
+    "version": "1.0",
+    "date": "2024-04-05"
+  },
+  "version_history": [
+    {
+      "publication_date": "2024-04-05",
+      "version": "1.0",
+      "changes": "Initial release"
+    }
+  ],
+  "conformance_words": {
+    "relating_to_conformance": [
+      {
+        "word": "shall",
+        "reserved_for": "Statements of requirement",
+        "description": "Mandatory A conformant implementation conforms to all ‘shall’ statements."
+      },
+      {
+        "word": "should",
+        "reserved_for": "Statements of recommendation",
+        "description": "Recommended but not mandatory An implementation that does not conform to some or all ‘should’ statements is still conformant, providing all ‘shall’ statements are conformed to."
+      },
+      {
+        "word": "may",
+        "reserved_for": "Statements of permission",
+        "description": "Optional An implementation that does not conform to some or all ‘may’ statements is still conformant, providing that all ‘shall’ statements are conformed to."
+      }
+    ],
+    "not_relating_to_conformance": [
+      {
+        "word": "must",
+        "reserved_for": "Statements of unavoidability",
+        "description": "Describes an action to be taken that, while not required (or at least not directly required) by this specification, is unavoidable. Not used for statements of conformance requirement (see ‘shall’ above)."
+      },
+      {
+        "word": "will",
+        "reserved_for": "Statements of fact",
+        "description": "Describes a condition that as a question of fact is necessarily going to be true, or an action that as a question of fact is necessarily going to occur, but not as a requirement (or at least not as a direct requirement) of this specification. Not used for statements of conformance requirements (see ‘shall’ above)."
+      },
+      {
+        "word": "can",
+        "reserved_for": "Statements of capability",
+        "description": "Describes a condition or action that a system element is capable of possessing or taking. Not used for statements of conformance permission (see ‘may’ above)."
+      },
+      {
+        "word": "might",
+        "reserved_for": "Statements of possibility",
+        "description": "Describes a condition or action that a system element is capable of electing to possess or take. Not used for statements of conformance permission (see ‘may’ above)."
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "term": "AMEI",
+      "description": "Association of Musical Electronics Industry. Authority for MIDI Specifications in Japan."
+    },
+    {
+      "term": "Controller Message",
+      "description": "Any MIDI Message from the following list: MIDI 1.0 and MIDI 2.0 Protocol: • Control Change • Channel Pressure (Aftertouch) • Poly Pressure (Key Aftertouch) • Registered Controller (RPN) • Assignable Controller (NRPN) • Pitch Bend MIDI 2.0 Protocol only: • Per-note Registered Controller (including Relative versions) • Per Note Assignable Controller (including Relative versions) • Per Note Pitch Bend"
+    },
+    {
+      "term": "Device",
+      "description": "An entity, whether hardware or software, which can send and/or receive MIDI messages."
+    },
+    {
+      "term": "Group",
+      "description": "A field in the UMP Format addressing some UMP Format MIDI messages (and some UMPs comprising any given MIDI message) to one of 16 Groups. See the M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "Initiator",
+      "description": "One of two MIDI-CI Devices with a bidirectional communication between them. Initiator has the management role of setting and negotiating parameters for interoperability between the two Devices. The primary goal of Initiator is usually (but not strictly required to be) configuring two Devices for subsequent communication from Initiator as MIDI transmitter to Responder as MIDI receiver. The role of Initiator and Responder may alternate between the two MIDI-CI Devices. Either MIDI-CI Device may initiate a MIDI Transaction (act as Initiator) at any time. Also see Responder."
+    },
+    {
+      "term": "MA",
+      "description": "MIDI Association. Authority for MIDI specifications worldwide except Japan. See also MMA. MIDI 1.0 Protocol: Version 1.0 of the MIDI Protocol as originally specified in [MA01] and extended by MA and AMEI with numerous additional MIDI message definitions and Recommended Practices. The native format for the MIDI 1.0 Protocol is a byte stream, but it has been adapted for many different transports. MIDI 1.0 messages can be carried in UMP packets. The UMP format for the MIDI 1.0 Protocol is defined in the M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]. MIDI 1.0 Specification: Complete MIDI 1.0 Detailed Specification, Document Version 96.1, Third Edition [MA01]. MIDI 2.0: The MIDI environment that encompasses all of MIDI 1.0, MIDI-CI, Universal MIDI Packet (UMP), MIDI 2.0 Protocol, MIDI 2.0 messages, and other extensions to MIDI as described in AMEI and MA specifications. See the MIDI 2.0 Specification Overview [MA02]. MIDI 2.0 Protocol: Version 2.0 of the MIDI Protocol. The native format for MIDI 2.0 Protocol messages is UMP as defined in M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "MIDI-CI",
+      "description": "MIDI Capability Inquiry [MA03], a specification published by The MIDI Association and AMEI."
+    },
+    {
+      "term": "MIDI-CI Device",
+      "description": "A Device that has the ability to act as a Responder that replies to inquiries received from an Initiator. The ability to act as an Initiator is recommended but optional."
+    },
+    {
+      "term": "MIDI-CI Transaction",
+      "description": "A Transaction using a set of MIDI-CI messages that includes an Inquiry sent by an Initiator and a reply to the Inquiry returned by the Responder. The Responder’s reply to an Inquiry might be a single message that satisfies the Inquiry, a set of multiple messages that satisfy the Inquiry, or an error message."
+    },
+    {
+      "term": "MIDI Manufacturers Association",
+      "description": "A California nonprofit 501(c)6 trade organization, and the legal entity name of the MIDI Association."
+    },
+    {
+      "term": "MMA",
+      "description": "See MIDI Manufacturers Association."
+    },
+    {
+      "term": "Note Data Messages",
+      "description": "MIDI messages which include a Note Number field. These include Note On/off, Poly Pressure, Per-Note Pitchbend, Registered Per-Note Controllers, Assignable Per-Note Controllers, and Per-Note Management Message."
+    },
+    {
+      "term": "Note On Orchestral Articulation Profile",
+      "description": "MIDI-CI Profile for Note On Selection of Orchestral Articulation (this specification)."
+    },
+    {
+      "term": "Profile",
+      "description": "An MA/AMEI specification that includes a set of MIDI messages and defined responses to those messages. A Profile is controlled by MIDI-CI Profile Negotiation Transactions. A Profile may have a defined minimum set of mandatory messages and features, along with some optional or recommended messages and features. See the MIDI-CI specification [MA03] and the Common Rules for MIDI-CI Profiles [MA04]."
+    },
+    {
+      "term": "Protocol",
+      "description": "There are two defined MIDI Protocols: the MIDI 1.0 Protocol and the MIDI 2.0 Protocol, each with a data structure that defines the semantics for MIDI messages. See the M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "term": "Receiver",
+      "description": "A MIDI Device which has a MIDI Transport connected to its MIDI In."
+    },
+    {
+      "term": "Responder",
+      "description": "One of two MIDI-CI Devices with a bidirectional communication between them. The Responder is the Device that receives an Inquiry message from an Initiator Device as part of a MIDI-CI Transaction and acts based on negotiation messages managed by the Initiator Device. Also see Initiator."
+    },
+    {
+      "term": "Sender",
+      "description": "A MIDI Device which transmits MIDI messages to a MIDI Transport which is connected to its MIDI Out or to its MIDI Thru port."
+    },
+    {
+      "term": "UMP",
+      "description": "Universal MIDI Packet."
+    },
+    {
+      "term": "UMP Format",
+      "description": "Data format for fields and messages in the Universal MIDI Packet. UMP MIDI 1.0 Device: any Device that sends or receives MIDI 1.0 Protocol messages using the UMP Format. Such Devices may use UMP Message Types that extend the functionality beyond Non-UMP MIDI 1.0 Systems. Universal MIDI Packet (UMP): The Universal MIDI Packet is a data container which defines the data format for all MIDI 1.0 Protocol messages and all MIDI 2.0 Protocol messages. UMP is intended to be universally applicable, i.e., technically suitable for use in any transport where MA/AMEI elects to officially support UMP. For detailed definition see M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol specification [MA06]."
+    }
+  ],
+  "normative_references": [
+    {
+      "ref_id": "MA01",
+      "description": "Complete MIDI 1.0 Detailed Specification, Document Version 96.1, Third Edition, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA02",
+      "description": "M2-100-U MIDI 2.0 Specification Overview, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA03",
+      "description": "M2-101-UM MIDI Capability Inquiry (MIDI-CI), Version 1.2, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA04",
+      "description": "M2-102-U Common Rules for MIDI-CI Profiles, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA05",
+      "description": "M2-103-UM Common Rules for Property Exchange, Version 1.1, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA06",
+      "description": "M2-104-UM Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol, Version 1.1.2, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    },
+    {
+      "ref_id": "MA07",
+      "description": "M2-113-UM Default Control Change Mapping Profile, Version 1.0, Association of Musical Electronics Industry, http://www.amei.or.jp/, and The MIDI Association, https://www.midi.org/"
+    }
+  ],
+  "profile_id": [
+    {
+      "byte": 1,
+      "value": "0x7E",
+      "description": "Standard Defined Profile"
+    },
+    {
+      "byte": 2,
+      "value": "0x21",
+      "description": "Note On Orchestral Articulation Profile Bank"
+    },
+    {
+      "byte": 3,
+      "value": "0x01",
+      "description": "Note On Orchestral Articulation Profile Number"
+    },
+    {
+      "byte": 4,
+      "value": "0x01",
+      "description": "Note On Orchestral Articulation Profile Version"
+    },
+    {
+      "byte": 5,
+      "value": "0x01",
+      "description": "Note On Orchestral Articulation Level"
+    }
+  ],
+  "note_on": {
+    "direction": [
+      {
+        "value": "0x0",
+        "description": "Determined by the receiver or automatic"
+      },
+      {
+        "value": "0x1",
+        "description": "Down stroke, right hand pizzicato, or right-hand strike"
+      },
+      {
+        "value": "0x2",
+        "description": "Up stroke, left hand pizzicato, or left-hand strike"
+      },
+      {
+        "value": "0x3",
+        "description": "Reserved"
+      }
+    ],
+    "string_assignment": [
+      {
+        "value": "0x0",
+        "description": "No string assignment (Receiver may determine)"
+      },
+      {
+        "value": "0x1",
+        "description": "First string, highest pitched (usually E on guitar, E on violin)"
+      },
+      {
+        "value": "0x2",
+        "description": "Second string (usually B on guitar, A on violin)"
+      },
+      {
+        "value": "0x3",
+        "description": "Third string (usually G on guitar, D on violin)"
+      },
+      {
+        "value": "0x4",
+        "description": "Fourth string (usually D on guitar, G on violin)"
+      },
+      {
+        "value": "0x5",
+        "description": "Fifth string (usually A on guitar, usually G drone on 5 String Banjo)"
+      },
+      {
+        "value": "0x6",
+        "description": "Sixth string (usually E on guitar)"
+      },
+      {
+        "value": "0x7",
+        "description": "Other String"
+      }
+    ],
+    "classifications": [
+      {
+        "table": "classifications",
+        "classification_number": "N/A",
+        "attribute_type": "0x00",
+        "description": "No Attribute Data."
+      },
+      {
+        "table": "classifications",
+        "classification_number": "1",
+        "attribute_type": "0x10",
+        "description": "Core Sounds - Sustains and Strikes"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "2",
+        "attribute_type": "0x11",
+        "description": "Staccatos and Shorts"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "3",
+        "attribute_type": "0x12",
+        "description": "Same Note Trills/Repeats"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "4",
+        "attribute_type": "0x13",
+        "description": "Intervallic Trills"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "5",
+        "attribute_type": "0x14",
+        "description": "Additional Colors - Sustained"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "6",
+        "attribute_type": "0x15",
+        "description": "Pitch and Dynamic Gestures"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "7",
+        "attribute_type": "0x16",
+        "description": "Scales, Runs, and Arpeggios"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "8",
+        "attribute_type": "0x17",
+        "description": "Effects and Noises"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "9-10",
+        "attribute_type": "0x18-0x19",
+        "description": "Reserved – shall not be used"
+      },
+      {
+        "table": "classifications",
+        "classification_number": "11-16",
+        "attribute_type": "0x1A-0x1F",
+        "description": "Custom, Library Specific, or Device Specific Sounds (See Section"
+      }
+    ]
+  },
+  "subclass_tables": {
+    "0x10": [
+      {
+        "subclass": "0x0",
+        "articulation": "Normal Sustains & Strikes (PART 1)* Default Playing style of the instrument, whether a sustain or a strike. Vibrato style: the traditional style (either vib or non-vib) for the selected instrument or genre of the library. When changing instrument types, vibrato may or may not be present, depending on the nature of the instrument and the choices of the sound designer.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Normal Sustains & Strikes - (PART 2)*",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Legato and Legato Slurred",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Molto Legato A loose/lyrical style of playing (\"Montovani\"). Perhaps \"schmaltzy.\" It skirts the difference between legato and glissando.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Glissando This is intended to represent the articulation that many sample library developers call \"portamento\" for strings (legato bowing).",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Detaché",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Marcato For all manner of accented-attack, sustained notes which maintain a relatively loud volume (timbre) post-attack.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Martelé Specific to Strings. Same as above, but for string instruments this represents a distinctly different attack character.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Senza Vibrato Specifically no vibrato (senza vibrato, non-vibrato, n.v.): If the primary/featured sounds assigned to Subclasses 0x0 or 0x1 were performed with vibrato, then assign nonvibrato alternatives to this Subclass. Non-vibrato variants of other Sub Classes of Attribute Type 0x10 can be assigned to 0x8 as needed.**",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Con Vibrato Specifically with vibrato: If the primary/featured sounds assigned to Subclasses 0x0 or 0x1 were performed without vibrato, then assign vibrato alternatives to this Subclass. Vibrato variants of other Sub Classes of Attribute Type 0x10 can be assigned to 0x8 as needed.***",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Synchronized Vibrato A classic big band effect",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "notes": ""
+      }
+    ],
+    "0x11": [
+      {
+        "subclass": "0x0",
+        "articulation": "Normal Staccato Off String Strings: Off the String. Other Instruments: \"Normal Staccato\".",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Normal Staccato On String Strings: On the String. Other Instruments: \"Normal Staccato\".",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Slurred Staccato Single bow staccato",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Accented Staccato",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Staccatissimo Staccatissimo, dampened or otherwise shortened or shorter than \"normal staccato\".",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Spiccato Specific to Strings. Other instruments: same as Staccatissimo.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Sautillé",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Martellato Shortened Marcato or Accented",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Long Staccato Also Mezzo Staccato or Louré",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Portato Strings: Portato. Brass: Light tonguing",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Pizzicato",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Bartok Pizzicato Harsh, Hard, Noisy Notes. Strings: Use for Bartok/Snap Pizz., Jazz Pizz. Woodwinds: Short, Overblown Attacks (chiffs). Plucked: Variations of short, hard-attack sounds on Guitar, Koto, Erhu, Harp (fingernails), etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Col Legno Battuto Strings: strike with the wood, back side of the bow. Also Geschlagen",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Col Legno Gestrichen Strings: strike with the wood, back side of the bow, turned slightly so some of the hairs also strike the string.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "String Hand Tap Pitched",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Jete",
+        "notes": ""
+      }
+    ],
+    "0x12": [
+      {
+        "subclass": "0x0",
+        "articulation": "Tremolo / Flutter tongue Intended for effects notated with a tremolo symbol, or for non-sustaining instruments performing a rapidly repeated note of the same pitch. Strings: Normal Tremolo. Winds & Brass: Flutter Tongue. Percussion & Mallets: Single Note Rolls. Harp: Bisbigliando. Mandolin, Hammered Dulcimer, etc.: Plucked Repeats.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Growl / Razz Brass: Growl Effects. Woodwind Growl Effects, as distinct from flutter tongue (see flutter tongue above). Strings: Sul Ponticello Fast Tremolo. Vocals: lip buzzing effects.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Other Coloristic Tremolo Strings: Con Sordino Tremolo or other coloristic or contemporary tremolo effects. Brass/Winds: Other kinds of contemporary \"buzz\" effects.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "One Note Trills One note \"Timbral Trills\", generally accomplished by alternating fingerings on the same note (specific to winds & brass). Strings: Same pitch on 2 strings.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "2 Repeats Strings: Ricochet/Bounce, or rhythmic 8ths or 16ths (etc.), down/up-bow gestures. Winds: Double-Tongue, Percussion: Grace/Flam. Choir/Vocals: e.g. Swingle Singers style staccato vocalizations, \"Dah-dah\", etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "3 Repeats e.g., Ricochet, Triple Tongue, drags or ruffs, repeating or non-repeating triplet figures.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "4 Repeats e.g., Ricochet, Quadruple Tongue, drags or ruffs, repeating or non-repeating 16th note figures.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "5 Repeats",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "6 Repeats",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Faster Repeats",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "notes": ""
+      }
+    ],
+    "0x13": [
+      {
+        "subclass": "0x0",
+        "articulation": "Half Step (Classical)",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Half Step (Baroque)",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Whole Step (Classical)",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Whole Step (Baroque)",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Minor 3rd",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Major 3rd",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Perfect 4th",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Tritone",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Perfect 5th",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Minor 6th",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Major 6th",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Minor 7th",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Major 7th",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Octave",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "notes": ""
+      }
+    ],
+    "0x14": [
+      {
+        "subclass": "0x0",
+        "articulation": "Harmonics – Natural",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Harmonics – Artificial",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Col Legno Tratto Strings: bowed with the wood side of the bow, sustained.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Flautando Strings: Twist the bow so that only half the bow hairs touch the strings, used with Sul Tasto.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Polyphony: multiple octaves",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Polyphony: intervals, chords, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Cuivré",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Lontano",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Singing into Instrument",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "notes": ""
+      }
+    ],
+    "0x15": [
+      {
+        "subclass": "0x0",
+        "articulation": "Pitch Fall End – Pitch of Note Number. Then falls at end of note. See also Section 7.2. Run or gliss down from the starting note: Brass/Big Band Horn Falls, String Slides, Timpani Pedal Effects, Trombone Slides, Harmonic Glisses, Choir FX, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Pitch Fall Start – pitch starts high falling into Pitch of Note Number Run or gliss down to the note. Brass/Big Band Horn Falls, String Slides, Timpani Pedal Effects, Trombone Slides, Harmonic Glisses, Choir FX, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Pitch Rise End – Pitch of Note Number then rises at the end note See also Section 7.2. Run or gliss up from the starting note: Big Band Doits, Pop/Jazz Horn Rises, String Slides, Timpani Pedal Effects, Trombone Slides, Harmonic Glisses, French Horn Rips, Brass/Big Band Rips, Choir FX, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Pitch Rise Start – pitch starts low raising into Pitch of Note Number Run or gliss up to the note. Pop/Jazz Horn Rises, String Slides, Timpani Pedal Effects, Trombone Slides, Harmonic Glisses, French Horn Rips, Brass/Big Band Rips, Choir FX, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Blue Note Down- Starts at MIDI pitch, bends down and then back to pitch",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Blue Note Up- Starts at MIDI pitch, bends up and then back to pitch",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Grace Notes “Classical” (Starts Below) Grace (Leading) Notes (Classical) where the grace note starts below the target pitch. Also Guitar Hammer Ons, Koto Bends, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Grace Notes “Baroque” (Starts Above) Grace (Leading) Notes (Baroque) where the grace note starts above the target pitch. Also Guitar Pull Offs, Koto Bends, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Shakes SHAKES (Brass/Horns). Timpani: Comical Pedal Effects. Choir: Intervallic Leaps. Strings: Contemporary or other Special FX. Electric Guitar: Whammy Bar FX",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Crescendo",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Decrescendo",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Cresc -> Decresc",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Decresc -> Cresc",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Sfz Crescendo",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "notes": ""
+      }
+    ],
+    "0x16": [
+      {
+        "subclass": "0x0",
+        "articulation": "Playable Runs",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Playable Tremolos",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Playable Glissando",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Scales/Runs Major",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Scales/Runs Minor",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Scales/Runs Dominant 7th",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Scales/Runs diminished (whole/half) or Other 1",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Scales/Runs diminished (half/whole) or Other 2",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Whole Tone Scale 1 (includes C)",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Whole Tone Scale 2 (incudes C#)",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Pentatonic Scale (maj)",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Pentatonic Scale (min)",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Lydian",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Lydian b7",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "Chromatic",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Other Scales and Runs Note: The ending note of these gestures is not required to sustain.",
+        "notes": ""
+      }
+    ],
+    "0x17": [
+      {
+        "subclass": "0x0",
+        "articulation": "Assorted noises, Air Sound, or effects – Sustained Orchestral: e.g. specialty effects libraries of sustained sounds such as “white tones”, contemporary coloristic effects, clusters, bowed percussion, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Behind the Bridge – Sustained",
+        "notes": ""
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Random Pizz – Sustained Pizzicati in random pitches, no set tempo, over period of time. Looped.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Harmonic Glissando",
+        "notes": ""
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Random Glissando",
+        "notes": ""
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Air sound, Chiffs/Squeak/Lip- Pizz – Short",
+        "notes": ""
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Mechanical sounds – Sustained",
+        "notes": ""
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Mechanical sounds – Short Woodwind: Key open/closing sounds, Brass: valve noise, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Finger Glide",
+        "notes": ""
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Fret Buzz/Noise",
+        "notes": ""
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Thump Deep pitched noise, Piano: Sustain pedal, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Knock Knuckles on body of instrument, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Slap Open hand slap on body of instrument, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Pop Woodwinds: note caused by key/finger slap over hole, Brass: mouthpiece pops, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "Tap Finger tap on body of instrument, etc.",
+        "notes": ""
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Click Short bright noise",
+        "notes": ""
+      }
+    ]
+  },
+  "note_off": {
+    "attribute_types": [
+      {
+        "attribute_type": "0x00",
+        "description": "No Attribute Data. Note ending characteristics are determined by the Receiver."
+      },
+      {
+        "attribute_type": "0x01",
+        "description": "Manufacturer Specific Attribute Data"
+      },
+      {
+        "attribute_type": "0x10",
+        "description": "Note ending characteristics of the Note On Orchestral Articulation Profile, as set by fields in the Attribute Data area of the Note Off message."
+      }
+    ],
+    "subclasses": [
+      {
+        "subclass": "0x0",
+        "description": "No Note Off Sample"
+      },
+      {
+        "subclass": "0x1",
+        "description": "Soft Ending"
+      },
+      {
+        "subclass": "0x2",
+        "description": "Hard Ending"
+      },
+      {
+        "subclass": "0x3",
+        "description": "Pitch Rise (such as a “doit”) Also see Sections 7.2 and 5.2.6."
+      },
+      {
+        "subclass": "0x4",
+        "description": "Pitch Fall Also see Sections 7.2 and 5.2.6."
+      }
+    ],
+    "string_assignment": [
+      {
+        "value": "0x0",
+        "description": "No string assignment (Receiver may determine)"
+      },
+      {
+        "value": "0x1",
+        "description": "First string, highest pitched (usually E on guitar, E on violin)"
+      },
+      {
+        "value": "0x2",
+        "description": "Second string (usually B on guitar, A on violin)"
+      },
+      {
+        "value": "0x3",
+        "description": "Third string (usually G on guitar, D on violin)"
+      },
+      {
+        "value": "0x4",
+        "description": "Fourth string (usually D on guitar, G on violin)"
+      },
+      {
+        "value": "0x5",
+        "description": "Fifth string (usually A on guitar, usually G drone on 5 String Banjo)"
+      },
+      {
+        "value": "0x6",
+        "description": "Sixth string (usually E on guitar)"
+      },
+      {
+        "value": "0x7",
+        "description": "Other String"
+      }
+    ]
+  },
+  "controllers": {
+    "mute_type_ranges": [
+      {
+        "range_start": "0x00000000",
+        "range_end": "0x07FFFFFF",
+        "mute_type": "No Mute"
+      },
+      {
+        "range_start": "0x08000000",
+        "range_end": "0x0FFFFFFF",
+        "mute_type": "Straight mute (brass) or Standard mute (strings and others)"
+      },
+      {
+        "range_start": "0x10000000",
+        "range_end": "0x17FFFFFF",
+        "mute_type": "Practice mute"
+      },
+      {
+        "range_start": "0x18000000",
+        "range_end": "0x1FFFFFFF",
+        "mute_type": "Cup Mute"
+      },
+      {
+        "range_start": "0x20000000",
+        "range_end": "0x27FFFFFF",
+        "mute_type": "Wah-wah/Harmon Mute, stem in"
+      },
+      {
+        "range_start": "0x28000000",
+        "range_end": "0x2FFFFFFF",
+        "mute_type": "Wah-wah/Harmon, stem extended"
+      },
+      {
+        "range_start": "0x30000000",
+        "range_end": "0x37FFFFFF",
+        "mute_type": "Wah-wah/Harmon, stem removed"
+      },
+      {
+        "range_start": "0x38000000",
+        "range_end": "0x3FFFFFFF",
+        "mute_type": "Plunger Mute"
+      },
+      {
+        "range_start": "0x40000000",
+        "range_end": "0x47FFFFFF",
+        "mute_type": "Bucket Mute"
+      },
+      {
+        "range_start": "0x48000000",
+        "range_end": "0x4FFFFFFF",
+        "mute_type": "Mica Mute"
+      },
+      {
+        "range_start": "0x50000000",
+        "range_end": "0x57FFFFFF",
+        "mute_type": "Solotone Mute"
+      },
+      {
+        "range_start": "0x58000000",
+        "range_end": "0x5FFFFFFF",
+        "mute_type": "Whispa/Whisper Mute"
+      },
+      {
+        "range_start": "0x60000000",
+        "range_end": "0x67FFFFFF",
+        "mute_type": "Hat"
+      },
+      {
+        "range_start": "0x68000000",
+        "range_end": "0x6FFFFFFF",
+        "mute_type": "Hand"
+      },
+      {
+        "range_start": "0x70000000",
+        "range_end": "0x77FFFFFF",
+        "mute_type": "Stopped (Transposing Mute)"
+      },
+      {
+        "range_start": "0x78000000",
+        "range_end": "0x7FFFFFFF",
+        "mute_type": "Into the Stand"
+      },
+      {
+        "range_start": "0x80000000",
+        "range_end": "0xCFFFFFFF",
+        "mute_type": "Reserved (10 of 32 subranges)"
+      },
+      {
+        "range_start": "0xD0000000",
+        "range_end": "0xD7FFFFFF",
+        "mute_type": "Manufacturer Specific Mute 1"
+      },
+      {
+        "range_start": "0xD8000000",
+        "range_end": "0xDFFFFFFF",
+        "mute_type": "Manufacturer Specific Mute 2"
+      },
+      {
+        "range_start": "0xE0000000",
+        "range_end": "0xE7FFFFFF",
+        "mute_type": "Manufacturer Specific Mute 3"
+      },
+      {
+        "range_start": "0xE8000000",
+        "range_end": "0xEFFFFFFF",
+        "mute_type": "Manufacturer Specific Mute 4"
+      },
+      {
+        "range_start": "0xF0000000",
+        "range_end": "0xF7FFFFFF",
+        "mute_type": "Manufacturer Specific Mute 5"
+      },
+      {
+        "range_start": "0xF8000000",
+        "range_end": "0xFFFFFFFF",
+        "mute_type": "Manufacturer Specific Mute 6"
+      }
+    ],
+    "playing_position": [
+      {
+        "value": "0x00000000",
+        "bowed_plucked": "At the Bridge",
+        "drums_cymbals": "At the Center"
+      },
+      {
+        "value": "0x80000000",
+        "bowed_plucked": "(Default) Normal Playing Position",
+        "drums_cymbals": "Normal Playing Position"
+      },
+      {
+        "value": "0xFFFFFFFF",
+        "bowed_plucked": "At the Nut",
+        "drums_cymbals": "At the Rim"
+      }
+    ],
+    "optional_features": [
+      {
+        "bit": "D0",
+        "controller": "RC 0x20/0x22",
+        "description": "Supports Orchestral Mute Type Registered Controller"
+      },
+      {
+        "bit": "D1",
+        "controller": "RC 0x20/0x23",
+        "description": "Supports Orchestral Mute Amount Registered Controller"
+      },
+      {
+        "bit": "D2",
+        "controller": "RPNC 0x0C",
+        "description": "Supports Playing Position Registered Per-Note Controller"
+      },
+      {
+        "bit": "D3",
+        "controller": "Note Off Velocity",
+        "description": "Supports Note Off Velocity to control Release Time"
+      },
+      {
+        "bit": "D4",
+        "controller": "Discovery of Manufacturer Specific Sounds",
+        "description": "Supports a Profile Details Inquiry to discover which Subclasses in Classifications 0x1A to 0x1F contain sounds. See Section 9.2"
+      },
+      {
+        "bit": "D5-D13",
+        "controller": "Reserved",
+        "description": ""
+      }
+    ]
+  },
+  "instrument_types": [
+    {
+      "abbreviation": "Str",
+      "name": "Strings"
+    },
+    {
+      "abbreviation": "Ww",
+      "name": "Woodwinds"
+    },
+    {
+      "abbreviation": "Brs",
+      "name": "Brass"
+    },
+    {
+      "abbreviation": "NoP",
+      "name": "Non-Pitched Percussion"
+    },
+    {
+      "abbreviation": "TuP",
+      "name": "Tuned Percussion"
+    },
+    {
+      "abbreviation": "Gui",
+      "name": "Guitar / Plucked"
+    },
+    {
+      "abbreviation": "Hrp",
+      "name": "Harp"
+    },
+    {
+      "abbreviation": "Kbd",
+      "name": "Keyboard / Organ"
+    },
+    {
+      "abbreviation": "Chr",
+      "name": "Choir / Vocals"
+    }
+  ],
+  "appendix_tables": {
+    "0x10": [
+      {
+        "subclass": "0x0",
+        "articulation": "Normal Sustains & Strikes - Primary/Default, (PART 1)*",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Normal Sustains & Strikes - Primary/Default, (PART 2)*",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Legato and Legato Slurred",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Molto Legato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Glissando",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Detaché",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Marcato and Accented",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Martelé",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Senza Vibrato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Con Vibrato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Synchronized Vibrato",
+        "applicability": [
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "applicability": []
+      }
+    ],
+    "0x11": [
+      {
+        "subclass": "0x0",
+        "articulation": "Normal Staccato Off String",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Normal Staccato On String",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Slurred Staccato (single bow staccato)",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Accented Staccato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Staccatissimo",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Spiccato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Sautillé",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Martellato",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Long Staccato or Mezzo Staccato or Louré",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Portato",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Pizzicato",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Bartok Pizzicato (or Harsh, Hard, Noisy Notes)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Col Legno Battuto and Geschlagen",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Col Legno Gestrichen",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "String Hand Tap",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Jete",
+        "applicability": [
+          "•"
+        ]
+      }
+    ],
+    "0x12": [
+      {
+        "subclass": "0x0",
+        "articulation": "Tremolo / Flutter tongue",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Growl / Razz",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Other Coloristic Tremolo",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "One Note Trills",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "2 Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "3 Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "4 Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "5 Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "6 Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Faster Repeats",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "applicability": []
+      }
+    ],
+    "0x13": [
+      {
+        "subclass": "0x0",
+        "articulation": "Half Step (Classical)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Half Step (Baroque)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Whole Step (Classical)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Whole Step (Baroque)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Minor 3rd",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Major 3rd",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Perfect 4",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Tritone",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Perfect 5",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Minor 6",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Major 6",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Minor 7",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Major 7",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Octave",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "applicability": []
+      }
+    ],
+    "0x14": [
+      {
+        "subclass": "0x0",
+        "articulation": "Harmonics - Natural",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Harmonics - Artificial",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Col Legno Tratto",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Flautando",
+        "applicability": [
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Polyphony: multiple octaves",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Polyphony: intervals, chords, etc.",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Cuivré",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Singing into Instrument",
+        "applicability": [
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "applicability": []
+      }
+    ],
+    "0x15": [
+      {
+        "subclass": "0x0",
+        "articulation": "Pitch Fall End - Pitch of Note Number. Then falls at end of note",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Pitch Fall Start - pitch starts high falling into Pitch of Note Number",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Pitch Rise End - Pitch of Note Number then rises at the end note (doit and others)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Pitch Rise Start - pitch starts low raising into Pitch of Note Number (scoop, strings portamento, Trumpet and French Horn Rips and others)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Blue Note Down- Starts at MIDI pitch, bends down and then back to pitch",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Blue Note Up- Starts at MIDI pitch, bends up and then back to pitch",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Grace Notes \"Classical\" (Starts Below)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Grace Notes \"Baroque\" (Starts Above)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Shakes * * *  * * *",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Crescendo",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Decrescendo",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Cres -> Decresc",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Decresc -> Cresc",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Sfz Crescendo",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "reserved",
+        "applicability": []
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "reserved",
+        "applicability": []
+      }
+    ],
+    "0x16": [
+      {
+        "subclass": "0x0",
+        "articulation": "Playable Runs",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Playable Tremolos",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Playable Glissando",
+        "applicability": [
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Scales/Runs Major",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Scales/Runs Minor",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Scales/Runs Dominant 7th",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Scales/Runs diminished (whole/half) or Other 1",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Scales/Runs diminished (half/whole) or Other 2",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Whole Tone Scale 1 (includes C)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Whole Tone Scale 2 (incudes C#)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Pentatonic Scale (maj)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Pentatonic Scale (min)",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Lydian",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Lydian b7",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "Chromatic",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Other Scales and Runs",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      }
+    ],
+    "0x17": [
+      {
+        "subclass": "0x0",
+        "articulation": "Assorted noises, Air Sound, or effects - Sustained",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x1",
+        "articulation": "Behind the Bridge - Sustained",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x2",
+        "articulation": "Random Pizz - Sustained",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x3",
+        "articulation": "Harmonic Glissando",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x4",
+        "articulation": "Random Glissando",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x5",
+        "articulation": "Air sound, Chiffs/Squeak/Lip-Pizz - Short",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x6",
+        "articulation": "Mechanical sounds - Sustained",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x7",
+        "articulation": "Mechanical sounds - Short",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x8",
+        "articulation": "Finger Glide",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0x9",
+        "articulation": "Fret Buzz/Noise",
+        "applicability": [
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xA",
+        "articulation": "Thump",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xB",
+        "articulation": "Knock",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xC",
+        "articulation": "Slap",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xD",
+        "articulation": "Pop",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xE",
+        "articulation": "Tap",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      },
+      {
+        "subclass": "0xF",
+        "articulation": "Click",
+        "applicability": [
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•",
+          "•"
+        ]
+      }
+    ]
+  },
+  "summary": {
+    "version_history_count": 1,
+    "conformance_relating_count": 3,
+    "conformance_not_relating_count": 4,
+    "definition_count": 20,
+    "normative_reference_count": 7,
+    "profile_id_byte_count": 5,
+    "classification_count": 11,
+    "direction_count": 4,
+    "string_assignment_count": 8,
+    "subclass_table_count": 8,
+    "subclass_total_count": 128,
+    "note_off_attribute_type_count": 3,
+    "note_off_subclass_count": 5,
+    "note_off_string_assignment_count": 8,
+    "mute_type_range_count": 23,
+    "playing_position_count": 3,
+    "optional_feature_count": 6,
+    "instrument_type_count": 9,
+    "appendix_table_count": 8,
+    "appendix_total_count": 128
+  }
+}

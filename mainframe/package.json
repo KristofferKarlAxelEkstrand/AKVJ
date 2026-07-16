@@ -1,0 +1,31 @@
+{
+	"description": "AKVJ Mainframe — set preparation, clip ingestion, and mapping editor.",
+	"devDependencies": {
+		"chokidar": "^5.0.0",
+		"concurrently": "^10.0.3",
+		"sharp": "^0.35.3",
+		"vite": "^8.1.4",
+		"vitest": "^4.1.10"
+	},
+	"name": "mainframe",
+	"private": true,
+	"scripts": {
+		"build": "vite build",
+		"clips": "node scripts/clips",
+		"clips:clean": "node scripts/clips --clean",
+		"clips:new": "node scripts/clips/new.js",
+		"clips:spritesheet": "node scripts/clips/spritesheet.js",
+		"clips:validate": "node scripts/clips --validate-only",
+		"clips:watch": "node scripts/clips --watch",
+		"dev": "concurrently -n ui,api,clips -c magenta,cyan,green \"vite\" \"node --watch server/index.js\" \"npm run clips:watch\"",
+		"dev:api": "node --watch server/index.js",
+		"dev:ui": "vite",
+		"lint": "eslint --config ../eslint.config.js .",
+		"migrate": "node server/migrate-flatten.js",
+		"start:api": "node server/index.js",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"type": "module",
+	"version": "0.0.0"
+}

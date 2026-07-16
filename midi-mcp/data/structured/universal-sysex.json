@@ -1,0 +1,580 @@
+{
+  "metadata": {
+    "title": "Universal System Exclusive Messages",
+    "version": "1.0.0",
+    "source": "universal-system-exclusive-messages.md"
+  },
+  "categories": [
+    {
+      "type": "non_real_time",
+      "sysex_id": "7E",
+      "messages": [
+        {
+          "sub_id_1": "00",
+          "sub_id_2": null,
+          "description": "Unused",
+          "children": []
+        },
+        {
+          "sub_id_1": "01",
+          "sub_id_2": null,
+          "description": "Sample Dump Header",
+          "children": []
+        },
+        {
+          "sub_id_1": "02",
+          "sub_id_2": null,
+          "description": "Sample Data Packet",
+          "children": []
+        },
+        {
+          "sub_id_1": "03",
+          "sub_id_2": null,
+          "description": "Sample Dump Request",
+          "children": []
+        },
+        {
+          "sub_id_1": "04",
+          "sub_id_2": "nn",
+          "description": "MIDI Time Code",
+          "children": [
+            {
+              "sub_id_2": "00",
+              "description": "Special"
+            },
+            {
+              "sub_id_2": "01",
+              "description": "Punch In Points"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Punch Out Points"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Delete Punch In Point"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Delete Punch Out Point"
+            },
+            {
+              "sub_id_2": "05",
+              "description": "Event Start Point"
+            },
+            {
+              "sub_id_2": "06",
+              "description": "Event Stop Point"
+            },
+            {
+              "sub_id_2": "07",
+              "description": "Event Start Points with additional info."
+            },
+            {
+              "sub_id_2": "08",
+              "description": "Event Stop Points with additional info."
+            },
+            {
+              "sub_id_2": "09",
+              "description": "Delete Event Start Point"
+            },
+            {
+              "sub_id_2": "0A",
+              "description": "Delete Event Stop Point"
+            },
+            {
+              "sub_id_2": "0B",
+              "description": "Cue Points"
+            },
+            {
+              "sub_id_2": "0C",
+              "description": "Cue Points with additional info."
+            },
+            {
+              "sub_id_2": "0D",
+              "description": "Delete Cue Point"
+            },
+            {
+              "sub_id_2": "0E",
+              "description": "Event Name in additional info."
+            }
+          ]
+        },
+        {
+          "sub_id_1": "05",
+          "sub_id_2": "nn",
+          "description": "Sample Dump Extensions",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Loop Points Transmission"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Loop Points Request"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Sample Name Transmission"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Sample Name Request"
+            },
+            {
+              "sub_id_2": "05",
+              "description": "Extended Dump Header"
+            },
+            {
+              "sub_id_2": "06",
+              "description": "Extended Loop Points Transmission"
+            },
+            {
+              "sub_id_2": "07",
+              "description": "Extended Loop Points Request"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "06",
+          "sub_id_2": "nn",
+          "description": "General Information",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Identity Request"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Identity Reply"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "07",
+          "sub_id_2": "nn",
+          "description": "File Dump",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Header"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Data Packet"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Request"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "08",
+          "sub_id_2": "nn",
+          "description": "MIDI Tuning Standard (Non-Real Time)",
+          "children": [
+            {
+              "sub_id_2": "00",
+              "description": "Bulk Dump Request"
+            },
+            {
+              "sub_id_2": "01",
+              "description": "Bulk Dump Reply"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Tuning Dump Request"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Key-Based Tuning Dump"
+            },
+            {
+              "sub_id_2": "05",
+              "description": "Scale/Octave Tuning Dump, 1 byte format"
+            },
+            {
+              "sub_id_2": "06",
+              "description": "Scale/Octave Tuning Dump, 2 byte format"
+            },
+            {
+              "sub_id_2": "07",
+              "description": "Single Note Tuning Change with Bank Select"
+            },
+            {
+              "sub_id_2": "08",
+              "description": "Scale/Octave Tuning, 1 byte format"
+            },
+            {
+              "sub_id_2": "09",
+              "description": "Scale/Octave Tuning, 2 byte format"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "09",
+          "sub_id_2": "nn",
+          "description": "General MIDI",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "General MIDI 1 System On"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "General MIDI System Off"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "General MIDI 2 System On"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "0A",
+          "sub_id_2": "nn",
+          "description": "Downloadable Sounds",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Turn DLS On"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Turn DLS Off"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Turn DLS Voice Allocation Off"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Turn DLS Voice Allocation On"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "0B",
+          "sub_id_2": "nn",
+          "description": "File Reference Message",
+          "children": [
+            {
+              "sub_id_2": "00",
+              "description": "reserved (do not use)"
+            },
+            {
+              "sub_id_2": "01",
+              "description": "Open File"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Select or Reselect Contents"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Open File and Select Contents"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Close File"
+            },
+            {
+              "sub_id_2": "05-7F",
+              "description": "reserved (do not use)"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "0C",
+          "sub_id_2": "nn",
+          "description": "MIDI Visual Control",
+          "children": [
+            {
+              "sub_id_2": "00-7F",
+              "description": "MVC Commands"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "0D",
+          "sub_id_2": "nn",
+          "description": "MIDI Capability Inquiry",
+          "children": [
+            {
+              "sub_id_2": "00-7F",
+              "description": "Inquiry/Response Messages (See Documentation)"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "7B",
+          "sub_id_2": null,
+          "description": "End of File",
+          "children": []
+        },
+        {
+          "sub_id_1": "7C",
+          "sub_id_2": null,
+          "description": "Wait",
+          "children": []
+        },
+        {
+          "sub_id_1": "7D",
+          "sub_id_2": null,
+          "description": "Cancel",
+          "children": []
+        },
+        {
+          "sub_id_1": "7E",
+          "sub_id_2": null,
+          "description": "NAK",
+          "children": []
+        },
+        {
+          "sub_id_1": "7F",
+          "sub_id_2": null,
+          "description": "ACK",
+          "children": []
+        }
+      ]
+    },
+    {
+      "type": "real_time",
+      "sysex_id": "7F",
+      "messages": [
+        {
+          "sub_id_1": "00",
+          "sub_id_2": null,
+          "description": "Unused",
+          "children": []
+        },
+        {
+          "sub_id_1": "01",
+          "sub_id_2": "nn",
+          "description": "MIDI Time Code",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Full Message"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "User Bits"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "02",
+          "sub_id_2": "nn",
+          "description": "MIDI Show Control",
+          "children": [
+            {
+              "sub_id_2": "00",
+              "description": "MSC Extensions"
+            },
+            {
+              "sub_id_2": "01-7F",
+              "description": "MSC Commands"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "03",
+          "sub_id_2": "nn",
+          "description": "Notation Information",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Bar Number"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Time Signature (Immediate)"
+            },
+            {
+              "sub_id_2": "42",
+              "description": "Time Signature (Delayed)"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "04",
+          "sub_id_2": "nn",
+          "description": "Device Control",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Master Volume"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Master Balance"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Master Fine Tuning"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "Master Coarse Tuning"
+            },
+            {
+              "sub_id_2": "05",
+              "description": "Global Parameter Control"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "05",
+          "sub_id_2": "nn",
+          "description": "Real Time MTC Cueing",
+          "children": [
+            {
+              "sub_id_2": "00",
+              "description": "Special"
+            },
+            {
+              "sub_id_2": "01",
+              "description": "Punch In Points"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Punch Out Points"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "(Reserved)"
+            },
+            {
+              "sub_id_2": "04",
+              "description": "(Reserved)"
+            },
+            {
+              "sub_id_2": "05",
+              "description": "Event Start points"
+            },
+            {
+              "sub_id_2": "06",
+              "description": "Event Stop points"
+            },
+            {
+              "sub_id_2": "07",
+              "description": "Event Start points with additional info."
+            },
+            {
+              "sub_id_2": "08",
+              "description": "Event Stop points with additional info."
+            },
+            {
+              "sub_id_2": "09",
+              "description": "(Reserved)"
+            },
+            {
+              "sub_id_2": "0A",
+              "description": "(Reserved)"
+            },
+            {
+              "sub_id_2": "0B",
+              "description": "Cue points"
+            },
+            {
+              "sub_id_2": "0C",
+              "description": "Cue points with additional info."
+            },
+            {
+              "sub_id_2": "0D",
+              "description": "(Reserved)"
+            },
+            {
+              "sub_id_2": "0E",
+              "description": "Event Name in additional info."
+            }
+          ]
+        },
+        {
+          "sub_id_1": "06",
+          "sub_id_2": "nn",
+          "description": "MIDI Machine Control Commands",
+          "children": [
+            {
+              "sub_id_2": "00-7F",
+              "description": "MMC Commands"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "07",
+          "sub_id_2": "nn",
+          "description": "MIDI Machine Control Responses",
+          "children": [
+            {
+              "sub_id_2": "00-7F",
+              "description": "MMC Responses"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "08",
+          "sub_id_2": "nn",
+          "description": "MIDI Tuning Standard (Real Time)",
+          "children": [
+            {
+              "sub_id_2": "02",
+              "description": "Single Note Tuning Change"
+            },
+            {
+              "sub_id_2": "07",
+              "description": "Single Note Tuning Change with Bank Select"
+            },
+            {
+              "sub_id_2": "08",
+              "description": "Scale/Octave Tuning, 1 byte format"
+            },
+            {
+              "sub_id_2": "09",
+              "description": "Scale/Octave Tuning, 2 byte format"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "09",
+          "sub_id_2": "nn",
+          "description": "Controller Destination Setting",
+          "children": [
+            {
+              "sub_id_2": "01",
+              "description": "Channel Pressure (Aftertouch)"
+            },
+            {
+              "sub_id_2": "02",
+              "description": "Polyphonic Key Pressure (Aftertouch)"
+            },
+            {
+              "sub_id_2": "03",
+              "description": "Controller (Control Change)"
+            }
+          ]
+        },
+        {
+          "sub_id_1": "0A",
+          "sub_id_2": "01",
+          "description": "Key-based Instrument Control",
+          "children": []
+        },
+        {
+          "sub_id_1": "0B",
+          "sub_id_2": "01",
+          "description": "Scalable Polyphony MIDI MIP Message",
+          "children": []
+        },
+        {
+          "sub_id_1": "0C",
+          "sub_id_2": "00",
+          "description": "Mobile Phone Control Message",
+          "children": []
+        }
+      ]
+    }
+  ]
+}

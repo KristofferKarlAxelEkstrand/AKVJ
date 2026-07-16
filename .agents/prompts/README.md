@@ -51,6 +51,11 @@ Iterative agent that transforms raw MIDI markdown documents into strictly-typed 
 **Trigger:**
 > `Read the latest .agents/prompts/midi-mcp-developer.prompt.md from disk and execute exactly one iteration of its workflow.`
 
+### Server Architect
+Iterative agent dedicated to deeply decoupling the lightweight visualizer (`vj-server`) from the heavy clip manager (`admin`). Manages its own architecture ledger.
+**Trigger:**
+> `Read the latest .agents/workflows/servers/vj-server-and-admin-server.prompt.md from disk and execute exactly one iteration of its workflow.`
+
 ### Resume Work
 If the AI stopped before finishing a long task.
 **Trigger:** 

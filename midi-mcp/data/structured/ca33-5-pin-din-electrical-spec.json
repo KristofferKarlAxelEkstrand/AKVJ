@@ -1,0 +1,175 @@
+{
+  "metadata": {
+    "title": "MIDI 1.0 5-Pin DIN Electrical Specification",
+    "doc_id": "CA-033",
+    "version": "1.0.0",
+    "source": "ca33-5-pin-din-electrical-spec.md",
+    "protocol": "midi1",
+    "summary": "MMA/AMEI Confirmation of Approval CA-033: MIDI 1.0 5-Pin DIN Electrical Specification."
+  },
+  "document_info": {
+    "ca_number": 33,
+    "title": "MIDI 1.0 Electrical Specification Update [2014]",
+    "date_of_issue": null,
+    "originated_by": null,
+    "reference_tsbb_item": null,
+    "volume": null,
+    "related_items": null
+  },
+  "electrical_interface": {
+    "baud_rate": "31.25",
+    "baud_rate_tolerance": "+/- 1%",
+    "data_bits": 8,
+    "data_bit_range": "D0 to D7",
+    "start_bit": {
+      "logical_value": 0,
+      "meaning": "current ON"
+    },
+    "stop_bit": {
+      "logical_value": 1,
+      "meaning": "current OFF"
+    },
+    "bit_order": "LSB first",
+    "total_bits_per_byte": 10,
+    "byte_period_microseconds": 320,
+    "current_loop_ma": 5,
+    "logical_0": "current ON",
+    "logical_1": "current OFF"
+  },
+  "resistor_values": {
+    "signaling_voltages": [
+      {
+        "voltage": "+5V",
+        "tolerance": "±10%",
+        "resistors": {
+          "RA": {
+            "value": "220Ω",
+            "tolerance": "5%",
+            "power_rating": "0.25W"
+          },
+          "RC": {
+            "value": "220Ω",
+            "tolerance": "5%",
+            "power_rating": "0.25W"
+          }
+        }
+      },
+      {
+        "voltage": "+3.3V",
+        "tolerance": "±5%",
+        "resistors": {
+          "RA": {
+            "value": "33Ω",
+            "tolerance": "5%",
+            "power_rating": "0.5W"
+          },
+          "RC": {
+            "value": "10Ω",
+            "tolerance": "5%",
+            "power_rating": "0.25W"
+          }
+        }
+      }
+    ],
+    "ferrite_beads": {
+      "impedance": "1kΩ at 100MHz",
+      "example_part": "MMZ1608Y102BT",
+      "placement": "as close to the jacks as possible",
+      "optional": true
+    }
+  },
+  "connectors": {
+    "type": "DIN 5-pin (180 degree) female panel-mount",
+    "example_part": "SWITCHCRAFT 57PC5F",
+    "jacks": [
+      {
+        "name": "MIDI OUT",
+        "required": true
+      },
+      {
+        "name": "MIDI IN",
+        "required": true
+      },
+      {
+        "name": "MIDI THRU",
+        "required": false
+      }
+    ],
+    "pin_assignments": [
+      {
+        "pin": 1,
+        "connection": "not used (unconnected)"
+      },
+      {
+        "pin": 2,
+        "connection": "tied to ground on transmitter; N/C or optional capacitor (0.1μF) to ground on receiver for RF shielding"
+      },
+      {
+        "pin": 3,
+        "connection": "not used (unconnected)"
+      },
+      {
+        "pin": 4,
+        "connection": "signal (current source)"
+      },
+      {
+        "pin": 5,
+        "connection": "signal (current sink)"
+      }
+    ],
+    "shield_grounding": {
+      "midi_out": "N/C or optional connection to ground for improved EMI/EMC",
+      "midi_in": "N/C or optional small capacitor (0.1μF) to ground for improved EMI/EMC",
+      "midi_thru": "N/C or optional connection to ground for improved EMI/EMC"
+    }
+  },
+  "cable": {
+    "max_length_feet": 50,
+    "max_length_meters": 15,
+    "cable_type": "shielded twisted pair",
+    "plug_type": "5-pin DIN male",
+    "example_plug": "SWITCHCRAFT 57PC5F",
+    "shield_connection": "pin 2 at both ends",
+    "shield_barrel": "do not connect MIDI cable shield to shield barrel of MIDI plug",
+    "pins_1_and_3": "not required by specification, but may be present"
+  },
+  "opto_isolators": {
+    "recommended_parts": [
+      {
+        "part": "Sharp PC-900V"
+      },
+      {
+        "part": "HP 6N138"
+      }
+    ],
+    "receiver_turn_on_current_ma": 5,
+    "rise_fall_time_max_microseconds": 2,
+    "pc900v_specs": {
+      "forward_current_ma": 4,
+      "recommended_rd": "280Ω",
+      "vrx": "5V"
+    },
+    "led_max_forward_voltage": "1.9V",
+    "purpose": "internal separation of transmitter and receiver circuitry to avoid ground loops"
+  },
+  "low_voltage_signaling": {
+    "minimum_transmitter_voltage": "3.0V",
+    "formula": "(RA + RC) = (VTX - VRXDROP) / 0.005",
+    "minimum_total_resistance": "27Ω",
+    "recommended_resistors": {
+      "RA": "33Ω",
+      "RC": "10Ω"
+    },
+    "recommended_total_resistance": "43Ω",
+    "worst_case_current_ma": 4.472,
+    "max_short_circuit_current": "0.111A",
+    "max_short_circuit_power": "0.383W",
+    "ra_power_rating": "0.5W",
+    "nominal_forward_current_ma": 7.2,
+    "compatibility": "compatible with all legacy MIDI 1.0 receivers that strictly follow the specification",
+    "known_incompatibilities": [
+      "non-opto-isolated receivers (voltage-sensitive, may not drive above input high threshold)",
+      "devices that draw power from Pin 4 through 220Ω resistor to +5V (may fail at 3.3V)"
+    ]
+  }
+}

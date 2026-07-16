@@ -1,0 +1,101 @@
+{
+  "metadata": {
+    "title": "Specification for MIDI over Bluetooth Low Energy (BLE-MIDI)",
+    "doc_id": "RP-052",
+    "protocol": "midi1",
+    "version": "1.0",
+    "date": "2015-11-01"
+  },
+  "ble_services": [
+    {
+      "name": "MIDI Service",
+      "uuid": "03B80E5A-EDE8-4B33-A751-6CE34EC4C700"
+    }
+  ],
+  "ble_characteristics": [
+    {
+      "name": "MIDI Data I/O Characteristic",
+      "uuid": "7772E5DB-3868-4112-A1A9-F2669D106BF3",
+      "properties": [
+        "write (encryption recommended, write without response is required)",
+        "read (encryption recommended, respond with no payload)",
+        "notify (encryption recommended)"
+      ]
+    }
+  ],
+  "header_byte_fields": [
+    {
+      "bits": "bit 7",
+      "description": "Set to 1."
+    },
+    {
+      "bits": "bit 6",
+      "description": "Set to 0. (Reserved for future use)"
+    },
+    {
+      "bits": "bits 5-0",
+      "description": "timestampHigh:Most significant 6 bits of timestamp information."
+    }
+  ],
+  "timestamp_byte_fields": [
+    {
+      "bits": "bit 7",
+      "description": "Set to 1."
+    },
+    {
+      "bits": "bits 6-0",
+      "description": "timestampLow: Least Significant 7 bits of timestamp information."
+    }
+  ],
+  "midi_message_format": [
+    {
+      "byte": "Byte 0",
+      "description": "MIDI message Status byte, Bit 7 is Set to 1."
+    },
+    {
+      "byte": "Bytes 1 to n-1",
+      "description": "MIDI message Data bytes, if n > 1. Bit 7 is Set to 0"
+    }
+  ],
+  "running_status_rules": [
+    "The original MIDI message is 2 bytes or greater and is not a System Common or System Real-Time message.",
+    "The omitted Status byte matches the most recently preceding full MIDI message’s Status byte within the same BLE packet. In addition, the following rules apply with respect to Running Status:",
+    "A Running Status MIDI message is allowed within the packet after at least one full MIDI message.",
+    "Every MIDI Status byte must be preceded by a timestamp byte. Running Status MIDI messages may be preceded by a timestamp byte. If a Running Status MIDI message is not preceded by a timestamp byte, the timestamp byte of the most recently preceding message in the same packet is used.",
+    "System Common and System Real-Time messages do not cancel Running Status if interspersed between Running Status MIDI messages. However, a timestamp byte must precede the Running Status MIDI message that follows.",
+    "The end of a BLE packet does cancel Running Status."
+  ],
+  "sysex_encoding_rules": [
+    "The SysEx start byte, which is a MIDI Status byte, is preceded by a timestamp byte.",
+    "Following the SysEx start byte, any number of Data bytes (up to the number of the remaining bytes in the packet) may be written.",
+    "Any remaining data may be sent in one or more SysEx continuation packets. A SysEx continuation packet begins with a header byte but does not contain a timestamp byte. It then contains one or more bytes of the SysEx data, up to the maximum packet length. This lack of a timestamp byte serves as a signal to the decoder of a SysEx continuation.",
+    "System Real-Time messages may appear at any point inside a SysEx message and must be preceded by a timestamp byte.",
+    "SysEx continuations for unterminated SysEx messages must follow either the packet’s header byte or a real-time byte.",
+    "Continue sending SysEx continuation packets until the entire message is transmitted.",
+    "In the last packet containing SysEx data, precede the EOX message (SysEx end byte), which is a MIDI Status byte, with a timestamp byte."
+  ],
+  "sysex_interruption_rules": [
+    "A System Real-Time message interrupting a yet unterminated SysEx message must be preceded by its own timestamp byte.",
+    "SysEx continuations for unterminated SysEx messages must follow either the packet’s header byte or a real-time byte."
+  ],
+  "timestamp_specs": [
+    "13-bit values in milliseconds, maximum 8191 ms",
+    "Monotonically increasing",
+    "Composed of timestampHigh (6 bits) and timestampLow (7 bits)",
+    "timestampHigh from lower 6 bits of header byte, timestampLow from lower 7 bits of timestamp byte",
+    "Maximum one overflow/wrap per BLE packet",
+    "In sender clock domain, not allowed to be scheduled in the future",
+    "Receiver clock correlation required for accurate rendering"
+  ],
+  "summary": {
+    "ble_service_count": 1,
+    "ble_characteristic_count": 1,
+    "header_byte_field_count": 3,
+    "timestamp_byte_field_count": 2,
+    "midi_message_format_count": 2,
+    "running_status_rule_count": 6,
+    "sysex_encoding_rule_count": 7,
+    "sysex_interruption_rule_count": 2,
+    "timestamp_spec_count": 7
+  }
+}

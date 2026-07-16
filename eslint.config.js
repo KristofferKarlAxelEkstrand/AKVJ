@@ -51,7 +51,7 @@ export default [
 	},
 	// Node config for build/dev tools
 	{
-		files: ['**/*.config.js', '**/scripts/**/*.js', 'admin/server/**/*.js', 'midi-mcp/**/*.js'],
+		files: ['**/*.config.js', '**/scripts/**/*.js', 'mainframe/server/**/*.js', 'mainframe/scripts/**/*.js', 'midi-mcp/**/*.js'],
 		languageOptions: {
 			globals: {
 				...globals.node

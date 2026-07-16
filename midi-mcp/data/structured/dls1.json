@@ -1,0 +1,870 @@
+{
+  "metadata": {
+    "title": "Downloadable Sounds Level 1 Specification",
+    "doc_id": "DLS-1",
+    "protocol": "midi1",
+    "version": "1.1b",
+    "date": "2004-09"
+  },
+  "connection_blocks": [
+    {
+      "cid": "1*",
+      "section": "LFO Section",
+      "articulator_name": "LFO Frequency",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_LFO_FREQ",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "2*",
+      "section": "LFO Section",
+      "articulator_name": "LFO Start Delay",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_LFO_DELAY",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "3*",
+      "section": "LFO Section",
+      "articulator_name": "LFO Attenuation Scale",
+      "source": "SRC_LFO",
+      "control": "SRC_NONE",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "4",
+      "section": "LFO Section",
+      "articulator_name": "LFO Pitch Scale",
+      "source": "SRC_LFO",
+      "control": "SRC_NONE",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "5",
+      "section": "LFO Section",
+      "articulator_name": "LFO Modw to Attenuation",
+      "source": "SRC_LFO",
+      "control": "SRC_CC1",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "6",
+      "section": "LFO Section",
+      "articulator_name": "LFO Modw to Pitch",
+      "source": "SRC_LFO",
+      "control": "SRC_CC1",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "7*",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Attack Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_ATTACKTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "8*",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Decay Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_DECAYTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "9*",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Sustain Level",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_SUSTAINLEVEL",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "10*",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Release Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_RELEASETIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "11",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Velocity to Attack",
+      "source": "SRC_KEYONVELOCITY",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_ATTACKTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "12",
+      "section": "EG1 Section",
+      "articulator_name": "EG1 Key to Decay",
+      "source": "SRC_KEYNUMBER",
+      "control": "SRC_NONE",
+      "destination": "DST_EG1_DECAYTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "13*",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Attack Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_ATTACKTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "14*",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Decay Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_DECAYTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "15*",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Sustain Level",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_SUSTAINLEVEL",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "16*",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Release Time",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_RELEASETIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "17",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Velocity to Attack",
+      "source": "SRC_KEYONVELOCITY",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_ATTACKTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "18",
+      "section": "EG2 Section",
+      "articulator_name": "EG2 Key to Decay",
+      "source": "SRC_KEYNUMBER",
+      "control": "SRC_NONE",
+      "destination": "DST_EG2_DECAYTIME",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "19*",
+      "section": "Miscellaneous Section",
+      "articulator_name": "Initial Pan",
+      "source": "SRC_NONE",
+      "control": "SRC_NONE",
+      "destination": "DST_PAN",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "20",
+      "section": "Inferred",
+      "articulator_name": "EG1 To Attenuation",
+      "source": "SRC_EG1",
+      "control": "SRC_NONE",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "21",
+      "section": "Inferred",
+      "articulator_name": "EG2 To Pitch",
+      "source": "SRC_EG2",
+      "control": "SRC_NONE",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "22",
+      "section": "Inferred",
+      "articulator_name": "Key On Velocity to Attenuation",
+      "source": "SRC_KEYONVELOCITY",
+      "control": "SRC_NONE",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_CONCAVE"
+    },
+    {
+      "cid": "23",
+      "section": "Inferred",
+      "articulator_name": "Pitch Wheel to Pitch",
+      "source": "SRC_PITCHWHEEL",
+      "control": "SRC_RPN0",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "24",
+      "section": "Inferred",
+      "articulator_name": "Key Number to Pitch",
+      "source": "SRC_KEYNUMBER",
+      "control": "SRC_NONE",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "25",
+      "section": "Inferred",
+      "articulator_name": "MIDI Controller 7 to Atten.",
+      "source": "SRC_CC7",
+      "control": "SRC_NONE",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_CONCAVE"
+    },
+    {
+      "cid": "26",
+      "section": "Inferred",
+      "articulator_name": "MIDI Controller 10 to Pan",
+      "source": "SRC_CC10",
+      "control": "SRC_NONE",
+      "destination": "DST_PAN",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "27",
+      "section": "Inferred",
+      "articulator_name": "MIDI Controller 11 to Atten.",
+      "source": "SRC_CC11",
+      "control": "SRC_NONE",
+      "destination": "DST_ATTENUATION",
+      "transform": "TRN_CONCAVE"
+    },
+    {
+      "cid": "28",
+      "section": "Inferred",
+      "articulator_name": "RPN1 to Pitch",
+      "source": "SRC_RPN1",
+      "control": "SRC_NONE",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    },
+    {
+      "cid": "29",
+      "section": "Inferred",
+      "articulator_name": "RPN2 to Pitch",
+      "source": "SRC_RPN2",
+      "control": "SRC_NONE",
+      "destination": "DST_PITCH",
+      "transform": "TRN_NONE"
+    }
+  ],
+  "articulator_defaults": [
+    {
+      "articulator": "LFO Frequency",
+      "section": "LFO Section",
+      "default_value": "5 Hz",
+      "min_value": "0.1 Hz",
+      "max_value": "10 Hz",
+      "units": "32 bit pitch cents"
+    },
+    {
+      "articulator": "LFO Start Delay",
+      "section": "LFO Section",
+      "default_value": "0.01 Secs",
+      "min_value": "0.01 secs",
+      "max_value": "10 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "LFO Attenuation Scale",
+      "section": "LFO Section",
+      "default_value": "0 dB",
+      "min_value": "0 dB",
+      "max_value": "12 dB",
+      "units": "32 bit gain (cB)"
+    },
+    {
+      "articulator": "LFO Pitch Scale",
+      "section": "LFO Section",
+      "default_value": "0 cents",
+      "min_value": "-1200 cents",
+      "max_value": "1200 cents",
+      "units": "32 bit pitch cents"
+    },
+    {
+      "articulator": "LFO Mod Wheel to Attenuation",
+      "section": "LFO Section",
+      "default_value": "0 dB",
+      "min_value": "0 dB",
+      "max_value": "12 dB",
+      "units": "32 bit gain (cB)"
+    },
+    {
+      "articulator": "LFO Mod Wheel to Pitch",
+      "section": "LFO Section",
+      "default_value": "0 cents",
+      "min_value": "-1200 cents",
+      "max_value": "1200 cents",
+      "units": "32 bit pitch cents"
+    },
+    {
+      "articulator": "EG1 Attack Time",
+      "section": "EG1 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG1 Decay Time",
+      "section": "EG1 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "40 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG1 Sustain Level",
+      "section": "EG1 Section",
+      "default_value": "100 %",
+      "min_value": "0%",
+      "max_value": "100%",
+      "units": "0.1 % units"
+    },
+    {
+      "articulator": "EG1 Release Time",
+      "section": "EG1 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG1 Velocity to Attack",
+      "section": "EG1 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG1 Key to Decay",
+      "section": "EG1 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 Attack Time",
+      "section": "EG2 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 Decay Time",
+      "section": "EG2 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "40 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 Sustain Level",
+      "section": "EG2 Section",
+      "default_value": "100%",
+      "min_value": "0%",
+      "max_value": "100%",
+      "units": "0.1 % units"
+    },
+    {
+      "articulator": "EG2 Release Time",
+      "section": "EG2 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 Velocity to Attack",
+      "section": "EG2 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 Key to Decay",
+      "section": "EG2 Section",
+      "default_value": "0 secs",
+      "min_value": "0 secs",
+      "max_value": "20 secs",
+      "units": "32 bit time cents"
+    },
+    {
+      "articulator": "EG2 to Pitch",
+      "section": "EG2 Section",
+      "default_value": "0 cents",
+      "min_value": "-1200 cents",
+      "max_value": "1200 cents",
+      "units": "32 bit pitch cents"
+    },
+    {
+      "articulator": "Initial Pan",
+      "section": "Miscellaneous Section",
+      "default_value": "0%",
+      "min_value": "-50%",
+      "max_value": "50%",
+      "units": "0.1% units"
+    }
+  ],
+  "example_parameters": [
+    {
+      "parameter": "CC1",
+      "value": "25"
+    },
+    {
+      "parameter": "CC7",
+      "value": "100"
+    },
+    {
+      "parameter": "CC10",
+      "value": "75"
+    },
+    {
+      "parameter": "CC11",
+      "value": "120"
+    },
+    {
+      "parameter": "Pitch Wheel",
+      "value": "365"
+    },
+    {
+      "parameter": "RPN 0",
+      "value": "200 Cents"
+    },
+    {
+      "parameter": "Key Number",
+      "value": "60"
+    },
+    {
+      "parameter": "Key On Velocity",
+      "value": "110"
+    }
+  ],
+  "riff_definitions": [
+    {
+      "chunk": "<colh-ck>",
+      "definition": "A DLS collection header as defined later in this document."
+    },
+    {
+      "chunk": "<dlid-ck>",
+      "definition": "A globally unique identifier chunk as defined later in this document."
+    },
+    {
+      "chunk": "<insh-ck>",
+      "definition": "An instrument header chunk as defined later in this document."
+    },
+    {
+      "chunk": "<rgnh-ck>",
+      "definition": "A region header chunk as defined later in this document."
+    },
+    {
+      "chunk": "<art1-ck>",
+      "definition": "A level 1 articulator data chunk as defined later in this document."
+    },
+    {
+      "chunk": "<wlnk-ck>",
+      "definition": "A wave link chunk as defined later in this document."
+    },
+    {
+      "chunk": "<wsmp-ck>",
+      "definition": "A wave sample chunk as defined later in this document."
+    },
+    {
+      "chunk": "<ptbl-ck>",
+      "definition": "A pool table data chunk as defined later in this document"
+    },
+    {
+      "chunk": "<vers-ck>",
+      "definition": "An optional version chunk as defined later in this document"
+    },
+    {
+      "chunk": "<wave-list>",
+      "definition": "A DLS wave file chunk as defined later in this document, Appendix D: DLS Level 1"
+    },
+    {
+      "chunk": "<info_text-ck>",
+      "definition": "A text chunk within an <INFO-list> chunk as defined later in this document."
+    }
+  ],
+  "dls_system_messages": [
+    {
+      "name": "Turn DLS Level 1 On",
+      "message": "F0 7E < device ID > 0A 01 F7",
+      "bytes": [
+        {
+          "byte": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "byte": "< device ID >",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "byte": "0A",
+          "description": "sub-ID #1 = DLS Level 1 message"
+        },
+        {
+          "byte": "01",
+          "description": "sub-ID #2 = DLS Level 1 On"
+        },
+        {
+          "byte": "F7",
+          "description": "EOX"
+        }
+      ]
+    },
+    {
+      "name": "Turn DLS Level 1 Off",
+      "message": "F0 7E < device ID > 0A 02 F7",
+      "bytes": [
+        {
+          "byte": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "byte": "< device ID >",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "byte": "0A",
+          "description": "sub-ID #1 = DLS Level 1 message"
+        },
+        {
+          "byte": "02",
+          "description": "sub-ID #2 = DLS Level 1 Off"
+        },
+        {
+          "byte": "F7",
+          "description": "EOX"
+        }
+      ]
+    },
+    {
+      "name": "Turn DLS Level 1 Voice Allocation Off",
+      "message": "F0 7E < device ID > 0A 03 F7",
+      "bytes": [
+        {
+          "byte": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "byte": "< device ID >",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "byte": "0A",
+          "description": "sub-ID #1 = DLS Level 1 message"
+        },
+        {
+          "byte": "03",
+          "description": "sub-ID #2 = DLS Level 1 Voice Allocation Off"
+        },
+        {
+          "byte": "F7",
+          "description": "EOX"
+        }
+      ]
+    },
+    {
+      "name": "Turn DLS Level 1 Voice Allocation On",
+      "message": "F0 7E < device ID > 0A 04 F7",
+      "bytes": [
+        {
+          "byte": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "byte": "< device ID >",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "byte": "0A",
+          "description": "sub-ID #1 = DLS Level 1 message"
+        },
+        {
+          "byte": "04",
+          "description": "sub-ID #2 = DLS Level 1 Voice Allocation On"
+        },
+        {
+          "byte": "F7",
+          "description": "EOX"
+        }
+      ]
+    }
+  ],
+  "connection_sources": [
+    {
+      "name": "CONN_SRC_NONE",
+      "description": "No Source"
+    },
+    {
+      "name": "CONN_SRC_LFO",
+      "description": "Low Frequency Oscillator"
+    },
+    {
+      "name": "CONN_SRC_KEYONVELOCITY",
+      "description": "Key on Velocity"
+    },
+    {
+      "name": "CONN_SRC_KEYNUMBER",
+      "description": "Key Number"
+    },
+    {
+      "name": "CONN_SRC_EG1",
+      "description": "Envelope Generator 1"
+    },
+    {
+      "name": "CONN_SRC_EG2",
+      "description": "Envelope Generator 2"
+    },
+    {
+      "name": "CONN_SRC_PITCHWHEEL",
+      "description": "Pitch Wheel"
+    },
+    {
+      "name": "CONN_SRC_CC1",
+      "description": "Modulation Wheel"
+    },
+    {
+      "name": "CONN_SRC_CC7",
+      "description": "Channel Volume"
+    },
+    {
+      "name": "CONN_SRC_CC10",
+      "description": "Pan"
+    },
+    {
+      "name": "CONN_SRC_CC11",
+      "description": "Expression"
+    },
+    {
+      "name": "CONN_SRC_RPN0",
+      "description": "RPN0 - Pitch Bend Range"
+    },
+    {
+      "name": "CONN_SRC_RPN1",
+      "description": "RPN1 - Fine Tune"
+    },
+    {
+      "name": "CONN_SRC_RPN2",
+      "description": "RPN1 - Coarse Tune"
+    }
+  ],
+  "connection_destinations": [
+    {
+      "name": "CONN_DST_NONE",
+      "description": "No Destination"
+    },
+    {
+      "name": "CONN_DST_ATTENUATION",
+      "description": "Attenuation"
+    },
+    {
+      "name": "CONN_DST_PAN",
+      "description": "Pan"
+    },
+    {
+      "name": "CONN_DST_PITCH",
+      "description": "Pitch"
+    },
+    {
+      "name": "CONN_DST_LFO_FREQUENCY",
+      "description": "LFO Frequency"
+    },
+    {
+      "name": "CONN_DST_LFO_STARTDELAY",
+      "description": "LFO Start Delay Time"
+    },
+    {
+      "name": "CONN_DST_EG1_ATTACKTIME",
+      "description": "EG1 Attack Time"
+    },
+    {
+      "name": "CONN_DST_EG1_DECAYTIME",
+      "description": "EG1 Decay Time"
+    },
+    {
+      "name": "CONN_DST_EG1_SUSTAINLEVEL",
+      "description": "EG1 Sustain Level"
+    },
+    {
+      "name": "CONN_DST_EG1_RELEASETIME",
+      "description": "EG1 Release Time"
+    },
+    {
+      "name": "CONN_DST_EG2_ATTACKTIME",
+      "description": "EG2 Attack Time"
+    },
+    {
+      "name": "CONN_DST_EG2_DECAYTIME",
+      "description": "EG2 Decay Time"
+    },
+    {
+      "name": "CONN_DST_EG2_SUSTAINLEVEL",
+      "description": "EG2 Sustain Level"
+    },
+    {
+      "name": "CONN_DST_EG2_RELEASETIME",
+      "description": "EG2 Release Time"
+    }
+  ],
+  "connection_transforms": [
+    {
+      "name": "CONN_TRN_NONE",
+      "description": "No Transform"
+    },
+    {
+      "name": "CONN_TRN_CONCAVE",
+      "description": "Concave Transform"
+    }
+  ],
+  "info_chunk_ids": [
+    {
+      "chunk_id": "IARL",
+      "description": "Archival Location. Indicates where the subject of the file is archived."
+    },
+    {
+      "chunk_id": "IART",
+      "description": "Artist. Lists the artist of the original subject of the file. For example, Les Paul."
+    },
+    {
+      "chunk_id": "ICMS",
+      "description": "Commissioned. Lists the name of the person or organization that commissioned the"
+    },
+    {
+      "chunk_id": "ICMT",
+      "description": "Comments. Provides general comments about the file or the subject of the file. If the"
+    },
+    {
+      "chunk_id": "ICOP",
+      "description": "Copyright. Records the copyright information for the file. For example, Copyright"
+    },
+    {
+      "chunk_id": "ICRD",
+      "description": "Creation date. Specifies the date the subject of the file was created. List dates in yearmonth-day format, padding one-digit months and days with a zero on the left. For"
+    },
+    {
+      "chunk_id": "IENG",
+      "description": "Engineer. Stores the name of the engineer who worked on the file. If there are multiple"
+    },
+    {
+      "chunk_id": "IGNR",
+      "description": "Genre. Describes the original work, such as, jazz, classical, rock, techno, rave, neo british"
+    },
+    {
+      "chunk_id": "IKEY",
+      "description": "Keywords. Provides a list of keywords that refer to the file or subject of the file. Separate"
+    },
+    {
+      "chunk_id": "IMED",
+      "description": "Medium. Describes the original subject of the file, such as, record, CD, and so forth."
+    },
+    {
+      "chunk_id": "INAM",
+      "description": "Name. Stores the title of the subject of the file, such as, Seattle From Above."
+    },
+    {
+      "chunk_id": "IPRD",
+      "description": "Product. Specifies the name of the title the file was originally intended for, such as World"
+    },
+    {
+      "chunk_id": "ISBJ",
+      "description": "Subject. Describes the contents of the file, such as Music of the New World Order."
+    },
+    {
+      "chunk_id": "ISFT",
+      "description": "Software. Identifies the name of the software package used to create the file, such as"
+    },
+    {
+      "chunk_id": "ISRC",
+      "description": "Source. Identifies the name of the person or organization who supplied the original"
+    },
+    {
+      "chunk_id": "ISRF",
+      "description": "Source Form. Identifies the original form of the material that was digitized, such as"
+    },
+    {
+      "chunk_id": "ITCH",
+      "description": "Technician. Identifies the technician who sampled the subject file. For example, Smith,"
+    }
+  ],
+  "parameter_units": [
+    {
+      "name": "32-bit Time Cents",
+      "formulas": [
+        "where tc = Time Cents:",
+        "tc = log2(time[secs]) * 1200*65536",
+        "time[secs] = 2^(tc/(1200*65536))"
+      ]
+    },
+    {
+      "name": "32-bit Absolute Pitch Cents",
+      "formulas": [
+        "where pc = Pitch Cents, f = linear frequency:",
+        "pc = (log2(f/440) * 1200 + 6900) * 65536",
+        "f = 2^((pc/65536 - 6900)/1200) * 440"
+      ]
+    },
+    {
+      "name": "16-bit Relative Pitch Cents",
+      "formulas": [
+        "where pc = Pitch Cents, f = linear frequency, F = reference frequency:",
+        "pc = log2(f/F) * 1200",
+        "f = 2^(pc/(1200)) * F"
+      ]
+    },
+    {
+      "name": "32-bit Relative Gain",
+      "formulas": [
+        "where cb = Centibels, v = voltage, V = reference voltage:",
+        "cb = log10(v/V) * 200 * 65536",
+        "v = 10^(cb/(200*65536)) * V"
+      ]
+    },
+    {
+      "name": "0.1 % units",
+      "formulas": [
+        "where pcunits = PercentUnits, percent = value between 0 and 100",
+        "pcunits = percent * 10 * 65536",
+        "percent = pcunits / (10 * 65536)"
+      ]
+    }
+  ],
+  "summary": {
+    "connection_block_count": 29,
+    "articulator_default_count": 20,
+    "example_parameter_count": 8,
+    "riff_definition_count": 11,
+    "dls_system_message_count": 4,
+    "connection_source_count": 14,
+    "connection_destination_count": 14,
+    "connection_transform_count": 2,
+    "info_chunk_id_count": 17,
+    "parameter_unit_count": 5
+  }
+}

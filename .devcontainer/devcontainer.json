@@ -3,30 +3,30 @@
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:4-22-bookworm",
 	"remoteUser": "node",
 
-	// Two Vite apps + Admin API + sharp clip pipeline
+	// Two Vite apps + Mainframe API + sharp clip pipeline
 	"hostRequirements": {
 		"cpus": 4,
 		"memory": "8gb"
 	},
 
-	// vj-server Vite (5173), preview (4173), admin Vite (5174), admin API (8787)
+	// akvj Vite (5173), preview (4173), mainframe Vite (5174), mainframe API (8787)
 	"forwardPorts": [5173, 4173, 5174, 8787],
 
 	"portsAttributes": {
 		"5173": {
-			"label": "vj-server Vite",
+			"label": "akvj Vite",
 			"onAutoForward": "openBrowser"
 		},
 		"4173": {
-			"label": "vj-server Preview",
+			"label": "akvj Preview",
 			"onAutoForward": "notify"
 		},
 		"5174": {
-			"label": "admin Vite",
+			"label": "mainframe Vite",
 			"onAutoForward": "notify"
 		},
 		"8787": {
-			"label": "admin API",
+			"label": "mainframe API",
 			"onAutoForward": "silent"
 		}
 	},

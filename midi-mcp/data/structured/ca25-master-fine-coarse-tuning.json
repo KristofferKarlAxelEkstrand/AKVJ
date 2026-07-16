@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "title": "Master Fine/Coarse Tuning",
+    "doc_id": "CA-025",
+    "version": "1.0.0",
+    "source": "ca25-master-fine-coarse-tuning-sysex-message.md"
+  },
+  "master_fine_tuning": {
+    "message": "F0 7F <device ID> 04 03 lsb msb F7",
+    "fields": [
+      {
+        "code": "F0",
+        "description": "7F Universal Real Time SysEx header"
+      },
+      {
+        "code": "<device ID>",
+        "description": "ID of target device (7F=all devices)"
+      },
+      {
+        "code": "04",
+        "description": "sub-ID#1 = “Device Control”"
+      },
+      {
+        "code": "03",
+        "description": "sub ID#2 = “Master Fine Tuning”"
+      },
+      {
+        "code": "lsb",
+        "description": "msb fine tuning value (LSB first)"
+      },
+      {
+        "code": "F7",
+        "description": "EOX"
+      }
+    ],
+    "tuning_table": [
+      {
+        "lsb": "00",
+        "msb": "00",
+        "displacement": "100/8192*(-8192)"
+      },
+      {
+        "lsb": "00",
+        "msb": "40",
+        "displacement": "100/8192*0"
+      },
+      {
+        "lsb": "7F",
+        "msb": "7F",
+        "displacement": "100/8192*(+8191)"
+      }
+    ]
+  },
+  "master_coarse_tuning": {
+    "message": "F0 7F <device ID> 04 04 00 msb F7",
+    "fields": [
+      {
+        "code": "F0",
+        "description": "7F Universal Real Time SysEx header"
+      },
+      {
+        "code": "<device ID>",
+        "description": "ID of target device (7F=all devices)"
+      },
+      {
+        "code": "04",
+        "description": "sub-ID#1 = “Device Control”"
+      },
+      {
+        "code": "04",
+        "description": "sub-ID#2 = “Master Coarse Tuning”"
+      },
+      {
+        "code": "00",
+        "description": "msb coarse tuning value(LSB first)"
+      },
+      {
+        "code": "F7",
+        "description": "EOX"
+      }
+    ],
+    "tuning_table": [
+      {
+        "lsb": "00",
+        "msb": "00",
+        "displacement": "100 cents *(-64)"
+      },
+      {
+        "lsb": "00",
+        "msb": "40",
+        "displacement": "100 cents *0"
+      },
+      {
+        "lsb": "00",
+        "msb": "7F",
+        "displacement": "100 cents *(+63)"
+      }
+    ]
+  },
+  "notes": [
+    "The total displacement in cents from A440 for each MIDI channel is summation of the displacement of this",
+    "Master Fine Tuning and the displacement of Fine Tuning using RPN.",
+    "Note that the LSB is always 0.",
+    "Displacement in cents from A440 of total coarse tuning for each MIDI channel is summation of the",
+    "displacement of this Master Coarse Tuning and the displacement of Channel Coarse Tuning.",
+    "The relationship of Master Fine Tuning / Coarse Tuning (= Device Control) ,and Channel Fine Tuning /",
+    "Coarse Tuning (= RPN, which is a Channel message) is same as the relationship of Master",
+    "Volume/Balance (= Device Control) and Volume/Balance (= Control change, which is a Channel Message).",
+    "For devices which support Key-based Instruments (where each key has a different instrument sound from",
+    "the others, such as with drum kits in General MIDI Level 1 and DLS Level 1) it is important that this",
+    "message NOT result in MIDI note-shifting; otherwise a different drum sound would be selected. It is up to the",
+    "manufacturer to determine the appropriate means for tuning each instrument according to the current mode",
+    "or configuration of the device, unless following a defined recommended practice."
+  ],
+  "summary": {
+    "fine_tuning_field_count": 6,
+    "fine_tuning_table_count": 3,
+    "coarse_tuning_field_count": 6,
+    "coarse_tuning_table_count": 3,
+    "note_count": 13
+  }
+}

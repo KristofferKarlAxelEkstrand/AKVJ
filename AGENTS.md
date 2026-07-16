@@ -83,7 +83,7 @@ npm workspaces: `vj-server/` (live VJ engine), `admin/` (set tooling), `midi-mcp
 ## Common Commands
 
 ```bash
-npm run dev              # Start vj-server (localhost:5173)
+npm run akvj             # Start vj-server (localhost:5173)
 npm run build            # Production build (<1 second)
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
@@ -96,7 +96,7 @@ npm run clips            # Full clip pipeline (validate, optimize, generate, cop
 npm run clips:watch      # Watch mode for clip changes
 npm run clips:clean      # Remove cache and generated output
 npm run clips:new        # Scaffold new clip (requires clipId arg)
-npm run dev:admin        # Admin UI + API (localhost:5174 / 8787)
+npm run admin            # Admin UI + API (localhost:5174 / 8787)
 npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 ```
 
@@ -125,17 +125,17 @@ Channels shown as displayed in DAWs (1-16). `set-mapping.json` uses DAW channels
 
 Key fields in `meta.json`:
 
-| Field                 | Type         | Description                           |
-| --------------------- | ------------ | ------------------------------------- |
-| `png`                 | string       | Sprite sheet filename                 |
-| `numberOfFrames`      | number       | Total frames                          |
-| `framesPerRow`        | number       | Frames per row in sprite sheet        |
-| `loop`                | boolean      | Whether to loop                       |
-| `retrigger`           | boolean      | Restart on re-trigger                 |
-| `frameRatesForFrames` | object       | FPS per frame index                   |
-| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame)   |
-| `bitDepth`            | number       | For masks: 1, 2, 4, or 8              |
-| `role`                | string       | Optional; `"bitmask"` for mixer masks |
+| Field                 | Type         | Description                                                                         |
+| --------------------- | ------------ | ----------------------------------------------------------------------------------- |
+| `png`                 | string       | Sprite sheet filename                                                               |
+| `numberOfFrames`      | number       | Total frames                                                                        |
+| `framesPerRow`        | number       | Frames per row in sprite sheet                                                      |
+| `playback`            | string       | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
+| `retrigger`           | boolean      | Restart on re-trigger                                                               |
+| `frameRatesForFrames` | object       | FPS per frame index                                                                 |
+| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame)                                                 |
+| `bitDepth`            | number       | For masks: 1, 2, 4, or 8                                                            |
+| `role`                | string       | Optional; `"bitmask"` for mixer masks                                               |
 
 ## Clip Structure
 
@@ -214,24 +214,23 @@ if (import.meta.hot) {
 
 ## Build Scripts
 
-| File                                                | Purpose                                                       |
-| --------------------------------------------------- | ------------------------------------------------------------- |
-| `vj-server/scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)                      |
-| `vj-server/scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy)           |
-| `vj-server/scripts/clips/new.js`                    | Scaffold new clip meta.json                                   |
-| `vj-server/scripts/clips/spritesheet.js`            | Sprite sheet utilities                                        |
-| `vj-server/scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                            |
-| `vj-server/scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks                      |
-| `vj-server/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                     |
-| `vj-server/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                            |
-| `vj-server/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                 |
-| `vj-server/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                      |
-| `vj-server/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                   |
-| `vj-server/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                            |
-| `vj-server/scripts/clips/lib/copy.js`               | Sync to public folder                                         |
-| `vj-server/scripts/clips/lib/hash.js`               | File hashing for cache invalidation                           |
-| `vj-server/scripts/clips/lib/channel.js`            | DAW↔code channel helpers (mapping tooling)                    |
-| `admin/server/index.js`                             | Local admin API (clips/mapping/upload; runs pipeline via CLI) |
+| File                                            | Purpose                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------- |
+| `admin/scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)                      |
+| `admin/scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy)           |
+| `admin/scripts/clips/new.js`                    | Scaffold new clip meta.json                                   |
+| `admin/scripts/clips/spritesheet.js`            | Sprite sheet utilities                                        |
+| `admin/scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                            |
+| `admin/scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks                      |
+| `admin/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                     |
+| `admin/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                            |
+| `admin/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                 |
+| `admin/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                      |
+| `admin/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                   |
+| `admin/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                            |
+| `admin/scripts/clips/lib/copy.js`               | Sync to public folder                                         |
+| `admin/scripts/clips/lib/hash.js`               | File hashing for cache invalidation                           |
+| `admin/server/index.js`                         | Local admin API (clips/mapping/upload; runs pipeline via CLI) |
 
 ## Test Structure
 
@@ -248,8 +247,10 @@ if (import.meta.hot) {
 | `test/midi.test.js`              | MIDI message handling            |
 | `test/validate-extended.test.js` | Clip metadata validation         |
 | `test/generate.test.js`          | clips.json generation            |
-| `test/pipeline.test.js`          | Build pipeline                   |
+| `test/Pipeline.test.js`          | Build pipeline                   |
 | `test/new.test.js`               | Clip scaffolding                 |
+| `test/optimize-bitDepth.test.js` | Bit depth optimization           |
+| `test/validateMapping.test.js`   | Set-mapping validation           |
 | `test/visual/canvas.test.js`     | Visual regression (browser mode) |
 
 ### Visual Regression Tests
@@ -317,7 +318,7 @@ npm install
 2. Start development server (HMR enabled)
 
 ```bash
-npm run dev
+npm run akvj
 ```
 
 3. Lint, format and test before committing
@@ -466,7 +467,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (vj-server + admin + 
 5. **Check env vars before debugging file watching** — If HMR seems broken, first check `echo $REMOTE_CONTAINERS` and verify polling is enabled
 6. **Node version** — The container uses Node 22 (via `javascript-node:4-22-bookworm`). CI uses Node 20. Code must be compatible with both.
 7. **Don't install Chrome in the container** — It adds significant image size. Instead, use port forwarding to test from the host browser.
-8. **Use `concurrently` output** — `npm run dev` runs both Vite and the clip watcher concurrently. Check both output streams for errors.
+8. **Use `concurrently` output** — `npm run akvj` runs both Vite and the clip watcher concurrently. Check both output streams for errors.
 
 ### Container vs Host Development
 
@@ -491,7 +492,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (vj-server + admin + 
 - **HMR not detecting file changes**
     - Verify `REMOTE_CONTAINERS` env var is set: `echo $REMOTE_CONTAINERS`
     - Check Vite config polling detection in `vite.config.js`
-    - Fallback: `CHOKIDAR_USEPOLLING=true npm run dev`
+    - Fallback: `CHOKIDAR_USEPOLLING=true npm run akvj`
     - On WSL2: keep the repo inside the Linux filesystem, not on a Windows mount
 
 - **`sharp` errors during clip pipeline**

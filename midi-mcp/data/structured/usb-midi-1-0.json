@@ -1,0 +1,306 @@
+{
+  "metadata": {
+    "title": "USB Device Class Definition for MIDI Devices",
+    "doc_id": "USB-MIDI-1.0",
+    "protocol": "midi1",
+    "version": "1.0",
+    "date": "1999-11-01"
+  },
+  "cin_classifications": [
+    {
+      "cin": "0x0",
+      "midi_x_size": "1, 2 or 3",
+      "description": "Miscellaneous function codes. Reserved for future extensions."
+    },
+    {
+      "cin": "0x1",
+      "midi_x_size": "1, 2 or 3",
+      "description": "Cable events. Reserved for future expansion."
+    },
+    {
+      "cin": "0x2",
+      "midi_x_size": "2",
+      "description": "Two-byte System Common messages like MTC, SongSelect, etc."
+    },
+    {
+      "cin": "0x3",
+      "midi_x_size": "3",
+      "description": "Three-byte System Common messages like SPP, etc."
+    },
+    {
+      "cin": "0x4",
+      "midi_x_size": "3",
+      "description": "SysEx starts or continues"
+    },
+    {
+      "cin": "0x5",
+      "midi_x_size": "1",
+      "description": "Single-byte System Common Message"
+    },
+    {
+      "cin": "0x6",
+      "midi_x_size": "2",
+      "description": "SysEx ends with following two bytes."
+    },
+    {
+      "cin": "0x7",
+      "midi_x_size": "3",
+      "description": "SysEx ends with following three bytes."
+    },
+    {
+      "cin": "0x8",
+      "midi_x_size": "3",
+      "description": "Note-off"
+    },
+    {
+      "cin": "0x9",
+      "midi_x_size": "3",
+      "description": "Note-on"
+    },
+    {
+      "cin": "0xA",
+      "midi_x_size": "3",
+      "description": "Poly-KeyPress"
+    },
+    {
+      "cin": "0xB",
+      "midi_x_size": "3",
+      "description": "Control Change"
+    },
+    {
+      "cin": "0xC",
+      "midi_x_size": "2",
+      "description": "Program Change"
+    },
+    {
+      "cin": "0xD",
+      "midi_x_size": "2",
+      "description": "Channel Pressure"
+    },
+    {
+      "cin": "0xE",
+      "midi_x_size": "3",
+      "description": "PitchBend Change"
+    },
+    {
+      "cin": "0xF",
+      "midi_x_size": "1",
+      "description": "Single Byte"
+    }
+  ],
+  "parsed_event_examples": [
+    {
+      "description": "Note-on message on virtual cable 1 (CN=0x1; CIN=0x9)",
+      "midi_event": "9n kk vv",
+      "event_packet": "19 9n kk vv"
+    },
+    {
+      "description": "Control change message on cable 10 (CN=0xA; CIN=0xB)",
+      "midi_event": "Bn pp vv",
+      "event_packet": "AB Bn pp vv"
+    },
+    {
+      "description": "Real-time message F8 on cable 3 (CN=0x3; CIN=0xF)",
+      "midi_event": "F8 xx xx",
+      "event_packet": "3F F8 xx xx"
+    },
+    {
+      "description": "SysEx message on cable p (CN=0xp). Start of SysEx: CIN=0x4. End of SysEx: CIN=0x5",
+      "midi_event": "F0 00 01 F7",
+      "event_packet": "p4 F0 00 01 + p5 F7 00 00"
+    },
+    {
+      "description": "SysEx message on cable p (CN=0xp). Start of SysEx: CIN=0x4. End of SysEx: CIN=0x6",
+      "midi_event": "F0 00 01 02 F7",
+      "event_packet": "p4 F0 00 01 + p6 02 F7 00"
+    },
+    {
+      "description": "SysEx message on cable p (CN=0xp). Start of SysEx: CIN=0x4. End of SysEx: CIN=0x7",
+      "midi_event": "F0 00 01 02 03 F7",
+      "event_packet": "p4 F0 00 01 + p7 02 03 F7"
+    },
+    {
+      "description": "Special case: two-byte SysEx on cable p (CN=0xp; CIN=0x6)",
+      "midi_event": "F0 F7",
+      "event_packet": "p6 F0 F7 00"
+    },
+    {
+      "description": "Special case: three-byte SysEx on cable p (CN=0xp; CIN=0x7)",
+      "midi_event": "F0 mm F7",
+      "event_packet": "p7 F0 mm F7"
+    }
+  ],
+  "element_capabilities": [
+    {
+      "bit": 0,
+      "name": "CUSTOM UNDEFINED The Element has unique, undefined features. A typical example"
+    },
+    {
+      "bit": 1,
+      "name": "MIDI CLOCK MIDI CLOCK messages are supported. Typical example"
+    },
+    {
+      "bit": 2,
+      "name": "MIDI TIME CODE (MTC) Synchronization features are supported. Typical example"
+    },
+    {
+      "bit": 3,
+      "name": "MIDI MACHINE CONTROL (MMC) MMC messages are supported."
+    },
+    {
+      "bit": 4,
+      "name": "GM1 General MIDI System Level 1 compatibility as defined by the"
+    },
+    {
+      "bit": 5,
+      "name": "GM2 General MIDI System Level 2 compatibility as defined by the"
+    },
+    {
+      "bit": 6,
+      "name": "GS GS Format compatibility as defined by Roland Corporation."
+    },
+    {
+      "bit": 7,
+      "name": "XG XG compatibility as defined by Yamaha Corporation."
+    },
+    {
+      "bit": 8,
+      "name": "EFX The Element provides an audio effects processor controlled by"
+    },
+    {
+      "bit": 9,
+      "name": "MIDI Patch Bay The Element provides an internal MIDI Patcher or Router."
+    },
+    {
+      "bit": 10,
+      "name": "DLS1 DownLoadable Sounds Standard Level 1 compatibility as"
+    },
+    {
+      "bit": 11,
+      "name": "DLS2 DownLoadable Sounds Standard Level 2 compatibility as"
+    }
+  ],
+  "interface_descriptor_subtypes": [
+    {
+      "name": "MS_DESCRIPTOR_UNDEFINED",
+      "value": "0x00"
+    },
+    {
+      "name": "MS_HEADER",
+      "value": "0x01"
+    },
+    {
+      "name": "MIDI_IN_JACK",
+      "value": "0x02"
+    },
+    {
+      "name": "MIDI_OUT_JACK",
+      "value": "0x03"
+    },
+    {
+      "name": "ELEMENT",
+      "value": "0x04"
+    }
+  ],
+  "endpoint_descriptor_subtypes": [
+    {
+      "name": "DESCRIPTOR_UNDEFINED",
+      "value": "0x00"
+    },
+    {
+      "name": "MS_GENERAL",
+      "value": "0x01"
+    }
+  ],
+  "jack_types": [
+    {
+      "name": "JACK_TYPE_UNDEFINED",
+      "value": "0x00"
+    },
+    {
+      "name": "EMBEDDED",
+      "value": "0x01"
+    },
+    {
+      "name": "EXTERNAL",
+      "value": "0x02"
+    }
+  ],
+  "control_selectors": [
+    {
+      "name": "EP_CONTROL_UNDEFINED",
+      "value": "0x00"
+    },
+    {
+      "name": "ASSOCIATION_CONTROL",
+      "value": "0x01"
+    }
+  ],
+  "glossary": [
+    {
+      "section": 1,
+      "term": "MIDI: Musical Instrument Digital Interface"
+    },
+    {
+      "section": 2,
+      "term": "GM: General MIDI"
+    },
+    {
+      "section": 3,
+      "term": "Roland GS"
+    },
+    {
+      "section": 4,
+      "term": "Yamaha XG"
+    }
+  ],
+  "revision_history": [
+    {
+      "revision": "0.6",
+      "info": "Jun. 1, 97 MIDI06.doc Mike Kent"
+    },
+    {
+      "revision": "0.7",
+      "info": "Sep. 1, 97 MIDI07.doc Mike Kent"
+    },
+    {
+      "revision": "0.7a",
+      "info": "Dec. 1, 97 MIDI07a.doc Mike Kent"
+    },
+    {
+      "revision": "0.7b",
+      "info": "Mar. 1, 98 MIDI07b.doc Mike Kent"
+    },
+    {
+      "revision": "0.7c",
+      "info": "May. 1, 98 MIDI07c.doc Mike Kent"
+    },
+    {
+      "revision": "0.7d",
+      "info": "Nov. 1, 98 MIDI07d.doc Mike Kent"
+    },
+    {
+      "revision": "0.8",
+      "info": "Apr. 1, 99 MIDI08.doc Mike Kent"
+    },
+    {
+      "revision": "0.9",
+      "info": "Aug. 1, 99 MIDI09.doc Mike Kent"
+    },
+    {
+      "revision": "1.0",
+      "info": "Nov. 1, 99 MIDI10.doc Mike Kent"
+    }
+  ],
+  "summary": {
+    "cin_classification_count": 16,
+    "parsed_event_example_count": 8,
+    "element_capability_count": 12,
+    "interface_descriptor_subtype_count": 5,
+    "endpoint_descriptor_subtype_count": 2,
+    "jack_type_count": 3,
+    "control_selector_count": 2,
+    "glossary_count": 4,
+    "revision_history_count": 9
+  }
+}

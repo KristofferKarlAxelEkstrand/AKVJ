@@ -20,10 +20,8 @@ Be respectful and constructive. We welcome contributors of all skill levels.
 git clone https://github.com/KristofferKarlAxelEkstrand/AKVJ.git
 cd AKVJ
 npm install
-npm run dev
+npm run akvj
 ```
-
-## Development Workflow
 
 ### 1. Create a Branch
 
@@ -80,7 +78,7 @@ If you prefer to enable these settings globally rather than per-workspace, open 
 npm run test          # Run unit tests
 npm run lint          # Check code quality
 npm run build         # Verify build works
-npm run dev           # Test in browser
+npm run akvj           # Test in browser
 ```
 
 **Manual testing checklist:**

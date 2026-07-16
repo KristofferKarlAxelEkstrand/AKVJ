@@ -13,8 +13,8 @@ node_modules/
 # Build outputs
 dist/
 dist-ssr/
-/vj-server/dist/
-/admin/dist/
+/akvj/dist/
+/mainframe/dist/
 
 # Leftover pre-monorepo paths (never reintroduce)
 /src/
@@ -46,7 +46,7 @@ tmp-*.js
 
 # Clip pipeline outputs
 .cache/
-/vj-server/src/public/clips/
+/akvj/src/public/clips/
 
 # MIDI spec raw sources (copyrighted binaries, local-only; extracted text lives in midi-mcp/data/)
 /.midi-raw-data/
@@ -57,7 +57,7 @@ Thumbs.db
 
 # Visual test diffs (generated on failure)
 test/visual/__diffs__/
-vj-server/test/visual/__diffs__/
+akvj/test/visual/__diffs__/
 **/test/visual/__diffs__/
 
 # Vitest browser-mode attachments

@@ -1,0 +1,48 @@
+{
+	"author": {
+		"email": "hej@kristofferekstrand.se",
+		"name": "Kristoffer Ekstrand",
+		"url": "https://kristofferekstrand.se"
+	},
+	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
+	"devDependencies": {
+		"@vitest/browser-playwright": "^4.1.10",
+		"jsdom": "^29.1.1",
+		"vite": "^8.1.4",
+		"vitest": "^4.1.10"
+	},
+	"keywords": [
+		"vj",
+		"video-jockey",
+		"midi",
+		"web-midi",
+		"canvas",
+		"visuals",
+		"live-performance",
+		"pixel-art",
+		"sprite-clip",
+		"real-time",
+		"music-visualization"
+	],
+	"license": "MIT",
+	"main": "src/main.js",
+	"name": "akvj",
+	"private": true,
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/KristofferKarlAxelEkstrand/AKVJ"
+	},
+	"scripts": {
+		"build": "vite build --emptyOutDir",
+		"build:full": "npm run clips && vite build --emptyOutDir",
+		"dev": "vite",
+		"lint": "eslint --config ../eslint.config.js .",
+		"preview": "vite preview",
+		"test": "vitest run",
+		"test:ci": "vitest run",
+		"test:visual": "vitest run --config vitest.visual.config.js",
+		"test:visual:update": "vitest run --config vitest.visual.config.js --update"
+	},
+	"type": "module",
+	"version": "0.0.0"
+}

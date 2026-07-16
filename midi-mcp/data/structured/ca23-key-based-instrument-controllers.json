@@ -1,0 +1,177 @@
+{
+  "metadata": {
+    "title": "Key-Based Instrument Controllers",
+    "doc_id": "CA-023",
+    "version": "1.0.0",
+    "source": "ca23-key-based-instrument-controller-sysex-message.md"
+  },
+  "message_format": {
+    "template": "F0 7F <device ID> 0A 01 0n kk [nn vv] .. F7",
+    "fields": [
+      {
+        "code": "F0",
+        "description": "7F Universal Real Time SysEx header"
+      },
+      {
+        "code": "<device ID>",
+        "description": "ID of target device (7F = all devices)"
+      },
+      {
+        "code": "0A",
+        "description": "sub-ID#1 = “Key-Based Instrument Control”"
+      },
+      {
+        "code": "01",
+        "description": "sub-ID#2 = 01 Basic Message"
+      },
+      {
+        "code": "0n",
+        "description": "MIDI Channel Number"
+      },
+      {
+        "code": "kk",
+        "description": "Key number"
+      },
+      {
+        "code": "[nn,vv]",
+        "description": "Controller Number and Value"
+      }
+    ]
+  },
+  "controllers": [
+    {
+      "cc_number": "7",
+      "hex_code": "07H",
+      "name": "Note Volume",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "10",
+      "hex_code": "0AH",
+      "name": "Pan",
+      "value_range": "00H-7FH",
+      "absolute": true,
+      "redefined": false
+    },
+    {
+      "cc_number": "33-63",
+      "hex_code": "21-3FH",
+      "name": "LSB for",
+      "value_range": "01H-1FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "71",
+      "hex_code": "47H",
+      "name": "Timbre/Harmonic Intensity",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "72",
+      "hex_code": "48H",
+      "name": "Release Time",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "73",
+      "hex_code": "49H",
+      "name": "Attack Time",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "74",
+      "hex_code": "4AH",
+      "name": "Brightness",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "75",
+      "hex_code": "4BH",
+      "name": "Decay Time",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "76",
+      "hex_code": "4CH",
+      "name": "Vibrato Rate",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "77",
+      "hex_code": "4DH",
+      "name": "Vibrato Depth",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "78",
+      "hex_code": "4EH",
+      "name": "Vibrato Delay",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": false
+    },
+    {
+      "cc_number": "91",
+      "hex_code": "5BH",
+      "name": "Reverb Send",
+      "value_range": "00H-7FH",
+      "absolute": true,
+      "redefined": false
+    },
+    {
+      "cc_number": "93",
+      "hex_code": "5DH",
+      "name": "Chorus Send",
+      "value_range": "00H-7FH",
+      "absolute": true,
+      "redefined": false
+    },
+    {
+      "cc_number": "120",
+      "hex_code": "78H",
+      "name": "Fine Tuning",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": true
+    },
+    {
+      "cc_number": "121",
+      "hex_code": "79H",
+      "name": "Coarse Tuning",
+      "value_range": "00H-40H-7FH",
+      "absolute": false,
+      "redefined": true
+    }
+  ],
+  "notes": [
+    "*Depending on the recommended practice that is being followed, the value",
+    "**The parameters (nn) 78H and 79H are not comparable to their Control",
+    "Any controller (Control Change) may be used for \"nn\" except Bank Select MSB/LSB (00H, 20H),",
+    "Multiple controller/value pairs can be sent in a single message.",
+    "Key-Based Instrument Control messages are generally expected to make relative adjustments to",
+    "Values below 40H will decrease the parameter; values above 40H will increase it. Units and the exact",
+    "recommended practice. See General MIDI Level 2 for an example."
+  ],
+  "summary": {
+    "message_field_count": 7,
+    "controller_count": 15,
+    "note_count": 7
+  }
+}

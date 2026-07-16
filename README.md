@@ -207,18 +207,14 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 ### Start the VJ engine
 
 ```bash
-npm run dev
+npm run akvj
 ```
-
-Vite + clip watcher at `http://localhost:5173/`. Open in Chrome/Chromium.
 
 ### Start Admin
 
 ```bash
-npm run dev:admin
+npm run admin
 ```
-
-Admin UI at `http://localhost:5174/` (API on `8787`).
 
 ### Expected Behavior
 
@@ -236,20 +232,22 @@ Admin UI at `http://localhost:5174/` (API on `8787`).
 ## File Structure
 
 ```
+
 AKVJ/
-├── package.json                 # npm workspaces root
-├── clips/                       # Shared clip bucket + set-mapping.json
-├── vj-server/                   # Live VJ engine
-│   ├── src/                     # Vite app (main.js, js/, public/)
-│   ├── scripts/clips/           # Validate / optimize / generate pipeline
-│   ├── test/                    # Vitest unit + visual tests
-│   └── package.json
-├── admin/                       # Set authoring UI + local API
-│   ├── src/                     # Vanilla Vite UI
-│   ├── server/                  # Node http/fs API (no Express)
-│   └── package.json
+├── package.json # npm workspaces root
+├── clips/ # Shared clip bucket + set-mapping.json
+├── vj-server/ # Live VJ engine
+│ ├── src/ # Vite app (main.js, js/, public/)
+│ ├── scripts/clips/ # Validate / optimize / generate pipeline
+│ ├── test/ # Vitest unit + visual tests
+│ └── package.json
+├── admin/ # Set authoring UI + local API
+│ ├── src/ # Vanilla Vite UI
+│ ├── server/ # Node http/fs API (no Express)
+│ └── package.json
 ├── docs/
 └── AGENTS.md
+
 ```
 
 ## Build & Scripts
@@ -257,8 +255,8 @@ AKVJ/
 ### Core Commands
 
 ```bash
-npm run dev                              # vj-server (localhost:5173)
-npm run dev:admin                        # admin UI + API (5174 / 8787)
+npm run akvj                           # vj-server (localhost:5173)
+npm run admin                          # admin UI + API (5174 / 8787)
 npm run build                            # Build vj-server
 npm run build:all                        # clips + vj-server + admin
 npm run preview                          # Preview vj-server production build
@@ -309,9 +307,9 @@ AKVJ is optimized for real-time visual performance:
 2. **Add `sprite.png`** and update `meta.json` (`numberOfFrames`, `framesPerRow`, timing)
 3. **Map MIDI**: edit `clips/set-mapping.json` or use Admin Mapping (DAW channels 1–16)
 4. **Rebuild**: `npm run clips`
-5. **Test**: `npm run dev` in Chrome and trigger via MIDI
+5. **Test**: `npm run akvj` in Chrome and trigger via MIDI
 
-Alternatively, use `npm run dev:admin` for upload + mapping + pipeline in one UI.
+Alternatively, use `npm run admin` for upload + mapping + pipeline in one UI.
 
 ### Code Contributions
 

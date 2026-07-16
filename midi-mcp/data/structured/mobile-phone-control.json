@@ -1,0 +1,440 @@
+{
+  "metadata": {
+    "title": "Mobile Phone Control Message Specification",
+    "doc_id": "RP-046",
+    "protocol": "midi1",
+    "source": "rp46public.md"
+  },
+  "message_format": {
+    "header": "F0 7F <phone ID> 0C 00",
+    "sub_id_1": "0C",
+    "sub_id_2": "00",
+    "fields": [
+      {
+        "name": "F0",
+        "description": "System Exclusive Start"
+      },
+      {
+        "name": "7F",
+        "description": "Universal System Exclusive"
+      },
+      {
+        "name": "<phone ID>",
+        "description": "Device ID"
+      },
+      {
+        "name": "0C",
+        "description": "Sub-ID#1: Mobile Phone Control"
+      },
+      {
+        "name": "00",
+        "description": "Sub-ID#2: Mobile Phone Control"
+      },
+      {
+        "name": "<deviceClassID>",
+        "description": "Device Class ID"
+      },
+      {
+        "name": "<deviceIndex>",
+        "description": "Device Index"
+      },
+      {
+        "name": "<cmdID>",
+        "description": "Command ID"
+      },
+      {
+        "name": "<dataBytes>",
+        "description": "Data bytes (command-specific)"
+      }
+    ]
+  },
+  "device_class_definitions": [
+    {
+      "class_id": "0",
+      "meaning": "Reserved for future MMA / AMEI Definition",
+      "notes": []
+    },
+    {
+      "class_id": "1",
+      "meaning": "Manufacturer-Specific DeviceClasses",
+      "notes": [
+        "Followed by 1-byte or 3-byte MIDI Manufacturer ID, then mfr-specific 1-byte",
+        "DeviceClass"
+      ]
+    },
+    {
+      "class_id": "2",
+      "meaning": "Vibrator",
+      "notes": [
+        "deviceIndex #0 is the telephone ring vibrator"
+      ]
+    },
+    {
+      "class_id": "3",
+      "meaning": "LED",
+      "notes": [
+        "deviceIndex #0 is the primary LED",
+        "If a numeric keypad with a separate, individually addressable LED for each number",
+        "key (and optionally the # and * keys) is present:",
+        "deviceIndex 100 – 108: Keys 1 through 9",
+        "deviceIndex 109: ‘*”",
+        "deviceIndex 110: ‘0”",
+        "deviceIndex 111: ‘#”"
+      ]
+    },
+    {
+      "class_id": "4",
+      "meaning": "Display",
+      "notes": [
+        "deviceIndex #0 is the primary display"
+      ]
+    },
+    {
+      "class_id": "5",
+      "meaning": "Keypad",
+      "notes": [
+        "deviceIndex #0 is the primary keypad",
+        "Note: If a handset has multiple, individually addressable lights under a keypad,",
+        "they should be made available as multiple LED deviceIndexes, not Keypad",
+        "deviceIndexes."
+      ]
+    },
+    {
+      "class_id": "6-126",
+      "meaning": "Reserved for future MMA / AMEI Definition",
+      "notes": []
+    },
+    {
+      "class_id": "127",
+      "meaning": "All DeviceClasses present ('call all')",
+      "notes": []
+    }
+  ],
+  "device_index_definitions": [
+    {
+      "index_range": "0-126",
+      "meaning": "Valid common deviceIndex",
+      "notes": [
+        "For all DeviceClasses, deviceIndex 0 is always the primary instance"
+      ]
+    },
+    {
+      "index_range": "127",
+      "meaning": "All DeviceIndexes present for the given DeviceClass ('call all')",
+      "notes": []
+    }
+  ],
+  "cmd_id_definitions": [
+    {
+      "cmd_id": "0",
+      "meaning": "Reserved for future MMA / AMEI Definition",
+      "data_bytes": null,
+      "device_behaviors": [],
+      "notes": []
+    },
+    {
+      "cmd_id": "1",
+      "meaning": "Manufacturer-Specific Command",
+      "data_bytes": null,
+      "device_behaviors": [],
+      "notes": [
+        "Followed by 1-byte or 3-byte MIDI Manufacturer ID,",
+        "then variable number of mfr-specific cmd and/or data bytes"
+      ]
+    },
+    {
+      "cmd_id": "2",
+      "meaning": "Reset",
+      "data_bytes": "No data bytes",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrators",
+          "behavior": "Turn vibrator off (& set default frequency if available)"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Turn LED off (& set default color if available)"
+        },
+        {
+          "device_class": "Displays & Keypads / Keyboards",
+          "behavior": "Reset to default"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "cmd_id": "3",
+      "meaning": "On",
+      "data_bytes": "No data bytes",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrators",
+          "behavior": "Turn vibrator on"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Turn LED on"
+        }
+      ],
+      "notes": [
+        "For Displays & Keypads / Keyboards, this affects BG/border light"
+      ]
+    },
+    {
+      "cmd_id": "4",
+      "meaning": "Off",
+      "data_bytes": "No data bytes",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrators",
+          "behavior": "Turn vibrator off"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Turn LED off"
+        }
+      ],
+      "notes": [
+        "For Displays & Keypads / Keyboards, this affects BG/border light"
+      ]
+    },
+    {
+      "cmd_id": "5",
+      "meaning": "Follow MIDI Channels",
+      "data_bytes": "Variable number of data bytes: List of, Channel, LowNote, HighNote triples",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrators",
+          "behavior": "Turn vibrator on and off"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Turn LED on and off"
+        }
+      ],
+      "notes": [
+        "(1 byte for each number), or empty list to cancel. MIDI channel numbers must",
+        "be 0-15, and note numbers must be 0-127. To change MIDI response, send a",
+        "new list.",
+        "Every MIDI Note On message in the indicated MIDI Channel with a note number in the",
+        "range between LowNote and HighNote (inclusive) causes the same action as the On",
+        "command (CmdID 3). Every MIDI Note Off message (or Note On message with",
+        "velocity of 0) in the indicated MIDI Channel with a note number in the range between",
+        "LowNote and HighNote (inclusive) causes the same action as the Off command",
+        "(CmdID 4).",
+        "For Displays & Keypads / Keyboards, this affects BG/border light"
+      ]
+    },
+    {
+      "cmd_id": "6",
+      "meaning": "Set Color RGB",
+      "data_bytes": "3 data bytes: R, G, B [7 bits each] (Black = 00,00,00 White = 7F,7F,7F)",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrators",
+          "behavior": "Ignored"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Sets LED color (if available)"
+        }
+      ],
+      "notes": [
+        "For Displays & Keypads / Keyboards, sets BG/border color (if available)"
+      ]
+    },
+    {
+      "cmd_id": "7",
+      "meaning": "Set Level",
+      "data_bytes": "1 data byte: Level [7 bits] (max = 7F, min/off = 00)",
+      "device_behaviors": [
+        {
+          "device_class": "Vibrator",
+          "behavior": "Sets level (if available)"
+        },
+        {
+          "device_class": "LEDs",
+          "behavior": "Sets LED brightness (if available)"
+        },
+        {
+          "device_class": "Displays & Keypads / Keyboards",
+          "behavior": "Sets BG/border light brightness (if available)"
+        }
+      ],
+      "notes": []
+    },
+    {
+      "cmd_id": "8-127",
+      "meaning": "Reserved for future MMA / AMEI Definition",
+      "data_bytes": null,
+      "device_behaviors": [],
+      "notes": []
+    }
+  ],
+  "example_messages": [
+    {
+      "example_number": 1,
+      "title": "Reset All Available Devices in the Mobile Phone",
+      "bytes": [
+        {
+          "bytes": "F0 7F <phone ID> 0C 00",
+          "description": "Universal Sys Ex header"
+        },
+        {
+          "bytes": "7F 7F",
+          "description": "All device indexes for all device classes"
+        },
+        {
+          "bytes": "02",
+          "description": "Reset cmd"
+        }
+      ]
+    },
+    {
+      "example_number": 2,
+      "title": "Turn Phone Ring Vibrator On",
+      "bytes": [
+        {
+          "bytes": "F0 7F <phone ID> 0C 00",
+          "description": "Universal Sys Ex header"
+        },
+        {
+          "bytes": "02 00",
+          "description": "Vibrator #0"
+        },
+        {
+          "bytes": "03",
+          "description": "On cmd"
+        }
+      ]
+    },
+    {
+      "example_number": 3,
+      "title": "Turn Phone Ring Vibrator Off",
+      "bytes": [
+        {
+          "bytes": "F0 7F <phone ID> 0C 00",
+          "description": "Universal Sys Ex header"
+        },
+        {
+          "bytes": "02 00",
+          "description": "Vibrator #0"
+        },
+        {
+          "bytes": "04",
+          "description": "Off cmd"
+        }
+      ]
+    },
+    {
+      "example_number": 4,
+      "title": "Set LED #4 Color to Purple",
+      "bytes": [
+        {
+          "bytes": "F0 7F <phone ID> 0C 00",
+          "description": "Universal Sys Ex header"
+        },
+        {
+          "bytes": "03 04",
+          "description": "LED #4"
+        },
+        {
+          "bytes": "06 7F 00 7F",
+          "description": "Set Color RGB cmd, full R, zero G, full B"
+        }
+      ]
+    },
+    {
+      "example_number": 5,
+      "title": "Make LED #4 Follow MIDI Channels 4 (All Notes) & 8 (Middle C Only)",
+      "bytes": [
+        {
+          "bytes": "F0 7F <phone ID> 0C 00",
+          "description": "Universal Sys Ex header"
+        },
+        {
+          "bytes": "03 04",
+          "description": "LED #4"
+        },
+        {
+          "bytes": "05",
+          "description": "Follow MIDI Channels cmd"
+        },
+        {
+          "bytes": "03 00 7F",
+          "description": "MIDI ch 4, lowNote=0, highNote=127"
+        },
+        {
+          "bytes": "07 40 40",
+          "description": "MIDI ch 8, lowNote = 64, highNote = 64"
+        }
+      ]
+    }
+  ],
+  "player_behavior_requirements": [
+    {
+      "section": "4.1. Vibrator and LED Control",
+      "details": []
+    },
+    {
+      "section": "4.1.1 On/Off Reference Counting During Playback",
+      "details": [
+        "On/off switching of each vibrator and each LEDs should observe a 'reference count' model, to ensure",
+        "that once turned on, the device stays in the ‘on’ state until the number of 'off' events encountered",
+        "equals the number of 'on' events previously encountered. Any On command, or MIDI Note On",
+        "message in the case of the Follow MIDI Channel command, increments the reference count. Any Off",
+        "command, or MIDI Note Off message (or Note On with velocity of 0) decrements the reference count.",
+        "The minimum value of the reference count is zero, in other words the reference count can’t be",
+        "decremented to a value lower than zero. The maximum value of the reference counter must be at",
+        "least 255. The reference counter must not be incremented past the maximum value. The reference",
+        "counter must be set to 0 at the beginning of playback."
+      ]
+    },
+    {
+      "section": "4.1.2. Save Initial State and Restore After Playback",
+      "details": [
+        "At the end of playback for any reason, the player should restore every vibrator and LED to the same",
+        "on/off status it had before playback started. If any of the LEDs allows control of color, the original",
+        "color must be restored at the end of playback for any reason."
+      ]
+    },
+    {
+      "section": "4.2. Message Execution Order in SMFs",
+      "details": [
+        "While the Standard MIDI File (SMF) specification [1] does not mandate the order in which MIDI",
+        "messages that occur at the same tick should be processed, predictable order of execution for Mobile",
+        "Phone Control messages is important. Therefore players supporting Mobile Phone Control messages",
+        "MUST process MIDI events within each SMF track in the order in which they appear in the SMF, even",
+        "when the delta time between messages is zero.",
+        "To guarantee execution order, content creators should place all Mobile Phone Control SysEx",
+        "messages in the same SMF track, and/or separate all Mobile Phone Control SysEx messages in time",
+        "by at least one SMF tick."
+      ]
+    },
+    {
+      "section": "4.3. Exclusive Ownership of Controlled Devices",
+      "details": [
+        "A phone should not play more than one piece of content using Mobile Phone Control System",
+        "Exclusive messages at the same time, since the addressing mechanism assumes that each piece of",
+        "content owns all the devices on the phone. This is an output device policy."
+      ]
+    },
+    {
+      "section": "4.4. Minimum On and Off Times",
+      "details": [
+        "For LED devices, the player may enforce a minimum on time before turning off, and/or a minimum off",
+        "time between on states. This is to compensate for potentially careless MIDI authoring practices when",
+        "the Follow MIDI Channels command is used. In particular, it is common for drum sequences to have",
+        "Note Off messages too soon after the corresponding Note On messages, or for the Note Off",
+        "messages to be missing entirely."
+      ]
+    }
+  ],
+  "summary": {
+    "device_class_count": 8,
+    "device_index_count": 2,
+    "cmd_id_count": 9,
+    "example_message_count": 5,
+    "player_behavior_requirement_count": 6
+  }
+}

@@ -24,7 +24,11 @@ This script must parse the specific markdown file from `midi-mcp/data/` and outp
 Write a comprehensive test suite in `midi-mcp/test/transformers/` using `vitest`.
 The test must execute your transformer against the raw document and assert that the output JSON perfectly matches your schema, with zero dropped rows, hallucinated data, or type errors. Run the tests to prove your transformer works.
 
-### 5. Save & Update Memory
+### 5. Assess & Document Usability
+Take a moment to think about the work as a whole and assess how much work is left. How might an AI agent actually *use* this newly structured JSON data? How can the MCP server expose this to help them? 
+Document your high-level thoughts, ideas for MCP tools, and usability notes in `.agents/prompts/midi-mcp-developer.usability.md`.
+
+### 6. Save & Update Memory
 Once the test passes, write your findings, update the completed tasks list, and define the next TODO item in `.agents/prompts/midi-mcp-developer.memory.md`. 
 **Do not skip this step. This memory file is how your future self knows what to do next.**
 

@@ -1,0 +1,889 @@
+{
+  "metadata": {
+    "title": "General MIDI System Level 1",
+    "doc_id": "RP-003",
+    "protocol": "midi1",
+    "version": "96.1.4",
+    "date": "1991-1994"
+  },
+  "sound_set_groupings": [
+    {
+      "range_start": 1,
+      "range_end": 8,
+      "group": "Piano",
+      "range_start_2": 65,
+      "range_end_2": 72,
+      "group_2": "Reed"
+    },
+    {
+      "range_start": 9,
+      "range_end": 16,
+      "group": "Chromatic Percussion",
+      "range_start_2": 73,
+      "range_end_2": 80,
+      "group_2": "Pipe"
+    },
+    {
+      "range_start": 17,
+      "range_end": 24,
+      "group": "Organ",
+      "range_start_2": 81,
+      "range_end_2": 88,
+      "group_2": "Synth Lead"
+    },
+    {
+      "range_start": 25,
+      "range_end": 32,
+      "group": "Guitar",
+      "range_start_2": 89,
+      "range_end_2": 96,
+      "group_2": "Synth Pad"
+    },
+    {
+      "range_start": 33,
+      "range_end": 40,
+      "group": "Bass",
+      "range_start_2": 97,
+      "range_end_2": 104,
+      "group_2": "Synth Effects"
+    },
+    {
+      "range_start": 41,
+      "range_end": 48,
+      "group": "Strings",
+      "range_start_2": 105,
+      "range_end_2": 112,
+      "group_2": "Ethnic"
+    },
+    {
+      "range_start": 49,
+      "range_end": 56,
+      "group": "Ensemble",
+      "range_start_2": 113,
+      "range_end_2": 120,
+      "group_2": "Percussive"
+    },
+    {
+      "range_start": 57,
+      "range_end": 64,
+      "group": "Brass",
+      "range_start_2": 121,
+      "range_end_2": 128,
+      "group_2": "Sound Effects"
+    }
+  ],
+  "instruments": [
+    {
+      "program": 1,
+      "name": "Acoustic Grand Piano"
+    },
+    {
+      "program": 2,
+      "name": "Bright Acoustic Piano"
+    },
+    {
+      "program": 3,
+      "name": "Electric Grand Piano"
+    },
+    {
+      "program": 4,
+      "name": "Honky-tonk Piano"
+    },
+    {
+      "program": 5,
+      "name": "Electric Piano 1"
+    },
+    {
+      "program": 6,
+      "name": "Electric Piano 2"
+    },
+    {
+      "program": 7,
+      "name": "Harpsichord"
+    },
+    {
+      "program": 8,
+      "name": "Clavi"
+    },
+    {
+      "program": 9,
+      "name": "Celesta"
+    },
+    {
+      "program": 10,
+      "name": "Glockenspiel"
+    },
+    {
+      "program": 11,
+      "name": "Music Box"
+    },
+    {
+      "program": 12,
+      "name": "Vibraphone"
+    },
+    {
+      "program": 13,
+      "name": "Marimba"
+    },
+    {
+      "program": 14,
+      "name": "Xylophone"
+    },
+    {
+      "program": 15,
+      "name": "Tubular Bells"
+    },
+    {
+      "program": 16,
+      "name": "Dulcimer"
+    },
+    {
+      "program": 17,
+      "name": "Drawbar Organ"
+    },
+    {
+      "program": 18,
+      "name": "Percussive Organ"
+    },
+    {
+      "program": 19,
+      "name": "Rock Organ"
+    },
+    {
+      "program": 20,
+      "name": "Church Organ"
+    },
+    {
+      "program": 21,
+      "name": "Reed Organ"
+    },
+    {
+      "program": 22,
+      "name": "Accordion"
+    },
+    {
+      "program": 23,
+      "name": "Harmonica"
+    },
+    {
+      "program": 24,
+      "name": "Tango Accordion"
+    },
+    {
+      "program": 25,
+      "name": "Acoustic Guitar (nylon"
+    },
+    {
+      "program": 26,
+      "name": "Acoustic Guitar (steel)"
+    },
+    {
+      "program": 27,
+      "name": "Electric Guitar (jazz)"
+    },
+    {
+      "program": 28,
+      "name": "Electric Guitar (clean)"
+    },
+    {
+      "program": 29,
+      "name": "Electric Guitar (muted"
+    },
+    {
+      "program": 30,
+      "name": "Overdriven Guitar"
+    },
+    {
+      "program": 31,
+      "name": "Distortion Guitar"
+    },
+    {
+      "program": 32,
+      "name": "Guitar harmonics"
+    },
+    {
+      "program": 33,
+      "name": "Acoustic Bass"
+    },
+    {
+      "program": 34,
+      "name": "Electric Bass (finger)"
+    },
+    {
+      "program": 35,
+      "name": "Electric Bass (pick)"
+    },
+    {
+      "program": 36,
+      "name": "Fretless Bass"
+    },
+    {
+      "program": 37,
+      "name": "Slap Bass 1"
+    },
+    {
+      "program": 38,
+      "name": "Slap Bass 2"
+    },
+    {
+      "program": 39,
+      "name": "Synth Bass 1"
+    },
+    {
+      "program": 40,
+      "name": "Synth Bass 2"
+    },
+    {
+      "program": 41,
+      "name": "Violin"
+    },
+    {
+      "program": 42,
+      "name": "Viola"
+    },
+    {
+      "program": 43,
+      "name": "Cello"
+    },
+    {
+      "program": 44,
+      "name": "Contrabass"
+    },
+    {
+      "program": 45,
+      "name": "Tremolo Strings"
+    },
+    {
+      "program": 46,
+      "name": "Pizzicato Strings"
+    },
+    {
+      "program": 47,
+      "name": "Orchestral Harp"
+    },
+    {
+      "program": 48,
+      "name": "Timpani"
+    },
+    {
+      "program": 49,
+      "name": "String Ensemble 1"
+    },
+    {
+      "program": 50,
+      "name": "String Ensemble 2"
+    },
+    {
+      "program": 51,
+      "name": "SynthStrings 1"
+    },
+    {
+      "program": 52,
+      "name": "SynthStrings 2"
+    },
+    {
+      "program": 53,
+      "name": "Choir Aahs"
+    },
+    {
+      "program": 54,
+      "name": "Voice Oohs"
+    },
+    {
+      "program": 55,
+      "name": "Synth Voice"
+    },
+    {
+      "program": 56,
+      "name": "Orchestra Hit"
+    },
+    {
+      "program": 57,
+      "name": "Trumpet"
+    },
+    {
+      "program": 58,
+      "name": "Trombone"
+    },
+    {
+      "program": 59,
+      "name": "Tuba"
+    },
+    {
+      "program": 60,
+      "name": "Muted Trumpet"
+    },
+    {
+      "program": 61,
+      "name": "French Horn"
+    },
+    {
+      "program": 62,
+      "name": "Brass Section"
+    },
+    {
+      "program": 63,
+      "name": "SynthBrass 1"
+    },
+    {
+      "program": 64,
+      "name": "SynthBrass 2"
+    },
+    {
+      "program": 65,
+      "name": "Soprano Sax"
+    },
+    {
+      "program": 66,
+      "name": "Alto Sax"
+    },
+    {
+      "program": 67,
+      "name": "Tenor Sax"
+    },
+    {
+      "program": 68,
+      "name": "Baritone Sax"
+    },
+    {
+      "program": 69,
+      "name": "Oboe"
+    },
+    {
+      "program": 70,
+      "name": "English Horn"
+    },
+    {
+      "program": 71,
+      "name": "Bassoon"
+    },
+    {
+      "program": 72,
+      "name": "Clarinet"
+    },
+    {
+      "program": 73,
+      "name": "Piccolo"
+    },
+    {
+      "program": 74,
+      "name": "Flute"
+    },
+    {
+      "program": 75,
+      "name": "Recorder"
+    },
+    {
+      "program": 76,
+      "name": "Pan Flute"
+    },
+    {
+      "program": 77,
+      "name": "Blown Bottle"
+    },
+    {
+      "program": 78,
+      "name": "Shakuhachi"
+    },
+    {
+      "program": 79,
+      "name": "Whistle"
+    },
+    {
+      "program": 80,
+      "name": "Ocarina"
+    },
+    {
+      "program": 81,
+      "name": "Lead 1 (square)"
+    },
+    {
+      "program": 82,
+      "name": "Lead 2 (sawtooth)"
+    },
+    {
+      "program": 83,
+      "name": "Lead 3 (calliope)"
+    },
+    {
+      "program": 84,
+      "name": "Lead 4 (chiff)"
+    },
+    {
+      "program": 85,
+      "name": "Lead 5 (charang)"
+    },
+    {
+      "program": 86,
+      "name": "Lead 6 (voice)"
+    },
+    {
+      "program": 87,
+      "name": "Lead 7 (fifths)"
+    },
+    {
+      "program": 88,
+      "name": "Lead 8 (bass + lead)"
+    },
+    {
+      "program": 89,
+      "name": "Pad 1 (new age)"
+    },
+    {
+      "program": 90,
+      "name": "Pad 2 (warm)"
+    },
+    {
+      "program": 91,
+      "name": "Pad 3 (polysynth)"
+    },
+    {
+      "program": 92,
+      "name": "Pad 4 (choir)"
+    },
+    {
+      "program": 93,
+      "name": "Pad 5 (bowed)"
+    },
+    {
+      "program": 94,
+      "name": "Pad 6 (metallic)"
+    },
+    {
+      "program": 95,
+      "name": "Pad 7 (halo)"
+    },
+    {
+      "program": 96,
+      "name": "Pad 8 (sweep)"
+    },
+    {
+      "program": 97,
+      "name": "FX 1 (rain)"
+    },
+    {
+      "program": 98,
+      "name": "FX 2 (soundtrack)"
+    },
+    {
+      "program": 99,
+      "name": "FX 3 (crystal)"
+    },
+    {
+      "program": 100,
+      "name": "FX 4 (atmosphere)"
+    },
+    {
+      "program": 101,
+      "name": "FX 5 (brightness)"
+    },
+    {
+      "program": 102,
+      "name": "FX 6 (goblins)"
+    },
+    {
+      "program": 103,
+      "name": "FX 7 (echoes)"
+    },
+    {
+      "program": 104,
+      "name": "FX 8 (sci-fi)"
+    },
+    {
+      "program": 105,
+      "name": "Sitar"
+    },
+    {
+      "program": 106,
+      "name": "Banjo"
+    },
+    {
+      "program": 107,
+      "name": "Shamisen"
+    },
+    {
+      "program": 108,
+      "name": "Koto"
+    },
+    {
+      "program": 109,
+      "name": "Kalimba"
+    },
+    {
+      "program": 110,
+      "name": "Bag pipe"
+    },
+    {
+      "program": 111,
+      "name": "Fiddle"
+    },
+    {
+      "program": 112,
+      "name": "Shanai"
+    },
+    {
+      "program": 113,
+      "name": "Tinkle Bell"
+    },
+    {
+      "program": 114,
+      "name": "Agogo"
+    },
+    {
+      "program": 115,
+      "name": "Steel Drums"
+    },
+    {
+      "program": 116,
+      "name": "Woodblock"
+    },
+    {
+      "program": 117,
+      "name": "Taiko Drum"
+    },
+    {
+      "program": 118,
+      "name": "Melodic Tom"
+    },
+    {
+      "program": 119,
+      "name": "Synth Drum"
+    },
+    {
+      "program": 120,
+      "name": "Reverse Cymbal"
+    },
+    {
+      "program": 121,
+      "name": "Guitar Fret Noise"
+    },
+    {
+      "program": 122,
+      "name": "Breath Noise"
+    },
+    {
+      "program": 123,
+      "name": "Seashore"
+    },
+    {
+      "program": 124,
+      "name": "Bird Tweet"
+    },
+    {
+      "program": 125,
+      "name": "Telephone Ring"
+    },
+    {
+      "program": 126,
+      "name": "Helicopter"
+    },
+    {
+      "program": 127,
+      "name": "Applause"
+    },
+    {
+      "program": 128,
+      "name": "Gunshot"
+    }
+  ],
+  "percussion_map": [
+    {
+      "midi_key": 35,
+      "drum_sound": "Acoustic Bass Drum"
+    },
+    {
+      "midi_key": 51,
+      "drum_sound": "Ride Cymbal 1"
+    },
+    {
+      "midi_key": 67,
+      "drum_sound": "High Agogo"
+    },
+    {
+      "midi_key": 36,
+      "drum_sound": "Bass Drum 1"
+    },
+    {
+      "midi_key": 52,
+      "drum_sound": "Chinese Cymbal"
+    },
+    {
+      "midi_key": 68,
+      "drum_sound": "Low Agogo"
+    },
+    {
+      "midi_key": 37,
+      "drum_sound": "Side Stick"
+    },
+    {
+      "midi_key": 53,
+      "drum_sound": "Ride Bell"
+    },
+    {
+      "midi_key": 69,
+      "drum_sound": "Cabasa"
+    },
+    {
+      "midi_key": 38,
+      "drum_sound": "Acoustic Snare"
+    },
+    {
+      "midi_key": 54,
+      "drum_sound": "Tambourine"
+    },
+    {
+      "midi_key": 70,
+      "drum_sound": "Maracas"
+    },
+    {
+      "midi_key": 39,
+      "drum_sound": "Hand Clap"
+    },
+    {
+      "midi_key": 55,
+      "drum_sound": "Splash Cymbal"
+    },
+    {
+      "midi_key": 71,
+      "drum_sound": "Short Whistle"
+    },
+    {
+      "midi_key": 40,
+      "drum_sound": "Electric Snare"
+    },
+    {
+      "midi_key": 56,
+      "drum_sound": "Cowbell"
+    },
+    {
+      "midi_key": 72,
+      "drum_sound": "Long Whistle"
+    },
+    {
+      "midi_key": 41,
+      "drum_sound": "Low Floor Tom"
+    },
+    {
+      "midi_key": 57,
+      "drum_sound": "Crash Cymbal 2"
+    },
+    {
+      "midi_key": 73,
+      "drum_sound": "Short Guiro"
+    },
+    {
+      "midi_key": 42,
+      "drum_sound": "Closed Hi Hat"
+    },
+    {
+      "midi_key": 58,
+      "drum_sound": "Vibraslap"
+    },
+    {
+      "midi_key": 74,
+      "drum_sound": "Long Guiro"
+    },
+    {
+      "midi_key": 43,
+      "drum_sound": "High Floor Tom"
+    },
+    {
+      "midi_key": 59,
+      "drum_sound": "Ride Cymbal 2"
+    },
+    {
+      "midi_key": 75,
+      "drum_sound": "Claves"
+    },
+    {
+      "midi_key": 44,
+      "drum_sound": "Pedal Hi-Hat"
+    },
+    {
+      "midi_key": 60,
+      "drum_sound": "Hi Bongo"
+    },
+    {
+      "midi_key": 76,
+      "drum_sound": "Hi Wood Block"
+    },
+    {
+      "midi_key": 45,
+      "drum_sound": "Low Tom"
+    },
+    {
+      "midi_key": 61,
+      "drum_sound": "Low Bongo"
+    },
+    {
+      "midi_key": 77,
+      "drum_sound": "Low Wood Block"
+    },
+    {
+      "midi_key": 46,
+      "drum_sound": "Open Hi-Hat"
+    },
+    {
+      "midi_key": 62,
+      "drum_sound": "Mute Hi Conga"
+    },
+    {
+      "midi_key": 78,
+      "drum_sound": "Mute Cuica"
+    },
+    {
+      "midi_key": 47,
+      "drum_sound": "Low-Mid Tom"
+    },
+    {
+      "midi_key": 63,
+      "drum_sound": "Open Hi Conga"
+    },
+    {
+      "midi_key": 79,
+      "drum_sound": "Open Cuica"
+    },
+    {
+      "midi_key": 48,
+      "drum_sound": "Hi Mid Tom"
+    },
+    {
+      "midi_key": 64,
+      "drum_sound": "Low Conga"
+    },
+    {
+      "midi_key": 80,
+      "drum_sound": "Mute Triangle"
+    },
+    {
+      "midi_key": 49,
+      "drum_sound": "Crash Cymbal 1"
+    },
+    {
+      "midi_key": 65,
+      "drum_sound": "High Timbale"
+    },
+    {
+      "midi_key": 81,
+      "drum_sound": "Open Triangle"
+    },
+    {
+      "midi_key": 50,
+      "drum_sound": "High Tom"
+    },
+    {
+      "midi_key": 66,
+      "drum_sound": "Low Timbale"
+    }
+  ],
+  "controllers": [
+    {
+      "controller": 1,
+      "description": "Modulation"
+    },
+    {
+      "controller": 7,
+      "description": "Volume"
+    },
+    {
+      "controller": 10,
+      "description": "Pan"
+    },
+    {
+      "controller": 11,
+      "description": "Expression"
+    },
+    {
+      "controller": 64,
+      "description": "Sustain"
+    },
+    {
+      "controller": 121,
+      "description": "Reset All Controllers"
+    },
+    {
+      "controller": 123,
+      "description": "All Notes Off"
+    }
+  ],
+  "rpns": [
+    {
+      "rpn": 0,
+      "description": "Pitch Bend Sensitivity"
+    },
+    {
+      "rpn": 1,
+      "description": "Fine Tuning"
+    },
+    {
+      "rpn": 2,
+      "description": "Coarse Tuning"
+    }
+  ],
+  "sysex_messages": [
+    {
+      "name": "Turn General MIDI System On",
+      "bytes": "F0 7E <device ID> 09 01 F7",
+      "sub_id_1": 9,
+      "sub_id_2": 1,
+      "fields": [
+        {
+          "value": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "value": "<device ID>",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "value": "09",
+          "description": "sub-ID #1 = General MIDI message"
+        },
+        {
+          "value": "01",
+          "description": "sub-ID #2 = General MIDI On"
+        },
+        {
+          "value": "F7",
+          "description": "EOX"
+        }
+      ]
+    },
+    {
+      "name": "Turn General MIDI System Off",
+      "bytes": "F0 7E <device ID> 09 02 F7",
+      "sub_id_1": 9,
+      "sub_id_2": 2,
+      "fields": [
+        {
+          "value": "F0 7E",
+          "description": "Universal Non-Real Time SysEx header"
+        },
+        {
+          "value": "<device ID>",
+          "description": "ID of target device (suggest using 7F: Broadcast)"
+        },
+        {
+          "value": "09",
+          "description": "sub-ID #1 = General MIDI message"
+        },
+        {
+          "value": "02",
+          "description": "sub-ID #2 = General MIDI Off"
+        },
+        {
+          "value": "F7",
+          "description": "EOX"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "sound_set_grouping_count": 8,
+    "instrument_count": 128,
+    "percussion_count": 47,
+    "controller_count": 7,
+    "rpn_count": 3,
+    "sysex_message_count": 2
+  }
+}

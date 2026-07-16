@@ -9,7 +9,7 @@
 
 # Ignore generated clip pipeline output
 /.cache
-/vj-server/src/public/clips
+/akvj/src/public/clips
 
 # Ignore lock files (auto-generated, not worth formatting)
 /package-lock.json
