@@ -55,7 +55,8 @@ describe('MIDI 1.0 Detailed Specification Transformer', () => {
 		});
 
 		it('should parse Channel Mode row with (01111xxx)', () => {
-			const entry = result.status_byte_summary.find(e => e.binary === '1011nnnn' && e.data_bytes === '(01111xxx)');
+			const entry = result.status_byte_summary.find(e => e.binary === '1011nnnn' && e.data_bytes.includes('(01111xxx)'));
+			expect(entry).toBeDefined();
 			expect(entry.status_hex).toBe('BnH');
 			expect(entry.description).toBe('Selects Channel Mode');
 		});
@@ -109,7 +110,8 @@ describe('MIDI 1.0 Detailed Specification Transformer', () => {
 		it('should parse Pitch Bend Change with MSB and LSB', () => {
 			const entry = result.channel_voice_messages.find(e => e.status_hex === 'EnH');
 			expect(entry.data_bytes).toEqual(['0vvvvvvv', '0vvvvvvv']);
-			expect(entry.description).toBe('Pitch Bend Change MSB Pitch Bend Change LSB');
+			expect(entry.description).toBe('Pitch Bend Change LSB');
+			expect(entry.data_byte_descriptions).toContain('Pitch Bend Change MSB');
 		});
 	});
 

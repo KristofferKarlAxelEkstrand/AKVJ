@@ -27,10 +27,10 @@ Channel numbers in `set-mapping.json` use DAW display numbering (1–16). Runtim
 
 ## Creating a New Clip
 
-### Option 1: Admin UI
+### Option 1: Mainframe UI
 
 ```bash
-npm run admin
+npm run mainframe
 ```
 
 Use **Upload** to ingest frames, **Mapping** to assign MIDI slots, then **Run pipeline**.
@@ -91,4 +91,4 @@ From repo root:
 npm run clips
 ```
 
-Pipeline: validate flat bucket → optimize → generate flat `clips.json` → copy `set-mapping.json` + assets to `vj-server/src/public/clips/` (generated; do not hand-edit).
+Pipeline: validate flat bucket → optimize → generate flat `clips.json` → copy `set-mapping.json` + assets to `akvj/src/public/clips/` (generated; do not hand-edit).

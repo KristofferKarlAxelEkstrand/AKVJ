@@ -1,4 +1,4 @@
-# AKVJ Admin
+# AKVJ Mainframe
 
 Vanilla JS + CSS Vite app for managing the shared `clips/` bucket and `set-mapping.json`.
 
@@ -7,8 +7,8 @@ Vanilla JS + CSS Vite app for managing the shared `clips/` bucket and `set-mappi
 From repo root:
 
 ```bash
-npm run admin    # UI on :5174, API on :8787
-npm run build -w admin
+npm run mainframe    # UI on :5174, API on :8787
+npm run build -w mainframe
 ```
 
 ## API (127.0.0.1:8787)
@@ -19,8 +19,8 @@ npm run build -w admin
 | GET     | `/api/clips/:id/sprite` | Preview sprite                      |
 | POST    | `/api/clips`            | Create clip from base64 PNG frames  |
 | GET/PUT | `/api/mapping`          | Read/write `clips/set-mapping.json` |
-| POST    | `/api/pipeline`         | Run `npm run clips -w vj-server`    |
+| POST    | `/api/pipeline`         | Run `npm run clips`                 |
 
 No Express — plain Node `http`/`fs` + `sharp` for spritesheets.
 
-The clip validate/optimize/generate pipeline lives in `admin/scripts/clips/` (CLI: `npm run clips`). Admin triggers it via `POST /api/pipeline` (`node admin/scripts/clips/index.js`).
+The clip validate/optimize/generate pipeline lives in `mainframe/scripts/clips/` (CLI: `npm run clips`). Mainframe triggers it via `POST /api/pipeline` (`node mainframe/scripts/clips/index.js`).

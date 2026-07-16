@@ -24,6 +24,31 @@ Specifically, document here:
 - **Agent usability**: Combined with DLS 1.1 data, an agent can now look up any DLS connection constant across both spec levels, including the new filter destinations and channel output destinations.
 - **MCP tool idea**: `compare_dls_levels()` — returns the diff between DLS 1 and DLS 2 constants, showing what was added (vibrato, filter, channel output, new EG times, new transforms).
 
+### MIDI 1.0 Detailed Specification Transformer (completed)
+- Parsed 13 structured sections from the 3252-line spec: status byte summary (11), channel voice messages (7), controller numbers (46), registered parameter numbers (5), channel mode messages (8), system common messages (7), system real-time messages (8), system exclusive messages (2), universal SysEx non-real-time (41), universal SysEx real-time (36), manufacturer ID numbers (227), additional spec documents (5), and SysEx message formats (46).
+- This is the **foundational MIDI 1.0 document** — it defines the core message structure that all other MIDI specs build upon. The structured JSON captures the complete message hierarchy from status bytes down to individual data byte descriptions.
+- **Key parsing challenges**:
+  - The document mixes body text (with SysEx format descriptions) and structured tables (Tables I-VIII). Used an `inTablesSection` flag to separate the two parsing modes.
+  - F0H status byte was missed because the regex `^[0-9A-F]nH?$` didn't match `F0H` (has `0` not `n`). Fixed to `^[0-9A-F](n|0)H?$`.
+  - Channel Mode row (BnH) has 5 tab-separated fields instead of the standard 4, requiring a separate parsing branch before the standard row handler.
+  - Table VIIa has hierarchical entries: 3-part parent rows (e.g., "06 nn General Information") and 2-part sub-entries (e.g., "01 Identity Request"). Fixed parser to distinguish these and set `sub_id_2: null` for sub-entries.
+  - Table VII notes section (after "NOTES:") had continuation lines being captured as data. Added `table7NotesSeen` flag to stop capturing after notes begin.
+  - OCR errors in manufacturer IDs (e.g., "OOH" instead of "00H") normalized during parsing.
+  - SysEx message formats in body text required associating named headers (e.g., "ACK") with subsequent F0-prefixed format lines using a `pendingSysExFormat` state variable.
+- **Agent usability**: An AI agent can use this JSON to:
+  - Look up any status byte and its meaning (e.g., "What does 0xBn mean?" → Control Change / Channel Mode)
+  - Get the complete controller number table with decimal/hex/function mappings
+  - Resolve manufacturer IDs to company names (227 entries across American/European/Japanese regions)
+  - Look up Universal SysEx message structures (non-real-time and real-time sub-IDs)
+  - Get SysEx message format strings with field descriptions for code generation
+  - Validate MIDI message structure (data byte counts, binary representations)
+- **MCP tool ideas**:
+  - `lookup_status_byte(hex)` — returns the message type, binary representation, data byte count, and description for any MIDI status byte
+  - `lookup_controller(number)` — returns the hex, function, and category (control vs mode) for a given controller number
+  - `lookup_manufacturer_id(id_hex)` — returns the manufacturer name and region for a given SysEx ID
+  - `lookup_sysex_format(name)` — returns the complete format string and field descriptions for a named SysEx message (e.g., "Identity Request", "Master Volume")
+  - `get_midi_message_hierarchy()` — returns the full hierarchy of MIDI 1.0 message types for educational/reference purposes
+
 ### Work Remaining
-- ~38 raw markdown documents remain untransformed. Major ones: MIDI 1.0 Detailed Spec (3252 lines, 10 tables), RTP-MIDI (8644 lines, 6 tables), MIDI 2.0 UMP/Protocol specs, plus many RP/CA documents.
-- The project has 44 structured JSON outputs so far, covering the most commonly referenced MIDI specs.
+- ~37 raw markdown documents remain untransformed. Major ones: RTP-MIDI (8644 lines, 6 tables), MIDI 2.0 UMP/Protocol specs, plus many RP/CA documents.
+- The project has 45 structured JSON outputs so far, covering the most commonly referenced MIDI specs.
