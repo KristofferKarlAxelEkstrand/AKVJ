@@ -41,13 +41,13 @@ git checkout -b fix/your-bug-fix
 
 ### Editor & Formatting
 
-We recommend using VS Code with the recommended extensions to automatically format and lint code on save. The project includes `.vscode/settings.json` and `.vscode/extensions.json` which configure:
+We recommend using VS Code with the recommended extensions to automatically format and lint code on save. The project includes `.vscode/settings.json` which configures:
 
 - `editor.formatOnSave` with Prettier as default formatter
-- `editor.codeActionsOnSave` enabled to allow ESLint auto-fix on save
+- `editor.codeActionsOnSave` enabled to allow ESLint and Stylelint auto-fix on save
 - A `pre-commit` Husky hook that runs `lint-staged` to auto-format and lint staged files
 
-Recommended extensions (already suggested in `.vscode/extensions.json`):
+Recommended extensions (install via the VS Code Extensions pane or `code --install-extension`):
 
 - `esbenp.prettier-vscode` (Prettier)
 - `dbaeumer.vscode-eslint` (ESLint)
@@ -131,7 +131,7 @@ Push your branch and open a PR against `main`.
 | File                                     | Purpose                                         |
 | ---------------------------------------- | ----------------------------------------------- |
 | `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)              |
-| `src/js/midi-input/midi.js`              | Web MIDI API handling                           |
+| `src/js/midi-input/Midi.js`              | Web MIDI API handling                           |
 | `src/js/visuals/Renderer.js`             | 60fps canvas loop with compositing              |
 | `src/js/visuals/LayerManager.js`         | Coordinates all layer groups                    |
 | `src/js/visuals/LayerGroup.js`           | Clip slots per layer group                      |
@@ -145,19 +145,27 @@ Push your branch and open a PR against `main`.
 
 ## Adding Clips
 
-Clips go in `clips/{channel}/{note}/{velocity}/` (source folder, not `src/public/`):
-
-> **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code.
+Clips live in flat `clips/{clipId}/` folders (source folder, not `src/public/`):
 
 ```
-clips/1/60/0/
+clips/neon-skull/
   ├── meta.json       # Clip metadata
   └── sprite.png      # Sprite sheet with all frames
 ```
 
-This example is for DAW Channel 1, Note 60, Velocity variant 0. Source folders use 1-16 (matching DAWs); the build pipeline converts to 0-15 for code.
+MIDI placement is configured in `clips/set-mapping.json` using DAW channel numbers (1-16):
 
-After adding clips:
+```json
+[{ "channel": 1, "note": 0, "velocity": 0, "clipId": "neon-skull" }]
+```
+
+To scaffold a new clip:
+
+```bash
+npm run clips:new -- neon-skull
+```
+
+After adding or modifying clips:
 
 ```bash
 npm run clips

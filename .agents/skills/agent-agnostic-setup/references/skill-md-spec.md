@@ -128,7 +128,9 @@ Avoid angle brackets (`<` or `>`) anywhere in the frontmatter — they can injec
 
 ## Body Content
 
-The markdown body contains the skill instructions. No format restrictions — write whatever helps agents perform the task effectively.
+The markdown body contains the skill instructions. Write whatever helps agents perform the task effectively, but follow these strict formatting rules:
+- **No Emojis**: Never use emojis in the markdown body.
+- **No Fluff**: Keep the documentation as short and sharp as possible.
 
 **Recommended sections**:
 - **When to use this skill** — clear criteria for when the skill applies

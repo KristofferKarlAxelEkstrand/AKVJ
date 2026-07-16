@@ -11,7 +11,7 @@ const rootDir = path.resolve(__dirname, '../../');
 
 // Only convert text-based files to avoid corrupting binaries (like .png sprites)
 const allowedExtensions = ['.js', '.json', '.md', '.css', '.html'];
-const ignoreDirs = ['node_modules', '.git', 'dist', 'src/public/clips'];
+const ignoreDirs = ['node_modules', '.git', 'dist', 'clips'];
 
 function convertToUtf8(dir) {
 	const files = fs.readdirSync(dir);
@@ -28,17 +28,17 @@ function convertToUtf8(dir) {
 			const ext = path.extname(file);
 			if (allowedExtensions.includes(ext)) {
 				try {
-					// Read the file as a raw buffer
-					const buffer = fs.readFileSync(fullPath);
-					
-					// Decode it as utf-8 and write it back out.
-					// If it has a BOM, this effectively strips it. If it was Windows-1252,
-					// this attempts to decode and save it cleanly.
-					const content = buffer.toString('utf8');
-					fs.writeFileSync(fullPath, content, 'utf8');
-					
+					// Read the file as utf-8
+					const content = fs.readFileSync(fullPath, 'utf8');
+
+					// Check for UTF-8 Byte Order Mark (BOM)
+					if (content.charCodeAt(0) === 0xFEFF) {
+						// Strip the BOM and write back
+						fs.writeFileSync(fullPath, content.slice(1), 'utf8');
+						console.log(`Stripped BOM from: ${fullPath}`);
+					}
 				} catch (err) {
-					console.error(`Failed to convert ${fullPath}:`, err.message);
+					console.error(`Failed to process ${fullPath}:`, err.message);
 				}
 			}
 		}

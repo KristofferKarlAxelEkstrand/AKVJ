@@ -143,6 +143,7 @@ The **nearest file wins** — each subproject ships tailored instructions.
 - Long architectural descriptions (use `references/` files)
 - Philosophical guidance like "write clean code" (be specific instead)
 - Information already in `README.md` (reference it instead of duplicating)
+- **Emojis or Fluff**: Never use emojis. Keep markdown files as short and sharp as possible with absolutely zero fluff.
 
 ## Tool Compatibility
 

@@ -1,13 +1,15 @@
 # Ignore artifacts:
 /dist
+**/dist
 /coverage
 
 # Ignore dependencies
 /node_modules
+**/node_modules
 
 # Ignore generated clip pipeline output
 /.cache
-/src/public/clips
+/vj-server/src/public/clips
 
 # Ignore lock files (auto-generated, not worth formatting)
 /package-lock.json
@@ -15,3 +17,7 @@
 # Ignore agent tooling and test attachments
 /.agents
 /.vitest-attachments
+
+# Ignore generated MIDI spec corpus (machine-extracted, never reformat)
+/midi-mcp/data
+/midi-mcp/.cache

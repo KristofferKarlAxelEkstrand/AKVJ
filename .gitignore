@@ -13,6 +13,13 @@ node_modules/
 # Build outputs
 dist/
 dist-ssr/
+/vj-server/dist/
+/admin/dist/
+
+# Leftover pre-monorepo paths (never reintroduce)
+/src/
+/scripts/
+/test/
 
 # Local environment files
 *.local
@@ -39,13 +46,19 @@ tmp-*.js
 
 # Clip pipeline outputs
 .cache/
-/src/public/clips/
+/vj-server/src/public/clips/
+
+# MIDI spec raw sources (copyrighted binaries, local-only; extracted text lives in midi-mcp/data/)
+/.midi-raw-data/
+/midi-mcp/.cache/
 
 # System files
 Thumbs.db
 
 # Visual test diffs (generated on failure)
 test/visual/__diffs__/
+vj-server/test/visual/__diffs__/
+**/test/visual/__diffs__/
 
 # Vitest browser-mode attachments
 .vitest-attachments/
@@ -66,5 +79,4 @@ test/visual/__diffs__/
 .claude/first-run
 .claude/assistant-daemon-state.json
 .claude/settings.local.json
-
-
+.midi-raw-data/

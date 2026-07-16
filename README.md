@@ -85,36 +85,32 @@ AKVJ uses a modular, component-based architecture built with vanilla JavaScript:
 
 ## Clip System
 
-AKVJ uses a sophisticated clip system based on PNG sprite sheets and JSON metadata, organized by MIDI channel, note, and velocity variants.
+AKVJ uses PNG sprite sheets + JSON metadata. Clips live in a **flat bucket** by `clipId`; MIDI placement is defined in `clips/set-mapping.json` (DAW channels 1–16).
 
 ### Directory Structure
 
-> **Note:** Source folder names use 1-16 (matching DAW channel display). The build pipeline automatically converts to 0-15 for code.
-
 ```
-clips/                      # Source clip assets (editable, version controlled)
-├── {channel}/              # Channel folder (1-16, matching DAW display)
-│   ├── {note}/             # MIDI note (0-127)
-│   │   ├── {velocity}/     # Velocity variant (0-127)
-│   │   │   ├── sprite.png  # PNG sprite sheet (source)
-│   │   │   └── meta.json   # Clip metadata
+clips/                           # Shared source bucket (version controlled)
+├── {clipId}/                    # e.g. neon-skull or c1-n0-v0
+│   ├── sprite.png
+│   └── meta.json                # optional role: "bitmask"
+├── set-mapping.json             # MIDI → clipId (channel/note/velocity)
+└── LICENSE-ASSETS.md
 
-.cache/clips/               # Optimized assets (generated, git-ignored)
-├── {channel}/{note}/{velocity}/
-│   ├── sprite.png          # Optimized PNG
-│   └── sprite.png.hash     # Source file hash for change detection
-└── clips.json              # Generated clip index
+.cache/clips/                    # Optimized assets (generated, git-ignored)
+└── {clipId}/…
 
-src/public/clips/           # Final build output (generated, git-ignored)
-└── [Same structure as .cache/clips/]
+vj-server/src/public/clips/      # Runtime assets for the VJ app (generated)
+├── {clipId}/…
+├── clips.json                   # Flat catalog keyed by clipId
+└── set-mapping.json
 ```
 
-The clip pipeline automatically:
+The clip pipeline (`npm run clips`):
 
-- Validates source clips in `clips/`
-- Optimizes PNGs and caches them in `.cache/clips/`
-- Generates `clips.json` metadata index
-- Copies optimized assets to `src/public/clips/` for the application
+- Validates the flat bucket + `set-mapping.json`
+- Optimizes PNGs into `.cache/clips/`
+- Generates `clips.json` and copies mapping + assets into `vj-server/src/public/clips/`
 
 ### Clip Metadata (JSON)
 
@@ -172,41 +168,57 @@ Velocity selection rules
 
 - The highest defined velocity variant that does not exceed the MIDI input velocity will be chosen (e.g., if variants are defined at 40 and 80, an input velocity of 60 will select 40).
 - If the input velocity is lower than the lowest defined velocity variant, the note will be ignored (no variant is activated).
-- To change this behavior (for example, to always fallback to the lowest variant), modify `findVelocityThreshold` in `src/js/utils/velocitySelection.js`.
+- To change this behavior (for example, to always fallback to the lowest variant), modify `findVelocityThreshold` in `vj-server/src/js/utils/velocitySelection.js`.
 
 ### Building Clip Index
 
 ```bash
 npm run clips
+# or validate only:
+npm run clips:validate
 ```
-
-This command scans the clip directory structure and builds `src/public/clips/clips.json`, which contains the master index of all available clips.
 
 ## Installation
 
 ### Prerequisites
 
-- **Node.js** (any recent version - tested with Node 18+)
+- **Node.js 20+** (workspaces; CI uses Node 20, Nestable with Node 22)
 - **Chrome or Chromium browser** (required for Web MIDI API)
 - **MIDI device** (optional, for full functionality testing)
 
 ### Setup
 
 ```bash
-npm install
+npm install   # installs root + vj-server + admin workspaces
 ```
 
-Installation takes approximately 13 seconds and installs all development dependencies including Vite, Prettier, and Stylelint.
+Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
+
+## Maintenance packages
+
+| Package      | Port               | Purpose                                        |
+| ------------ | ------------------ | ---------------------------------------------- |
+| `vj-server/` | 5173               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
+| `admin/`     | 5174 UI · 8787 API | Clip bucket + set-mapping authoring            |
+| `clips/`     | —                  | Shared source clip bucket + `set-mapping.json` |
 
 ## Development
 
-### Start Development Server
+### Start the VJ engine
 
 ```bash
 npm run dev
 ```
 
-This starts the Vite development server at `http://localhost:5173/`. Open this URL in Chrome or Chromium to access the application.
+Vite + clip watcher at `http://localhost:5173/`. Open in Chrome/Chromium.
+
+### Start Admin
+
+```bash
+npm run dev:admin
+```
+
+Admin UI at `http://localhost:5174/` (API on `8787`).
 
 ### Expected Behavior
 
@@ -225,33 +237,19 @@ This starts the Vite development server at `http://localhost:5173/`. Open this U
 
 ```
 AKVJ/
-├── src/
-│   ├── main.js                     # Application entry point
-│   ├── index.html                  # Main HTML template
-│   ├── css/                        # Stylesheets
-│   ├── js/                         # Core JavaScript modules
-│   │   ├── core/AdventureKidVideoJockey.js  # Main VJ component
-│   │   ├── midi-input/midi.js     # Web MIDI API integration
-│   │   ├── visuals/LayerManager.js  # Visual layer management
-│   │   ├── visuals/Renderer.js      # Canvas rendering loop
-│   │   ├── visuals/ClipLoader.js          # Sprite and metadata loading
-│   │   ├── visuals/Clip.js                # Individual clip playback
-│   │   ├── visuals/MaskManager.js          # Layer Group A and Layer Group B crossfade masks
-│   │   ├── visuals/EffectsManager.js       # Visual effects
-│   │   ├── core/settings.js             # Configuration constants
-│   │   ├── core/AppState.js            # Global state management
-│   │   ├── utils/Fullscreen.js         # Fullscreen functionality
-│   │   ├── utils/DebugOverlay.js       # Debug overlay
-│   │   └── utils/velocitySelection.js  # Velocity-based clip selection
-│   └── public/
-│       └── clips/                   # Clip assets
-│           ├── {channel}/          # Channel folders (0-15, auto-converted from source)
-│           │   └── {note}/         # MIDI notes (0-127)
-│           │       └── {velocity}/ # Velocity variants
-│           └── clips.json          # Generated clip index
-├── scripts/clips/                   # Clip pipeline (validate, optimize, generate)
-├── vite.config.js                 # Vite build configuration
-└── package.json                   # Dependencies and scripts
+├── package.json                 # npm workspaces root
+├── clips/                       # Shared clip bucket + set-mapping.json
+├── vj-server/                   # Live VJ engine
+│   ├── src/                     # Vite app (main.js, js/, public/)
+│   ├── scripts/clips/           # Validate / optimize / generate pipeline
+│   ├── test/                    # Vitest unit + visual tests
+│   └── package.json
+├── admin/                       # Set authoring UI + local API
+│   ├── src/                     # Vanilla Vite UI
+│   ├── server/                  # Node http/fs API (no Express)
+│   └── package.json
+├── docs/
+└── AGENTS.md
 ```
 
 ## Build & Scripts
@@ -259,9 +257,12 @@ AKVJ/
 ### Core Commands
 
 ```bash
-npm run dev                              # Start development server
-npm run build                            # Build for production
-npm run preview                          # Preview production build
+npm run dev                              # vj-server (localhost:5173)
+npm run dev:admin                        # admin UI + API (5174 / 8787)
+npm run build                            # Build vj-server
+npm run build:all                        # clips + vj-server + admin
+npm run preview                          # Preview vj-server production build
+npm run test:all                         # vj-server + admin unit tests
 ```
 
 ### Code Quality
@@ -280,17 +281,13 @@ This project uses **Husky** and **lint-staged** to automatically run linting and
 ### Clip Management
 
 ```bash
-npm run clips                          # Build clip pipeline (validate, optimize, generate)
-npm run clips:watch                    # Watch for clip changes and rebuild
-npm run clips:clean                    # Remove cache and generated output
-npm run clips:new                      # Create new clip scaffold (requires channel/note/velocity args)
-npm run clips:spritesheet              # Generate sprite sheet from frames (requires input/output paths)
-```
-
-### Dependency Management
-
-```bash
-npm run fix                              # Update all dependencies (CAUTION: Modifies package.json and package-lock.json, may introduce breaking changes)
+npm run clips                            # Validate, optimize, generate, copy to vj-server public
+npm run clips:validate                   # Validate bucket + set-mapping only
+npm run clips:watch                      # Watch for clip changes and rebuild
+npm run clips:clean                      # Remove cache and generated output
+npm run clips:new -- neon-skull          # Scaffold clips/{clipId}/meta.json
+npm run clips:spritesheet                # Generate sprite sheet from frames
+npm run migrate:clips                    # One-shot nested→flat migration (if needed)
 ```
 
 ## Performance
@@ -308,16 +305,13 @@ AKVJ is optimized for real-time visual performance:
 
 ### Adding New Clips
 
-1. **Create clip scaffold**: Run `npm run clips:new -- {channel} {note} {velocity}`
-2. **Add PNG sprite sheet**: Place frame-based clip in the created directory
-3. **Update metadata**: Edit the generated `meta.json` with correct frame count and timing
-4. **Rebuild pipeline**: Run `npm run clips` to validate, optimize, and generate the clip index
-5. **Test**: Use the development server to test your clips
+1. **Create clip**: `npm run clips:new -- my-clip` (or use Admin Upload)
+2. **Add `sprite.png`** and update `meta.json` (`numberOfFrames`, `framesPerRow`, timing)
+3. **Map MIDI**: edit `clips/set-mapping.json` or use Admin Mapping (DAW channels 1–16)
+4. **Rebuild**: `npm run clips`
+5. **Test**: `npm run dev` in Chrome and trigger via MIDI
 
-Alternatively, if you have individual frame files:
-
-1. **Generate sprite sheet**: Run `npm run clips:spritesheet -- ./frames-folder ./clips/{channel}/{note}/{velocity}`
-2. **Rebuild pipeline**: Run `npm run clips`
+Alternatively, use `npm run dev:admin` for upload + mapping + pipeline in one UI.
 
 ### Code Contributions
 
@@ -341,4 +335,4 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 
 ### Clip Assets
 
-All clip assets (including all .png and .json files located in the `src/public/clips/` directory) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See the [LICENSE-ASSETS.md](src/public/clips/LICENSE-ASSETS.md) file for the full terms.
+All clip assets (including all .png and .json files under `clips/` and generated `vj-server/src/public/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.

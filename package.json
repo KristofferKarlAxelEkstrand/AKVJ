@@ -4,39 +4,22 @@
 		"name": "Kristoffer Ekstrand",
 		"url": "https://kristofferekstrand.se"
 	},
-	"description": "Real-time VJ application using Web MIDI API and HTML5 Canvas. Built with Vite, vanilla JavaScript, deployable anywhere.",
+	"description": "AKVJ monorepo — live VJ engine (vj-server) and set admin tooling (admin).",
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
-		"@vitest/browser-playwright": "^4.1.10",
-		"chokidar": "^5.0.0",
-		"concurrently": "^10.0.3",
 		"eslint": "^10.7.0",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^17.7.0",
 		"husky": "^9.1.7",
-		"jsdom": "^29.1.1",
 		"lint-staged": "^17.0.8",
 		"prettier": "3.9.5",
-		"sharp": "^0.35.3",
 		"stylelint": "^17.14.0",
 		"stylelint-config-recommended": "^18.0.0",
-		"stylelint-order": "^8.1.1",
-		"vite": "^8.1.4",
-		"vitest": "^4.1.10"
+		"stylelint-order": "^8.1.1"
 	},
-	"keywords": [
-		"vj",
-		"video-jockey",
-		"midi",
-		"web-midi",
-		"canvas",
-		"visuals",
-		"live-performance",
-		"pixel-art",
-		"sprite-clip",
-		"real-time",
-		"music-visualization"
-	],
+	"engines": {
+		"node": ">=20"
+	},
 	"license": "MIT",
 	"lint-staged": {
 		"*.css": [
@@ -51,7 +34,6 @@
 			"prettier --write"
 		]
 	},
-	"main": "main.js",
 	"name": "akvj",
 	"private": true,
 	"repository": {
@@ -59,32 +41,42 @@
 		"url": "https://github.com/KristofferKarlAxelEkstrand/AKVJ"
 	},
 	"scripts": {
-		"clips": "node scripts/clips",
-		"clips:clean": "node scripts/clips --clean",
-		"clips:new": "node scripts/clips/new.js",
-		"clips:spritesheet": "node scripts/clips/spritesheet.js",
-		"clips:watch": "node scripts/clips --watch",
-		"build": "vite build --emptyOutDir",
-		"build:full": "npm run clips && vite build --emptyOutDir",
-		"check:eol": "node scripts/check-line-endings.js",
-		"check:utf8": "node scripts/check-utf8.js",
-		"dev": "concurrently -n vite,clips -c blue,green \"vite\" \"npm run clips:watch\"",
-		"fix": "npx npm-check-updates -u && npm install && npm audit fix --force && npm prune && npm install && npm update",
-		"fix:eol": "node scripts/check-line-endings.js --fix",
-		"fix:utf8": "node scripts/check-utf8.js --fix",
+		"build": "npm run build -w vj-server",
+		"build:all": "npm run build:full -w vj-server && npm run build -w admin",
+		"build:full": "npm run build:full -w vj-server",
+		"check:eol": "node vj-server/scripts/check-line-endings.js",
+		"check:utf8": "node vj-server/scripts/check-utf8.js",
+		"clips": "node vj-server/scripts/clips",
+		"clips:clean": "node vj-server/scripts/clips --clean",
+		"clips:new": "node vj-server/scripts/clips/new.js",
+		"clips:spritesheet": "node vj-server/scripts/clips/spritesheet.js",
+		"clips:validate": "node vj-server/scripts/clips --validate-only",
+		"clips:watch": "node vj-server/scripts/clips --watch",
+		"dev": "npm run dev -w vj-server",
+		"dev:admin": "npm run dev -w admin",
+		"migrate:clips": "node admin/server/migrate-flatten.js",
+		"fix:eol": "node vj-server/scripts/check-line-endings.js --fix",
+		"fix:utf8": "node vj-server/scripts/check-utf8.js --fix",
+		"format:check": "prettier --check .",
 		"format:prettier": "prettier --write .",
 		"format:stylelint": "stylelint \"**/*.css\" --fix",
 		"lint": "eslint .",
 		"lint:css": "stylelint \"**/*.css\"",
 		"lint:fix": "eslint . --fix",
-		"format:check": "prettier --check .",
+		"midi:extract": "npm run extract -w midi-mcp",
 		"prepare": "husky",
-		"preview": "vite preview",
-		"test": "vitest run",
-		"test:ci": "vitest run",
-		"test:visual": "vitest run --config vitest.visual.config.js",
-		"test:visual:update": "vitest run --config vitest.visual.config.js --update"
+		"preview": "npm run preview -w vj-server",
+		"test": "npm run test -w vj-server",
+		"test:all": "npm run test -w vj-server && npm run test -w admin && npm run test -w midi-mcp",
+		"test:ci": "npm run test:ci -w vj-server",
+		"test:visual": "npm run test:visual -w vj-server",
+		"test:visual:update": "npm run test:visual:update -w vj-server"
 	},
 	"type": "module",
-	"version": "0.0.0"
+	"version": "0.0.0",
+	"workspaces": [
+		"vj-server",
+		"admin",
+		"midi-mcp"
+	]
 }

@@ -8,6 +8,11 @@
 			},
 			"gallery": "https://api.mcp.github.com",
 			"version": "0.24.0"
+		},
+		"midi-spec": {
+			"type": "stdio",
+			"command": "node",
+			"args": ["${workspaceFolder}/midi-mcp/index.js"]
 		}
 	},
 	"inputs": [

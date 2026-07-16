@@ -6,7 +6,7 @@ dist
 
 # Ignore generated clip pipeline output
 .cache
-src/public/clips
+vj-server/src/public/clips
 
 # Ignore clip preview tool (standalone, not part of main app)
-src/tools
+vj-server/src/tools

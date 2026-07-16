@@ -61,27 +61,29 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 ## Key Files
 
-| File                                     | Purpose                                                     |
-| ---------------------------------------- | ----------------------------------------------------------- |
-| `src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)                          |
-| `src/js/midi-input/midi.js`              | Web MIDI API with hot-plug support                          |
-| `src/js/visuals/Renderer.js`             | 60fps canvas rendering with layer group compositing         |
-| `src/js/visuals/LayerManager.js`         | Coordinates layer groups, mask, and effects                 |
-| `src/js/visuals/LayerGroup.js`           | Clip slots per layer group (A, B, C)                        |
-| `src/js/visuals/ClipLoader.js`           | Sprite and metadata loading                                 |
-| `src/js/visuals/Clip.js`                 | Clip playback (FPS or BPM sync)                             |
-| `src/js/visuals/MaskManager.js`          | B&W bitmask for Layer Group A and Layer Group B crossfading |
-| `src/js/visuals/EffectsManager.js`       | Visual effects (split, mirror, glitch)                      |
-| `src/js/core/AppState.js`                | Event-based state management (EventTarget)                  |
-| `src/js/core/settings.js`                | Centralized configuration (canvas, MIDI, FX)                |
-| `src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)                    |
-| `src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)                         |
-| `src/js/utils/velocitySelection.js`      | Velocity-based clip selection utilities                     |
+npm workspaces: `vj-server/` (live VJ engine), `admin/` (set tooling), `midi-mcp/` (MIDI spec MCP server for agents), shared `clips/` at repo root.
+
+| File                                               | Purpose                                                     |
+| -------------------------------------------------- | ----------------------------------------------------------- |
+| `vj-server/src/js/core/AdventureKidVideoJockey.js` | Main VJ component (custom element)                          |
+| `vj-server/src/js/midi-input/Midi.js`              | Web MIDI API with hot-plug support                          |
+| `vj-server/src/js/visuals/Renderer.js`             | 60fps canvas rendering with layer group compositing         |
+| `vj-server/src/js/visuals/LayerManager.js`         | Coordinates layer groups, mask, and effects                 |
+| `vj-server/src/js/visuals/LayerGroup.js`           | Clip slots per layer group (A, B, C)                        |
+| `vj-server/src/js/visuals/ClipLoader.js`           | Sprite and metadata loading                                 |
+| `vj-server/src/js/visuals/Clip.js`                 | Clip playback (FPS or BPM sync)                             |
+| `vj-server/src/js/visuals/MaskManager.js`          | B&W bitmask for Layer Group A and Layer Group B crossfading |
+| `vj-server/src/js/visuals/EffectsManager.js`       | Visual effects (split, mirror, glitch)                      |
+| `vj-server/src/js/core/AppState.js`                | Event-based state management (EventTarget)                  |
+| `vj-server/src/js/core/settings.js`                | Centralized configuration (canvas, MIDI, FX)                |
+| `vj-server/src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)                    |
+| `vj-server/src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)                         |
+| `vj-server/src/js/utils/velocitySelection.js`      | Velocity-based clip selection utilities                     |
 
 ## Common Commands
 
 ```bash
-npm run dev              # Start development server (localhost:5173)
+npm run dev              # Start vj-server (localhost:5173)
 npm run build            # Production build (<1 second)
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
@@ -93,14 +95,16 @@ npm run format:stylelint # Format & lint CSS
 npm run clips            # Full clip pipeline (validate, optimize, generate, copy)
 npm run clips:watch      # Watch mode for clip changes
 npm run clips:clean      # Remove cache and generated output
-npm run clips:new        # Scaffold new clip (requires channel/note/velocity args)
+npm run clips:new        # Scaffold new clip (requires clipId arg)
+npm run dev:admin        # Admin UI + API (localhost:5174 / 8787)
+npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 ```
 
 ## MIDI Mapping
 
 ### Channel → Layer Group Assignment
 
-Channels shown as displayed in DAWs (1-16). Source folders use 1-16; the build pipeline converts to 0-15 for code.
+Channels shown as displayed in DAWs (1-16). `set-mapping.json` uses DAW channels; ClipLoader converts to code channels 0–15 when building the runtime clip tree. Channel → layer routing in `settings.js` is unchanged.
 
 | Channels | Layer Group          | Function                                                        |
 | -------- | -------------------- | --------------------------------------------------------------- |
@@ -121,27 +125,27 @@ Channels shown as displayed in DAWs (1-16). Source folders use 1-16; the build p
 
 Key fields in `meta.json`:
 
-| Field                 | Type         | Description                         |
-| --------------------- | ------------ | ----------------------------------- |
-| `png`                 | string       | Sprite sheet filename               |
-| `numberOfFrames`      | number       | Total frames                        |
-| `framesPerRow`        | number       | Frames per row in sprite sheet      |
-| `loop`                | boolean      | Whether to loop                     |
-| `retrigger`           | boolean      | Restart on re-trigger               |
-| `frameRatesForFrames` | object       | FPS per frame index                 |
-| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame) |
-| `bitDepth`            | number       | For masks: 1, 2, 4, or 8            |
+| Field                 | Type         | Description                           |
+| --------------------- | ------------ | ------------------------------------- |
+| `png`                 | string       | Sprite sheet filename                 |
+| `numberOfFrames`      | number       | Total frames                          |
+| `framesPerRow`        | number       | Frames per row in sprite sheet        |
+| `loop`                | boolean      | Whether to loop                       |
+| `retrigger`           | boolean      | Restart on re-trigger                 |
+| `frameRatesForFrames` | object       | FPS per frame index                   |
+| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame)   |
+| `bitDepth`            | number       | For masks: 1, 2, 4, or 8              |
+| `role`                | string       | Optional; `"bitmask"` for mixer masks |
 
 ## Clip Structure
 
-Source clips live in `clips/` (build pipeline copies to `src/public/clips/`):
-
-> **Note:** Source folder names use 1-16 (matching DAWs). The build pipeline converts to 0-15 for code output.
+Source clips live in repo-root flat `clips/{clipId}/` (build pipeline copies to `vj-server/src/public/clips/`). MIDI placement is in `clips/set-mapping.json` (DAW channels 1–16).
 
 ```
-clips/{channel}/{note}/{velocity}/
-  ├── meta.json       # Clip metadata
+clips/{clipId}/
+  ├── meta.json       # Clip metadata (optional role: "bitmask")
   └── sprite.png      # Sprite sheet
+clips/set-mapping.json
 ```
 
 ## Code Conventions
@@ -210,22 +214,24 @@ if (import.meta.hot) {
 
 ## Build Scripts
 
-| File                                      | Purpose                                             |
-| ----------------------------------------- | --------------------------------------------------- |
-| `scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)            |
-| `scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy) |
-| `scripts/clips/new.js`                    | Scaffold new clip meta.json                         |
-| `scripts/clips/spritesheet.js`            | Sprite sheet utilities                              |
-| `scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                  |
-| `scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks            |
-| `scripts/clips/lib/validate/meta.js`      | Metadata field validation                           |
-| `scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                  |
-| `scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                       |
-| `scripts/clips/lib/optimize.js`           | PNG optimization with sharp                         |
-| `scripts/clips/lib/generate.js`           | Generate clips.json                                 |
-| `scripts/clips/lib/copy.js`               | Sync to public folder                               |
-| `scripts/clips/lib/hash.js`               | File hashing for cache invalidation                 |
-| `scripts/clips/lib/channel.js`            | Channel mapping (1-16 source to 0-15 code)          |
+| File                                                | Purpose                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------- |
+| `vj-server/scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)                      |
+| `vj-server/scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy)           |
+| `vj-server/scripts/clips/new.js`                    | Scaffold new clip meta.json                                   |
+| `vj-server/scripts/clips/spritesheet.js`            | Sprite sheet utilities                                        |
+| `vj-server/scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                            |
+| `vj-server/scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks                      |
+| `vj-server/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                     |
+| `vj-server/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                            |
+| `vj-server/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                 |
+| `vj-server/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                      |
+| `vj-server/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                   |
+| `vj-server/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                            |
+| `vj-server/scripts/clips/lib/copy.js`               | Sync to public folder                                         |
+| `vj-server/scripts/clips/lib/hash.js`               | File hashing for cache invalidation                           |
+| `vj-server/scripts/clips/lib/channel.js`            | DAW↔code channel helpers (mapping tooling)                    |
+| `admin/server/index.js`                             | Local admin API (clips/mapping/upload; runs pipeline via CLI) |
 
 ## Test Structure
 
@@ -270,9 +276,18 @@ Reusable skills live in `.agents/skills/` following the [Agent Skills](https://a
 
 Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync symlinks.
 
+## MIDI Spec MCP Server (`midi-mcp/`)
+
+A stdio MCP server exposing the MIDI 1.0 / MIDI 2.0 / Web MIDI specifications to AI agents. Wired up via `.vscode/mcp.json` (VS Code/Copilot) and root `.mcp.json` (Claude Code); works in the dev container. See [midi-mcp/README.md](midi-mcp/README.md).
+
+- Tools: `search_spec_data` (protocol/tier filters, page-anchored results), `read_spec_doc` (page-range reads), `list_spec_docs`, `fetch_online_resource`.
+- The extracted corpus `midi-mcp/data/` is generated by `npm run midi:extract` and **committed** — never hand-edit it; curated content lives in `midi-mcp/reference/`.
+- Raw source PDFs in `.midi-raw-data/` are local-only (gitignored).
+- **Never use `console.log` in midi-mcp server code** — stdout is the JSON-RPC stream; use `console.error`.
+
 ## Security & Boundaries
 
-- **Never hand-edit `src/public/clips/`** — it's fully generated by `npm run clips` from source files in `clips/` and will be silently overwritten on the next build.
+- **Never hand-edit `vj-server/src/public/clips/`** — it's fully generated by `npm run clips` from source files in `clips/` and will be silently overwritten on the next build.
 - **Never commit `.env` files or MIDI-device-specific local config.**
 - Commit conventions and the PR workflow live in [CONTRIBUTING.md](CONTRIBUTING.md) — don't duplicate them here.
 
@@ -329,7 +344,7 @@ Common issues and steps to investigate:
     - Verify MIDI device is connected. Use `getConnectedDevices()` from the `midi` singleton to list device names.
 
 - Black canvas or clips not loading
-    - Confirm `src/public/clips/clips.json` exists and was generated: `npm run clips`.
+    - Confirm `vj-server/src/public/clips/clips.json` exists and was generated: `npm run clips`.
     - Look for the console message: "JSON for clips loaded".
     - Verify the build step was successful and static assets are present.
 
@@ -424,12 +439,14 @@ The `devcontainer.json` sets `REMOTE_CONTAINERS=true` via `containerEnv` as a sa
 
 The container forwards two ports:
 
-| Port | Purpose             | Auto-Forward Behavior       |
-| ---- | ------------------- | --------------------------- |
-| 5173 | Vite dev server     | Opens browser automatically |
-| 4173 | Vite preview server | Notifies on start           |
+| Port | Purpose           | Auto-Forward Behavior       |
+| ---- | ----------------- | --------------------------- |
+| 5173 | vj-server Vite    | Opens browser automatically |
+| 4173 | vj-server preview | Notifies on start           |
+| 5174 | admin Vite        | Notifies on start           |
+| 8787 | admin API         | Silent                      |
 
-Access the dev server from the host at `http://localhost:5173`.
+Access the vj-server dev server from the host at `http://localhost:5173`. Admin: `http://localhost:5174`.
 
 #### Lifecycle Commands
 
@@ -438,7 +455,7 @@ Access the dev server from the host at `http://localhost:5173`.
 
 #### Resource Requirements
 
-The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image processing library (used in the clip pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
+The container requests minimum **4 CPUs** and **8 GB RAM** (vj-server + admin + sharp). The `sharp` image processing library (used in the clip pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
 
 ### Best Practices for AI Agents in the Container
 
@@ -478,7 +495,7 @@ The container requests minimum **2 CPUs** and **4 GB RAM**. The `sharp` image pr
     - On WSL2: keep the repo inside the Linux filesystem, not on a Windows mount
 
 - **`sharp` errors during clip pipeline**
-    - Ensure sufficient memory (minimum 4 GB)
+    - Ensure sufficient memory (minimum 8 GB)
     - `sharp` uses prebuilt binaries for linux-x64; if missing, run `npm rebuild sharp`
 
 - **`npm install` fails or is slow**

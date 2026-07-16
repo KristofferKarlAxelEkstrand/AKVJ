@@ -37,9 +37,7 @@ Every MIDI note you send has three values:
 
 **Note:** Velocity 0 = Note Off (stops the clip)
 
-**Example:** `Channel 1, Note 60, Velocity 100` plays the clip at `clips/0/60/100/`
-
-> **Source folder paths use 1-16:** Channel 1 in your DAW = folder `1/`. The build pipeline automatically converts to 0-15 for code.
+**Example:** `Channel 1, Note 60, Velocity 100` plays the clip mapped to that slot in `clips/set-mapping.json` (e.g. `clips/c1-n60-v100/`).
 
 ## Layer Group Architecture
 
@@ -123,7 +121,7 @@ Channel 1 (Layer Group A, Slot 0):
   Note 36, every beat (quarter notes)
   Velocity: 100
 
-Result: Clip at clips/0/36/100/ plays on every beat
+Result: The clip mapped to Channel 1, Note 36, Velocity 100 plays on every beat
 ```
 
 ### Layer Group pattern
@@ -182,21 +180,17 @@ Channel 11 (Layer Group C, Slot 0):
 
 ## Clip File Locations
 
-Clips are stored at:
+Clips live in flat `clips/{clipId}/` folders, with MIDI placement defined in `clips/set-mapping.json`:
 
 ```
-src/public/clips/{channel}/{note}/{velocity}/
+clips/{clipId}/
   ├── sprite.png     # Spritesheet with all frames
   └── meta.json      # Clip metadata
+
+clips/set-mapping.json   # Maps channel/note/velocity → clipId
 ```
 
-**Example:** For `Channel 0, Note 60, Velocity 100`:
-
-```
-src/public/clips/0/60/100/
-  ├── sprite.png
-  └── meta.json
-```
+**Example:** For `Channel 1, Note 60, Velocity 100`, the mapping entry `{ "channel": 1, "note": 60, "velocity": 100, "clipId": "my-clip" }` plays `clips/my-clip/`.
 
 If no clip exists for the exact velocity, AKVJ will look for available velocities.
 
@@ -314,13 +308,13 @@ For effect channels (10, 13):
 
 ### File Location
 
-`clips/{channel}/{note}/{velocity}/sprite.png`
+`clips/{clipId}/sprite.png` (MIDI mapping in `clips/set-mapping.json`)
 
 ## See Also
 
 - [Clip Asset Guide](../clips/README.md) - Creating clips
-- [MIDI Protocol Guide](../.technical-docs/midi-protocol-guide.md) - Technical MIDI details
-- [Web MIDI API Guide](../.technical-docs/web-midi-api-guide.md) - Browser integration
+- [MIDI Protocol Guide](./midi-protocol-guide.md) - Technical MIDI details
+- [Web MIDI API Guide](./web-midi-api-guide.md) - Browser integration
 
 ---
 

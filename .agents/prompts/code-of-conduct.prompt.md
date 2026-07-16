@@ -1,26 +1,22 @@
 # AKVJ Code of Conduct
 
-You are contributing to the AKVJ codebase. You must strictly adhere to the following rules at all times. Prioritize vanilla JavaScript performance, strict encapsulation, and modern, clean code patterns.
+Strictly adhere to these rules. **The ultimate goal is highly readable code for humans that is easy to edit and work with.** Prioritize vanilla JS performance, robust error handling, strict encapsulation, and extremely clean patterns:
 
-## 1. Encapsulation & Privacy
-- **Strict Privacy**: Use native `#` for all private fields and methods. Ban `_` prefixes completely.
-- **No Globals**: Avoid polluting the global scope. Use ES6 modules exclusively.
+- **1. Core Architecture**: NO frameworks (React, Vue, Tailwind). Use ONLY Vanilla JS and CSS. The `vj-server` render loop MUST hit 60fps and process MIDI with <20ms latency. No blocking operations.
+- **2. High-Performance Engine (Zero-Allocation)**: To prevent Garbage Collection (GC) stutters, **never allocate objects or arrays inside the `requestAnimationFrame` render loop**. Re-use pre-allocated objects and scratch buffers. Enforce integer coordinates (`Math.floor`) to avoid sub-pixel anti-aliasing overhead. Batch Canvas state changes (e.g., group by `fillStyle`).
+- **3. Separation of Concerns**: Strictly separate the **Update logic** (physics, timings, MIDI state) from the **Render logic** (Canvas drawing calls). Do not mix them.
+- **4. Privacy & Scope**: Use native `#` for ALL private fields/methods. Ban `_` prefixes. No global scope pollution; use ES6 modules exclusively. Components must decouple via `AppState` (EventTarget) instead of tight coupling.
+- **5. Naming**:
+  - **Booleans**: `isX`, `hasX`, `shouldX`, `canX`. Ban `playing` or `active`.
+  - **Methods**: Use action verbs (`drawX`, `updateX`).
+  - **Handlers**: `handleX` or `#boundHandleX`.
+  - **Optimization buffers**: `_scratchX` or `bufferX`.
+  - **Banned**: Hungarian notation (`arrX`) and jQuery DOM prefixes (`$X`).
+- **6. Lifecycle & Cleanup**: Use `setup()` and `destroy()`. Enforce the **Unsubscribe Pattern** (cache `#bound` handlers, push to `#unsubscribers`, invoke all in `destroy()`). Wrap individual cleanups in `try-catch`. When `destroy()` has multiple independent cleanup blocks, extract them into focused `#destroyX()` helpers (e.g., `#destroyLayerGroups()`, `#removeDOMListeners()`) to keep the main `destroy()` function acting as a high-level orchestrator rather than a massive wall of logic.
+- **7. Syntax & Readability**: Use `??=`, `.at(-1)`, `?.`, and `flatMap()`. Prefer `const`. Extract magic numbers to `UPPER_SNAKE_CASE`. Use `performance.now()` for timing, NEVER `Date.now()`. **Function Length**: Do not enforce arbitrary line limits. Instead, prioritize Single Responsibility and Single Level of Abstraction (SLAP). If a function does multiple things or has deep nesting (`if/else` inside loops), extract `#private` helpers with descriptive domain names. A linear, highly readable 50-line function is better than ten fragmented 5-line functions. Shared logic between similar methods must be extracted into a single helper. For procedural (non-class) modules, extract standalone named functions (`buildClipEntry`, `routeRequest`) instead of `#private` syntax.
+- **8. Debugging**: Wrap `console.log` in `if (import.meta.env.DEV)`.
+- **9. Evolve Prompt**: If you discover a new rule or missing pattern, update this `.prompt.md` file.
 
-## 2. Naming Conventions
-- **Booleans**: Enforce `isX`, `hasX`, `shouldX`, or `canX` (e.g., `isPlaying`). Ban ambiguous states like `playing` or `active`.
-- **Event Handlers**: Enforce `handleX` (e.g., `#handleMidiNoteOn`). When caching bound handlers, prefix with `bound` (e.g., `#boundHandleMidiNoteOn`).
-- **Verbs**: Use clear, specific action prefixes for methods (`drawX`, `renderX`, `updateX`, `setX`, `getX`).
-- **Banned Prefixes**: Ban Hungarian notation (e.g., `strName`, `arrClips`) and jQuery-style DOM prefixes (e.g., `$canvas`). Use clean domain names instead (e.g., `#canvasElement`).
-
-## 3. Lifecycle & Memory Management
-- **Lifecycle Methods**: Use `setup()` (never `setUp()`) for initialization, and `destroy()` (never `dispose()`, `clear()`, or `remove()`) for teardown.
-- **Event Subscriptions**: Enforce the **Unsubscribe Pattern**. Cache `#bound` handlers, push their unsubscription callbacks to an `#unsubscribers` array, and invoke all of them inside `destroy()`.
-- **Robust Cleanup**: Inside `destroy()`, wrap individual resource cleanups in isolated `try-catch` blocks to prevent cascading failures.
-
-## 4. Syntax & Performance
-- **Modern JavaScript**: Utilize modern operators where appropriate: `??=` for default assignments, `.at(-1)` for array tails, `?.` for optional chaining, and `flatMap()`.
-- **Clean Code**: Prefer `const` over `let`. Extract magic numbers to `UPPER_SNAKE_CASE` constants. Keep functions focused and under 20 lines where possible.
-- **Timing**: Ban `Date.now()`. Use `performance.now()` exclusively for all high-resolution clip and render loop timing.
-
-## 5. Debugging
-- **Dev-Only Logging**: Wrap all `console.log` statements in `if (import.meta.env.DEV)` checks to ensure production builds remain pristine and silent.
+## AI Agent Protocol
+- **Read Memory**: Always read `\AKVJ\.agents\prompts\_memory.md` before starting. It contains active context, known bugs, and architectural rules.
+- **Update Memory**: If you uncover new edge cases, bugs, or future targets, update `_memory.md`.

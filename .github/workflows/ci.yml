@@ -24,9 +24,7 @@ jobs:
               run: npm ci
 
             - name: Validate clips
-              run: npm run clips -- --validate-only
-
-            # Skip extra post-validation check for generated public clips — build will fail if files are missing
+              run: npm run clips:validate
 
             - name: Lint JavaScript
               run: npm run lint
@@ -43,12 +41,8 @@ jobs:
             - name: Check UTF-8 encoding
               run: npm run check:utf8
 
-            # The `format:prettier` script runs Prettier with `--write` which is not compatible
-            # with `--check`. We already validate formatting with `npx prettier --check .` above,
-            # so remove the redundant/incorrect script invocation.
-
-            - name: Run tests
-              run: npm run test
+            - name: Run all workspace tests
+              run: npm run test:all
 
             - name: Install Playwright browser
               run: npx playwright install --with-deps chromium
@@ -56,12 +50,16 @@ jobs:
             - name: Run visual tests
               run: npm run test:visual
 
-            - name: Build (generate clips + vite build)
-              run: npm run build:full
+            - name: Build all packages
+              run: npm run build:all
 
             - name: Verify public clips generated
               run: |
-                  if [ ! -d "src/public/clips" ] || [ -z "$(find src/public/clips -type f \( -name '*.png' -o -name '*.json' \) -print -quit)" ]; then
-                    echo "::error::No generated clip files found in src/public/clips/. Build step should generate these files."
+                  if [ ! -f "vj-server/src/public/clips/clips.json" ] || [ ! -f "vj-server/src/public/clips/set-mapping.json" ]; then
+                    echo "::error::Missing clips.json or set-mapping.json in vj-server/src/public/clips/."
+                    exit 1
+                  fi
+                  if [ -z "$(find vj-server/src/public/clips -type f -name '*.png' -print -quit)" ]; then
+                    echo "::error::No generated PNG clip files found in vj-server/src/public/clips/."
                     exit 1
                   fi

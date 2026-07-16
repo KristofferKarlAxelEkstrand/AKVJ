@@ -1,8 +1,0 @@
-{
-	"png": "sprite.png",
-	"numberOfFrames": 64,
-	"framesPerRow": 8,
-	"loop": true,
-	"retrigger": true,
-	"frameDurationBeats": 0.5
-}

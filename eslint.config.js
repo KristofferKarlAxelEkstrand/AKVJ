@@ -7,7 +7,7 @@ export default [
 	prettier,
 	// Test files override - support test globals and browser globals
 	{
-		files: ['test/**', '**/*.test.js'],
+		files: ['**/test/**', '**/*.test.js'],
 		languageOptions: {
 			globals: {
 				...globals.browser,
@@ -51,7 +51,7 @@ export default [
 	},
 	// Node config for build/dev tools
 	{
-		files: ['*.config.js', 'scripts/**/*.js'],
+		files: ['**/*.config.js', '**/scripts/**/*.js', 'admin/server/**/*.js', 'midi-mcp/**/*.js'],
 		languageOptions: {
 			globals: {
 				...globals.node
@@ -60,6 +60,6 @@ export default [
 	},
 	// Ignore artifact folders
 	{
-		ignores: ['dist/**', 'node_modules/**', 'src/public/**']
+		ignores: ['**/dist/**', '**/node_modules/**', '**/src/public/**', 'clips/**', '.cache/**', 'midi-mcp/data/**', 'midi-mcp/.cache/**']
 	}
 ];

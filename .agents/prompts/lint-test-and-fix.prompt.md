@@ -1,6 +1,6 @@
-# Lint, Test, and Fix
+﻿# Lint, Test, and Fix
 
-Your task is to ensure the codebase is perfectly formatted, passes all linting rules, and passes all tests. 
+Your task is to ensure the codebase is perfectly formatted, highly readable, passes all linting rules, and passes all tests. Actively find errors, fix underlying bugs, and guarantee the code works robustly. 
 
 Execute the following steps sequentially. If ANY step fails, you must stop, investigate the error, fix the underlying code, and re-run the failing command until it passes successfully before moving to the next step.
 
@@ -24,3 +24,8 @@ Verify the project compiles successfully:
 - `npm run build`
 
 **Goal**: Do not complete your task until all applicable steps above execute with zero errors.
+
+## AI Agent Protocol
+- **Read Memory**: Always read `\AKVJ\.agents\prompts\_memory.md` before starting. It contains active context, known bugs, and architectural rules.
+- **Update Memory**: If you uncover new edge cases, bugs, or future targets, update `_memory.md`.
+- **Evolve Prompt**: If you discover a better way to execute this specific task, update this `.prompt.md` file to permanently document your findings.
