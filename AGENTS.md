@@ -83,7 +83,7 @@ npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/
 ## Common Commands
 
 ```bash
-npm run akvj             # Start vj-server (localhost:5173)
+npm run akvj             # Start akvj VJ engine (localhost:5173)
 npm run build            # Production build (<1 second)
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
@@ -96,7 +96,7 @@ npm run clips            # Full clip pipeline (validate, optimize, generate, cop
 npm run clips:watch      # Watch mode for clip changes
 npm run clips:clean      # Remove cache and generated output
 npm run clips:new        # Scaffold new clip (requires clipId arg)
-npm run admin            # Admin UI + API (localhost:5174 / 8787)
+npm run mainframe        # Mainframe UI + API (localhost:5174 / 8787)
 npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 ```
 
@@ -214,23 +214,23 @@ if (import.meta.hot) {
 
 ## Build Scripts
 
-| File                                            | Purpose                                                       |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| `admin/scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)                      |
-| `admin/scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy)           |
-| `admin/scripts/clips/new.js`                    | Scaffold new clip meta.json                                   |
-| `admin/scripts/clips/spritesheet.js`            | Sprite sheet utilities                                        |
-| `admin/scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                            |
-| `admin/scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks                      |
-| `admin/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                     |
-| `admin/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                            |
-| `admin/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                 |
-| `admin/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                      |
-| `admin/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                   |
-| `admin/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                            |
-| `admin/scripts/clips/lib/copy.js`               | Sync to public folder                                         |
-| `admin/scripts/clips/lib/hash.js`               | File hashing for cache invalidation                           |
-| `admin/server/index.js`                         | Local admin API (clips/mapping/upload; runs pipeline via CLI) |
+| File                                                | Purpose                                                           |
+| --------------------------------------------------- | ----------------------------------------------------------------- |
+| `mainframe/scripts/clips/index.js`                  | CLI entry point (args, help, watch mode)                          |
+| `mainframe/scripts/clips/Pipeline.js`               | Pipeline class (validate, optimize, generate, copy)               |
+| `mainframe/scripts/clips/new.js`                    | Scaffold new clip meta.json                                       |
+| `mainframe/scripts/clips/spritesheet.js`            | Sprite sheet utilities                                            |
+| `mainframe/scripts/clips/lib/validate.js`           | Re-export shim for `lib/validate/`                                |
+| `mainframe/scripts/clips/lib/validate/index.js`     | Validation scan loop and per-clip checks                          |
+| `mainframe/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                         |
+| `mainframe/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                                |
+| `mainframe/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                     |
+| `mainframe/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                          |
+| `mainframe/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                       |
+| `mainframe/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                                |
+| `mainframe/scripts/clips/lib/copy.js`               | Sync to public folder                                             |
+| `mainframe/scripts/clips/lib/hash.js`               | File hashing for cache invalidation                               |
+| `mainframe/server/index.js`                         | Local mainframe API (clips/mapping/upload; runs pipeline via CLI) |
 
 ## Test Structure
 
@@ -440,14 +440,14 @@ The `devcontainer.json` sets `REMOTE_CONTAINERS=true` via `containerEnv` as a sa
 
 The container forwards two ports:
 
-| Port | Purpose           | Auto-Forward Behavior       |
-| ---- | ----------------- | --------------------------- |
-| 5173 | vj-server Vite    | Opens browser automatically |
-| 4173 | vj-server preview | Notifies on start           |
-| 5174 | admin Vite        | Notifies on start           |
-| 8787 | admin API         | Silent                      |
+| Port | Purpose        | Auto-Forward Behavior       |
+| ---- | -------------- | --------------------------- |
+| 5173 | akvj Vite      | Opens browser automatically |
+| 4173 | akvj preview   | Notifies on start           |
+| 5174 | mainframe Vite | Notifies on start           |
+| 8787 | mainframe API  | Silent                      |
 
-Access the vj-server dev server from the host at `http://localhost:5173`. Admin: `http://localhost:5174`.
+Access the akvj dev server from the host at `http://localhost:5173`. Mainframe: `http://localhost:5174`.
 
 #### Lifecycle Commands
 
@@ -456,7 +456,7 @@ Access the vj-server dev server from the host at `http://localhost:5173`. Admin:
 
 #### Resource Requirements
 
-The container requests minimum **4 CPUs** and **8 GB RAM** (vj-server + admin + sharp). The `sharp` image processing library (used in the clip pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
+The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + sharp). The `sharp` image processing library (used in the clip pipeline) is CPU-intensive during PNG optimization. If builds are slow, increase the resource allocation.
 
 ### Best Practices for AI Agents in the Container
 

@@ -53,6 +53,7 @@ Transform the raw, unstructured markdown in `midi-mcp/data/` into pristine, stro
 - `[x]` Transformer: USB-MIDI 2.0 Device Class (`data/usb-midi-2-0-device-class.md` -> `usb-midi-2-0.json`)
 - `[x]` Transformer: DLS Level 1 Specification (`data/dls1v11b.md` -> `dls1.json`)
 - `[x]` Transformer: DLS Level 2.2 Specification (`data/dls2amd2-all-a-pub.md` -> `dls2.json`)
+- `[x]` Transformer: MIDI 1.0 Detailed Specification (`data/m1-midi-1-0-detailed-specification.md` -> `midi1.json`)
 - *(Add more documents here as you discover them)*
 
 ## Designed Schemas
@@ -309,5 +310,35 @@ Transform the raw, unstructured markdown in `midi-mcp/data/` into pristine, stro
 - Parsing rules are extracted as an array of strings from the "## Parsing rules" section
 
 ## Current TODO
-1. DLS Level 2.2 Specification transformer is **complete** (20 tests passing, JSON output generated).
-2. Find and process the next untransformed MIDI specification document with structured/tabular data. Remaining candidates: MIDI 1.0 Detailed Spec (3252 lines, 10 tables), RTP-MIDI (8644 lines, 6 tables), MIDI 2.0 UMP/Protocol specs.
+1. MIDI 1.0 Detailed Specification transformer is **complete** (71 tests passing, JSON output generated at `data/structured/midi1.json`, 77KB).
+2. Find and process the next untransformed MIDI specification document. Remaining candidates: RTP-MIDI (8644 lines, 6 tables), MIDI 2.0 UMP/Protocol specs, plus many RP/CA documents.
+
+### MIDI 1.0 Detailed Specification Schema
+
+```json
+{
+  "metadata": { "title": "MIDI 1.0 Detailed Specification", "doc_id": "M1", "protocol": "midi1", "version": "4.2.1", "date": "1996-02" },
+  "status_byte_summary": [{ "status_hex": "string|null", "binary": "string", "data_bytes": "string", "description": "string" }],
+  "channel_voice_messages": [{ "status_hex": "string", "binary": "string", "data_bytes": ["string"], "description": "string", "data_byte_descriptions": ["string"] }],
+  "controller_numbers": [{ "decimal": "string", "hex": "string", "function": "string" }],
+  "registered_parameter_numbers": [{ "lsb": "string", "msb": "string", "function": "string" }],
+  "channel_mode_messages": [{ "controller_number": "number", "description": "string", "values": ["string"] }],
+  "system_common_messages": [{ "status_hex": "string", "binary": "string", "data_bytes": ["string"], "description": "string", "data_byte_descriptions": ["string"] }],
+  "system_real_time_messages": [{ "status_hex": "string", "binary": "string", "description": "string" }],
+  "system_exclusive_messages": [{ "status_hex": "string", "binary": "string", "data_bytes": ["string"], "description": "string", "data_byte_descriptions": ["string"] }],
+  "universal_sysex_non_real_time": [{ "sub_id_1": "string", "sub_id_2": "string|null", "description": "string" }],
+  "universal_sysex_real_time": [{ "sub_id_1": "string", "sub_id_2": "string|null", "description": "string" }],
+  "manufacturer_id_numbers": [{ "region": "string", "number": "string", "manufacturer": "string" }],
+  "additional_spec_documents": [{ "title": "string", "description": "string" }],
+  "sysex_message_formats": [{ "name": "string|null", "format": "string", "fields": [{ "field": "string", "description": "string" }] }],
+  "summary": { "status_byte_count": 11, "channel_voice_message_count": 7, "controller_number_count": 46, "registered_parameter_number_count": 5, "channel_mode_message_count": 8, "system_common_message_count": 7, "system_real_time_message_count": 8, "system_exclusive_message_count": 2, "universal_sysex_non_real_time_count": 41, "universal_sysex_real_time_count": 36, "manufacturer_id_number_count": 227, "additional_spec_document_count": 5, "sysex_message_format_count": 46 }
+}
+```
+
+**Schema notes:**
+- `status_byte_summary` includes special rows with `status_hex: null` for System Common (11110sss) and System Real Time (11111ttt) groups
+- `channel_mode_messages` uses numeric `controller_number` (120-127) with `values` array for multi-value entries (e.g., Local Control has on/off values)
+- `universal_sysex_*` entries: parent rows have `sub_id_2` as a string (e.g., "nn"), sub-entries have `sub_id_2: null`
+- `manufacturer_id_numbers` includes 3 regions: american (01H-1FH + 00H 00H 01H+), european (20H-3FH + 00H 20H 00H+), japanese (40H-5FH + 00H 40H 00H+)
+- `sysex_message_formats` captures body-text SysEx format descriptions with named headers (ACK, NAK, etc.) and their F0-prefixed format strings with field-level descriptions
+- OCR errors (OOH → 00H) normalized in manufacturer IDs

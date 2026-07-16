@@ -183,6 +183,16 @@ export async function transformMidi1(markdownPath, outDir) {
 				});
 				continue;
 			}
+			// Channel Mode row: "BnH 	1011nnnn 	(01111xxx) 	2 	Selects Channel Mode"
+			if (parts.length >= 5 && isStatusHex(parts[0])) {
+				statusByteSummary.push({
+					status_hex: parts[0],
+					binary: parts[1],
+					data_bytes: parts.slice(2, -1).join(' '),
+					description: parts[parts.length - 1]
+				});
+				continue;
+			}
 			// Standard rows: "8nH 	1000nnnn 	2 	Note Off" or "F0H 	11110000 	***** 	System Exclusive"
 			if (parts.length >= 3 && isStatusHex(parts[0])) {
 				statusByteSummary.push({
@@ -190,16 +200,6 @@ export async function transformMidi1(markdownPath, outDir) {
 					binary: parts[1],
 					data_bytes: parts[2],
 					description: parts.slice(3).join(' ')
-				});
-				continue;
-			}
-			// Channel Mode row: "BnH 	1011nnnn 	(01111xxx) 	2 	Selects Channel Mode"
-			if (parts.length >= 4 && isStatusHex(parts[0])) {
-				statusByteSummary.push({
-					status_hex: parts[0],
-					binary: parts[1],
-					data_bytes: parts.slice(2, -1).join(' '),
-					description: parts[parts.length - 1]
 				});
 				continue;
 			}

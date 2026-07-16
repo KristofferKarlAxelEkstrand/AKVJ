@@ -100,7 +100,7 @@ clips/                           # Shared source bucket (version controlled)
 .cache/clips/                    # Optimized assets (generated, git-ignored)
 └── {clipId}/…
 
-vj-server/src/public/clips/      # Runtime assets for the VJ app (generated)
+akvj/src/public/clips/      # Runtime assets for the VJ app (generated)
 ├── {clipId}/…
 ├── clips.json                   # Flat catalog keyed by clipId
 └── set-mapping.json
@@ -110,7 +110,7 @@ The clip pipeline (`npm run clips`):
 
 - Validates the flat bucket + `set-mapping.json`
 - Optimizes PNGs into `.cache/clips/`
-- Generates `clips.json` and copies mapping + assets into `vj-server/src/public/clips/`
+- Generates `clips.json` and copies mapping + assets into `akvj/src/public/clips/`
 
 ### Clip Metadata (JSON)
 
@@ -168,7 +168,7 @@ Velocity selection rules
 
 - The highest defined velocity variant that does not exceed the MIDI input velocity will be chosen (e.g., if variants are defined at 40 and 80, an input velocity of 60 will select 40).
 - If the input velocity is lower than the lowest defined velocity variant, the note will be ignored (no variant is activated).
-- To change this behavior (for example, to always fallback to the lowest variant), modify `findVelocityThreshold` in `vj-server/src/js/utils/velocitySelection.js`.
+- To change this behavior (for example, to always fallback to the lowest variant), modify `findVelocityThreshold` in `akvj/src/js/utils/velocitySelection.js`.
 
 ### Building Clip Index
 
@@ -189,7 +189,7 @@ npm run clips:validate
 ### Setup
 
 ```bash
-npm install   # installs root + vj-server + admin workspaces
+npm install   # installs root + akvj + mainframe workspaces
 ```
 
 Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
@@ -198,8 +198,8 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 
 | Package      | Port               | Purpose                                        |
 | ------------ | ------------------ | ---------------------------------------------- |
-| `vj-server/` | 5173               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
-| `admin/`     | 5174 UI · 8787 API | Clip bucket + set-mapping authoring            |
+| `akvj/`      | 5173               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
+| `mainframe/` | 5174 UI · 8787 API | Clip bucket + set-mapping authoring            |
 | `clips/`     | —                  | Shared source clip bucket + `set-mapping.json` |
 
 ## Development
@@ -210,10 +210,10 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 npm run akvj
 ```
 
-### Start Admin
+### Start Mainframe
 
 ```bash
-npm run admin
+npm run mainframe
 ```
 
 ### Expected Behavior
@@ -236,12 +236,12 @@ npm run admin
 AKVJ/
 ├── package.json # npm workspaces root
 ├── clips/ # Shared clip bucket + set-mapping.json
-├── vj-server/ # Live VJ engine
+├── akvj/ # Live VJ engine
 │ ├── src/ # Vite app (main.js, js/, public/)
 │ ├── scripts/clips/ # Validate / optimize / generate pipeline
 │ ├── test/ # Vitest unit + visual tests
 │ └── package.json
-├── admin/ # Set authoring UI + local API
+├── mainframe/ # Set authoring UI + local API
 │ ├── src/ # Vanilla Vite UI
 │ ├── server/ # Node http/fs API (no Express)
 │ └── package.json
@@ -255,12 +255,12 @@ AKVJ/
 ### Core Commands
 
 ```bash
-npm run akvj                           # vj-server (localhost:5173)
-npm run admin                          # admin UI + API (5174 / 8787)
-npm run build                            # Build vj-server
-npm run build:all                        # clips + vj-server + admin
-npm run preview                          # Preview vj-server production build
-npm run test:all                         # vj-server + admin unit tests
+npm run akvj                           # akvj VJ engine (localhost:5173)
+npm run mainframe                      # mainframe UI + API (5174 / 8787)
+npm run build                            # Build akvj
+npm run build:all                        # clips + akvj + mainframe
+npm run preview                          # Preview akvj production build
+npm run test:all                         # akvj + mainframe unit tests
 ```
 
 ### Code Quality
@@ -279,7 +279,7 @@ This project uses **Husky** and **lint-staged** to automatically run linting and
 ### Clip Management
 
 ```bash
-npm run clips                            # Validate, optimize, generate, copy to vj-server public
+npm run clips                            # Validate, optimize, generate, copy to akvj public
 npm run clips:validate                   # Validate bucket + set-mapping only
 npm run clips:watch                      # Watch for clip changes and rebuild
 npm run clips:clean                      # Remove cache and generated output
@@ -303,13 +303,13 @@ AKVJ is optimized for real-time visual performance:
 
 ### Adding New Clips
 
-1. **Create clip**: `npm run clips:new -- my-clip` (or use Admin Upload)
+1. **Create clip**: `npm run clips:new -- my-clip` (or use Mainframe Upload)
 2. **Add `sprite.png`** and update `meta.json` (`numberOfFrames`, `framesPerRow`, timing)
-3. **Map MIDI**: edit `clips/set-mapping.json` or use Admin Mapping (DAW channels 1–16)
+3. **Map MIDI**: edit `clips/set-mapping.json` or use Mainframe Mapping (DAW channels 1–16)
 4. **Rebuild**: `npm run clips`
 5. **Test**: `npm run akvj` in Chrome and trigger via MIDI
 
-Alternatively, use `npm run admin` for upload + mapping + pipeline in one UI.
+Alternatively, use `npm run mainframe` for upload + mapping + pipeline in one UI.
 
 ### Code Contributions
 
@@ -333,4 +333,4 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 
 ### Clip Assets
 
-All clip assets (including all .png and .json files under `clips/` and generated `vj-server/src/public/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.
+All clip assets (including all .png and .json files under `clips/` and generated `akvj/src/public/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.
