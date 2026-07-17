@@ -104,7 +104,7 @@ npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 
 ### Channel → Layer Group Assignment
 
-Channels shown as displayed in DAWs (1-16). `set-mapping.json` uses DAW channels; ClipLoader converts to code channels 0–15 when building the runtime clip tree. Channel → layer routing in `settings.js` is unchanged.
+Channels shown as displayed in DAWs (1-16). `key-map.json` uses DAW channels; ClipLoader converts to code channels 0–15 when building the runtime clip tree. Channel → layer routing in `settings.js` is unchanged.
 
 | Channels | Layer Group          | Function                                                        |
 | -------- | -------------------- | --------------------------------------------------------------- |
@@ -125,27 +125,30 @@ Channels shown as displayed in DAWs (1-16). `set-mapping.json` uses DAW channels
 
 Key fields in `meta.json`:
 
-| Field                 | Type         | Description                                                                         |
-| --------------------- | ------------ | ----------------------------------------------------------------------------------- |
-| `png`                 | string       | Sprite sheet filename                                                               |
-| `numberOfFrames`      | number       | Total frames                                                                        |
-| `framesPerRow`        | number       | Frames per row in sprite sheet                                                      |
-| `playback`            | string       | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
-| `retrigger`           | boolean      | Restart on re-trigger                                                               |
-| `frameRatesForFrames` | object       | FPS per frame index                                                                 |
-| `frameDurationBeats`  | number/array | BPM-synced timing (beats per frame)                                                 |
-| `bitDepth`            | number       | For masks: 1, 2, 4, or 8                                                            |
-| `role`                | string       | Optional; `"bitmask"` for mixer masks                                               |
+| Field                 | Type          | Description                                                                         |
+| --------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| `png`                 | string        | Sprite sheet filename                                                               |
+| `frames`              | number        | Total frames (canonical field; `numberOfFrames` accepted as legacy alias)           |
+| `framesPerRow`        | number        | Frames per row in sprite sheet                                                      |
+| `playback`            | string        | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
+| `retrigger`           | boolean       | Restart on re-trigger                                                               |
+| `frameRatesForFrames` | object        | FPS per frame index                                                                 |
+| `frameDurationBeats`  | number/array  | BPM-synced timing (beats per frame)                                                 |
+| `bitDepth`            | number        | For masks: 1, 2, 4, or 8                                                            |
+| `role`                | string        | Optional; `"bitmask"` for mixer masks                                               |
+| `triggerType`         | string        | Optional; `"momentary"` (default), `"latch"`, or `"one-shot"`                       |
+| `triggerGroup`        | string/number | Optional; choke group name — triggering a clip stops all others in the same group   |
+| `name`                | string        | Optional; human-readable clip name                                                  |
 
 ## Clip Structure
 
-Source clips live in repo-root flat `clips/{clipId}/` (build pipeline copies to `akvj/src/public/clips/`). MIDI placement is in `clips/set-mapping.json` (DAW channels 1–16).
+Source clips live in repo-root flat `clips/{clipId}/` (build pipeline copies to `akvj/src/public/clips/`). MIDI placement is in `clips/key-map.json` (DAW channels 1–16).
 
 ```
 clips/{clipId}/
   ├── meta.json       # Clip metadata (optional role: "bitmask")
   └── sprite.png      # Sprite sheet
-clips/set-mapping.json
+clips/key-map.json
 ```
 
 ## Code Conventions
@@ -225,7 +228,7 @@ if (import.meta.hot) {
 | `mainframe/scripts/clips/lib/validate/meta.js`      | Metadata field validation                                         |
 | `mainframe/scripts/clips/lib/validate/image.js`     | Image dimension validation (sharp)                                |
 | `mainframe/scripts/clips/lib/validate/structure.js` | Folder/file structure helpers                                     |
-| `mainframe/scripts/clips/lib/validateMapping.js`    | Validate set-mapping.json vs clip bucket                          |
+| `mainframe/scripts/clips/lib/validateMapping.js`    | Validate key-map.json vs clip bucket                              |
 | `mainframe/scripts/clips/lib/optimize.js`           | PNG optimization with sharp                                       |
 | `mainframe/scripts/clips/lib/generate.js`           | Generate flat clips.json by clipId                                |
 | `mainframe/scripts/clips/lib/copy.js`               | Sync to public folder                                             |
@@ -279,7 +282,7 @@ Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync sym
 
 ## MIDI Spec MCP Server (`midi-mcp/`)
 
-A stdio MCP server exposing the MIDI 1.0 / MIDI 2.0 / Web MIDI specifications to AI agents. Wired up via `.vscode/mcp.json` (VS Code/Copilot) and root `.mcp.json` (Claude Code); works in the dev container. See [midi-mcp/README.md](midi-mcp/README.md).
+A stdio MCP server exposing the MIDI 1.0 / MIDI 2.0 / Web MIDI specifications to AI agents. See [midi-mcp/README.md](midi-mcp/README.md).
 
 - Tools: `search_spec_data` (protocol/tier filters, page-anchored results), `read_spec_doc` (page-range reads), `list_spec_docs`, `fetch_online_resource`.
 - The extracted corpus `midi-mcp/data/` is generated by `npm run midi:extract` and **committed** — never hand-edit it; curated content lives in `midi-mcp/reference/`.

@@ -1,6 +1,6 @@
 # Clips
 
-Shared clip bucket for AKVJ. Each clip has a stable **clipId** (folder name). MIDI placement is defined separately in `set-mapping.json`.
+Shared clip bucket for AKVJ. Each clip has a stable **clipId** (folder name). MIDI placement is defined separately in `key-map.json`.
 
 ## Directory Structure
 
@@ -9,21 +9,38 @@ clips/
   {clipId}/             # e.g. neon-skull or c1-n0-v0
     sprite.png          # Sprite sheet with all frames
     meta.json           # Clip metadata
-  set-mapping.json      # MIDI → clipId mappings (DAW channels 1–16)
+  key-map.json      # MIDI → clipId mappings (DAW channels 1–16)
 ```
 
 **Example mapping entry:**
 
 ```json
 {
-    "channel": 1,
-    "note": 60,
-    "velocity": 127,
-    "clipId": "neon-skull"
+    "1": {
+        "0": {
+            "0": "neon-skull"
+        }
+    }
 }
 ```
 
-Channel numbers in `set-mapping.json` use DAW display numbering (1–16). Runtime code channels remain 0–15. Layer routing by channel (`settings.channelMapping`) is unchanged.
+Mapping values can be either a clipId string (above) or an object with per-slot overrides:
+
+```json
+{
+    "1": {
+        "0": {
+            "0": {
+                "clipId": "neon-skull",
+                "triggerType": "latch",
+                "triggerGroup": "drums"
+            }
+        }
+    }
+}
+```
+
+Channel numbers in `key-map.json` use DAW display numbering (1–16). Runtime code channels remain 0–15. Layer routing by channel (`settings.channelMapping`) is unchanged.
 
 ## Creating a New Clip
 
@@ -42,28 +59,51 @@ npm run clips:new -- neon-skull
 # Creates: clips/neon-skull/meta.json
 ```
 
-Then add `sprite.png`, map the clip in `set-mapping.json`, and run `npm run clips`.
+Then add `sprite.png`, map the clip in `key-map.json`, and run `npm run clips`.
 
 ### Option 3: Manual
 
 1. Create `clips/{clipId}/`
 2. Add `sprite.png` and `meta.json`
-3. Add a mapping entry in `set-mapping.json`
+3. Add a mapping entry in `key-map.json`
 
 ## meta.json Format
 
 ```json
 {
+    "name": "My Cool Clip",
     "png": "sprite.png",
-    "numberOfFrames": 64,
+    "frames": 64,
     "framesPerRow": 8,
-    "loop": true,
+    "playback": "loop",
     "retrigger": true,
     "frameRatesForFrames": {
         "0": 12
     }
 }
 ```
+
+### Fields
+
+| Field                 | Type          | Required | Description                                                                                          |
+| --------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `png`                 | string        | yes      | Sprite sheet filename (typically `sprite.png`)                                                       |
+| `frames`              | number        | yes      | Total frames (`numberOfFrames` accepted as legacy alias)                                             |
+| `framesPerRow`        | number        | yes      | Frames per row in sprite sheet                                                                       |
+| `playback`            | string        | no       | Playback mode: `once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub` (default: `loop`) |
+| `retrigger`           | boolean       | no       | Restart on re-trigger (default: `true`)                                                              |
+| `frameRatesForFrames` | object        | no       | FPS per frame index (e.g. `{ "0": 12 }`)                                                             |
+| `frameDurationBeats`  | number/array  | no       | BPM-synced timing in beats per frame (number or per-frame array)                                     |
+| `bitDepth`            | number        | no       | For masks: 1, 2, 4, or 8                                                                             |
+| `role`                | string        | no       | `"bitmask"` for mixer mask clips                                                                     |
+| `triggerType`         | string        | no       | `momentary` (default), `latch`, or `one-shot`                                                        |
+| `triggerGroup`        | string/number | no       | Choke group — triggering a clip stops all others in the same group                                   |
+| `name`                | string        | no       | Human-readable clip name                                                                             |
+
+### Legacy fields
+
+- `numberOfFrames` — alias for `frames` (deprecated, use `frames`)
+- `loop` — boolean, converted to `playback: "loop"` or `"once"` (deprecated, use `playback`)
 
 ### Bitmask / mixer clips
 
@@ -78,11 +118,6 @@ Clips used as mixer bitmasks set:
 
 Do not infer bitmask behavior from folder location — use `role`.
 
-### Timing fields
-
-- `frameRatesForFrames` — FPS-based timing
-- `frameDurationBeats` — BPM-synced timing (number or per-frame array)
-
 ## Build pipeline
 
 From repo root:
@@ -91,4 +126,4 @@ From repo root:
 npm run clips
 ```
 
-Pipeline: validate flat bucket → optimize → generate flat `clips.json` → copy `set-mapping.json` + assets to `akvj/src/public/clips/` (generated; do not hand-edit).
+Pipeline: validate flat bucket → optimize → generate flat `clips.json` → copy `key-map.json` + assets to `akvj/src/public/clips/` (generated; do not hand-edit).
