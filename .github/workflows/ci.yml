@@ -50,6 +50,9 @@ jobs:
             - name: Run visual tests
               run: npm run test:visual
 
+            - name: Run E2E tests
+              run: npm run test:e2e
+
             - name: Build all packages
               run: npm run build:all
 

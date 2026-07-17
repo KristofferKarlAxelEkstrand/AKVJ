@@ -1,8 +1,0 @@
-{
-	"mcpServers": {
-		"midi-spec": {
-			"command": "node",
-			"args": ["midi-mcp/index.js"]
-		}
-	}
-}
