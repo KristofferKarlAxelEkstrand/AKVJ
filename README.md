@@ -85,7 +85,7 @@ AKVJ uses a modular, component-based architecture built with vanilla JavaScript:
 
 ## Clip System
 
-AKVJ uses PNG sprite sheets + JSON metadata. Clips live in a **flat bucket** by `clipId`; MIDI placement is defined in `clips/set-mapping.json` (DAW channels 1–16).
+AKVJ uses PNG sprite sheets + JSON metadata. Clips live in a **flat bucket** by `clipId`; MIDI placement is defined in `clips/key-map.json` (DAW channels 1–16).
 
 ### Directory Structure
 
@@ -94,7 +94,7 @@ clips/                           # Shared source bucket (version controlled)
 ├── {clipId}/                    # e.g. neon-skull or c1-n0-v0
 │   ├── sprite.png
 │   └── meta.json                # optional role: "bitmask"
-├── set-mapping.json             # MIDI → clipId (channel/note/velocity)
+├── key-map.json             # MIDI → clipId (channel/note/velocity)
 └── LICENSE-ASSETS.md
 
 .cache/clips/                    # Optimized assets (generated, git-ignored)
@@ -103,12 +103,12 @@ clips/                           # Shared source bucket (version controlled)
 akvj/src/public/clips/      # Runtime assets for the VJ app (generated)
 ├── {clipId}/…
 ├── clips.json                   # Flat catalog keyed by clipId
-└── set-mapping.json
+└── key-map.json
 ```
 
 The clip pipeline (`npm run clips`):
 
-- Validates the flat bucket + `set-mapping.json`
+- Validates the flat bucket + `key-map.json`
 - Optimizes PNGs into `.cache/clips/`
 - Generates `clips.json` and copies mapping + assets into `akvj/src/public/clips/`
 
@@ -199,8 +199,8 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 | Package      | Port               | Purpose                                        |
 | ------------ | ------------------ | ---------------------------------------------- |
 | `akvj/`      | 8888               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
-| `mainframe/` | 9999 UI · 7777 API | Clip bucket + set-mapping authoring            |
-| `clips/`     | —                  | Shared source clip bucket + `set-mapping.json` |
+| `mainframe/` | 9999 UI · 7777 API | Clip bucket + key-map authoring            |
+| `clips/`     | —                  | Shared source clip bucket + `key-map.json` |
 
 ## Development
 
@@ -235,7 +235,7 @@ npm run mainframe
 
 AKVJ/
 ├── package.json # npm workspaces root
-├── clips/ # Shared clip bucket + set-mapping.json
+├── clips/ # Shared clip bucket + key-map.json
 ├── akvj/ # Live VJ engine
 │ ├── src/ # Vite app (main.js, js/, public/)
 │ ├── scripts/clips/ # Validate / optimize / generate pipeline
@@ -280,7 +280,7 @@ This project uses **Husky** and **lint-staged** to automatically run linting and
 
 ```bash
 npm run clips                            # Validate, optimize, generate, copy to akvj public
-npm run clips:validate                   # Validate bucket + set-mapping only
+npm run clips:validate                   # Validate bucket + key-map only
 npm run clips:watch                      # Watch for clip changes and rebuild
 npm run clips:clean                      # Remove cache and generated output
 npm run clips:new -- neon-skull          # Scaffold clips/{clipId}/meta.json
@@ -305,7 +305,7 @@ AKVJ is optimized for real-time visual performance:
 
 1. **Create clip**: `npm run clips:new -- my-clip` (or use Mainframe Upload)
 2. **Add `sprite.png`** and update `meta.json` (`numberOfFrames`, `framesPerRow`, timing)
-3. **Map MIDI**: edit `clips/set-mapping.json` or use Mainframe Mapping (DAW channels 1–16)
+3. **Map MIDI**: edit `clips/key-map.json` or use Mainframe Mapping (DAW channels 1–16)
 4. **Rebuild**: `npm run clips`
 5. **Test**: `npm run akvj` in Chrome and trigger via MIDI
 

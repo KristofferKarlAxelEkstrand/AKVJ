@@ -1,6 +1,6 @@
 # AKVJ Mainframe
 
-Vanilla JS + CSS Vite app for managing the shared `clips/` bucket and `set-mapping.json`.
+Vanilla JS + CSS Vite app for managing the shared `clips/` bucket and `key-map.json`.
 
 ## Commands
 
@@ -18,7 +18,7 @@ npm run build -w mainframe
 | GET     | `/api/clips`            | List clip bucket                    |
 | GET     | `/api/clips/:id/sprite` | Preview sprite                      |
 | POST    | `/api/clips`            | Create clip from base64 PNG frames  |
-| GET/PUT | `/api/mapping`          | Read/write `clips/set-mapping.json` |
+| GET/PUT | `/api/mapping`          | Read/write `clips/key-map.json` |
 | POST    | `/api/pipeline`         | Run `npm run clips`                 |
 
 No Express — plain Node `http`/`fs` + `sharp` for spritesheets.

@@ -37,7 +37,7 @@ Every MIDI note you send has three values:
 
 **Note:** Velocity 0 = Note Off (stops the clip)
 
-**Example:** `Channel 1, Note 60, Velocity 100` plays the clip mapped to that slot in `clips/set-mapping.json` (e.g. `clips/c1-n60-v100/`).
+**Example:** `Channel 1, Note 60, Velocity 100` plays the clip mapped to that slot in `clips/key-map.json` (e.g. `clips/c1-n60-v100/`).
 
 ## Layer Group Architecture
 
@@ -180,14 +180,14 @@ Channel 11 (Layer Group C, Slot 0):
 
 ## Clip File Locations
 
-Clips live in flat `clips/{clipId}/` folders, with MIDI placement defined in `clips/set-mapping.json`:
+Clips live in flat `clips/{clipId}/` folders, with MIDI placement defined in `clips/key-map.json`:
 
 ```
 clips/{clipId}/
   ├── sprite.png     # Spritesheet with all frames
   └── meta.json      # Clip metadata
 
-clips/set-mapping.json   # Maps channel/note/velocity → clipId
+clips/key-map.json   # Maps channel/note/velocity → clipId
 ```
 
 **Example:** For `Channel 1, Note 60, Velocity 100`, the mapping entry `{ "channel": 1, "note": 60, "velocity": 100, "clipId": "my-clip" }` plays `clips/my-clip/`.
@@ -308,7 +308,7 @@ For effect channels (10, 13):
 
 ### File Location
 
-`clips/{clipId}/sprite.png` (MIDI mapping in `clips/set-mapping.json`)
+`clips/{clipId}/sprite.png` (MIDI mapping in `clips/key-map.json`)
 
 ## See Also
 

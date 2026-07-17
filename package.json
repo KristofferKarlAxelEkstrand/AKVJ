@@ -1,10 +1,12 @@
 {
+	"name": "akvj",
+	"version": "0.0.0",
+	"description": "AKVJ monorepo — live VJ engine (akvj) and set management tooling (mainframe).",
 	"author": {
 		"email": "hej@kristofferekstrand.se",
 		"name": "Kristoffer Ekstrand",
 		"url": "https://kristofferekstrand.se"
 	},
-	"description": "AKVJ monorepo — live VJ engine (akvj) and set management tooling (mainframe).",
 	"devDependencies": {
 		"@commitlint/cli": "^21.2.1",
 		"@commitlint/config-conventional": "^21.2.0",
@@ -13,9 +15,7 @@
 		"eslint": "^10.7.0",
 		"eslint-config-prettier": "^10.1.8",
 		"globals": "^17.7.0",
-		"husky": "^9.1.7",
 		"knip": "^6.27.0",
-		"lint-staged": "^17.0.8",
 		"prettier": "3.9.5",
 		"stylelint": "^17.14.0",
 		"stylelint-config-recommended": "^18.0.0",
@@ -25,20 +25,6 @@
 		"node": ">=20"
 	},
 	"license": "MIT",
-	"lint-staged": {
-		"*.css": [
-			"stylelint --fix",
-			"prettier --write"
-		],
-		"*.js": [
-			"eslint --fix",
-			"prettier --write"
-		],
-		"*.{json,md}": [
-			"prettier --write"
-		]
-	},
-	"name": "akvj",
 	"private": true,
 	"repository": {
 		"type": "git",
@@ -48,8 +34,8 @@
 		"build": "npm run build -w akvj",
 		"build:all": "npm run clips && npm run build -w akvj && npm run build -w mainframe",
 		"build:full": "npm run clips && npm run build -w akvj",
-		"check:eol": "node akvj/scripts/check-line-endings.js",
-		"check:utf8": "node akvj/scripts/check-utf8.js",
+		"check:eol": "node monorepo-scripts/check-line-endings.js",
+		"check:utf8": "node monorepo-scripts/check-utf8.js",
 		"clips": "node mainframe/scripts/clips",
 		"clips:clean": "node mainframe/scripts/clips --clean",
 		"clips:new": "node mainframe/scripts/clips/new.js",
@@ -58,8 +44,8 @@
 		"clips:watch": "node mainframe/scripts/clips --watch",
 		"akvj": "npm run dev -w akvj",
 		"mainframe": "npm run dev -w mainframe",
-		"fix:eol": "node akvj/scripts/check-line-endings.js --fix",
-		"fix:utf8": "node akvj/scripts/check-utf8.js --fix",
+		"fix:eol": "node monorepo-scripts/check-line-endings.js --fix",
+		"fix:utf8": "node monorepo-scripts/check-utf8.js --fix",
 		"format:check": "prettier --check .",
 		"format:prettier": "prettier --write .",
 		"format:stylelint": "stylelint \"**/*.css\" --fix",
@@ -67,23 +53,22 @@
 		"lint:css": "stylelint \"**/*.css\"",
 		"lint:fix": "eslint . --fix",
 		"knip": "knip",
-		"midi:extract": "npm run extract -w midi-mcp",
-		"prepare": "husky",
 		"preview": "npm run preview -w akvj",
+		"sort-package-json": "node monorepo-scripts/sort-package-json.js",
 		"test": "npm run test -w akvj",
-		"test:all": "npm run test -w akvj && npm run test -w mainframe && npm run test -w midi-mcp",
+		"test:all": "npm run test -w akvj && npm run test -w mainframe",
 		"test:smoke": "node mainframe/test/smoke/startup.test.js",
+		"test:smoke:mainframe": "node mainframe/test/smoke/mainframe-startup.test.js",
 		"test:ci": "npm run test:ci -w akvj",
 		"test:e2e": "npx playwright test",
+		"test:e2e:all": "npm run test:smoke && npx playwright test",
 		"test:e2e:install": "npx playwright install chromium",
 		"test:visual": "npm run test:visual -w akvj && npm run test:visual -w mainframe",
 		"test:visual:update": "npm run test:visual:update -w akvj && npm run test:visual:update -w mainframe"
 	},
 	"type": "module",
-	"version": "0.0.0",
 	"workspaces": [
 		"akvj",
-		"mainframe",
-		"midi-mcp"
+		"mainframe"
 	]
 }

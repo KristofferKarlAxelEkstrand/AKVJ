@@ -3,6 +3,9 @@ logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+
+# Agent workflow state
+.agents/workflows/developer-team/scripts/.await-state.json
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*

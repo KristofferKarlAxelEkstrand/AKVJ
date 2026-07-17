@@ -151,7 +151,7 @@ clips/neon-skull/
   └── sprite.png      # Sprite sheet with all frames
 ```
 
-MIDI placement is configured in `clips/set-mapping.json` using DAW channel numbers (1-16):
+MIDI placement is configured in `clips/key-map.json` using DAW channel numbers (1-16):
 
 ```json
 [{ "channel": 1, "note": 0, "velocity": 0, "clipId": "neon-skull" }]
