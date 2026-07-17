@@ -1,25 +1,17 @@
 import './js/PianoKeyboard.js';
+import './js/StickyPianoRoll.js';
 import './js/ClipList.js';
 import './js/ClipEditor.js';
 import './js/MappingTable.js';
 import './js/StagingPreview.js';
-
-const API = '/api';
+import { api } from './js/apiClient.js';
+import mainframeState, { EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED } from './js/mainframeState.js';
 
 const panels = {
 	library: document.getElementById('panel-library'),
 	upload: document.getElementById('panel-upload'),
 	mapping: document.getElementById('panel-mapping')
 };
-
-/** @type {Array<{channel: number, note: number, velocity: number, clipId: string}>} */
-let mappingState = [];
-/** @type {Array<{clipId: string, meta: object, hasSprite: boolean}>} */
-let clipCatalog = [];
-let clipSearchQuery = '';
-let clipRoleFilter = '';
-let clipSortMode = 'name';
-let pianoChannel = 1;
 
 const PIANO_CHANNEL_LABELS = {
 	1: 'Layer Group A',
@@ -42,8 +34,7 @@ const PIANO_CHANNEL_LABELS = {
 
 const pianoChannelSelect = document.getElementById('piano-channel');
 pianoChannelSelect.addEventListener('change', () => {
-	pianoChannel = Number(pianoChannelSelect.value);
-	renderMapping();
+	mainframeState.channel = Number(pianoChannelSelect.value);
 });
 
 function populatePianoChannelSelect() {
@@ -54,56 +45,45 @@ function populatePianoChannelSelect() {
 		option.textContent = `Ch ${channel} — ${PIANO_CHANNEL_LABELS[channel]}`;
 		pianoChannelSelect.append(option);
 	}
-	pianoChannelSelect.value = String(pianoChannel);
+	pianoChannelSelect.value = String(mainframeState.channel);
 }
 
 const clipListElement = document.getElementById('clip-list');
 const mappingTableElement = document.getElementById('mapping-table');
+const stickyPianoRoll = document.getElementById('sticky-piano-roll');
 
 const clipSearchInput = document.getElementById('clip-search');
 clipSearchInput.addEventListener('input', () => {
-	clipSearchQuery = clipSearchInput.value.trim().toLowerCase();
-	clipListElement.searchQuery = clipSearchQuery;
-	updateFilterVisibility();
+	stickyPianoRoll.clearFilter();
+	mainframeState.searchQuery = clipSearchInput.value.trim().toLowerCase();
 });
 
 const clipRoleFilterSelect = document.getElementById('clip-role-filter');
 clipRoleFilterSelect.addEventListener('change', () => {
-	clipRoleFilter = clipRoleFilterSelect.value;
-	clipListElement.roleFilter = clipRoleFilter;
-	updateFilterVisibility();
+	mainframeState.roleFilter = clipRoleFilterSelect.value;
 });
 
 const clipSortSelect = document.getElementById('clip-sort');
 clipSortSelect.addEventListener('change', () => {
-	clipSortMode = clipSortSelect.value;
-	clipListElement.sortMode = clipSortMode;
+	mainframeState.sortMode = clipSortSelect.value;
 });
 
 const clearFiltersButton = document.getElementById('clear-filters');
 clearFiltersButton.addEventListener('click', () => {
-	clipSearchQuery = '';
-	clipRoleFilter = '';
-	clipSortMode = 'name';
+	mainframeState.searchQuery = '';
+	mainframeState.roleFilter = '';
+	mainframeState.sortMode = 'name';
 	clipSearchInput.value = '';
 	clipRoleFilterSelect.value = '';
 	clipSortSelect.value = 'name';
-	clipListElement.searchQuery = '';
-	clipListElement.roleFilter = '';
-	clipListElement.sortMode = 'name';
-	updateFilterVisibility();
+	stickyPianoRoll.clearFilter();
 });
 
 clipListElement.addEventListener('clipedit', event => {
-	const { clip, listItem } = event.detail;
-	const existingForm = listItem.querySelector('.clip-edit-form');
-	if (existingForm) {
-		existingForm.remove();
-		return;
-	}
+	const { clip, clipId } = event.detail;
 	const editor = document.createElement('akvj-clip-editor');
 	editor.clip = clip;
-	listItem.append(editor);
+	clipListElement.attachEditForm(clipId, editor);
 });
 
 clipListElement.addEventListener('clipsaved', _event => {
@@ -119,7 +99,7 @@ clipListElement.addEventListener('clipmap', event => {
 });
 
 function updateFilterVisibility() {
-	const hasActiveFilter = clipSearchQuery !== '' || clipRoleFilter !== '';
+	const hasActiveFilter = mainframeState.searchQuery !== '' || mainframeState.roleFilter !== '';
 	clearFiltersButton.hidden = !hasActiveFilter;
 }
 
@@ -129,18 +109,6 @@ function setStatus(statusElement, message, kind = '') {
 	if (kind) {
 		statusElement.classList.add(kind);
 	}
-}
-
-async function api(path, options = {}) {
-	const response = await fetch(`${API}${path}`, {
-		headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-		...options
-	});
-	const responseBody = await response.json().catch(() => ({}));
-	if (!response.ok) {
-		throw new Error(responseBody.error || `HTTP ${response.status}`);
-	}
-	return responseBody;
 }
 
 function switchTab(tabName) {
@@ -165,14 +133,14 @@ function mapClipFromLibrary(clipId) {
 }
 
 function renderLibrary() {
-	clipListElement.clips = clipCatalog;
+	clipListElement.clips = mainframeState.clips;
 	updateClipSummary();
 	updateFilterVisibility();
 }
 
 function populateRoleFilter() {
-	const roles = [...new Set(clipCatalog.map(clip => clip.meta.role || '').filter(Boolean))].sort();
-	const currentValue = clipRoleFilter;
+	const roles = [...new Set(mainframeState.clips.map(clip => clip.meta.role || '').filter(Boolean))].sort();
+	const currentValue = mainframeState.roleFilter;
 	clipRoleFilterSelect.replaceChildren();
 	const allOption = document.createElement('option');
 	allOption.value = '';
@@ -187,14 +155,14 @@ function populateRoleFilter() {
 	if (roles.includes(currentValue)) {
 		clipRoleFilterSelect.value = currentValue;
 	} else {
-		clipRoleFilter = '';
+		mainframeState.roleFilter = '';
 	}
 }
 
 function updateClipSummary() {
 	const summary = document.getElementById('clip-summary');
-	const total = clipCatalog.length;
-	const ready = clipCatalog.filter(clip => clip.pipelineReady).length;
+	const total = mainframeState.clips.length;
+	const ready = mainframeState.clips.filter(clip => clip.pipelineReady).length;
 	const incomplete = total - ready;
 	if (total === 0) {
 		summary.textContent = '';
@@ -221,7 +189,7 @@ async function deleteClip(clipId) {
 function fillClipSelect() {
 	const select = document.getElementById('map-clip-id');
 	select.replaceChildren();
-	for (const clip of clipCatalog.filter(clip => clip.pipelineReady !== false && clip.hasSprite)) {
+	for (const clip of mainframeState.clips.filter(clip => clip.pipelineReady !== false && clip.hasSprite)) {
 		const option = document.createElement('option');
 		option.value = clip.clipId;
 		option.textContent = clip.clipId;
@@ -230,15 +198,14 @@ function fillClipSelect() {
 }
 
 function renderMapping() {
-	mappingTableElement.mappings = mappingState;
-	mappingTableElement.clipCatalog = clipCatalog;
+	mappingTableElement.mappings = mainframeState.mappings;
+	mappingTableElement.clipCatalog = mainframeState.clips;
 	updatePianoKeyboard();
 }
 
 mappingTableElement.addEventListener('mappingremove', event => {
 	const { channel, note, velocity } = event.detail;
-	mappingState = mappingState.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
-	renderMapping();
+	mainframeState.mappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
 });
 
 const pianoKeyboard = document.getElementById('piano-keyboard');
@@ -250,28 +217,63 @@ pianoKeyboard.addEventListener('pianokeyclick', event => {
 		setStatus(document.getElementById('mapping-status'), 'Select a clip first', 'is-err');
 		return;
 	}
-	mappingState = mappingState.filter(existingEntry => !(existingEntry.channel === pianoChannel && existingEntry.note === note && existingEntry.velocity === 0));
-	mappingState.push({ channel: pianoChannel, note, velocity: 0, clipId });
-	renderMapping();
+	const updatedMappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === mainframeState.channel && existingEntry.note === note && existingEntry.velocity === 0)).concat([{ channel: mainframeState.channel, note, velocity: 0, clipId }]);
+	mainframeState.mappings = updatedMappings;
+});
+
+stickyPianoRoll.addEventListener('stickykeyclick', event => {
+	const { clipId, isActive } = event.detail;
+	if (isActive && clipId) {
+		clipListElement.searchQuery = clipId;
+	} else {
+		clipListElement.searchQuery = mainframeState.searchQuery;
+	}
 });
 
 function updatePianoKeyboard() {
-	pianoKeyboard.channel = pianoChannel;
-	pianoKeyboard.mappings = mappingState;
+	pianoKeyboard.channel = mainframeState.channel;
+	pianoKeyboard.mappings = mainframeState.mappings;
+	stickyPianoRoll.channel = mainframeState.channel;
+	stickyPianoRoll.mappings = mainframeState.mappings;
 }
+
+mainframeState.subscribe(EVENT_CLIPS_CHANGED, () => {
+	renderLibrary();
+	populateRoleFilter();
+	fillClipSelect();
+});
+
+mainframeState.subscribe(EVENT_MAPPINGS_CHANGED, () => {
+	renderMapping();
+});
+
+mainframeState.subscribe(EVENT_CHANNEL_CHANGED, event => {
+	pianoChannelSelect.value = String(event.detail.channel);
+	updatePianoKeyboard();
+});
+
+mainframeState.subscribe(EVENT_SEARCH_CHANGED, event => {
+	clipListElement.searchQuery = event.detail.searchQuery;
+	updateFilterVisibility();
+});
+
+mainframeState.subscribe(EVENT_ROLE_FILTER_CHANGED, event => {
+	clipListElement.roleFilter = event.detail.roleFilter;
+	updateFilterVisibility();
+});
+
+mainframeState.subscribe(EVENT_SORT_MODE_CHANGED, event => {
+	clipListElement.sortMode = event.detail.sortMode;
+});
 
 async function loadLibrary() {
 	const libraryResponse = await api('/clips');
-	clipCatalog = libraryResponse.clips;
-	populateRoleFilter();
-	renderLibrary();
-	fillClipSelect();
+	mainframeState.clips = libraryResponse.clips;
 }
 
 async function loadMapping() {
 	const mappingResponse = await api('/mapping');
-	mappingState = mappingResponse.mapping;
-	renderMapping();
+	mainframeState.mappings = mappingResponse.mapping;
 }
 
 document.querySelectorAll('.tab').forEach(btn => {
@@ -412,9 +414,8 @@ document.getElementById('add-mapping').addEventListener('click', () => {
 	if (!clipId) {
 		return;
 	}
-	mappingState = mappingState.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
-	mappingState.push({ channel, note, velocity, clipId });
-	renderMapping();
+	const updatedMappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity)).concat([{ channel, note, velocity, clipId }]);
+	mainframeState.mappings = updatedMappings;
 });
 
 document.getElementById('reload-mapping').addEventListener('click', () => {
@@ -425,7 +426,7 @@ document.getElementById('save-mapping').addEventListener('click', async () => {
 	const status = document.getElementById('mapping-status');
 	setStatus(status, 'Saving…');
 	try {
-		await api('/mapping', { method: 'PUT', body: JSON.stringify({ mapping: mappingState }) });
+		await api('/mapping', { method: 'PUT', body: JSON.stringify({ mapping: mainframeState.mappings }) });
 		setStatus(status, 'Mapping saved', 'is-ok');
 	} catch (error) {
 		setStatus(status, error.message, 'is-err');

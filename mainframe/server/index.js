@@ -104,13 +104,8 @@ async function readClipDirectories() {
 
 async function listClips() {
 	const entries = await readClipDirectories();
-	const clips = [];
-	for (const entry of entries) {
-		if (!entry.isDirectory() || !isValidClipId(entry.name)) {
-			continue;
-		}
-		clips.push(await buildClipEntry(entry.name));
-	}
+	const clipEntries = entries.filter(entry => entry.isDirectory() && isValidClipId(entry.name));
+	const clips = await Promise.all(clipEntries.map(entry => buildClipEntry(entry.name)));
 	clips.sort((a, b) => a.clipId.localeCompare(b.clipId));
 	return clips;
 }
@@ -362,7 +357,16 @@ async function serveSprite(_req, res, url) {
 	}
 	const pngName = await resolveSpriteName(clipId);
 	const spritePath = resolveSafeSpritePath(clipId, pngName);
-	const spriteData = await fs.readFile(spritePath);
+	let spriteData;
+	try {
+		spriteData = await fs.readFile(spritePath);
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			sendJson(res, 404, { error: `Sprite "${pngName}" not found for clip "${clipId}"` });
+			return;
+		}
+		throw error;
+	}
 	res.writeHead(200, {
 		'Content-Type': 'image/png',
 		'Content-Length': spriteData.length,
@@ -389,8 +393,12 @@ async function handlePostClips(req, res) {
 		return;
 	}
 	const frameBuffers = frames.map(frame => Buffer.from(String(frame).replace(/^data:image\/\w+;base64,/, ''), 'base64'));
-	const result = await createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, name, playback, frameRate });
-	sendJson(res, 201, { ok: true, ...result });
+	try {
+		const result = await createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, name, playback, frameRate });
+		sendJson(res, 201, { ok: true, ...result });
+	} catch (error) {
+		sendJson(res, 400, { error: error.message });
+	}
 }
 
 async function handleRecompileClip(req, res, url) {
@@ -450,7 +458,17 @@ async function handlePutClipMeta(req, res, url) {
 	}
 	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
 	const currentMetaPath = path.join(targetDir, 'meta.json');
-	const currentMeta = JSON.parse(await fs.readFile(currentMetaPath, 'utf8'));
+	let currentMeta;
+	try {
+		currentMeta = JSON.parse(await fs.readFile(currentMetaPath, 'utf8'));
+	} catch (error) {
+		if (error.code === 'ENOENT') {
+			sendJson(res, 404, { error: `Clip "${clipId}" has no meta.json` });
+			return;
+		}
+		sendJson(res, 400, { error: `Clip "${clipId}" has invalid meta.json: ${error.message}` });
+		return;
+	}
 	const updatedMeta = { ...currentMeta };
 	for (const [key, value] of Object.entries(body)) {
 		if (EDITABLE_META_FIELDS.has(key)) {

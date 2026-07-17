@@ -1,4 +1,5 @@
-const API = '/api';
+import { API } from './apiClient.js';
+import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 
 /**
  * AkvjClipList — custom element encapsulating the clip library list.
@@ -117,7 +118,8 @@ class AkvjClipList extends HTMLElement {
 			}
 			const clipIdMatch = clip.clipId.toLowerCase().includes(this.#searchQuery);
 			const roleMatch = clipRole.toLowerCase().includes(this.#searchQuery);
-			return clipIdMatch || roleMatch;
+			const nameMatch = (clip.meta.name || '').toLowerCase().includes(this.#searchQuery);
+			return clipIdMatch || roleMatch || nameMatch;
 		});
 
 		filtered.sort((clipA, clipB) => {
@@ -172,7 +174,7 @@ class AkvjClipList extends HTMLElement {
 		editButton.className = 'clip-edit';
 		editButton.textContent = 'Edit';
 		editButton.addEventListener('click', () => {
-			this.dispatchEvent(new CustomEvent('clipedit', { bubbles: true, detail: { clipId: clip.clipId, clip, listItem: li } }));
+			this.dispatchEvent(new CustomEvent('clipedit', { bubbles: true, detail: { clipId: clip.clipId, clip } }));
 		});
 
 		const deleteButton = document.createElement('button');
@@ -287,6 +289,8 @@ class AkvjClipList extends HTMLElement {
 		let isPlaying = false;
 		let playbackSpeed = 1;
 		let isScrubbing = false;
+		let shuffleState = null;
+		let pingpongState = null;
 
 		function getFrameInterval(frameIndex) {
 			const fps = frameRatesForFrames[frameIndex] ?? defaultFrameRate;
@@ -331,17 +335,19 @@ class AkvjClipList extends HTMLElement {
 			const elapsed = timestamp - lastFrameTime;
 			if (elapsed >= getFrameInterval(currentFrame)) {
 				lastFrameTime = timestamp;
-				currentFrame++;
-				if (currentFrame >= frameCount) {
-					if (playbackMode !== 'once') {
-						currentFrame = 0;
-					} else {
-						currentFrame = frameCount - 1;
-						setPlaying(false);
-						frameLabel.textContent = `Frame ${currentFrame + 1} / ${frameCount} (finished)`;
-						drawCurrentFrame();
-						return;
-					}
+				if (playbackMode === 'shuffle' && !shuffleState) {
+					shuffleState = new ShuffleState(frameCount);
+				}
+				if (playbackMode === 'pingpong' && !pingpongState) {
+					pingpongState = new PingpongState();
+				}
+				const result = advanceFrame(currentFrame, frameCount, playbackMode, shuffleState, pingpongState);
+				currentFrame = result.frame;
+				if (result.finished) {
+					setPlaying(false);
+					frameLabel.textContent = `Frame ${currentFrame + 1} / ${frameCount} (finished)`;
+					drawCurrentFrame();
+					return;
 				}
 				drawCurrentFrame();
 			}
@@ -409,16 +415,13 @@ class AkvjClipList extends HTMLElement {
 	 */
 	attachEditForm(clipId, formElement) {
 		for (const li of this.children) {
-			const existingForm = li.querySelector('.clip-edit-form');
-			if (existingForm) {
-				existingForm.remove();
-				return;
-			}
-		}
-		// Find the li for this clipId and append the form
-		for (const li of this.children) {
 			const img = li.querySelector('img');
 			if (img && img.alt === clipId) {
+				const existingForm = li.querySelector('akvj-clip-editor');
+				if (existingForm) {
+					existingForm.remove();
+					return;
+				}
 				li.append(formElement);
 				return;
 			}

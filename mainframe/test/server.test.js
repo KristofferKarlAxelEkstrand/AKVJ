@@ -218,7 +218,7 @@ describe('POST /api/clips', () => {
 			clipId: 'upload-test-clip',
 			frames: [PNG_4x4]
 		});
-		expect(status).toBe(500);
+		expect(status).toBe(400);
 	});
 
 	test('stores raw assets alongside compiled clip', async () => {

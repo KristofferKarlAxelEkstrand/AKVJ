@@ -1,4 +1,6 @@
 {
+	"name": "mainframe",
+	"version": "0.0.0",
 	"description": "AKVJ Mainframe — set preparation, clip ingestion, and mapping editor.",
 	"devDependencies": {
 		"@vitest/browser-playwright": "^4.1.10",
@@ -8,7 +10,6 @@
 		"vite": "^8.1.4",
 		"vitest": "^4.1.10"
 	},
-	"name": "mainframe",
 	"private": true,
 	"scripts": {
 		"build": "vite build",
@@ -28,6 +29,5 @@
 		"test:visual:update": "vitest run --config vitest.visual.config.js --update",
 		"test:watch": "vitest"
 	},
-	"type": "module",
-	"version": "0.0.0"
+	"type": "module"
 }

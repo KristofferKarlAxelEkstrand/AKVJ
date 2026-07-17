@@ -4,7 +4,7 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: 'node',
-		exclude: ['**/node_modules/**', '**/dist/**', '**/server/**', '**/smoke/**'],
+		exclude: ['**/node_modules/**', '**/dist/**', '**/server/**', '**/smoke/**', 'test/visual/**'],
 		testTimeout: 30000,
 		fileParallelism: false
 	}

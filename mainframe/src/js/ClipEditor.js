@@ -1,4 +1,4 @@
-const API = '/api';
+import { API, api } from './apiClient.js';
 
 const PLAYBACK_MODES = ['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub'];
 const TRIGGER_TYPES = ['momentary', 'latch', 'one-shot'];
@@ -261,9 +261,8 @@ class AkvjClipEditor extends HTMLElement {
 				if (frameDurationBeatsRaw) {
 					updates.frameDurationBeats = JSON.parse(frameDurationBeatsRaw);
 				}
-				await fetch(`${API}/clips/${encodeURIComponent(this.#clip.clipId)}`, {
+				await api(`/clips/${encodeURIComponent(this.#clip.clipId)}`, {
 					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify(updates)
 				});
 				this.#setStatus(statusSpan, 'Saved', 'is-ok');

@@ -1,3 +1,5 @@
+import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
+
 const PLAYBACK_MODES = ['loop', 'once', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub'];
 
 /**
@@ -19,6 +21,8 @@ class AkvjStagingPreview extends HTMLElement {
 	#targetHeight = 135;
 	#frameRate = 12;
 	#playbackMode = 'loop';
+	#shuffleState = null;
+	#pingpongState = null;
 	#canvas = null;
 	#ctx = null;
 	#frameLabel = null;
@@ -48,6 +52,8 @@ class AkvjStagingPreview extends HTMLElement {
 		this.#targetHeight = targetHeight || 135;
 		this.#frameRate = frameRate || 12;
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
+		this.#shuffleState = null;
+		this.#pingpongState = null;
 		this.#stopPlayback();
 		this.#stagedImages = [];
 		this.#currentFrame = 0;
@@ -97,6 +103,9 @@ class AkvjStagingPreview extends HTMLElement {
 		if (this.#scrubSlider) {
 			this.#scrubSlider.max = String(Math.max(0, this.#stagedImages.length - 1));
 			this.#scrubSlider.disabled = false;
+		}
+		if (this.#playPauseButton) {
+			this.#playPauseButton.disabled = false;
 		}
 
 		this.#drawCurrentFrame();
@@ -233,35 +242,17 @@ class AkvjStagingPreview extends HTMLElement {
 
 	#advanceFrame() {
 		const frameCount = this.#stagedImages.length;
-		switch (this.#playbackMode) {
-			case 'reverse':
-				this.#currentFrame = (this.#currentFrame - 1 + frameCount) % frameCount;
-				break;
-			case 'random':
-				this.#currentFrame = Math.floor(Math.random() * frameCount);
-				break;
-			case 'shuffle':
-				this.#currentFrame = Math.floor(Math.random() * frameCount);
-				break;
-			case 'once':
-				this.#currentFrame++;
-				if (this.#currentFrame >= frameCount) {
-					this.#currentFrame = frameCount - 1;
-					this.#setPlaying(false);
-					this.#frameLabel.textContent = `Frame ${this.#currentFrame + 1} / ${frameCount} (finished)`;
-				}
-				break;
-			case 'pingpong': {
-				const cycle = this.#currentFrame + 1;
-				const phase = cycle % (frameCount * 2);
-				this.#currentFrame = phase < frameCount ? phase : frameCount * 2 - phase - 1;
-				break;
-			}
-			case 'loop':
-			case 'scrub':
-			default:
-				this.#currentFrame = (this.#currentFrame + 1) % frameCount;
-				break;
+		if (this.#playbackMode === 'shuffle' && !this.#shuffleState) {
+			this.#shuffleState = new ShuffleState(frameCount);
+		}
+		if (this.#playbackMode === 'pingpong' && !this.#pingpongState) {
+			this.#pingpongState = new PingpongState();
+		}
+		const result = advanceFrame(this.#currentFrame, frameCount, this.#playbackMode, this.#shuffleState, this.#pingpongState);
+		this.#currentFrame = result.frame;
+		if (result.finished) {
+			this.#setPlaying(false);
+			this.#frameLabel.textContent = `Frame ${this.#currentFrame + 1} / ${frameCount} (finished)`;
 		}
 	}
 

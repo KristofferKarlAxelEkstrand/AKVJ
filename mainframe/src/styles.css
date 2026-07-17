@@ -533,3 +533,69 @@ akvj-piano-keyboard {
 	transform: translateX(-50%);
 	white-space: nowrap;
 }
+
+akvj-sticky-piano-roll {
+	background: #1e1e2e;
+	border-bottom: 2px solid #444;
+	display: flex;
+	overflow-x: auto;
+	padding: 0.2rem 0;
+	position: sticky;
+	top: 0;
+	z-index: 10;
+}
+
+.sticky-key {
+	cursor: pointer;
+	flex-shrink: 0;
+	position: relative;
+}
+
+.sticky-key--white {
+	background: #f8f8f8;
+	border: 1px solid #ccc;
+	height: 2rem;
+	width: 1.2rem;
+}
+
+.sticky-key--white.sticky-key--mapped {
+	background: #6c5ce7;
+	border-color: #5a4bd1;
+}
+
+.sticky-key--white.sticky-key--active {
+	background: #fdcb6e;
+	border-color: #e0b94a;
+	box-shadow: 0 0 4px rgba(253, 203, 110, 0.8);
+}
+
+.sticky-key--black {
+	background: #1a1a1a;
+	border: 1px solid #333;
+	height: 1.3rem;
+	margin-left: -0.6rem;
+	margin-right: -0.6rem;
+	width: 0.8rem;
+	z-index: 2;
+}
+
+.sticky-key--black.sticky-key--mapped {
+	background: #4834d4;
+	border-color: #402dba;
+}
+
+.sticky-key--black.sticky-key--active {
+	background: #fdcb6e;
+	border-color: #e0b94a;
+	box-shadow: 0 0 4px rgba(253, 203, 110, 0.8);
+}
+
+.sticky-key-label {
+	bottom: 0.1rem;
+	color: #999;
+	font-size: 0.45rem;
+	left: 50%;
+	position: absolute;
+	transform: translateX(-50%);
+	white-space: nowrap;
+}
