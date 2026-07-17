@@ -1,0 +1,2361 @@
+{
+  "metadata": {
+    "title": "MIDI Capability Inquiry (MIDI-CI) Specification",
+    "doc_id": "M2-101-UM",
+    "protocol": "midi2",
+    "version": "1.2",
+    "date": "2023-11",
+    "source": "https://amei-music.github.io/midi2.0-docs/amei-pdf/M2-101-UM_v1-2_MIDI-CI_Specification.pdf"
+  },
+  "categories": [
+    {
+      "category": 0,
+      "sub_id_2_range": "0x00-0x0F",
+      "description": "Reserved – No Messages Defined Yet"
+    },
+    {
+      "category": 1,
+      "sub_id_2_range": "0x10-0x1F",
+      "description": "Protocol Negotiation (Deprecated)"
+    },
+    {
+      "category": 2,
+      "sub_id_2_range": "0x20-0x2F",
+      "description": "Profile Configuration Messages"
+    },
+    {
+      "category": 3,
+      "sub_id_2_range": "0x30-0x3F",
+      "description": "Property Exchange Messages"
+    },
+    {
+      "category": 4,
+      "sub_id_2_range": "0x40-0x4F",
+      "description": "Process Inquiry Messages"
+    },
+    {
+      "category": 5,
+      "sub_id_2_range": "0x50-0x5F",
+      "description": "Reserved – No Messages Defined Yet"
+    },
+    {
+      "category": 6,
+      "sub_id_2_range": "0x60-0x6F",
+      "description": "Reserved – No Messages Defined Yet"
+    },
+    {
+      "category": 7,
+      "sub_id_2_range": "0x70-0x7F",
+      "description": "Management Messages"
+    }
+  ],
+  "standard_format": [
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start"
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive"
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):"
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16"
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved"
+    },
+    {
+      "value": "7E:",
+      "parameter": "To/from Group"
+    },
+    {
+      "value": "7F:",
+      "parameter": "To/from Function Block"
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI"
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Universal System Exclusive Sub-ID#2: Category and Type of MIDI-CI Message:"
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format"
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first*)"
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first*)"
+    },
+    {
+      "value": "n bytes",
+      "parameter": "Data. Includes any necessary fields to suit the needs of each type of MIDI-CI message."
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive"
+    }
+  ],
+  "bitmap_allocation": [
+    {
+      "bit": "D0",
+      "category": 0,
+      "sub_id_2_range": "0x00-0x0F",
+      "description": "Reserved – No Messages Defined Yet"
+    },
+    {
+      "bit": "D1",
+      "category": 1,
+      "sub_id_2_range": "0x10-0x1F",
+      "description": "Protocol Negotiation (Deprecated)"
+    },
+    {
+      "bit": "D2",
+      "category": 2,
+      "sub_id_2_range": "0x20-0x2F",
+      "description": "Profile Configuration Supported"
+    },
+    {
+      "bit": "D3",
+      "category": 3,
+      "sub_id_2_range": "0x30-0x3F",
+      "description": "Property Exchange Supported"
+    },
+    {
+      "bit": "D4",
+      "category": 4,
+      "sub_id_2_range": "0x40-0x4F",
+      "description": "Process Inquiry Supported"
+    },
+    {
+      "bit": "D5",
+      "category": 5,
+      "sub_id_2_range": "0x50-0x5F",
+      "description": "Reserved – No Messages Defined Yet"
+    },
+    {
+      "bit": "D6",
+      "category": 6,
+      "sub_id_2_range": "0x60-0x6F",
+      "description": "Reserved – No Messages Defined Yet"
+    }
+  ],
+  "message_formats": [
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 6
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 6
+    },
+    {
+      "value": "7F",
+      "parameter": "Device ID: 7F = To/from Function Block",
+      "table_number": 6
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 6
+    },
+    {
+      "value": "70",
+      "parameter": "Universal System Exclusive Sub-ID#2: Discovery",
+      "table_number": 6
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 6
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 6
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 6
+    },
+    {
+      "value": "3 bytes",
+      "parameter": "Device Manufacturer (System Exclusive ID Number)",
+      "table_number": 6
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Device Family (LSB first)",
+      "table_number": 6
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Device Family Model Number (LSB first)",
+      "table_number": 6
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Software Revision Level (Format is Device specific)",
+      "table_number": 6
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Capability Inquiry Category Supported (bitmap)",
+      "table_number": 6
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Receivable Maximum SysEx Message Size (LSB first)",
+      "table_number": 6
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 8
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 8
+    },
+    {
+      "value": "7F",
+      "parameter": "Device ID: 7F = from Function Block",
+      "table_number": 8
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 8
+    },
+    {
+      "value": "71",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Discovery",
+      "table_number": 8
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 8
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 8
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 8
+    },
+    {
+      "value": "3 bytes",
+      "parameter": "Device Manufacturer (System Exclusive ID Number)",
+      "table_number": 8
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Device Family (LSB first)",
+      "table_number": 8
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Device Family Model Number (LSB first)",
+      "table_number": 8
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Software Revision Level (Format is Device specific)",
+      "table_number": 8
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Capability Inquiry Category Supported",
+      "table_number": 8
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Receivable Maximum SysEx Message Size (LSB first)*",
+      "table_number": 8
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 9
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 9
+    },
+    {
+      "value": "7F",
+      "parameter": "Device ID: 7F = from Function Block",
+      "table_number": 9
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 9
+    },
+    {
+      "value": "72",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: Endpoint Information",
+      "table_number": 9
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 9
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 9
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 9
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Status",
+      "table_number": 9
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 9
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 11
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 11
+    },
+    {
+      "value": "7F",
+      "parameter": "Device ID: 7F = from Function Block",
+      "table_number": 11
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 11
+    },
+    {
+      "value": "73",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Endpoint Information",
+      "table_number": 11
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 11
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 11
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 11
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Status",
+      "table_number": 11
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Information Data (lid) (LSB first)",
+      "table_number": 11
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 11
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 12
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 12
+    },
+    {
+      "value": "7F",
+      "parameter": "Device ID: 7F = to Function Block",
+      "table_number": 12
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 12
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive Sub-ID#2: Invalidate MUID",
+      "table_number": 12
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 12
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 12
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 12
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Target MUID (the MUID to Invalidate) (LSB first)",
+      "table_number": 12
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 12
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 13
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 13
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source",
+      "table_number": 13
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 13
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 13
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 13
+    },
+    {
+      "value": "7D",
+      "parameter": "Universal System Exclusive Sub-ID#2: MIDI-CI ACK",
+      "table_number": 13
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 13
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 13
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 13
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Original Transaction Sub-ID#2 Classification e.g. 0x34",
+      "table_number": 13
+    },
+    {
+      "value": "1 byte",
+      "parameter": "ACK Status Code",
+      "table_number": 13
+    },
+    {
+      "value": "1byte",
+      "parameter": "ACK Status Data",
+      "table_number": 13
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "ACK details for each Sub Id Classification",
+      "table_number": 13
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Message Length (ml) (LSB first)",
+      "table_number": 13
+    },
+    {
+      "value": "ml bytes",
+      "parameter": "Message Text",
+      "table_number": 13
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 13
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 15
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 15
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source",
+      "table_number": 15
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 15
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 15
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 15
+    },
+    {
+      "value": "7F",
+      "parameter": "Universal System Exclusive Sub-ID#2: MIDI-CI NAK",
+      "table_number": 15
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 15
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 15
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 15
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 17
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 17
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Destination",
+      "table_number": 17
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 17
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 17
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 17
+    },
+    {
+      "value": "20",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Inquiry",
+      "table_number": 17
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 17
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 17
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 17
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 17
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 18
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 18
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Source",
+      "table_number": 18
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 18
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 18
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 18
+    },
+    {
+      "value": "21",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Profile Inquiry",
+      "table_number": 18
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 18
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 18
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 18
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Currently Enabled Profiles (cep) (LSB first)",
+      "table_number": 18
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of First Currently Enabled Profile: (Optional)",
+      "table_number": 18
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Currently Disabled Profiles Supported (cdp) (LSB first)",
+      "table_number": 18
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of First Currently Disabled Profile Supported (Optional)",
+      "table_number": 18
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 18
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 20
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 20
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 20
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 20
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 20
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 20
+    },
+    {
+      "value": "26",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Added Report",
+      "table_number": 20
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 20
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 20
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 20
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile Being Added",
+      "table_number": 20
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 20
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 21
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 21
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 21
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 21
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 21
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 21
+    },
+    {
+      "value": "27",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile List Remove",
+      "table_number": 21
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 21
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 21
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 21
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile Being Removed",
+      "table_number": 21
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 21
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 22
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 22
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Destination",
+      "table_number": 22
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 22
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 22
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 22
+    },
+    {
+      "value": "28",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Details Inquiry",
+      "table_number": 22
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 22
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 22
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 22
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile",
+      "table_number": 22
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Inquiry Target",
+      "table_number": 22
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 22
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 23
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 23
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Destination",
+      "table_number": 23
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 23
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 23
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 23
+    },
+    {
+      "value": "29",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Profile Details Inquiry",
+      "table_number": 23
+    },
+    {
+      "value": "02",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 23
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 23
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 23
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile",
+      "table_number": 23
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Inquiry Target",
+      "table_number": 23
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Inquiry Target Data Length (dl) (LSB first)",
+      "table_number": 23
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 23
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 24
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 24
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Destination",
+      "table_number": 24
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 24
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 24
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 24
+    },
+    {
+      "value": "22",
+      "parameter": "Universal System Exclusive Sub-ID#2: Set Profile On",
+      "table_number": 24
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 24
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 24
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 24
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile to be Set to On (to be Enabled)",
+      "table_number": 24
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 25
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 25
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Destination",
+      "table_number": 25
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 25
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 25
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 25
+    },
+    {
+      "value": "23",
+      "parameter": "Universal System Exclusive Sub-ID#2: Set Profile Off",
+      "table_number": 25
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 25
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 25
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 25
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile to be Set to Off (to be Disabled)",
+      "table_number": 25
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 26
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 26
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Source",
+      "table_number": 26
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 26
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 26
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 26
+    },
+    {
+      "value": "24",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Enabled Report",
+      "table_number": 26
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 26
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 26
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 26
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile that is now Enabled",
+      "table_number": 26
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 27
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 27
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Source",
+      "table_number": 27
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 27
+    },
+    {
+      "value": "10–7D:",
+      "parameter": "Reserved",
+      "table_number": 27
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 27
+    },
+    {
+      "value": "25",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Disabled Report",
+      "table_number": 27
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 27
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 27
+    },
+    {
+      "value": "7F",
+      "parameter": "7F 7F 7F \tDestination MUID (LSB first) (to Broadcast MUID)",
+      "table_number": 27
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID of Profile that is now Disabled",
+      "table_number": 27
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 28
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 28
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 28
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 28
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 28
+    },
+    {
+      "value": "2F",
+      "parameter": "Universal System Exclusive Sub-ID#2: Profile Specific Data",
+      "table_number": 28
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 28
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 28
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)*",
+      "table_number": 28
+    },
+    {
+      "value": "5 bytes",
+      "parameter": "Profile ID",
+      "table_number": 28
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Length of Following Profile Specific Data (LSB first)",
+      "table_number": 28
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 28
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 30
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 30
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 30
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 30
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 30
+    },
+    {
+      "value": "30",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: Property Data Exchange Capabilities",
+      "table_number": 30
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 30
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 30
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 30
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Number of Simultaneous Property Exchange Requests Supported",
+      "table_number": 30
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 32
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 32
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 32
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 32
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 32
+    },
+    {
+      "value": "31",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Property Data Exchange Capabilities",
+      "table_number": 32
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 32
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 32
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 32
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Number of Simultaneous Property Exchange Requests Supported",
+      "table_number": 32
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 33
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 33
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 33
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 33
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 33
+    },
+    {
+      "value": "34",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: Get Property Data",
+      "table_number": 33
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 33
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 33
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 33
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 33
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 33
+    },
+    {
+      "value": "01",
+      "parameter": "00 \tNumber of Chunks in Message (LSB first)",
+      "table_number": 33
+    },
+    {
+      "value": "01",
+      "parameter": "00 \tNumber of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 33
+    },
+    {
+      "value": "00",
+      "parameter": "00 \tLength of Following Property Data (in this Chunk) (LSB first)*",
+      "table_number": 33
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 33
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 34
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 34
+    },
+    {
+      "value": "7F",
+      "parameter": "Source",
+      "table_number": 34
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 34
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 34
+    },
+    {
+      "value": "35",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Get Property Data",
+      "table_number": 34
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 34
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 34
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Chunks in Message (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Property Data (in this Chunk) (LSB first)",
+      "table_number": 34
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 34
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 35
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 35
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 35
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 35
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 35
+    },
+    {
+      "value": "36",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: Set Property Data",
+      "table_number": 35
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 35
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 35
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Chunks in Message (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Property Data (in this Chunk) (LSB first)",
+      "table_number": 35
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 35
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 36
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 36
+    },
+    {
+      "value": "7F",
+      "parameter": "Source",
+      "table_number": 36
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 36
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 36
+    },
+    {
+      "value": "37",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Set Property Data",
+      "table_number": 36
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 36
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 36
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 36
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 36
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 36
+    },
+    {
+      "value": "01",
+      "parameter": "00 \tNumber of Chunks in Message (LSB first)",
+      "table_number": 36
+    },
+    {
+      "value": "01",
+      "parameter": "00 \tNumber of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 36
+    },
+    {
+      "value": "00",
+      "parameter": "00 \tLength of Following Property Data (in this Chunk) (LSB first)*",
+      "table_number": 36
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 36
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 37
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 37
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 37
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 37
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 37
+    },
+    {
+      "value": "38",
+      "parameter": "Universal System Exclusive Sub-ID#2: Subscription",
+      "table_number": 37
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 37
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 37
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Chunks in Message (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Property Data (in this Chunk) (LSB first)",
+      "table_number": 37
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 37
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 38
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 38
+    },
+    {
+      "value": "7F",
+      "parameter": "Source",
+      "table_number": 38
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 38
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 38
+    },
+    {
+      "value": "39",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Subscription",
+      "table_number": 38
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 38
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 38
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Chunks in Message (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Property Data (in this Chunk) (LSB first)",
+      "table_number": 38
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 38
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 39
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 39
+    },
+    {
+      "value": "7F",
+      "parameter": "Source",
+      "table_number": 39
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 39
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 39
+    },
+    {
+      "value": "3F",
+      "parameter": "Universal System Exclusive Sub-ID#2: Notify",
+      "table_number": 39
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 39
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Request ID",
+      "table_number": 39
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Header Data (in this Chunk) (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of Chunks in Message (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Number of This Chunk (count starts from 0x0001) (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "2 bytes",
+      "parameter": "Length of Following Property Data (in this Chunk) (LSB first)",
+      "table_number": 39
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 39
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 40
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 40
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 40
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 40
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 40
+    },
+    {
+      "value": "40",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: Process Inquiry Capabilities",
+      "table_number": 40
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 40
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 40
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 40
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 40
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 41
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 41
+    },
+    {
+      "value": "7F",
+      "parameter": "Destination",
+      "table_number": 41
+    },
+    {
+      "value": "7F",
+      "parameter": "= to/from whole Function Block",
+      "table_number": 41
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 41
+    },
+    {
+      "value": "41",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to Process Inquiry Capabilities",
+      "table_number": 41
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 41
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 41
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 41
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Process Inquiry Supported Features (bitmap)",
+      "table_number": 41
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 41
+    },
+    {
+      "value": "D0",
+      "parameter": "MIDI Message Report",
+      "table_number": 42
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 43
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 43
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 43
+    },
+    {
+      "value": "10-7D:",
+      "parameter": "Reserved",
+      "table_number": 43
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 43
+    },
+    {
+      "value": "42",
+      "parameter": "Universal System Exclusive Sub-ID#2: Inquiry: MIDI Message Report",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 43
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 43
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Message Data Control",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested System Messages",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Reserved for other System Messages, set to 0x00",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested Channel Controller Messages",
+      "table_number": 43
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested Note Data Messages",
+      "table_number": 43
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 43
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 45
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 45
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 45
+    },
+    {
+      "value": "10-7D:",
+      "parameter": "Reserved",
+      "table_number": 45
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 45
+    },
+    {
+      "value": "43",
+      "parameter": "Universal System Exclusive Sub-ID#2: Reply to MIDI Message Report",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 45
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 45
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested System Messages",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Reserved for other System Messages, set to 0x00",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested Channel Controller Messages",
+      "table_number": 45
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Bitmap of requested Note Data Messages",
+      "table_number": 45
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 45
+    },
+    {
+      "value": "F0",
+      "parameter": "System Exclusive Start",
+      "table_number": 46
+    },
+    {
+      "value": "7E",
+      "parameter": "Universal System Exclusive",
+      "table_number": 46
+    },
+    {
+      "value": "1 byte",
+      "parameter": "Device ID: Source or Destination (depending on type of message):",
+      "table_number": 46
+    },
+    {
+      "value": "00–0F:",
+      "parameter": "To/from MIDI Channels 1-16",
+      "table_number": 46
+    },
+    {
+      "value": "0D",
+      "parameter": "Universal System Exclusive Sub-ID#1: MIDI-CI",
+      "table_number": 46
+    },
+    {
+      "value": "44",
+      "parameter": "Universal System Exclusive Sub-ID#2: End of MIDI Message Report",
+      "table_number": 46
+    },
+    {
+      "value": "1 byte",
+      "parameter": "MIDI-CI Message Version/Format",
+      "table_number": 46
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Source MUID (LSB first)",
+      "table_number": 46
+    },
+    {
+      "value": "4 bytes",
+      "parameter": "Destination MUID (LSB first)",
+      "table_number": 46
+    },
+    {
+      "value": "F7",
+      "parameter": "End Universal System Exclusive",
+      "table_number": 46
+    }
+  ],
+  "ack_status_codes": [
+    {
+      "status_code": "0x00 - 0x0F",
+      "status_data": "–",
+      "reason": "Success Messages – Do Not Retry"
+    },
+    {
+      "status_code": "0x00",
+      "status_data": "0x00",
+      "reason": "ACK"
+    },
+    {
+      "status_code": "0x10 - 0x1F",
+      "status_data": "–",
+      "reason": "Notification Messages – These require further action"
+    }
+  ],
+  "nak_status_codes": [
+    {
+      "status_code": "0x00 - 0x1F",
+      "status_data": "–",
+      "reason": "Fail Messages – Do Not Retry"
+    },
+    {
+      "status_code": "0x00",
+      "status_data": "0x00",
+      "reason": "NAK"
+    },
+    {
+      "status_code": "0x01",
+      "status_data": "0x00",
+      "reason": "MIDI-CI message not supported"
+    },
+    {
+      "status_code": "0x02",
+      "status_data": "0x00",
+      "reason": "MIDI-CI version not supported"
+    },
+    {
+      "status_code": "0x03",
+      "status_data": "0x00",
+      "reason": "Channel/Group/Function Block Not in use"
+    },
+    {
+      "status_code": "0x04",
+      "status_data": "0x00",
+      "reason": "Profile not supported on the requested Channel, Group, or Function Block"
+    },
+    {
+      "status_code": "0x20 - 0x3F",
+      "status_data": "–",
+      "reason": "Notification Messages – further action is recommended"
+    },
+    {
+      "status_code": "0x20",
+      "status_data": "0x00",
+      "reason": "Terminate Inquiry (replaces PE Notify Message with a status of 144)"
+    },
+    {
+      "status_code": "0x21",
+      "status_data": "0x00",
+      "reason": "Property Exchange Chunks are out of sequence (cannot recover)"
+    },
+    {
+      "status_code": "0x40 - 0x5F",
+      "status_data": "–",
+      "reason": "Fail Message – Retry is recommended"
+    },
+    {
+      "status_code": "0x40",
+      "status_data": "0x00",
+      "reason": "Error occurred, please retry"
+    },
+    {
+      "status_code": "0x41",
+      "status_data": "0x00",
+      "reason": "Message was malformed"
+    },
+    {
+      "status_code": "0x42",
+      "status_data": "0x00",
+      "reason": "Timeout has occurred"
+    },
+    {
+      "status_code": "0x43",
+      "status_data": "0x00-0x7F",
+      "reason": "Busy, try again time, in multiples of 100 milliseconds (0-12.7 seconds)"
+    },
+    {
+      "status_code": "0x60 – 0x7F",
+      "status_data": "–",
+      "reason": "Reserved"
+    }
+  ],
+  "property_exchange_versions": [
+    {
+      "common_rules_version": "1.0/1.1*",
+      "major_version": "0x00",
+      "minor_version": "0x00"
+    }
+  ],
+  "message_data_control_values": [
+    {
+      "value": "0x00",
+      "description": "Do not report any data, send Begin / End replies only. This enables the Initiator to query"
+    },
+    {
+      "value": "0x01",
+      "description": "Report only controllers with non-default values, active notes, and per-note controllers with"
+    },
+    {
+      "value": "0x02 - 0x7E",
+      "description": "Reserved"
+    },
+    {
+      "value": "0x7F",
+      "description": "Full report of all requested and supported controllers, notes, and supported per-note"
+    }
+  ],
+  "endpoint_info_status_values": [
+    {
+      "status_value": "0x00",
+      "target_property": "Product instance ID",
+      "details": "Product Instance ID of the UMP"
+    },
+    {
+      "status_value": "0x01-0x7F",
+      "target_property": "Reserved",
+      "details": ""
+    }
+  ],
+  "profile_id_formats": [
+    {
+      "byte_name": "Profile ID Byte 1",
+      "standard_defined": "0x7E Standard Defined Profile",
+      "manufacturer_specific": "Manufacturer SysEx ID 1 Profile"
+    },
+    {
+      "byte_name": "Profile ID Byte 2",
+      "standard_defined": "Profile Bank",
+      "manufacturer_specific": "Manufacturer SysEx ID 2 Profile"
+    },
+    {
+      "byte_name": "Profile ID Byte 3",
+      "standard_defined": "Profile Number",
+      "manufacturer_specific": "Manufacturer SysEx ID 3 Profile"
+    },
+    {
+      "byte_name": "Profile ID Byte 4",
+      "standard_defined": "Profile Version",
+      "manufacturer_specific": "Manufacturer Specific Info"
+    },
+    {
+      "byte_name": "Profile ID Byte 5",
+      "standard_defined": "Profile Level",
+      "manufacturer_specific": "Manufacturer Specific Info"
+    }
+  ],
+  "summary": {
+    "category_count": 8,
+    "standard_format_field_count": 14,
+    "bitmap_allocation_count": 7,
+    "message_format_count": 407,
+    "ack_status_code_count": 3,
+    "nak_status_code_count": 15,
+    "property_exchange_version_count": 1,
+    "endpoint_info_status_value_count": 2,
+    "profile_id_format_count": 5,
+    "message_data_control_value_count": 4
+  }
+}

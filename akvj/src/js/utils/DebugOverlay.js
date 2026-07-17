@@ -90,6 +90,10 @@ const OVERLAY_CSS = `
 class DebugOverlay {
 	#element;
 	#styleElement;
+	#bpmElement = null;
+	#bpmSourceElement = null;
+	#midiStatusElement = null;
+	#midiLogElement = null;
 	#midiLog = [];
 	#unsubscribers = [];
 	#boundHandleKeydown;
@@ -104,7 +108,15 @@ class DebugOverlay {
 		this.#element = document.createElement('div');
 		this.#element.id = 'debug-overlay';
 		this.#element.innerHTML = OVERLAY_HTML;
+		this.#cacheDomElements();
 		this.#applyStyles();
+	}
+
+	#cacheDomElements() {
+		this.#bpmElement = this.#element.querySelector('#debug-bpm');
+		this.#bpmSourceElement = this.#element.querySelector('#debug-bpm-source');
+		this.#midiStatusElement = this.#element.querySelector('#debug-midi-status');
+		this.#midiLogElement = this.#element.querySelector('#debug-midi-log');
 	}
 
 	#applyStyles() {
@@ -133,21 +145,18 @@ class DebugOverlay {
 	}
 
 	#updateBPM(bpm, source) {
-		const bpmElement = document.getElementById('debug-bpm');
-		const sourceElement = document.getElementById('debug-bpm-source');
-		if (bpmElement) {
-			bpmElement.textContent = bpm.toFixed(1);
+		if (this.#bpmElement) {
+			this.#bpmElement.textContent = bpm.toFixed(1);
 		}
-		if (sourceElement) {
-			sourceElement.textContent = source;
+		if (this.#bpmSourceElement) {
+			this.#bpmSourceElement.textContent = source;
 		}
 	}
 
 	#updateMIDIStatus(connected) {
-		const midiStatusElement = document.getElementById('debug-midi-status');
-		if (midiStatusElement) {
-			midiStatusElement.textContent = connected ? 'Connected' : 'Disconnected';
-			midiStatusElement.style.color = connected ? '#0f0' : '#f00';
+		if (this.#midiStatusElement) {
+			this.#midiStatusElement.textContent = connected ? 'Connected' : 'Disconnected';
+			this.#midiStatusElement.style.color = connected ? '#0f0' : '#f00';
 		}
 	}
 
@@ -160,17 +169,16 @@ class DebugOverlay {
 	}
 
 	#renderLog() {
-		const midiLogElement = document.getElementById('debug-midi-log');
-		if (!midiLogElement) {
+		if (!this.#midiLogElement) {
 			return;
 		}
-		midiLogElement.textContent = '';
+		this.#midiLogElement.textContent = '';
 		// Build DOM safely (avoid innerHTML with dynamic content)
 		for (const entry of this.#midiLog) {
 			const div = document.createElement('div');
 			div.className = `debug-log-entry ${entry.type}`;
 			div.textContent = entry.message;
-			midiLogElement.appendChild(div);
+			this.#midiLogElement.appendChild(div);
 		}
 	}
 

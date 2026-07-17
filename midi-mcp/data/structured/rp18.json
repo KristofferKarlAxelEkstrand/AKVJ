@@ -1,0 +1,86 @@
+{
+  "metadata": {
+    "title": "Recommended Practice (RP-018) Response to Data Inc/Dec Controllers",
+    "doc_id": "RP-018",
+    "protocol": "midi1",
+    "source": ".midi-raw-data/rp18.pdf",
+    "pages": 1,
+    "summary": "MMA/AMEI Recommended Practice RP-018: Recommended Practice (RP-018) Response to Data Inc/Dec Controllers."
+  },
+  "controllers": [
+    {
+      "name": "Data Increment",
+      "cc_number": 96,
+      "cc_hex": "0x60"
+    },
+    {
+      "name": "Data Decrement",
+      "cc_number": 97,
+      "cc_hex": "0x61"
+    }
+  ],
+  "problems": [
+    {
+      "step": 1,
+      "description": "The value used by the Data Increment or Data Decreme. t controller is not specified."
+    },
+    {
+      "step": 2,
+      "description": "Does the increment/decrement affect the MSB, the LSB, or the full 14 bit data value of the parameter? It seems obvious"
+    }
+  ],
+  "recommendation": "Under this recommendation, the value byte for both messages is ignored (\"don't care\"). When applied to Registered Parameter numbers 0, and 1, Data Increment and Data Decrement messages will increase or decrease the LSB by 1 (currently unspecified in MIDI 1.0). When applied to Registered Parameter numbers 2, 3, and 4, Data Increment and Data Decrement messages will increase or decrease the MSB by 1 (as specified in the 4.2 Addendum to MIDI 1.0, page 20). For future Registered Parameters, behavior of Data Increment and Data Decrement must be specified; if it is not, reception of these messages will increase or decrease the LSB by 1. For Non-Registered Parameters, behavior of Data Increment and Data Decrement must be specified by the manufacturer for each parameter.",
+  "rpn_behavior": [
+    "When applied to Registered Parameter numbers 0, and 1, Data Increment and Data Decrement messages will increase or decrease the LSB by 1 (currently unspecified in MIDI 1.0). When applied to Registered Parameter numbers 2, 3, and 4, Data Increment and Data Decrement messages will increase or decrease the MSB by 1 (as specified in the 4.2 Addendum to MIDI 1.0, page 20).",
+    "For future Registered Parameters, behavior of Data Increment and Data Decrement must be specified; if it is not, reception of these messages will increase or decrease the LSB by 1."
+  ],
+  "nrpn_behavior": "For Non-Registered Parameters, behavior of Data Increment and Data Decrement must be specified by the manufacturer for each parameter.",
+  "receiving_device_rules": [
+    "Receiving devices should keep track of the current value of a parameter and should increment the LSB by 1 when Data",
+    "Increment is received, or decrement the LSB by 1 when Data Decrement is received. If the LSB is not supported by that",
+    "device, then the parameter change should be made when the LSB wraps into the MSB, or as defined by the parameter. For",
+    "example, a device that does not support the LSB (cents) value for Pitch Bend Sensitivity (RPN #0) should increment the MSB",
+    "(semitones) value when the LSB is incremented to 100, at which time the LSB should be reset to 0."
+  ],
+  "example": {
+    "description": "For example, to increment pitch bend sensitivity on MIDI channel 1 by 2 cents (all numbers are in hexadecimal):",
+    "steps": [
+      {
+        "raw": "$B0 $65 $0 \tsend Registered Parameter Number MSB",
+        "description": "send Registered Parameter Number MSB"
+      },
+      {
+        "raw": "$B0 $64 $0 \tsend Registered Parameter Number LSB",
+        "description": "send Registered Parameter Number LSB"
+      },
+      {
+        "raw": "$B0 $60 $0 \tincrement by 1",
+        "description": "increment by 1"
+      },
+      {
+        "raw": "$B0 $60 $0 \tincrement by 1",
+        "description": "increment by 1"
+      },
+      {
+        "raw": "$B0 $65 $7F set Registered Parameter Number MSB to NULL",
+        "description": "set Registered Parameter Number MSB to NULL"
+      },
+      {
+        "raw": "$B0 $64 $7F set Registered Parameter Number LSB to NULL",
+        "description": "set Registered Parameter Number LSB to NULL"
+      }
+    ]
+  },
+  "approval": {
+    "mma_date": "9/97",
+    "amei_date": "10/97",
+    "copyright": "1997-2004"
+  },
+  "summary": {
+    "controller_count": 2,
+    "problem_count": 2,
+    "rpn_behavior_count": 2,
+    "receiving_rule_count": 5,
+    "example_step_count": 6
+  }
+}

@@ -4,58 +4,58 @@ import path from 'path';
 const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 /**
- * Validate midi-layout.json against the flat clip bucket.
- * @param {string} sourceDir - Clips root (contains midi-layout.json and clipId folders)
+ * Validate key-map.json against the flat clip bucket.
+ * @param {string} sourceDir - Clips root (contains key-map.json and clipId folders)
  * @param {Array<{clipId: string}>} validClips - Clips that passed folder validation
  * @returns {Promise<{errors: {clipId: string, errors: string[]}[]}>}
  */
-export async function validateMidiLayout(sourceDir, validClips) {
+export async function validateKeyMap(sourceDir, validClips) {
 	const validIds = new Set(validClips.map(clip => clip.clipId));
-	const midiLayout = await loadMidiLayout(sourceDir);
-	if (midiLayout.errors) {
-		return { errors: midiLayout.errors };
+	const keyMap = await loadKeyMap(sourceDir);
+	if (keyMap.errors) {
+		return { errors: keyMap.errors };
 	}
 
 	const errors = [];
 	const seenSlots = new Set();
-	for (const [channel, notes] of Object.entries(midiLayout.data)) {
+	for (const [channel, notes] of Object.entries(keyMap.data)) {
 		validateChannel(channel, notes, validIds, seenSlots, errors);
 	}
 
 	return { errors };
 }
 
-async function loadMidiLayout(sourceDir) {
-	const layoutPath = path.join(sourceDir, 'midi-layout.json');
+async function loadKeyMap(sourceDir) {
+	const layoutPath = path.join(sourceDir, 'key-map.json');
 	let raw;
 	try {
 		raw = await fs.readFile(layoutPath, 'utf8');
 	} catch (error) {
 		if (error.code === 'ENOENT') {
-			return { errors: [{ path: 'midi-layout.json', errors: ['Missing midi-layout.json (required for runtime ClipLoader)'] }] };
+			return { errors: [{ path: 'key-map.json', errors: ['Missing key-map.json (required for runtime ClipLoader)'] }] };
 		}
 		throw error;
 	}
-	let midiLayout;
+	let keyMap;
 	try {
-		midiLayout = JSON.parse(raw);
+		keyMap = JSON.parse(raw);
 	} catch (error) {
-		return { errors: [{ path: 'midi-layout.json', errors: [`Invalid JSON: ${error.message}`] }] };
+		return { errors: [{ path: 'key-map.json', errors: [`Invalid JSON: ${error.message}`] }] };
 	}
-	if (!midiLayout || typeof midiLayout !== 'object' || Array.isArray(midiLayout)) {
-		return { errors: [{ path: 'midi-layout.json', errors: ['Must be a JSON object keyed by channel number'] }] };
+	if (!keyMap || typeof keyMap !== 'object' || Array.isArray(keyMap)) {
+		return { errors: [{ path: 'key-map.json', errors: ['Must be a JSON object keyed by channel number'] }] };
 	}
-	return { data: midiLayout };
+	return { data: keyMap };
 }
 
 function validateChannel(channel, notes, validIds, seenSlots, errors) {
 	const channelNum = Number(channel);
 	if (!Number.isInteger(channelNum) || channelNum < 1 || channelNum > 16) {
-		errors.push({ path: `midi-layout.json[${channel}]`, errors: [`channel must be an integer 1–16, got ${JSON.stringify(channel)}`] });
+		errors.push({ path: `key-map.json[${channel}]`, errors: [`channel must be an integer 1–16, got ${JSON.stringify(channel)}`] });
 		return;
 	}
 	if (!notes || typeof notes !== 'object' || Array.isArray(notes)) {
-		errors.push({ path: `midi-layout.json[${channel}]`, errors: ['channel value must be an object keyed by note'] });
+		errors.push({ path: `key-map.json[${channel}]`, errors: ['channel value must be an object keyed by note'] });
 		return;
 	}
 	for (const [note, velocities] of Object.entries(notes)) {
@@ -66,11 +66,11 @@ function validateChannel(channel, notes, validIds, seenSlots, errors) {
 function validateNote(channelNum, note, velocities, validIds, seenSlots, errors) {
 	const noteNum = Number(note);
 	if (!Number.isInteger(noteNum) || noteNum < 0 || noteNum > 127) {
-		errors.push({ path: `midi-layout.json[${channelNum}][${note}]`, errors: [`note must be an integer 0–127, got ${JSON.stringify(note)}`] });
+		errors.push({ path: `key-map.json[${channelNum}][${note}]`, errors: [`note must be an integer 0–127, got ${JSON.stringify(note)}`] });
 		return;
 	}
 	if (!velocities || typeof velocities !== 'object' || Array.isArray(velocities)) {
-		errors.push({ path: `midi-layout.json[${channelNum}][${note}]`, errors: ['note value must be an object keyed by velocity'] });
+		errors.push({ path: `key-map.json[${channelNum}][${note}]`, errors: ['note value must be an object keyed by velocity'] });
 		return;
 	}
 	for (const [velocity, clipId] of Object.entries(velocities)) {
@@ -79,7 +79,7 @@ function validateNote(channelNum, note, velocities, validIds, seenSlots, errors)
 }
 
 function validateVelocityEntry(channelNum, noteNum, velocity, clipId, validIds, seenSlots, errors) {
-	const entryPath = `midi-layout.json[${channelNum}][${noteNum}][${velocity}]`;
+	const entryPath = `key-map.json[${channelNum}][${noteNum}][${velocity}]`;
 	const entryErrors = [];
 
 	const velocityNum = Number(velocity);

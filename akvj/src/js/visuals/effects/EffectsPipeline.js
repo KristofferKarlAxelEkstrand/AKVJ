@@ -7,6 +7,17 @@ import effectRegistry from './index.js';
  *   apply(imageData, effect, timestamp, effectContext) => boolean
  *
  * effectContext contains: width, height, effectParams, effectRanges, bpm, scratchBuffer
+ *
+ * Scratch buffer ownership contract:
+ * - The pipeline owns the scratch buffer (a Uint8ClampedArray) and allocates it once,
+ *   reusing it across frames and effects.
+ * - The scratch buffer is passed to each effect via effectContext.scratchBuffer.
+ * - Effects may read from and write to the scratch buffer during their apply() call,
+ *   but must NOT retain references to it after returning.
+ * - The scratch buffer is shared across all effects in a single frame. An effect that
+ *   needs a pristine copy of the input pixels should copy from imageData.data into the
+ *   scratch buffer before reading from it (e.g., glitch, offset, split effects).
+ * - The pipeline guarantees the scratch buffer is at least as large as imageData.data.
  */
 const DEFAULT_BPM_MIN = 1;
 const DEFAULT_BPM = 120;
@@ -84,6 +95,22 @@ class EffectsPipeline {
 			isModified = effectModule.apply(imageData, effect, timestamp, this.#effectContext) || isModified;
 		}
 		return isModified;
+	}
+
+	/**
+	 * Release allocated resources for garbage collection.
+	 */
+	destroy() {
+		try {
+			this.#scratchBuffer = null;
+		} catch (error) {
+			console.error('Error releasing scratchBuffer in EffectsPipeline:', error);
+		}
+		try {
+			this.#effectContext = null;
+		} catch (error) {
+			console.error('Error releasing effectContext in EffectsPipeline:', error);
+		}
 	}
 }
 

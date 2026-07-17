@@ -30,7 +30,7 @@ class LayerGroup {
 	/** @type {boolean} Flag indicating cache needs rebuild */
 	#isClipsDirty = true;
 
-	/** @type {Map<string, Set<{channel: number, note: number}>>} Choke group → active note slots */
+	/** @type {Map<string, Map<string, {channel: number, note: number}>>} Choke group → active note slots keyed by `${channel}:${note}` */
 	#triggerGroups = new Map();
 
 	/**
@@ -276,10 +276,10 @@ class LayerGroup {
 		}
 		let groupMembers = this.#triggerGroups.get(clip.triggerGroup);
 		if (!groupMembers) {
-			groupMembers = new Set();
+			groupMembers = new Map();
 			this.#triggerGroups.set(clip.triggerGroup, groupMembers);
 		}
-		groupMembers.add({ channel, note });
+		groupMembers.set(this.#triggerGroupKey(channel, note), { channel, note });
 	}
 
 	/**
@@ -296,12 +296,7 @@ class LayerGroup {
 		if (!groupMembers) {
 			return;
 		}
-		for (const member of groupMembers) {
-			if (member.channel === channel && member.note === note) {
-				groupMembers.delete(member);
-				break;
-			}
-		}
+		groupMembers.delete(this.#triggerGroupKey(channel, note));
 		if (groupMembers.size === 0) {
 			this.#triggerGroups.delete(clip.triggerGroup);
 		}
@@ -318,7 +313,7 @@ class LayerGroup {
 		if (!groupMembers) {
 			return;
 		}
-		for (const member of groupMembers) {
+		for (const [key, member] of groupMembers) {
 			if (member.channel === excludeChannel && member.note === excludeNote) {
 				continue;
 			}
@@ -328,10 +323,12 @@ class LayerGroup {
 				clip.stop();
 				noteClips.delete(member.note);
 			}
+			groupMembers.delete(key);
 		}
-		// Rebuild the group with only the excluded member
-		groupMembers.clear();
-		groupMembers.add({ channel: excludeChannel, note: excludeNote });
+	}
+
+	#triggerGroupKey(channel, note) {
+		return `${channel}:${note}`;
 	}
 
 	/**

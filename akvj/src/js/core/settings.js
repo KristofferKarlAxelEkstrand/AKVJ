@@ -108,7 +108,7 @@ const settings = {
 		// Flat clip catalog (keyed by clipId)
 		clipsJsonUrl: '/clips/clips.json',
 		// MIDI → clipId mapping (DAW channels 1–16)
-		midiLayoutJsonUrl: '/clips/midi-layout.json',
+		keyMapJsonUrl: '/clips/key-map.json',
 		// Optional base path for clip assets. For apps served under a subpath
 		// this should include a trailing slash, e.g. '/subpath/'. Falls back to
 		// `import.meta.env.BASE_URL` or '/'.

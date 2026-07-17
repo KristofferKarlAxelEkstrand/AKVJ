@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "title": "MIDIMessageEvent Interface (MDN Reference)",
+    "protocol": "web-midi",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/MIDIMessageEvent",
+    "summary": "MDN reference for MIDIMessageEvent: the data Uint8Array payload and event timing."
+  },
+  "description": "The MIDIMessageEvent interface of the Web MIDI API represents the event passed to the midimessage event of the MIDIInput interface. A midimessage event is fired every time a MIDI message is sent from a device represented by a MIDIInput, for example when a MIDI keyboard key is pressed, a knob is tweaked, or a slider is moved.",
+  "availability": "Limited availability This feature is not Baseline because it does not work in some of the most widely-used browsers.",
+  "secure_context": true,
+  "constructor": {
+    "name": "MIDIMessageEvent",
+    "signature": "MIDIMessageEvent()",
+    "description": "Creates a new MIDIMessageEvent object instance."
+  },
+  "instance_properties": [
+    {
+      "name": "data",
+      "modifiers": "",
+      "description": "A Uint8Array containing the data bytes of a single MIDI message. See the MIDI specification for more information on its form."
+    }
+  ],
+  "instance_methods": [],
+  "events": [],
+  "examples": [
+    "<code>navigator.requestMIDIAccess().then((midiAccess) => {\n  Array.from(midiAccess.inputs).forEach((input) => {\n    input[1].onmidimessage = (msg) => {\n      console.log(msg);\n    };\n  });\n});\n</code>"
+  ],
+  "specifications": [
+    "Web MIDI API # midimessageevent-interface"
+  ],
+  "browser_compatibility": {},
+  "summary": {
+    "instance_property_count": 1,
+    "instance_method_count": 0,
+    "event_count": 0,
+    "example_count": 1,
+    "specification_count": 1
+  }
+}

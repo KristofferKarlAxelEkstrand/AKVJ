@@ -7,7 +7,7 @@ import { vi } from 'vitest';
  * invoke using the helpers from `invokeListeners.js`.
  */
 
-export function createFakeInput({ id = 'fake-1', name = 'Fake MIDI Input' } = {}) {
+function createFakeInput({ id = 'fake-1', name = 'Fake MIDI Input' } = {}) {
 	const listenersByType = new Map();
 	return {
 		id,
@@ -30,7 +30,7 @@ export function createFakeInput({ id = 'fake-1', name = 'Fake MIDI Input' } = {}
 	};
 }
 
-export function createFakeAccess(inputs = []) {
+function createFakeAccess(inputs = []) {
 	const inputMap = new Map(inputs.map(input => [input.id, input]));
 	const listenersByType = new Map();
 	return {

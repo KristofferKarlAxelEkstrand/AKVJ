@@ -10,7 +10,7 @@ const { width, height } = settings.canvas;
  * @param {Function} drawFn - Function called with (ctx, timestamp) to draw the clip
  * @returns {Object} Mock Clip
  */
-export function createMockClip(drawFn) {
+function createMockClip(drawFn) {
 	return {
 		renderToContext: drawFn,
 		play: vi.fn(),

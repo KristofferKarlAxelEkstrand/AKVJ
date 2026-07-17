@@ -3,12 +3,12 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>AKVJ Admin</title>
+		<title>AKVJ Mainframe</title>
 		<link rel="stylesheet" href="./styles.css" />
 	</head>
 	<body>
 		<header class="site-header">
-			<h1>AKVJ Admin</h1>
+			<h1>AKVJ Mainframe</h1>
 			<p>Clip library, upload, and MIDI mapping for the shared clip bucket.</p>
 		</header>
 
@@ -24,6 +24,12 @@
 					<h2>Clip library</h2>
 					<div class="panel-actions">
 						<span id="clip-summary" class="clip-summary"></span>
+						<select id="clip-sort" class="clip-sort" aria-label="Sort clips">
+							<option value="name">Sort: Name</option>
+							<option value="clipId">Sort: ID</option>
+							<option value="role">Sort: Role</option>
+							<option value="frames">Sort: Frames</option>
+						</select>
 						<select id="clip-role-filter" class="clip-role-filter" aria-label="Filter by role">
 							<option value="">All roles</option>
 						</select>
@@ -32,15 +38,25 @@
 						<button type="button" id="refresh-library">Refresh</button>
 					</div>
 				</div>
-				<ul id="clip-list" class="clip-list"></ul>
+				<akvj-clip-list id="clip-list" class="clip-list"></akvj-clip-list>
 			</section>
 
 			<section id="panel-upload" class="panel" role="tabpanel" hidden>
 				<h2>Upload clip</h2>
 				<form id="upload-form" class="upload-form">
+					<div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop PNG frames here or click to browse">
+						<p class="drop-zone-text">Drop PNG frames here or click to browse</p>
+						<input id="upload-files" name="files" type="file" accept="image/png" multiple required hidden />
+					</div>
+					<div id="file-list" class="file-list"></div>
+					<akvj-staging-preview id="staging-preview"></akvj-staging-preview>
 					<label>
 						Clip ID
 						<input id="upload-clip-id" name="clipId" type="text" pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" required placeholder="neon-skull" />
+					</label>
+					<label>
+						Name
+						<input id="upload-name" name="name" type="text" placeholder="Neon Skull" />
 					</label>
 					<label>
 						Role
@@ -49,10 +65,32 @@
 							<option value="bitmask">bitmask</option>
 						</select>
 					</label>
-					<label>
-						Frames (PNG sequence)
-						<input id="upload-files" name="files" type="file" accept="image/png" multiple required />
-					</label>
+					<div class="upload-config-row">
+						<label>
+							Width
+							<input id="upload-target-width" type="number" min="1" value="240" />
+						</label>
+						<label>
+							Height
+							<input id="upload-target-height" type="number" min="1" value="135" />
+						</label>
+						<label>
+							Playback
+							<select id="upload-playback">
+								<option value="loop">loop</option>
+								<option value="once">once</option>
+								<option value="pingpong">pingpong</option>
+								<option value="random">random</option>
+								<option value="reverse">reverse</option>
+								<option value="shuffle">shuffle</option>
+								<option value="scrub">scrub</option>
+							</select>
+						</label>
+						<label>
+							Frame rate
+							<input id="upload-frame-rate" type="number" min="1" value="12" />
+						</label>
+					</div>
 					<button type="submit">Create sprite &amp; save</button>
 				</form>
 				<p id="upload-status" class="status" aria-live="polite"></p>
@@ -72,7 +110,7 @@
 					<label for="piano-channel">Piano channel</label>
 					<select id="piano-channel" class="piano-channel"></select>
 				</div>
-				<div id="mapping-summary" class="mapping-summary"></div>
+				<akvj-mapping-table id="mapping-table"></akvj-mapping-table>
 				<div class="mapping-add">
 					<label>Channel <input id="map-channel" type="number" min="1" max="16" value="1" /></label>
 					<label>Note <input id="map-note" type="number" min="0" max="127" value="0" /></label>
@@ -83,18 +121,6 @@
 					</label>
 					<button type="button" id="add-mapping">Add / update</button>
 				</div>
-				<table class="mapping-table">
-					<thead>
-						<tr>
-							<th>Channel</th>
-							<th>Note</th>
-							<th>Velocity</th>
-							<th>Clip ID</th>
-							<th></th>
-						</tr>
-					</thead>
-					<tbody id="mapping-body"></tbody>
-				</table>
 				<p id="mapping-status" class="status" aria-live="polite"></p>
 				<akvj-piano-keyboard id="piano-keyboard" channel="1"></akvj-piano-keyboard>
 			</section>

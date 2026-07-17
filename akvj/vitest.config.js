@@ -4,7 +4,7 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: 'jsdom',
-		exclude: ['test/visual/**', '**/node_modules/**', '**/dist/**'],
+		exclude: ['test/visual/**', 'test/smoke/**', '**/node_modules/**', '**/dist/**'],
 		pool: 'vmThreads',
 		testTimeout: 30000,
 		fileParallelism: false

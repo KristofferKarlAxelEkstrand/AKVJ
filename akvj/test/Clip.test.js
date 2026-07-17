@@ -57,6 +57,9 @@ describe('Clip', () => {
 			})
 		);
 
+		// Activate the clip to subscribe to clock events
+		clip.reset();
+
 		// Initial draw frame 0
 		clip.play(0);
 		expect(ctx.drawImage).toHaveBeenCalledTimes(1);
@@ -258,6 +261,28 @@ describe('Clip', () => {
 			expect(callArgs[2]).toBe(0); // sy = 0 for frame 0
 		});
 
+		test('does not double-advance or double-draw when play() and renderToContext() share same timestamp', () => {
+			const ctx = createMockDrawContext();
+			const clip = new Clip(
+				defaultOptions({
+					displayContext: ctx,
+					frames: 4,
+					framesPerRow: 4,
+					frameRatesForFrames: { 0: 10 }
+				})
+			);
+
+			// First call via play() — should draw frame 0
+			clip.play(0);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+
+			// Second call via renderToContext() with same timestamp — should be skipped
+			const secondCtx = createMockDrawContext();
+			clip.renderToContext(secondCtx, 0);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
+			expect(secondCtx.drawImage).not.toHaveBeenCalled();
+		});
+
 		test('does not advance frame until interval has passed', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
@@ -276,12 +301,12 @@ describe('Clip', () => {
 			clip.play(); // Initialize at t=0
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
-			// Still at t=0, should not advance
+			// Still at t=0, should not advance or redraw (guarded by #lastRenderTimestamp)
 			clip.play();
-			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
 			// Verify still on frame 0 (sx=0)
-			expect(ctx.drawImage.mock.calls[1][1]).toBe(0);
+			expect(ctx.drawImage.mock.calls[0][1]).toBe(0);
 		});
 
 		test('advances multiple frames when elapsed covers several intervals', () => {
@@ -736,6 +761,48 @@ describe('Clip', () => {
 			// t=250ms -> BPM sync advances
 			clip.play(250);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 1
+		});
+
+		test('does not burst-advance frames when transitioning from clock to time-based BPM', async () => {
+			const ctx = createMockDrawContext();
+			const appState = (await import('../src/js/core/AppState.js')).default;
+			appState.bpm = 120; // 120 BPM
+
+			const clip = new Clip(
+				defaultOptions({
+					displayContext: ctx,
+					frames: 4,
+					framesPerRow: 4,
+					frameDurationBeats: 0.5 // 250ms at 120 BPM
+				})
+			);
+
+			// Activate clip and draw initial frame
+			clip.reset();
+			clip.play(0);
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+			// Simulate clock sync mode: send enough pulses to set bpmSource to clock
+			for (let i = 0; i < 8; i++) {
+				appState.dispatchMIDIClock(1000 + i * 10);
+			}
+			expect(appState.bpmSource).toBe('clock');
+
+			// While in clock mode, play() should not advance frames via time
+			clip.play(2000);
+			clip.play(3000);
+			// Frame should still be 0 (clock pulses drive advancement, not time)
+			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
+
+			// Simulate clock timeout: bpmSource falls back to default
+			appState.reset();
+			appState.bpm = 120; // Restore BPM after reset
+
+			// Now play at t=4000 — should NOT burst-advance due to stale #lastTime
+			clip.play(4000);
+			// Should be on frame 0 or 1 at most, not frame 3 (which would indicate catch-up)
+			const sx = ctx.drawImage.mock.calls.at(-1)[1];
+			expect(sx).toBeLessThan(120); // Less than frame 2's sx
 		});
 	});
 });

@@ -29,7 +29,7 @@
 		"quickInput.foreground": "#ffffff",
 		"quickInputList.focusForeground": "#ffffff",
 		"quickInputList.focusIconForeground": "#ffffff",
-		"pickerGroup.foreground": "undefined",
+		"pickerGroup.foreground": "#a8adb8",
 		"activityBar.foreground": "#ffffff",
 		"activityBar.inactiveForeground": "#ffffffd9",
 		"statusBar.foreground": "#ffffffd9",

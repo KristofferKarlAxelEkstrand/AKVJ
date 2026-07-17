@@ -73,7 +73,7 @@ async function resolvePngPath(clipDir, meta, errors) {
 
 function validateMetaConstraints(meta, errors) {
 	if (meta.src !== undefined) {
-		errors.push('meta.src is no longer supported; use midi-layout.json clipId reuse instead');
+		errors.push('meta.src is no longer supported; use key-map.json clipId reuse instead');
 	}
 	if (meta.role !== undefined && meta.role !== 'bitmask') {
 		errors.push(`Invalid role "${meta.role}" (allowed: bitmask)`);

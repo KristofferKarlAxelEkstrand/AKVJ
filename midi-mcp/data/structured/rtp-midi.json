@@ -1,0 +1,1132 @@
+{
+	"metadata": {
+		"title": "RTP Payload Format for MIDI (RTP-MIDI)",
+		"doc_id": "RFC6295",
+		"protocol": "midi1",
+		"version": "6295",
+		"date": "2011-06",
+		"source": "https://www.ietf.org/rfc/rfc6295.txt"
+	},
+	"packet_figures": [
+		{
+			"figure_id": "Figure 1",
+			"title": "Packet Format",
+			"fields": [
+				"V",
+				"P",
+				"X",
+				"CC",
+				"M",
+				"PT",
+				"S",
+				"T",
+				"SSRC",
+				"MIDI",
+				"J"
+			]
+		},
+		{
+			"figure_id": "Figure 2",
+			"title": "MIDI Command Section",
+			"fields": [
+				"B",
+				"J",
+				"Z",
+				"P",
+				"LEN",
+				"MIDI"
+			]
+		},
+		{
+			"figure_id": "Figure 3",
+			"title": "MIDI List Structure",
+			"fields": [
+				"D",
+				"T",
+				"Z",
+				"MIDI",
+				"C",
+				"N"
+			]
+		},
+		{
+			"figure_id": "Figure 4",
+			"title": "Decoding Delta Time Formats",
+			"fields": []
+		},
+		{
+			"figure_id": "Figure 5",
+			"title": "Command Segmentation Status Octets",
+			"fields": [
+				"S",
+				"P",
+				"H",
+				"O",
+				"T",
+				"F0",
+				"F7",
+				"F4"
+			]
+		},
+		{
+			"figure_id": "Figure 6",
+			"title": "Example Segmentations",
+			"fields": []
+		},
+		{
+			"figure_id": "Figure 7",
+			"title": "Top-Level Recovery Journal Format",
+			"fields": [
+				"R",
+				"S-",
+				"C"
+			]
+		},
+		{
+			"figure_id": "Figure 8",
+			"title": "Recovery Journal Header",
+			"fields": [
+				"S",
+				"Y",
+				"A",
+				"H",
+				"TOTCHAN",
+				"C",
+				"P"
+			]
+		},
+		{
+			"figure_id": "Figure 9",
+			"title": "Channel Journal Format",
+			"fields": [
+				"S",
+				"CHAN",
+				"H",
+				"LENGTH",
+				"P",
+				"C",
+				"M",
+				"W",
+				"N",
+				"E",
+				"T",
+				"A"
+			]
+		},
+		{
+			"figure_id": "Figure 10",
+			"title": "System Journal Format",
+			"fields": [
+				"S",
+				"D",
+				"V",
+				"Q",
+				"F",
+				"X",
+				"LENGTH"
+			]
+		}
+	],
+	"channel_chapters": [
+		{
+			"appendix": "A",
+			"section_number": "2",
+			"chapter_letter": "P",
+			"name": "MIDI Program Change",
+			"figure_id": "Figure A.2.1",
+			"fields": [
+				"S",
+				"PROGRAM",
+				"B",
+				"BANK-MSB",
+				"X",
+				"BANK-LSB"
+			],
+			"size": "24 bits",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "3",
+			"chapter_letter": "C",
+			"name": "MIDI Control Change",
+			"figure_id": "Figure A.3.3",
+			"fields": [
+				"S",
+				"LEN",
+				"NUMBER",
+				"A",
+				"VALUE",
+				"ALT",
+				"T"
+			],
+			"size": "1-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "4",
+			"chapter_letter": "M",
+			"name": "MIDI Parameter System",
+			"figure_id": "Figure A.4.7",
+			"fields": [
+				"S",
+				"P",
+				"E",
+				"U",
+				"W",
+				"Z",
+				"LENGTH",
+				"Q",
+				"PENDING",
+				"L",
+				"PNUM-LSB",
+				"PNUM-MSB",
+				"J",
+				"K",
+				"M",
+				"N",
+				"T",
+				"V",
+				"R",
+				"F",
+				"X",
+				"ENTRY-MSB",
+				"ENTRY-LSB",
+				"G",
+				"A-BUTTON",
+				"C-BUTTON",
+				"COUNT"
+			],
+			"size": "2-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "5",
+			"chapter_letter": "W",
+			"name": "MIDI Pitch Wheel",
+			"figure_id": "Figure A.5.1",
+			"fields": [
+				"S",
+				"FIRST",
+				"R",
+				"SECOND"
+			],
+			"size": "16 bits",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "6",
+			"chapter_letter": "N",
+			"name": "MIDI NoteOff and NoteOn",
+			"figure_id": "Figure A.6.3",
+			"fields": [
+				"B",
+				"LEN",
+				"LOW",
+				"HIGH",
+				"S",
+				"NOTENUM",
+				"Y",
+				"VELOCITY",
+				"OFFBITS"
+			],
+			"size": "2-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "7",
+			"chapter_letter": "E",
+			"name": "MIDI Note Command Extras",
+			"figure_id": "Figure A.7.2",
+			"fields": [
+				"S",
+				"LEN",
+				"NOTENUM",
+				"V",
+				"COUNT",
+				"VEL"
+			],
+			"size": "1-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "8",
+			"chapter_letter": "T",
+			"name": "MIDI Channel Aftertouch",
+			"figure_id": "Figure A.8.1",
+			"fields": [
+				"S",
+				"PRESSURE"
+			],
+			"size": "8 bits",
+			"description": ""
+		},
+		{
+			"appendix": "A",
+			"section_number": "9",
+			"chapter_letter": "A",
+			"name": "MIDI Poly Aftertouch",
+			"figure_id": "Figure A.9.2",
+			"fields": [
+				"S",
+				"LEN",
+				"NOTENUM",
+				"X",
+				"PRESSURE"
+			],
+			"size": "1-octet header",
+			"description": ""
+		}
+	],
+	"system_chapters": [
+		{
+			"appendix": "B",
+			"section_number": "1",
+			"chapter_letter": "D",
+			"name": "Simple System Commands",
+			"figure_id": "Figure B.1.5",
+			"fields": [
+				"S",
+				"B",
+				"G",
+				"H",
+				"J",
+				"K",
+				"Y",
+				"Z",
+				"C",
+				"COUNT",
+				"VALUE",
+				"V",
+				"L",
+				"DSZ",
+				"LENGTH",
+				"LEGAL"
+			],
+			"size": "1-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "B",
+			"section_number": "2",
+			"chapter_letter": "V",
+			"name": "Active Sense Command",
+			"figure_id": "Figure B.2.1",
+			"fields": [
+				"S",
+				"COUNT"
+			],
+			"size": null,
+			"description": ""
+		},
+		{
+			"appendix": "B",
+			"section_number": "3",
+			"chapter_letter": "Q",
+			"name": "Sequencer State Commands",
+			"figure_id": "Figure B.3.2",
+			"fields": [
+				"S",
+				"N",
+				"D",
+				"C",
+				"T",
+				"TOP",
+				"CLOCK",
+				"TIMETOOLS",
+				"TIME"
+			],
+			"size": "1-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "B",
+			"section_number": "4",
+			"chapter_letter": "F",
+			"name": "MIDI Time Code Tape Position",
+			"figure_id": "Figure B.4.3",
+			"fields": [
+				"S",
+				"C",
+				"P",
+				"Q",
+				"D",
+				"POINT",
+				"COMPLETE",
+				"PARTIAL",
+				"MT0",
+				"MT1",
+				"MT2",
+				"MT3",
+				"MT4",
+				"MT5",
+				"MT6",
+				"MT7",
+				"HR",
+				"MN",
+				"SC",
+				"FR"
+			],
+			"size": "1-octet header",
+			"description": ""
+		},
+		{
+			"appendix": "B",
+			"section_number": "5",
+			"chapter_letter": "X",
+			"name": "System Exclusive",
+			"figure_id": "Figure B.5.2",
+			"fields": [
+				"S",
+				"T",
+				"C",
+				"F",
+				"D",
+				"L",
+				"STA",
+				"TCOUNT",
+				"COUNT",
+				"FIRST",
+				"DATA"
+			],
+			"size": "1-octet header",
+			"description": ""
+		}
+	],
+	"configuration_parameters": [
+		{
+			"name": "rate",
+			"description": "The RTP timestamp clock rate.  See Sections 2.1 and 6.1",
+			"allowed_values": [],
+			"section_ref": null
+		},
+		{
+			"name": "ch_anchor",
+			"description": "See Appendix C.2.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"name": "ch_default",
+			"description": "See Appendix C.2.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"name": "ch_never",
+			"description": "See Appendix C.2.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"name": "cm_unused",
+			"description": "See Appendix C.1 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.1"
+		},
+		{
+			"name": "cm_used",
+			"description": "See Appendix C.1 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.1"
+		},
+		{
+			"name": "chanmask",
+			"description": "See Appendix C.6.4.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "cid",
+			"description": "See Appendix C.6.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "guardtime",
+			"description": "See Appendix C.4.2 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"name": "inline",
+			"description": "See Appendix C.6.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "linerate",
+			"description": "See Appendix C.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"name": "mperiod",
+			"description": "See Appendix C.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"name": "multimode",
+			"description": "See Appendix C.6.1 for usage details.",
+			"allowed_values": [
+				"all",
+				"one"
+			],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "musicport",
+			"description": "See Appendix C.5 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.5"
+		},
+		{
+			"name": "octpos",
+			"description": "See Appendix C.3 for usage details.",
+			"allowed_values": [
+				"first",
+				"last"
+			],
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"name": "rinit",
+			"description": "See Appendix C.6.3 for usage details.",
+			"allowed_values": [
+				"/"
+			],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "rtp_maxptime",
+			"description": "See Appendix C.4.1 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"name": "rtp_ptime",
+			"description": "See Appendix C.4.1 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"name": "smf_cid",
+			"description": "See Appendix C.6.4.2 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "smf_inline",
+			"description": "See Appendix C.6.4.2 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "smf_url",
+			"description": "See Appendix C.6.4.2 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "tsmode",
+			"description": "See Appendix C.3 for usage details.",
+			"allowed_values": [
+				"comex",
+				"async",
+				"buffer"
+			],
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"name": "url",
+			"description": "See Appendix C.6.3 for usage details.",
+			"allowed_values": [],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "j_sec",
+			"description": "See Appendix C.2.1 for usage details.  See",
+			"allowed_values": [
+				"none",
+				"recj"
+			],
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"name": "j_update",
+			"description": "See Appendix C.2.2 for usage details.  See",
+			"allowed_values": [
+				"anchor",
+				"closed-loop"
+			],
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"name": "render",
+			"description": "See Appendix C.6 for usage details.  See",
+			"allowed_values": [
+				"synthetic",
+				"api",
+				"null"
+			],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "subrender",
+			"description": "See Appendix C.6.2 for usage details.  See",
+			"allowed_values": [
+				"default"
+			],
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"name": "smf_info",
+			"description": "See Appendix C.6.4.1 for usage details.  See",
+			"allowed_values": [
+				"ignore",
+				"identity"
+			],
+			"section_ref": "Appendix C.6"
+		}
+	],
+	"media_type_registrations": [
+		{
+			"section": "11.1",
+			"title": "rtp-midi Media Type Registration",
+			"media_type": "audio",
+			"subtype": "rtp-midi",
+			"required_parameters": [
+				{
+					"name": "rate",
+					"description": "The RTP timestamp clock rate.  See Sections 2.1 and 6.1"
+				}
+			],
+			"optional_parameters": [
+				{
+					"name": "ch_anchor",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "ch_default",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "ch_never",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "cm_unused",
+					"description": "See Appendix C.1 for usage details."
+				},
+				{
+					"name": "cm_used",
+					"description": "See Appendix C.1 for usage details."
+				},
+				{
+					"name": "chanmask",
+					"description": "See Appendix C.6.4.3 for usage details."
+				},
+				{
+					"name": "cid",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "guardtime",
+					"description": "See Appendix C.4.2 for usage details."
+				},
+				{
+					"name": "inline",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "linerate",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "mperiod",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "multimode",
+					"description": "See Appendix C.6.1 for usage details."
+				},
+				{
+					"name": "musicport",
+					"description": "See Appendix C.5 for usage details."
+				},
+				{
+					"name": "octpos",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "rinit",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "rtp_maxptime",
+					"description": "See Appendix C.4.1 for usage details."
+				},
+				{
+					"name": "rtp_ptime",
+					"description": "See Appendix C.4.1 for usage details."
+				},
+				{
+					"name": "smf_cid",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "smf_inline",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "smf_url",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "tsmode",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "url",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "j_sec",
+					"description": "See Appendix C.2.1 for usage details.  See"
+				},
+				{
+					"name": "j_update",
+					"description": "See Appendix C.2.2 for usage details.  See"
+				},
+				{
+					"name": "render",
+					"description": "See Appendix C.6 for usage details.  See"
+				},
+				{
+					"name": "subrender",
+					"description": "See Appendix C.6.2 for usage details.  See"
+				},
+				{
+					"name": "smf_info",
+					"description": "See Appendix C.6.4.1 for usage details.  See"
+				}
+			]
+		},
+		{
+			"section": "11.2",
+			"title": "mpeg4-generic Media Type Registration",
+			"media_type": "audio",
+			"subtype": "mpeg4-generic",
+			"required_parameters": [],
+			"optional_parameters": [
+				{
+					"name": "ch_anchor",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "ch_default",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "ch_never",
+					"description": "See Appendix C.2.3 for usage details."
+				},
+				{
+					"name": "cm_unused",
+					"description": "See Appendix C.1 for usage details."
+				},
+				{
+					"name": "cm_used",
+					"description": "See Appendix C.1 for usage details."
+				},
+				{
+					"name": "chanmask",
+					"description": "See Appendix C.6.4.3 for usage details."
+				},
+				{
+					"name": "cid",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "guardtime",
+					"description": "See Appendix C.4.2 for usage details."
+				},
+				{
+					"name": "inline",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "linerate",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "mperiod",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "multimode",
+					"description": "See Appendix C.6.1 for usage details."
+				},
+				{
+					"name": "musicport",
+					"description": "See Appendix C.5 for usage details."
+				},
+				{
+					"name": "octpos",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "rinit",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "rtp_maxptime",
+					"description": "See Appendix C.4.1 for usage details."
+				},
+				{
+					"name": "rtp_ptime",
+					"description": "See Appendix C.4.1 for usage details."
+				},
+				{
+					"name": "smf_cid",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "smf_inline",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "smf_url",
+					"description": "See Appendix C.6.4.2 for usage details."
+				},
+				{
+					"name": "tsmode",
+					"description": "See Appendix C.3 for usage details."
+				},
+				{
+					"name": "url",
+					"description": "See Appendix C.6.3 for usage details."
+				},
+				{
+					"name": "j_sec",
+					"description": "See Appendix C.2.1 for usage details."
+				},
+				{
+					"name": "j_update",
+					"description": "See Appendix C.2.2 for usage details."
+				},
+				{
+					"name": "render",
+					"description": "See Appendix C.6 for usage details."
+				},
+				{
+					"name": "subrender",
+					"description": "See Appendix C.6.2 for usage details."
+				},
+				{
+					"name": "smf_info",
+					"description": "See Appendix C.6.4.1 for usage details."
+				}
+			]
+		},
+		{
+			"section": "11.3",
+			"title": "asc Media Type Registration",
+			"media_type": "audio",
+			"subtype": "asc",
+			"required_parameters": [],
+			"optional_parameters": []
+		}
+	],
+	"abnf_definitions": [
+		{
+			"parameter": "fmtp",
+			"syntax": "\"a=fmtp:\" token SP param-assign 0*(\";\" SP param-assign) CRLF",
+			"section_ref": null
+		},
+		{
+			"parameter": "cm_unused",
+			"syntax": "(([channel-list] command-type",
+			"section_ref": "Appendix C.1"
+		},
+		{
+			"parameter": "cm_used",
+			"syntax": "(([channel-list] command-type",
+			"section_ref": "Appendix C.1"
+		},
+		{
+			"parameter": "j_sec",
+			"syntax": "(\"none\" / \"recj\" / ietf-extension))",
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"parameter": "j_update",
+			"syntax": "(\"anchor\" / \"closed-loop\" /",
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"parameter": "ch_default",
+			"syntax": "(([channel-list] chapter-list",
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"parameter": "ch_never",
+			"syntax": "(([channel-list] chapter-list",
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"parameter": "ch_anchor",
+			"syntax": "(([channel-list] chapter-list",
+			"section_ref": "Appendix C.2"
+		},
+		{
+			"parameter": "tsmode",
+			"syntax": "(\"comex\" / \"async\" / \"buffer\"))",
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"parameter": "linerate",
+			"syntax": "nonzero-four-octet)",
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"parameter": "octpos",
+			"syntax": "(\"first\" / \"last\"))",
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"parameter": "mperiod",
+			"syntax": "nonzero-four-octet)",
+			"section_ref": "Appendix C.3"
+		},
+		{
+			"parameter": "guardtime",
+			"syntax": "nonzero-four-octet)",
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"parameter": "rtp_ptime",
+			"syntax": "four-octet)",
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"parameter": "rtp_maxptime",
+			"syntax": "four-octet)",
+			"section_ref": "Appendix C.4"
+		},
+		{
+			"parameter": "musicport",
+			"syntax": "four-octet)",
+			"section_ref": "Appendix C.5"
+		},
+		{
+			"parameter": "chanmask",
+			"syntax": "1*( 16(BIT) ))",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "cid",
+			"syntax": "DQUOTE cid-block DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "inline",
+			"syntax": "DQUOTE base-64-block DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "multimode",
+			"syntax": "(\"all\" / \"one\"))",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "render",
+			"syntax": "(\"synthetic\" / \"api\" / \"null\" /",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "rinit",
+			"syntax": "mime-type \"/\" mime-subtype)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "smf_cid",
+			"syntax": "DQUOTE cid-block DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "smf_info",
+			"syntax": "(\"ignore\" / \"identity\" /",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "smf_inline",
+			"syntax": "DQUOTE base-64-block DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "smf_url",
+			"syntax": "DQUOTE uri-element DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "subrender",
+			"syntax": "(\"default\" / extension))",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "url",
+			"syntax": "DQUOTE uri-element DQUOTE)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "command-type",
+			"syntax": "[A] [B] [C] [F] [G] [H] [J] [K] [M]",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "chapter-list",
+			"syntax": "[A] [B] [C] [D] [E] [F] [G] [H] [J] [K]",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "channel-list",
+			"syntax": "midi-chan-element *(\".\" midi-chan-element)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-chan-element",
+			"syntax": "midi-chan / midi-chan-range",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-chan-range",
+			"syntax": "midi-chan \"-\" midi-chan",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-chan",
+			"syntax": "DIGIT / (\"1\" %x30-35)   ; \"0\" .. \"15\"",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "f-list",
+			"syntax": "midi-field-element *(\".\" midi-field-element)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-field-element",
+			"syntax": "midi-field / midi-field-range",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-field-range",
+			"syntax": "midi-field \"-\" midi-field",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "midi-field",
+			"syntax": "four-octet",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "sysex-data",
+			"syntax": "\"__\"  h-list *(\"_\" h-list) \"__\"",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "h-list",
+			"syntax": "hex-field-element *(\".\" hex-field-element)",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "hex-field-element",
+			"syntax": "hex-octet / hex-field-range",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "hex-field-range",
+			"syntax": "hex-octet \"-\" hex-octet",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "hex-octet",
+			"syntax": "%x30-37 U-HEXDIG",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "mime-type",
+			"syntax": "\"audio\" / \"application\"",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "mime-subtype",
+			"syntax": "subtype-name",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "ietf-extension",
+			"syntax": "token",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "extension",
+			"syntax": "token",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "nonzero-four-octet",
+			"syntax": "(NZ-DIGIT 0*8(DIGIT))",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "four-octet",
+			"syntax": "\"0\" / nonzero-four-octet",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "uri-element",
+			"syntax": "URI-reference",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "token",
+			"syntax": "1*token-char",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "token-char",
+			"syntax": "%x21 / %x23-27 / %x2A-2B / %x2D-2E /",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "cid-block",
+			"syntax": "1*cid-char",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "cid-char",
+			"syntax": "token-char \"@\" \",\" \";\" \":\" \"\\\" \"/\" \"[\" \"]\" \"?\" \"=\"",
+			"section_ref": "Appendix C.6"
+		},
+		{
+			"parameter": "mode",
+			"syntax": "\"rtp-midi\"",
+			"section_ref": "Appendix C.6"
+		}
+	],
+	"summary": {
+		"packet_figure_count": 10,
+		"channel_chapter_count": 8,
+		"system_chapter_count": 5,
+		"configuration_parameter_count": 28,
+		"media_type_registration_count": 3,
+		"abnf_definition_count": 55
+	}
+}

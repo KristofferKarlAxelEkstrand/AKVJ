@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { validate } from './lib/validate.js';
-import { validateMidiLayout } from './lib/validateMapping.js';
+import { validateKeyMap } from './lib/validateMapping.js';
 import { optimize } from './lib/optimize.js';
 import { generate } from './lib/generate.js';
 import { copyToPublic, clean } from './lib/copy.js';
@@ -11,7 +11,7 @@ import { copyFileWithFallback } from './lib/fsUtils.js';
  * Pipeline - Orchestrates the clip build process.
  *
  * Phases:
- * 1. Validate source clips + midi-layout.json
+ * 1. Validate source clips + key-map.json
  * 2. Optimize PNGs (or copy if sharp is missing / --no-optimize)
  * 3. Generate clips.json in cache
  * 4. Copy cache to public folder
@@ -43,7 +43,7 @@ export class Pipeline {
 
 		const sourceDir = options.sourceDir ?? this.sourceDir;
 		const { valid: validClips, errors: clipErrors } = await this.#validate(sourceDir);
-		const { errors: mappingErrors } = await validateMidiLayout(sourceDir, validClips);
+		const { errors: mappingErrors } = await validateKeyMap(sourceDir, validClips);
 		const errors = [...clipErrors, ...mappingErrors];
 
 		if (errors.length > 0) {
@@ -52,7 +52,7 @@ export class Pipeline {
 		}
 
 		console.log(`  Found ${validClips.length} valid clips`);
-		console.log('  midi-layout.json OK\n');
+		console.log('  key-map.json OK\n');
 
 		if (options.validateOnly) {
 			console.log('Validation complete (--validate-only)');
@@ -146,9 +146,9 @@ export class Pipeline {
 			// No LICENSE file in source, that's fine
 		}
 
-		const layoutPath = path.join(sourceDir, 'midi-layout.json');
-		await copyFileWithFallback(layoutPath, path.join(this.cacheDir, 'midi-layout.json'));
-		console.log('  Copied midi-layout.json');
+		const layoutPath = path.join(sourceDir, 'key-map.json');
+		await copyFileWithFallback(layoutPath, path.join(this.cacheDir, 'key-map.json'));
+		console.log('  Copied key-map.json');
 		console.log();
 	}
 

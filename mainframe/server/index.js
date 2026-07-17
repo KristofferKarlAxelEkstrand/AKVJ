@@ -1,18 +1,19 @@
 #!/usr/bin/env node
 /**
- * Lightweight Admin API — Node http/fs only (no Express).
- * Serves clip bucket + midi-layout.json read/write and sprite ingestion.
+ * Lightweight Mainframe API — Node http/fs only (no Express).
+ * Serves clip bucket + key-map.json read/write and sprite ingestion.
  */
 import http from 'http';
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
-import { CLIPS_DIR, MIDI_LAYOUT_PATH, REPO_ROOT, isValidClipId, clipDir, resolveSafeSpritePath } from './paths.js';
-import { createClipFromFrames } from './spritesheet.js';
+import { CLIPS_DIR, KEY_MAP_PATH, REPO_ROOT, isValidClipId, clipDir, resolveSafeSpritePath } from './paths.js';
+import { createClipFromFrames, recompileClip } from './spritesheet.js';
 
-const PORT = Number(process.env.ADMIN_API_PORT) || 8787;
-const ALLOWED_ORIGINS = new Set(['http://localhost:5174', 'http://127.0.0.1:5174', 'http://localhost:5173', 'http://127.0.0.1:5173']);
-/** Max JSON body for uploads / layout writes (32 MiB). */
+const PORT = Number(process.env.MAINFRAME_API_PORT) || 7777;
+const ALLOWED_ORIGINS = new Set(['http://localhost:9999', 'http://127.0.0.1:9999', 'http://localhost:8888', 'http://127.0.0.1:8888']);
+/** Max JSON body for uploads / key-map writes (32 MiB). */
 const MAX_BODY_BYTES = 32 * 1024 * 1024;
 const SAFE_PNG_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.png$/i;
 
@@ -148,18 +149,18 @@ async function checkSpriteExists(dir, meta) {
 }
 
 /**
- * Read midi-layout.json (nested {channel: {note: {velocity: clipId}}})
- * and convert to a flat array for the admin UI.
+ * Read key-map.json (nested {channel: {note: {velocity: clipId}}})
+ * and convert to a flat array for the mainframe UI.
  * @returns {Promise<Array<{channel: number, note: number, velocity: number, clipId: string}>>}
  */
 async function readMapping() {
 	try {
-		const raw = await fs.readFile(MIDI_LAYOUT_PATH, 'utf8');
-		const midiLayout = JSON.parse(raw);
-		if (!midiLayout || typeof midiLayout !== 'object' || Array.isArray(midiLayout)) {
+		const raw = await fs.readFile(KEY_MAP_PATH, 'utf8');
+		const keyMap = JSON.parse(raw);
+		if (!keyMap || typeof keyMap !== 'object' || Array.isArray(keyMap)) {
 			return [];
 		}
-		return flattenMidiLayout(midiLayout);
+		return flattenKeyMap(keyMap);
 	} catch (error) {
 		if (error.code === 'ENOENT') {
 			return [];
@@ -170,13 +171,19 @@ async function readMapping() {
 
 /**
  * Convert nested {channel: {note: {velocity: clipId}}} to flat array.
- * @param {Object} midiLayout
+ * @param {Object} keyMap
  * @returns {Array<{channel: number, note: number, velocity: number, clipId: string}>}
  */
-function flattenMidiLayout(midiLayout) {
+function flattenKeyMap(keyMap) {
 	const entries = [];
-	for (const [channel, notes] of Object.entries(midiLayout)) {
+	for (const [channel, notes] of Object.entries(keyMap)) {
+		if (!notes || typeof notes !== 'object' || Array.isArray(notes)) {
+			continue;
+		}
 		for (const [note, velocities] of Object.entries(notes)) {
+			if (!velocities || typeof velocities !== 'object' || Array.isArray(velocities)) {
+				continue;
+			}
 			for (const [velocity, clipId] of Object.entries(velocities)) {
 				entries.push({
 					channel: Number(channel),
@@ -196,16 +203,16 @@ function flattenMidiLayout(midiLayout) {
  * @returns {Object}
  */
 function nestMappingEntries(entries) {
-	const midiLayout = {};
+	const keyMap = {};
 	for (const entry of entries) {
 		const channelKey = String(entry.channel);
 		const noteKey = String(entry.note);
 		const velocityKey = String(entry.velocity);
-		midiLayout[channelKey] ??= {};
-		midiLayout[channelKey][noteKey] ??= {};
-		midiLayout[channelKey][noteKey][velocityKey] = entry.clipId;
+		keyMap[channelKey] ??= {};
+		keyMap[channelKey][noteKey] ??= {};
+		keyMap[channelKey][noteKey][velocityKey] = entry.clipId;
 	}
-	return midiLayout;
+	return keyMap;
 }
 
 /**
@@ -223,9 +230,9 @@ async function writeMapping(mapping) {
 		validateMappingEntry(entry, index, readyClips, seenSlots);
 	});
 
-	const midiLayout = nestMappingEntries(mapping);
+	const keyMap = nestMappingEntries(mapping);
 	await fs.mkdir(CLIPS_DIR, { recursive: true });
-	await fs.writeFile(MIDI_LAYOUT_PATH, `${JSON.stringify(midiLayout, null, '\t')}\n`);
+	await fs.writeFile(KEY_MAP_PATH, `${JSON.stringify(keyMap, null, '\t')}\n`);
 }
 
 function validateMappingEntry(entry, index, readyClips, seenSlots) {
@@ -264,7 +271,7 @@ function runPipeline() {
 	});
 }
 
-export function createAdminServer() {
+export function createMainframeServer() {
 	return http.createServer(async (req, res) => {
 		applyCors(req, res);
 
@@ -311,6 +318,10 @@ async function routeRequest(req, res, url) {
 	}
 	if (req.method === 'PUT' && url.pathname.startsWith('/api/clips/') && !url.pathname.endsWith('/sprite')) {
 		await handlePutClipMeta(req, res, url);
+		return;
+	}
+	if (req.method === 'POST' && url.pathname.startsWith('/api/clips/') && url.pathname.endsWith('/recompile')) {
+		await handleRecompileClip(req, res, url);
 		return;
 	}
 	sendJson(res, 404, { error: 'Not found' });
@@ -368,7 +379,7 @@ async function handlePutMapping(req, res) {
 
 async function handlePostClips(req, res) {
 	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
-	const { clipId, role, frames } = body;
+	const { clipId, role, frames, targetWidth, targetHeight, name, playback, frameRate } = body;
 	if (!isValidClipId(clipId)) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
@@ -378,8 +389,31 @@ async function handlePostClips(req, res) {
 		return;
 	}
 	const frameBuffers = frames.map(frame => Buffer.from(String(frame).replace(/^data:image\/\w+;base64,/, ''), 'base64'));
-	const result = await createClipFromFrames({ clipId, frameBuffers, role });
+	const result = await createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, name, playback, frameRate });
 	sendJson(res, 201, { ok: true, ...result });
+}
+
+async function handleRecompileClip(req, res, url) {
+	const clipId = decodeURIComponent(url.pathname.slice('/api/clips/'.length, -'/recompile'.length));
+	if (!isValidClipId(clipId)) {
+		sendJson(res, 400, { error: 'Invalid clipId' });
+		return;
+	}
+	const targetDir = clipDir(clipId);
+	try {
+		await fs.access(targetDir);
+	} catch {
+		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
+		return;
+	}
+	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const { targetWidth, targetHeight, name, playback, frameRate, role } = body;
+	try {
+		const result = await recompileClip({ clipId, targetWidth, targetHeight, name, playback, frameRate, role });
+		sendJson(res, 200, { ok: true, ...result });
+	} catch (error) {
+		sendJson(res, 400, { error: error.message });
+	}
 }
 
 async function handleDeleteClip(_req, res, url) {
@@ -431,9 +465,16 @@ async function handlePutClipMeta(req, res, url) {
 	sendJson(res, 200, { ok: true, clipId, meta: updatedMeta });
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-	const server = createAdminServer();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+	const server = createMainframeServer();
+	server.on('error', error => {
+		if (error.code === 'EADDRINUSE') {
+			console.error(`Port ${PORT} is already in use. Stop the other process or set MAINFRAME_API_PORT.`);
+			process.exit(1);
+		}
+		throw error;
+	});
 	server.listen(PORT, '127.0.0.1', () => {
-		console.log(`AKVJ admin API listening on http://127.0.0.1:${PORT}`);
+		console.log(`AKVJ mainframe API listening on http://127.0.0.1:${PORT}`);
 	});
 }

@@ -7,11 +7,11 @@ Vanilla JS + CSS Vite app for managing the shared `clips/` bucket and `set-mappi
 From repo root:
 
 ```bash
-npm run mainframe    # UI on :5174, API on :8787
+npm run mainframe    # UI on :9999, API on :7777
 npm run build -w mainframe
 ```
 
-## API (127.0.0.1:8787)
+## API (127.0.0.1:7777)
 
 | Method  | Path                    | Purpose                             |
 | ------- | ----------------------- | ----------------------------------- |

@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "title": "MIDIAccess Interface (MDN Reference)",
+    "protocol": "web-midi",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/MIDIAccess",
+    "summary": "MDN reference for MIDIAccess: inputs/outputs maps, sysexEnabled, and the statechange event."
+  },
+  "description": "The MIDIAccess interface of the Web MIDI API provides methods for listing MIDI input and output devices, and obtaining access to those devices.",
+  "availability": "Limited availability This feature is not Baseline because it does not work in some of the most widely-used browsers.",
+  "secure_context": true,
+  "constructor": null,
+  "instance_properties": [
+    {
+      "name": "inputs",
+      "modifiers": "Read only",
+      "description": "Returns an instance of MIDIInputMap which provides access to any available MIDI input ports."
+    },
+    {
+      "name": "outputs",
+      "modifiers": "Read only",
+      "description": "Returns an instance of MIDIOutputMap which provides access to any available MIDI output ports."
+    },
+    {
+      "name": "sysexEnabled",
+      "modifiers": "Read only",
+      "description": "A boolean attribute indicating whether system exclusive support is enabled on the current MIDIAccess instance."
+    }
+  ],
+  "instance_methods": [],
+  "events": [
+    "statechange",
+    "Called whenever a new MIDI port is added or an existing port changes state."
+  ],
+  "examples": [
+    "<code>navigator.requestMIDIAccess().then((access) => {\n  // Get lists of available MIDI controllers\n  const inputs = access.inputs.values();\n  const outputs = access.outputs.values();\n  access.onstatechange = (event) => {\n    // Print information about the (dis)connected MIDI controller\n    console.log(event.port.name, event.port.manufacturer, event.port.state);\n  };\n});\n</code>"
+  ],
+  "specifications": [
+    "Web MIDI API # midiaccess-interface"
+  ],
+  "browser_compatibility": {},
+  "summary": {
+    "instance_property_count": 3,
+    "instance_method_count": 0,
+    "event_count": 2,
+    "example_count": 1,
+    "specification_count": 1
+  }
+}

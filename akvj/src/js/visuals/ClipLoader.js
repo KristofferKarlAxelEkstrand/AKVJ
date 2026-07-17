@@ -1,5 +1,5 @@
 /**
- * ClipLoader - Loads clip assets via midi-layout.json + flat clips.json catalog,
+ * ClipLoader - Loads clip assets via key-map.json + flat clips.json catalog,
  * then builds the nested {channel: {note: {velocity: Clip}}} tree used by LayerGroup.
  */
 import Clip from './Clip.js';
@@ -90,7 +90,9 @@ class ClipLoader {
 				frameRatesForFrames: clipMetadata.frameRatesForFrames,
 				frameDurationBeats: clipMetadata.frameDurationBeats ?? null,
 				retrigger: clipMetadata.retrigger,
-				bitDepth: clipMetadata.bitDepth ?? null
+				bitDepth: clipMetadata.bitDepth ?? null,
+				triggerType: clipMetadata.triggerType ?? 'momentary',
+				triggerGroup: clipMetadata.triggerGroup ?? null
 			});
 		} catch (error) {
 			console.error(`ClipLoader: invalid clip metadata for image ${clipMetadata.png}:`, error);
@@ -100,7 +102,7 @@ class ClipLoader {
 
 	/**
 	 * Load a single mapped clip into a MIDI slot.
-	 * @param {number} dawChannel - DAW channel 1–16 from midi-layout.json
+	 * @param {number} dawChannel - DAW channel 1–16 from key-map.json
 	 * @param {number|string} note
 	 * @param {number|string} velocityThreshold
 	 * @param {string} clipId
@@ -124,9 +126,7 @@ class ClipLoader {
 				channel: codeChannel,
 				note: String(note),
 				velocityThreshold: String(velocityThreshold),
-				clip,
-				triggerType: mergedMetadata.triggerType ?? 'momentary',
-				triggerGroup: mergedMetadata.triggerGroup ?? null
+				clip
 			};
 		} catch (error) {
 			console.error(`Error loading clip ${safeClipId} for ${dawChannel}/${note}/${velocityThreshold}:`, error);
@@ -181,49 +181,49 @@ class ClipLoader {
 	}
 
 	/**
-	 * Set up all clips from MIDI layout + flat catalog URLs.
+	 * Set up all clips from key map + flat catalog URLs.
 	 * @param {string} [clipsJsonUrl] - Flat catalog URL (defaults to settings)
-	 * @param {string} [midiLayoutJsonUrl] - MIDI layout URL (defaults to settings)
+	 * @param {string} [keyMapJsonUrl] - Key map URL (defaults to settings)
 	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocity
 	 */
-	async setupClips(clipsJsonUrl = settings.performance.clipsJsonUrl, midiLayoutJsonUrl = settings.performance.midiLayoutJsonUrl) {
-		const [clipsCatalog, midiLayout] = await Promise.all([this.#loadJson(clipsJsonUrl), this.#loadJson(midiLayoutJsonUrl)]);
+	async setupClips(clipsJsonUrl = settings.performance.clipsJsonUrl, keyMapJsonUrl = settings.performance.keyMapJsonUrl) {
+		const [clipsCatalog, keyMap] = await Promise.all([this.#loadJson(clipsJsonUrl), this.#loadJson(keyMapJsonUrl)]);
 
 		if (import.meta.env.DEV) {
 			console.log('JSON for clips loaded:', clipsCatalog);
-			console.log('MIDI layout loaded:', midiLayout);
+			console.log('Key map loaded:', keyMap);
 		}
 
-		if (!midiLayout || typeof midiLayout !== 'object' || Array.isArray(midiLayout)) {
-			throw new Error('midi-layout.json must be a JSON object keyed by channel');
+		if (!keyMap || typeof keyMap !== 'object' || Array.isArray(keyMap)) {
+			throw new Error('key-map.json must be a JSON object keyed by channel');
 		}
 		if (!clipsCatalog || typeof clipsCatalog !== 'object' || Array.isArray(clipsCatalog)) {
 			throw new Error('clips.json must be a flat object keyed by clipId');
 		}
 
-		const loadTasks = this.#buildLoadTasks(midiLayout, clipsCatalog);
+		const loadTasks = this.#buildLoadTasks(keyMap, clipsCatalog);
 		const loadResults = await this.#runBatchedLoads(loadTasks);
 		return this.#buildClipsObject(loadResults);
 	}
 
 	/**
-	 * Build load tasks from the nested MIDI layout and the clip catalog.
+	 * Build load tasks from the nested key map and the clip catalog.
 	 * Supports two mapping value formats:
 	 * - String: `"clipId"` (backward compatible)
 	 * - Object: `{ clipId, triggerType, triggerGroup }` (with overrides)
-	 * @param {Object} midiLayout - Nested {channel: {note: {velocity: clipId|mappingObject}}}
+	 * @param {Object} keyMap - Nested {channel: {note: {velocity: clipId|mappingObject}}}
 	 * @param {Object} clipsCatalog - Flat clip metadata catalog
 	 * @returns {Function[]} Array of async load functions
 	 */
-	#buildLoadTasks(midiLayout, clipsCatalog) {
+	#buildLoadTasks(keyMap, clipsCatalog) {
 		const loadTasks = [];
-		for (const [channel, notes] of Object.entries(midiLayout)) {
+		for (const [channel, notes] of Object.entries(keyMap)) {
 			for (const [note, velocities] of Object.entries(notes)) {
 				for (const [velocity, mappingValue] of Object.entries(velocities)) {
 					const { clipId, overrides } = this.#parseMappingValue(mappingValue);
 					const clipMetadata = clipsCatalog[clipId];
 					if (!clipMetadata) {
-						console.warn('ClipLoader: midi-layout references unknown clipId', clipId);
+						console.warn('ClipLoader: key-map references unknown clipId', clipId);
 						continue;
 					}
 					loadTasks.push(() => this.#loadMappedClip(channel, note, velocity, clipId, clipMetadata, overrides));
@@ -234,7 +234,7 @@ class ClipLoader {
 	}
 
 	/**
-	 * Parse a mapping value from midi-layout.json.
+	 * Parse a mapping value from key-map.json.
 	 * Accepts both string (backward compatible) and object formats.
 	 * @param {string|Object} mappingValue - clipId string or { clipId, triggerType, triggerGroup }
 	 * @returns {{clipId: string, overrides: Object|null}}
@@ -275,9 +275,7 @@ class ClipLoader {
 		const clips = {};
 		for (const loadResult of loadResults) {
 			if (loadResult) {
-				const { channel, note, velocityThreshold, clip, triggerType, triggerGroup } = loadResult;
-				clip.triggerType = triggerType;
-				clip.triggerGroup = triggerGroup;
+				const { channel, note, velocityThreshold, clip } = loadResult;
 				clips[channel] ??= {};
 				clips[channel][note] ??= {};
 				clips[channel][note][velocityThreshold] = clip;

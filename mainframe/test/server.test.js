@@ -14,7 +14,7 @@ async function setupTestClipsDir() {
 	await fs.mkdir(path.join(testClipsDir, 'test-clip-a'), { recursive: true });
 	await fs.writeFile(path.join(testClipsDir, 'test-clip-a', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
 	await fs.writeFile(path.join(testClipsDir, 'test-clip-a', 'meta.json'), JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1, loop: true, retrigger: true }));
-	await fs.writeFile(path.join(testClipsDir, 'midi-layout.json'), JSON.stringify({ 1: { 0: { 0: 'test-clip-a' } } }, null, '\t'));
+	await fs.writeFile(path.join(testClipsDir, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: 'test-clip-a' } } }, null, '\t'));
 }
 
 async function cleanupTestClipsDir() {
@@ -37,7 +37,7 @@ beforeAll(async () => {
 	await setupTestClipsDir();
 	process.env.AKVJ_CLIPS_DIR = testClipsDir;
 	const serverModule = await import('../server/index.js');
-	server = serverModule.createAdminServer();
+	server = serverModule.createMainframeServer();
 	await new Promise(resolve => {
 		server.listen(0, '127.0.0.1', resolve);
 	});
@@ -80,12 +80,28 @@ describe('GET /api/clips', () => {
 });
 
 describe('GET /api/mapping', () => {
-	test('returns the midi-layout as a flat array', async () => {
+	test('returns the key-map as a flat array', async () => {
 		const { status, data } = await fetchJson('GET', '/api/mapping');
 		expect(status).toBe(200);
 		expect(Array.isArray(data.mapping)).toBe(true);
 		expect(data.mapping).toHaveLength(1);
 		expect(data.mapping[0].clipId).toBe('test-clip-a');
+	});
+
+	test('handles malformed key-map with null/string intermediate values', async () => {
+		const malformedLayout = {
+			1: { 0: { 0: 'test-clip-a' } },
+			2: null,
+			3: 'not-an-object',
+			4: { 5: null },
+			5: { 6: 'also-not-an-object' }
+		};
+		await fs.writeFile(path.join(testClipsDir, 'key-map.json'), JSON.stringify(malformedLayout));
+		const { status, data } = await fetchJson('GET', '/api/mapping');
+		expect(status).toBe(200);
+		expect(data.mapping).toHaveLength(1);
+		expect(data.mapping[0].clipId).toBe('test-clip-a');
+		await fs.writeFile(path.join(testClipsDir, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: 'test-clip-a' } } }, null, '\t'));
 	});
 });
 
@@ -158,6 +174,9 @@ describe('DELETE /api/clips/:clipId', () => {
 describe('POST /api/clips', () => {
 	afterEach(async () => {
 		await fs.rm(path.join(testClipsDir, 'upload-test-clip'), { recursive: true, force: true });
+		await fs.rm(path.join(testClipsDir, 'config-test-clip'), { recursive: true, force: true });
+		await fs.rm(path.join(testClipsDir, '.raw-assets', 'upload-test-clip'), { recursive: true, force: true });
+		await fs.rm(path.join(testClipsDir, '.raw-assets', 'config-test-clip'), { recursive: true, force: true });
 	});
 
 	test('creates a clip from base64 PNG frames', async () => {
@@ -200,6 +219,40 @@ describe('POST /api/clips', () => {
 			frames: [PNG_4x4]
 		});
 		expect(status).toBe(500);
+	});
+
+	test('stores raw assets alongside compiled clip', async () => {
+		await fetchJson('POST', '/api/clips', {
+			clipId: 'upload-test-clip',
+			frames: [PNG_4x4]
+		});
+		const rawAssetPath = path.join(testClipsDir, '.raw-assets', 'upload-test-clip', 'frame-0000.png');
+		await expect(fs.access(rawAssetPath)).resolves.toBeUndefined();
+	});
+
+	test('accepts config params (name, playback, frameRate, targetWidth, targetHeight)', async () => {
+		const { status, data } = await fetchJson('POST', '/api/clips', {
+			clipId: 'config-test-clip',
+			frames: [PNG_4x4],
+			name: 'Test Clip',
+			playback: 'once',
+			frameRate: 15,
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		expect(status).toBe(201);
+		expect(data.ok).toBe(true);
+		const metaPath = path.join(testClipsDir, 'config-test-clip', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		expect(meta.name).toBe('Test Clip');
+		expect(meta.playback).toBe('once');
+		expect(meta.frameRatesForFrames['0']).toBe(15);
+		const spritePath = path.join(testClipsDir, 'config-test-clip', 'sprite.png');
+		const spriteBuffer = await fs.readFile(spritePath);
+		const { default: sharp } = await import('sharp');
+		const spriteMeta = await sharp(spriteBuffer).metadata();
+		expect(spriteMeta.width).toBe(8);
+		expect(spriteMeta.height).toBe(8);
 	});
 });
 

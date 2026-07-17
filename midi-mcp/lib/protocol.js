@@ -5,7 +5,7 @@
  * family so agents can filter searches ("midi1" vs "midi2" vs "web-midi").
  */
 
-export const PROTOCOLS = Object.freeze(['midi1', 'midi2', 'web-midi', 'general']);
+const PROTOCOLS = Object.freeze(['midi1', 'midi2', 'web-midi', 'general']);
 
 const WEB_MIDI_PATTERN = /web[\s_-]?midi/i;
 

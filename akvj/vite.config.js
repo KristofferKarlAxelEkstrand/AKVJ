@@ -31,6 +31,9 @@ export default defineConfig({
 	},
 	plugins: [reloadOnClipChange()],
 	server: {
+		host: '127.0.0.1',
+		port: 8888,
+		strictPort: true,
 		watch: {
 			// Use polling in dev containers where inotify may not work.
 			// Detect common container environments via env vars.

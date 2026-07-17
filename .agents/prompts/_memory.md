@@ -5,7 +5,7 @@ This file serves as the active memory bank for AI agents working on the AKVJ rep
 
 ## 1. Architectural Decisions
 - The VJ engine strictly uses Vanilla JS/CSS. No frameworks.
-- `admin/server/index.js` uses a route table (`EXACT_ROUTES` map) for exact-path HTTP routing, with a fallback for pattern-matched routes (e.g., `/api/clips/:clipId/sprite`).
+- `mainframe/server/index.js` uses a route table (`EXACT_ROUTES` map) for exact-path HTTP routing, with a fallback for pattern-matched routes (e.g., `/api/clips/:clipId/sprite`).
 - `validate.js` shim (`scripts/clips/lib/validate.js`) only re-exports `validate`. Other exports (`getSubfolders`, `getFilesWithExtension`) are imported directly from `validate/index.js`.
 
 ## 2. Active Context & In-Progress Work
@@ -26,8 +26,8 @@ This file serves as the active memory bank for AI agents working on the AKVJ rep
   - `validateMapping.js`: Updated consumer `clip.path` → `clip.clipId`. Updated JSDoc. Note: `validateMapping.js` error objects still use `path` for file locations (e.g., `'set-mapping.json'`, `'set-mapping.json[0]'`) — this is correct as they are file paths, not clip IDs.
   - `Pipeline.js`: Updated `#logValidationErrors()` to destructure both `clipId` and `path` with `clipId ?? path` fallback, since clip validation errors use `clipId` and mapping validation errors use `path`.
   - `validateMapping.test.js`: Updated all test mocks from `{ path: '...' }` → `{ clipId: '...' }`.
-  - `admin/server/paths.js`: Removed unused `VJ_SERVER_DIR` export — never imported anywhere.
-  - `admin/server/index.js`: Renamed `readClipEntries()` → `readClipDirectories()` — function returns raw directory entries, not clip entries.
+  - `mainframe/server/paths.js`: Removed unused `VJ_SERVER_DIR` export — never imported anywhere.
+  - `mainframe/server/index.js`: Renamed `readClipEntries()` → `readClipDirectories()` — function returns raw directory entries, not clip entries.
   - `spritesheet.js`: Fixed stale help text referencing old nested clip path structure (`./clips/0/3/0`) → flat clipId structure (`./clips/neon-skull`).
 - **Previous run (run 6) changes:** Phase 1: deleted 9 redundant "what" comments across 6 files. Phases 2-3: no changes needed.
 - **Previous run (run 5) changes (Phase 1-3):**

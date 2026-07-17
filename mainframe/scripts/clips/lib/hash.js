@@ -16,7 +16,7 @@ export async function hashFile(filePath) {
  * @param {string} hashFilePath - Path to the .hash file
  * @returns {Promise<string>} The stored hash
  */
-export async function readHashFile(hashFilePath) {
+async function readHashFile(hashFilePath) {
 	const content = await fs.readFile(hashFilePath, 'utf8');
 	return content.trim();
 }

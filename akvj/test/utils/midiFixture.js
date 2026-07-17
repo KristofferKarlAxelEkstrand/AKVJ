@@ -33,15 +33,7 @@ export function useFakeMIDIFixture(defaultInputDefinitions = [{ id: 'fake-1', na
 		setupEnv(defaultInputDefinitions);
 	});
 	afterEach(async () => {
-		// If the midi module was imported by the test, destroy it to clean listeners
-		try {
-			const midiModule = await import('../../src/js/midi-input/Midi.js');
-			if (midiModule?.default && typeof midiModule.default.destroy === 'function') {
-				midiModule.default.destroy();
-			}
-		} catch {
-			// ignore errors if the module was never imported in the test
-		}
+		// Tests that instantiate Midi are responsible for calling destroy() themselves.
 		// Restore global to original state
 		if (originalRequestMIDIAccess === undefined) {
 			if (globalThis.navigator) {

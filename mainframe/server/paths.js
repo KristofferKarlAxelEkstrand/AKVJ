@@ -6,7 +6,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** mainframe/server → mainframe → repo root */
 export const REPO_ROOT = path.resolve(__dirname, '../..');
 export const CLIPS_DIR = process.env.AKVJ_CLIPS_DIR || path.join(REPO_ROOT, 'clips');
-export const MIDI_LAYOUT_PATH = path.join(CLIPS_DIR, 'midi-layout.json');
+export const KEY_MAP_PATH = path.join(CLIPS_DIR, 'key-map.json');
+export const RAW_ASSETS_DIR = path.join(CLIPS_DIR, '.raw-assets');
 
 const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 const SAFE_PNG_NAME = /^[a-zA-Z0-9][a-zA-Z0-9._-]*\.png$/i;
@@ -28,6 +29,18 @@ export function clipDir(clipId) {
 		throw new Error(`Invalid clipId: ${clipId}`);
 	}
 	return path.join(CLIPS_DIR, clipId);
+}
+
+/**
+ * Resolve the raw assets directory for a clip (stores original uploads before processing).
+ * @param {string} clipId
+ * @returns {string}
+ */
+export function rawAssetsDir(clipId) {
+	if (!isValidClipId(clipId)) {
+		throw new Error(`Invalid clipId: ${clipId}`);
+	}
+	return path.join(RAW_ASSETS_DIR, clipId);
 }
 
 /**

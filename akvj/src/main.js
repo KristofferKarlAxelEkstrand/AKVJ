@@ -1,10 +1,11 @@
 import './css/adventure-kid-video-jockey.css';
 import './js/core/AdventureKidVideoJockey.js';
 
-// Side-effect: starts listening for MIDI devices
-import midi from './js/midi-input/Midi.js';
+import Midi from './js/midi-input/Midi.js';
 import Fullscreen from './js/utils/Fullscreen.js';
 import DebugOverlay from './js/utils/DebugOverlay.js';
+
+const midi = new Midi();
 
 const fullscreenManager = new Fullscreen();
 fullscreenManager.setup();

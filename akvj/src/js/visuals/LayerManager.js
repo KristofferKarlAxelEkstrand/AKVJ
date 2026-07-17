@@ -45,6 +45,8 @@ class LayerManager {
 	/** @type {Function|null} */
 	#unsubscribeCC = null;
 
+	#boundHandleControlChange = this.#handleControlChange.bind(this);
+
 	constructor() {
 		const { channelMapping } = settings;
 
@@ -61,7 +63,7 @@ class LayerManager {
 		// This makes the routing logic explicit, easy to reorder, and simple to extend.
 		this.#handlers = this.#buildHandlers();
 
-		this.#unsubscribeCC = appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, this.#handleControlChange.bind(this));
+		this.#unsubscribeCC = appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, this.#boundHandleControlChange);
 	}
 
 	#handleControlChange({ detail }) {

@@ -1,0 +1,90 @@
+{
+  "metadata": {
+    "title": "Recommended Practice (RP-021) Sound Controller Defaults (Revised)",
+    "doc_id": "RP-021",
+    "protocol": "midi1",
+    "source": ".midi-raw-data/rp21.pdf",
+    "pages": 1,
+    "summary": "MMA/AMEI Recommended Practice RP-021: Recommended Practice (RP-021) Sound Controller Defaults (Revised)."
+  },
+  "sound_controllers": [
+    {
+      "cc_number": 70,
+      "cc_hex": "0x46",
+      "control_function": "Sound Controller 1",
+      "default_name": "*Sound Variation"
+    },
+    {
+      "cc_number": 71,
+      "cc_hex": "0x47",
+      "control_function": "Sound Controller 2",
+      "default_name": "*Timbre/Harmonic Intensity"
+    },
+    {
+      "cc_number": 72,
+      "cc_hex": "0x48",
+      "control_function": "Sound Controller 3",
+      "default_name": "*Release Time"
+    },
+    {
+      "cc_number": 73,
+      "cc_hex": "0x49",
+      "control_function": "Sound Controller 4",
+      "default_name": "*Attack Time"
+    },
+    {
+      "cc_number": 74,
+      "cc_hex": "0x4A",
+      "control_function": "Sound Controller 5",
+      "default_name": "*Brightness"
+    },
+    {
+      "cc_number": 75,
+      "cc_hex": "0x4B",
+      "control_function": "Sound Controller 6",
+      "default_name": "Decay Time"
+    },
+    {
+      "cc_number": 76,
+      "cc_hex": "0x4C",
+      "control_function": "Sound Controller 7",
+      "default_name": "Vibrato Rate"
+    },
+    {
+      "cc_number": 77,
+      "cc_hex": "0x4D",
+      "control_function": "Sound Controller 8",
+      "default_name": "Vibrato Depth"
+    },
+    {
+      "cc_number": 78,
+      "cc_hex": "0x4E",
+      "control_function": "Sound Controller 9",
+      "default_name": "Vibrato Delay"
+    },
+    {
+      "cc_number": 79,
+      "cc_hex": "0x4F",
+      "control_function": "Sound Controller 10",
+      "default_name": "undefined"
+    }
+  ],
+  "comments": [
+    "Pages of the MIDI Specification will be revised to strike the language about forbidding Sound Controllers. This is an",
+    "inconsistency in the MIDI Specification that was overlooked when the existing Sound Controllers were defined.",
+    "Any default assignment specified by this proposal may be changed using Universal Real Time System Exclusive message",
+    "\"Controller Destination Setting\". This new message enables selecting the destination for any controller message.",
+    "Incorporated. All rights reserved. No part of this text may be reproduced in any form or by any means electronic or",
+    "mechanical without express permission in writing from the MIDI Manufacturers Association.",
+    "Page 1 of 1"
+  ],
+  "approval": {
+    "mma_date": "02/99",
+    "amei_date": "05/99",
+    "copyright": "1999-2004"
+  },
+  "summary": {
+    "sound_controller_count": 10,
+    "comment_count": 7
+  }
+}

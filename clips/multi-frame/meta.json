@@ -1,0 +1,10 @@
+{
+	"png": "sprite.png",
+	"frames": 3,
+	"framesPerRow": 3,
+	"playback": "loop",
+	"retrigger": true,
+	"frameRatesForFrames": {
+		"0": 12
+	}
+}

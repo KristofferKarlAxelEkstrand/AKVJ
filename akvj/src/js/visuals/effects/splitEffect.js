@@ -10,6 +10,12 @@ export default {
 	 * @param {{note: number, velocity: number}} effect
 	 * @param {number} _timestamp
 	 * @param {{width: number, height: number, effectRanges: Object, effectParams: Object, scratchBuffer: Uint8ClampedArray|null}} effectContext
+	 * @returns {boolean} True if pixels were modified
+	 *
+	 * Scratch buffer usage: Copies imageData.data into the scratch buffer via
+	 * transformCopy(), which reads from the scratch buffer and writes to
+	 * imageData.data for the section repeat transform. Does not retain the
+	 * scratch buffer reference after returning.
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;

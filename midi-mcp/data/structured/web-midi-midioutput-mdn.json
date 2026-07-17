@@ -1,0 +1,40 @@
+{
+  "metadata": {
+    "title": "MIDIOutput Interface (MDN Reference)",
+    "protocol": "web-midi",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/MIDIOutput",
+    "summary": "MDN reference for MIDIOutput: send() with optional timestamp, clear(), and message validity."
+  },
+  "description": "The MIDIOutput interface of the Web MIDI API provides methods to add messages to the queue of an output device, and to clear the queue of messages.",
+  "availability": "Limited availability This feature is not Baseline because it does not work in some of the most widely-used browsers.",
+  "secure_context": true,
+  "constructor": null,
+  "instance_properties": [],
+  "instance_methods": [
+    {
+      "name": "send",
+      "signature": "MIDIOutput.send()",
+      "description": "Queues a message to be sent to the MIDI port."
+    },
+    {
+      "name": "clear",
+      "signature": "MIDIOutput.clear()",
+      "description": "Clears any pending send data from the queue."
+    }
+  ],
+  "events": [],
+  "examples": [
+    "<code>function sendMiddleC(midiAccess, portID) {\n  const noteOnMessage = [0x90, 60, 0x7f]; // note on, middle C, full velocity\n  const output = midiAccess.outputs.get(portID);\n  output.send(noteOnMessage); // sends the message.\n}\n</code>"
+  ],
+  "specifications": [
+    "Web MIDI API # MIDIOutput"
+  ],
+  "browser_compatibility": {},
+  "summary": {
+    "instance_property_count": 0,
+    "instance_method_count": 2,
+    "event_count": 0,
+    "example_count": 1,
+    "specification_count": 1
+  }
+}

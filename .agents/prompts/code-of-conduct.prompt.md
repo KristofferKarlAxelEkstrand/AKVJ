@@ -2,7 +2,7 @@
 
 Strictly adhere to these rules. **The ultimate goal is highly readable code for humans that is easy to edit and work with.** Prioritize vanilla JS performance, robust error handling, strict encapsulation, and extremely clean patterns:
 
-- **1. Core Architecture**: NO frameworks (React, Vue, Tailwind). Use ONLY Vanilla JS and CSS. The `vj-server` render loop MUST hit 60fps and process MIDI with <20ms latency. No blocking operations.
+- **1. Core Architecture**: NO frameworks (React, Vue, Tailwind). Use ONLY Vanilla JS and CSS. The `akvj` render loop MUST hit 60fps and process MIDI with <20ms latency. No blocking operations.
 - **2. High-Performance Engine (Zero-Allocation)**: To prevent Garbage Collection (GC) stutters, **never allocate objects or arrays inside the `requestAnimationFrame` render loop**. Re-use pre-allocated objects and scratch buffers. Enforce integer coordinates (`Math.floor`) to avoid sub-pixel anti-aliasing overhead. Batch Canvas state changes (e.g., group by `fillStyle`).
 - **3. Separation of Concerns**: Strictly separate the **Update logic** (physics, timings, MIDI state) from the **Render logic** (Canvas drawing calls). Do not mix them.
 - **4. Privacy & Scope**: Use native `#` for ALL private fields/methods. Ban `_` prefixes. No global scope pollution; use ES6 modules exclusively. Components must decouple via `AppState` (EventTarget) instead of tight coupling.

@@ -9,6 +9,11 @@ export default {
 	 * @param {{velocity: number}} effect
 	 * @param {number} _timestamp
 	 * @param {{width: number, scratchBuffer: Uint8ClampedArray|null, effectParams: Object}} effectContext
+	 * @returns {boolean} True if pixels were modified
+	 *
+	 * Scratch buffer usage: Copies imageData.data into the scratch buffer before
+	 * applying displacement, so original pixel values are preserved for sampling.
+	 * Does not retain the scratch buffer reference after returning.
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;

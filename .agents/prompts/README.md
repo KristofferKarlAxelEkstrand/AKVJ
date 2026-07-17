@@ -8,42 +8,42 @@ To trigger any of these systems, copy the provided trigger text and paste it dir
 
 ### Master Orchestrator (The Master Prompt)
 Execute a complete, robust codebase overhaul.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/master-workflow.prompt.md from disk and execute its workflow.`
 
 ### Force Rule Reload
 If you updated the rules and want the AI to instantly apply them instead of using its old memory.
-**Trigger:** 
+**Trigger:**
 > `Forget your cached context. Read the latest .agents/prompts/code-of-conduct.prompt.md and .agents/prompts/_memory.md from disk right now, and apply the rules strictly to our current task.`
 
 ### Simplify & Flatten
 Runs cognitive refactors to extract complexity and make code easier to read.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/simplify-and-make-easy-to-understand.prompt.md from disk and execute its workflow.`
 
 ### Domain Consistency
 Enforces strict VJ terminology and naming conventions.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/naming-standards-and-consistency.prompt.md from disk and execute its workflow.`
 
 ### Cruft Elimination
 Strips out all dead code, unused dependencies, and orphaned logic.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/clean-up.prompt.md from disk and execute its workflow.`
 
 ### Validation & Pipeline
 Ensures the project formatting is flawless and all tests pass with zero errors.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/lint-test-and-fix.prompt.md from disk and execute its workflow.`
 
 ### Test Audit
 Massive coverage generator and bug fixer based on known testing gaps.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/test-audit.prompt.md from disk and execute its workflow.`
 
 ### Enforce UTF-8
 Fixes encoding issues across the codebase.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/enforce-utf8.prompt.md from disk and execute its workflow.`
 
 ### MIDI MCP Developer
@@ -52,13 +52,13 @@ Iterative agent that transforms raw MIDI markdown documents into strictly-typed 
 > `Read the latest .agents/prompts/midi-mcp-developer.prompt.md from disk and execute exactly one iteration of its workflow.`
 
 ### Server Architect
-Iterative agent dedicated to deeply decoupling the lightweight visualizer (`vj-server`) from the heavy clip manager (`admin`). Manages its own architecture ledger.
+Iterative agent dedicated to deeply decoupling the lightweight visualizer (`akvj`) from the heavy clip manager (`mainframe`). Manages its own architecture ledger.
 **Trigger:**
-> `Read the latest .agents/workflows/servers/vj-server-and-admin-server.prompt.md from disk and execute exactly one iteration of its workflow.`
+> `Read the latest .agents/workflows/servers/akvj-and-mainframe.prompt.md from disk and execute exactly one iteration of its workflow.`
 
 ### Resume Work
 If the AI stopped before finishing a long task.
-**Trigger:** 
+**Trigger:**
 > `Read the latest .agents/prompts/continue.prompt.md from disk and execute its workflow.`
 
 ---

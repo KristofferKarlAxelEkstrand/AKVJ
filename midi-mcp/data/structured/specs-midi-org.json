@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "title": "Specs",
+    "protocol": "general",
+    "source": ".midi-raw-data/Specs – MIDI.org.html",
+    "summary": "MIDI.org specifications index page listing the MIDI standards catalog."
+  },
+  "description": "The MIDI Association (TMA) produces the technical Specifications that make MIDI products work together. The Specifications define new MIDI Messages and new recommended practices for using MIDI Technology.",
+  "reference_tables": [
+    "Summary of MIDI 1.0 Messages",
+    "Expanded MIDI 1.0 Messages List (Status Bytes)",
+    "MIDI 1.0 Control Change Messages (Data Bytes)",
+    "MIDI 1.0 Universal System Exclusive Messages",
+    "Standards that Incorporate MIDI",
+    "DLS Proprietary Chunk IDs"
+  ],
+  "spec_categories": [
+    {
+      "name": "MIDI 2.0",
+      "description": "MIDI 2.0 is an extension of MIDI 1.0. It does not replace MIDI 1.0 but builds on the core principles, architecture, and semantics of MIDI 1.0. A foundational architecture for MIDI 2.0 expansion is defined by the MIDI Capability Inquiry (MIDI-CI) specification. MIDI-CI allows Devices with bidirectional communication to agree to use extended MIDI capabilities beyond those already defined in MIDI 1.0, while carefully protecting backward compatibility. MIDI 2.0 is not a stand-alone specification. Manufacturers and developers must have a thorough understanding of MIDI 1.0 in order to implement MIDI 2.0.",
+      "file_formats": []
+    },
+    {
+      "name": "MIDI 1.0",
+      "description": "MIDI 1.0 is a ubiquitous protocol that allows different musical instruments and devices to communicate with each other using digital messages. MIDI 1.0 was first published in 1983, the outcome of collaboration between various manufacturers. The first version of MIDI 1.0 defined a core data format for messages and a serial transport using 5 pin DIN connectors. MIDI 1.0 has been expanded with many features and reached far beyind the dreams of the original designers. MIDI 1.0 remains a core vital standard, and continues to evolve. MIDI 1.0 specifications available here also continue to be crucial documents as foundational components of MIDI 2.0.",
+      "file_formats": []
+    },
+    {
+      "name": "MIDI Transports",
+      "description": "The original MIDI 1.0 Specification called for using a 5-Pin DIN cable to connect MIDI compatible devices, but today there are many different “transports” capable of carrying MIDI data, and the specification for 5-Pin DIN has been updated. Some of the transport specifications for MIDI were developed in conjunction with other organizations (typically those who control the specification for that particular transport). Below are descriptions of all MMA-approved alternate transport specifications and where to get the document.",
+      "file_formats": []
+    },
+    {
+      "name": "File Formats",
+      "description": "Official MIDI file format specifications. ### MIDI 2.0 Developer Information These developer articles are created by The MIDI Association, but are not MIDI specifications. These are documents to help developers take advantage of MIDI to provide increased interoperability.. ### Join Us",
+      "file_formats": [
+        "Standard MIDI Files",
+        "DLS: Downloadable Sounds",
+        "XMF: eXtensible Music Format",
+        "Mobile MIDI formats"
+      ]
+    }
+  ],
+  "summary": {
+    "reference_table_count": 6,
+    "spec_category_count": 4
+  }
+}

@@ -229,16 +229,27 @@ class Compositor {
 	 * @param {number} bitDepth - Mask bit depth (1, 2, 4, or 8)
 	 */
 	#mixPixels(buffers, pixelCount, bitDepth) {
-		const { divisor, maxLevel } = this.#getBitDepthParams(bitDepth);
+		if (bitDepth === 1) {
+			this.#mixPixels1Bit(buffers, pixelCount);
+		} else {
+			const { divisor, maxLevel } = this.#getBitDepthParams(bitDepth);
+			this.#mixPixelsMultiBit(buffers, pixelCount, divisor, maxLevel);
+		}
+	}
+
+	#mixPixels1Bit(buffers, pixelCount) {
 		for (let i = 0; i < pixelCount; i++) {
 			const idx = i * RGBA_CHANNEL_COUNT;
 			const maskValue = buffers.mask[idx];
+			this.#mix1Bit(buffers, idx, maskValue);
+		}
+	}
 
-			if (bitDepth === 1) {
-				this.#mix1Bit(buffers, idx, maskValue);
-			} else {
-				this.#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel);
-			}
+	#mixPixelsMultiBit(buffers, pixelCount, divisor, maxLevel) {
+		for (let i = 0; i < pixelCount; i++) {
+			const idx = i * RGBA_CHANNEL_COUNT;
+			const maskValue = buffers.mask[idx];
+			this.#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel);
 		}
 	}
 

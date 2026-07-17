@@ -12,7 +12,7 @@ async function setupFixture() {
 	const pngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8AABQMBFADsZg8AAAAASUVORK5CYII=';
 	await fs.writeFile(path.join(dir, 'sprite.png'), Buffer.from(pngBase64, 'base64'));
 	await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 }));
-	await fs.writeFile(path.join(FIXTURE_BASE, 'midi-layout.json'), JSON.stringify({ 1: { 0: { 0: 'fixture-clip' } } }, null, '\t'));
+	await fs.writeFile(path.join(FIXTURE_BASE, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: 'fixture-clip' } } }, null, '\t'));
 }
 
 async function cleanupFixture() {

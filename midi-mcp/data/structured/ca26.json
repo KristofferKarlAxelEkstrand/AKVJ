@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "title": "Modulation Depth Range RPN",
+    "doc_id": "CA-026",
+    "protocol": "midi1",
+    "source": ".midi-raw-data/ca26 RPN05 Modulation Depth Range.pdf",
+    "pages": 1,
+    "summary": "MMA/AMEI Confirmation of Approval CA-026: Modulation Depth Range RPN."
+  },
+  "approval_info": {
+    "title": "Modulation Depth Range RPN",
+    "date_of_issue": "3/02/99",
+    "originated_by": "MMA",
+    "reference": "Reference TSBB Item #: 152 Volume #: 22 (revised)",
+    "ca_number": "26_",
+    "related_items": "MIDI 1.0 Detailed Specification, General MIDI 2 R/P"
+  },
+  "abstract": " This proposal defines Registered Parameter Number (RPN) #05 as Modulation Depth Range to be used to scale the effective range of Control Change 1 (Modulation Wheel). The correlation between Modulation Depth Range values and modulation depth is defined by individual manufacturers or MMA/AMEI recommended practices.",
+  "background": " The amount of modulation to apply when the Modulation Wheel is moved has never been defined. As a result, the Modulation Depth Range, sometimes called Modulation Sensitivity, is controlled in some synthesizers either by Non-Registered Parameter Numbers (NRPNs) or System Exclusive Messages (Sysex). These methods are not compatible among all manufacturers, therefore a uniform message is proposed herein which will benefit music data publishers and musicians by providing predictable and consistent modulation depth response.",
+  "rpn": {
+    "name": "Modulation Depth Range",
+    "rpn_number": 5,
+    "lsb": 5,
+    "msb": 0,
+    "message_format": "Bn 64 05 65 00 where n is the MIDI channel number.",
+    "follow_up": "This message must be followed by Data Entry, Increment, and Decrement, following the normal rules for",
+    "default_setting": "Neither default setting nor definition is given for Modulation Depth values, so it is left to the discretion of the manufacturer unless specified by a particular RP. See the General MIDI Level 2 Recommended Practice for an example."
+  },
+  "comment": " The destination parameter for Modulation Wheel is generally Vibrato, but other parameters may be controlled at the discretion of the manufacturer, or may be defined in specific RPs, using the “Controller Destination Setting” message.",
+  "summary": {
+    "rpn_number": 5
+  }
+}

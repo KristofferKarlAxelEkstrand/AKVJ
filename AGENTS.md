@@ -83,7 +83,7 @@ npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/
 ## Common Commands
 
 ```bash
-npm run akvj             # Start akvj VJ engine (localhost:5173)
+npm run akvj             # Start akvj VJ engine (localhost:8888)
 npm run build            # Production build (<1 second)
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
@@ -96,7 +96,7 @@ npm run clips            # Full clip pipeline (validate, optimize, generate, cop
 npm run clips:watch      # Watch mode for clip changes
 npm run clips:clean      # Remove cache and generated output
 npm run clips:new        # Scaffold new clip (requires clipId arg)
-npm run mainframe        # Mainframe UI + API (localhost:5174 / 8787)
+npm run mainframe        # Mainframe UI + API (localhost:9999 / 7777)
 npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 ```
 
@@ -363,7 +363,7 @@ Common issues and steps to investigate:
     - If CI fails on GitHub Action `npx prettier --check .`, run the same locally to get details.
 
 - Dev server port conflicts
-    - If port 5173 is in use, Vite may start on 5174. Use `--port` or set the `server.port` in `vite.config.js` to a fixed port.
+    - If port 8888 is in use, Vite will now error loudly (strictPort: true). Use `MAINFRAME_API_PORT` env var for the API port.
 
 ### Git push / GITHUB_TOKEN issues
 
@@ -442,12 +442,12 @@ The container forwards two ports:
 
 | Port | Purpose        | Auto-Forward Behavior       |
 | ---- | -------------- | --------------------------- |
-| 5173 | akvj Vite      | Opens browser automatically |
+| 8888 | akvj Vite      | Opens browser automatically |
 | 4173 | akvj preview   | Notifies on start           |
-| 5174 | mainframe Vite | Notifies on start           |
-| 8787 | mainframe API  | Silent                      |
+| 9999 | mainframe Vite | Notifies on start           |
+| 7777 | mainframe API  | Silent                      |
 
-Access the akvj dev server from the host at `http://localhost:5173`. Mainframe: `http://localhost:5174`.
+Access the akvj dev server from the host at `http://localhost:8888`. Mainframe: `http://localhost:9999`.
 
 #### Lifecycle Commands
 
@@ -485,7 +485,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + s
 ### Troubleshooting Container Issues
 
 - **Dev server not accessible from host**
-    - Verify port forwarding: `forwardPorts` should include `5173` in `devcontainer.json`
+    - Verify port forwarding: `forwardPorts` should include `8888` in `devcontainer.json`
     - Check that Vite is listening on `0.0.0.0` (default) or `localhost` inside the container
     - If using Docker Compose, ensure ports are mapped in `docker-compose.yml`
 

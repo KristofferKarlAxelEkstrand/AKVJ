@@ -1,4 +1,8 @@
 import './js/PianoKeyboard.js';
+import './js/ClipList.js';
+import './js/ClipEditor.js';
+import './js/MappingTable.js';
+import './js/StagingPreview.js';
 
 const API = '/api';
 
@@ -14,6 +18,7 @@ let mappingState = [];
 let clipCatalog = [];
 let clipSearchQuery = '';
 let clipRoleFilter = '';
+let clipSortMode = 'name';
 let pianoChannel = 1;
 
 const PIANO_CHANNEL_LABELS = {
@@ -52,25 +57,65 @@ function populatePianoChannelSelect() {
 	pianoChannelSelect.value = String(pianoChannel);
 }
 
+const clipListElement = document.getElementById('clip-list');
+const mappingTableElement = document.getElementById('mapping-table');
+
 const clipSearchInput = document.getElementById('clip-search');
 clipSearchInput.addEventListener('input', () => {
 	clipSearchQuery = clipSearchInput.value.trim().toLowerCase();
-	renderLibrary();
+	clipListElement.searchQuery = clipSearchQuery;
+	updateFilterVisibility();
 });
 
 const clipRoleFilterSelect = document.getElementById('clip-role-filter');
 clipRoleFilterSelect.addEventListener('change', () => {
 	clipRoleFilter = clipRoleFilterSelect.value;
-	renderLibrary();
+	clipListElement.roleFilter = clipRoleFilter;
+	updateFilterVisibility();
+});
+
+const clipSortSelect = document.getElementById('clip-sort');
+clipSortSelect.addEventListener('change', () => {
+	clipSortMode = clipSortSelect.value;
+	clipListElement.sortMode = clipSortMode;
 });
 
 const clearFiltersButton = document.getElementById('clear-filters');
 clearFiltersButton.addEventListener('click', () => {
 	clipSearchQuery = '';
 	clipRoleFilter = '';
+	clipSortMode = 'name';
 	clipSearchInput.value = '';
 	clipRoleFilterSelect.value = '';
-	renderLibrary();
+	clipSortSelect.value = 'name';
+	clipListElement.searchQuery = '';
+	clipListElement.roleFilter = '';
+	clipListElement.sortMode = 'name';
+	updateFilterVisibility();
+});
+
+clipListElement.addEventListener('clipedit', event => {
+	const { clip, listItem } = event.detail;
+	const existingForm = listItem.querySelector('.clip-edit-form');
+	if (existingForm) {
+		existingForm.remove();
+		return;
+	}
+	const editor = document.createElement('akvj-clip-editor');
+	editor.clip = clip;
+	listItem.append(editor);
+});
+
+clipListElement.addEventListener('clipsaved', _event => {
+	loadLibrary().catch(error => console.error(error));
+});
+
+clipListElement.addEventListener('clipdelete', event => {
+	deleteClip(event.detail.clipId);
+});
+
+clipListElement.addEventListener('clipmap', event => {
+	mapClipFromLibrary(event.detail.clipId);
 });
 
 function updateFilterVisibility() {
@@ -120,41 +165,9 @@ function mapClipFromLibrary(clipId) {
 }
 
 function renderLibrary() {
-	const list = document.getElementById('clip-list');
-	list.replaceChildren();
+	clipListElement.clips = clipCatalog;
 	updateClipSummary();
 	updateFilterVisibility();
-	if (clipCatalog.length === 0) {
-		const empty = document.createElement('li');
-		empty.textContent = 'No clips in the bucket yet.';
-		list.append(empty);
-		return;
-	}
-	const filteredClips = filterClipsBySearch(clipCatalog);
-	if (filteredClips.length === 0) {
-		const noMatch = document.createElement('li');
-		noMatch.textContent = `No clips match "${clipSearchQuery}".`;
-		list.append(noMatch);
-		return;
-	}
-	for (const clip of filteredClips) {
-		list.append(createClipListItem(clip));
-	}
-}
-
-function filterClipsBySearch(clips) {
-	return clips.filter(clip => {
-		const clipRole = clip.meta.role || '';
-		if (clipRoleFilter && clipRole !== clipRoleFilter) {
-			return false;
-		}
-		if (!clipSearchQuery) {
-			return true;
-		}
-		const clipIdMatch = clip.clipId.toLowerCase().includes(clipSearchQuery);
-		const roleMatch = clipRole.toLowerCase().includes(clipSearchQuery);
-		return clipIdMatch || roleMatch;
-	});
 }
 
 function populateRoleFilter() {
@@ -192,499 +205,6 @@ function updateClipSummary() {
 	summary.className = `clip-summary ${incomplete > 0 ? 'clip-summary--has-incomplete' : 'clip-summary--all-ready'}`;
 }
 
-function createClipListItem(clip) {
-	const li = document.createElement('li');
-	const img = document.createElement('img');
-	img.alt = clip.clipId;
-	img.src = clip.hasSprite ? `${API}/clips/${encodeURIComponent(clip.clipId)}/sprite?t=${performance.now()}` : '';
-	const clipInfo = document.createElement('p');
-	clipInfo.className = 'clip-meta';
-	const title = document.createElement('strong');
-	title.textContent = clip.meta.name || clip.clipId;
-	clipInfo.append(title);
-	if (clip.meta.name && clip.meta.name !== clip.clipId) {
-		const clipIdLabel = document.createElement('span');
-		clipIdLabel.className = 'clip-id-label';
-		clipIdLabel.textContent = ` (${clip.clipId})`;
-		clipInfo.append(clipIdLabel);
-	}
-	clipInfo.append(document.createTextNode(` · frames: ${clip.meta.frames ?? clip.meta.numberOfFrames ?? '?'} · role: ${clip.meta.role || 'clip'}${clip.meta.bitDepth ? ` · ${clip.meta.bitDepth}-bit` : ''}${clip.pipelineReady === false ? ' · incomplete' : ''}`));
-	const actions = document.createElement('div');
-	actions.className = 'clip-actions';
-	const previewButton = document.createElement('button');
-	previewButton.type = 'button';
-	previewButton.className = 'clip-preview';
-	previewButton.textContent = 'Preview';
-	previewButton.disabled = !clip.hasSprite;
-	previewButton.addEventListener('click', () => toggleClipPreview(li, clip));
-	const editButton = document.createElement('button');
-	editButton.type = 'button';
-	editButton.className = 'clip-edit';
-	editButton.textContent = 'Edit';
-	editButton.addEventListener('click', () => toggleClipEditForm(li, clip));
-	const deleteButton = document.createElement('button');
-	deleteButton.type = 'button';
-	deleteButton.className = 'clip-delete';
-	deleteButton.textContent = 'Delete';
-	deleteButton.addEventListener('click', () => deleteClip(clip.clipId));
-	const mapButton = document.createElement('button');
-	mapButton.type = 'button';
-	mapButton.className = 'clip-map';
-	mapButton.textContent = 'Map';
-	mapButton.disabled = !clip.pipelineReady;
-	mapButton.addEventListener('click', () => mapClipFromLibrary(clip.clipId));
-	actions.append(previewButton, editButton, mapButton, deleteButton);
-	li.append(img, clipInfo, actions);
-	return li;
-}
-
-function toggleClipEditForm(li, clip) {
-	const existingForm = li.querySelector('.clip-edit-form');
-	if (existingForm) {
-		existingForm.remove();
-		return;
-	}
-	const form = createClipEditForm(clip);
-	li.append(form);
-}
-
-const activePreviewPlayers = new Map();
-
-function toggleClipPreview(li, clip) {
-	const existingPlayer = li.querySelector('.clip-preview-player');
-	if (existingPlayer) {
-		stopPreviewPlayer(clip.clipId);
-		existingPlayer.remove();
-		return;
-	}
-	const player = createClipPreviewPlayer(clip);
-	li.append(player);
-}
-
-function stopPreviewPlayer(clipId) {
-	const player = activePreviewPlayers.get(clipId);
-	if (player) {
-		player.stop();
-		activePreviewPlayers.delete(clipId);
-	}
-}
-
-function createClipPreviewPlayer(clip) {
-	const container = document.createElement('div');
-	container.className = 'clip-preview-player';
-
-	const canvas = document.createElement('canvas');
-	canvas.width = 240;
-	canvas.height = 135;
-	canvas.className = 'clip-preview-canvas';
-	const ctx = canvas.getContext('2d');
-	ctx.imageSmoothingEnabled = false;
-
-	const controls = document.createElement('div');
-	controls.className = 'clip-preview-controls';
-
-	const frameLabel = document.createElement('span');
-	frameLabel.className = 'clip-preview-frame-label';
-	frameLabel.textContent = 'Loading…';
-
-	const playPauseButton = document.createElement('button');
-	playPauseButton.type = 'button';
-	playPauseButton.className = 'clip-preview-play';
-	playPauseButton.textContent = 'Pause';
-
-	const stopButton = document.createElement('button');
-	stopButton.type = 'button';
-	stopButton.textContent = 'Stop';
-	stopButton.addEventListener('click', () => {
-		stopPreviewPlayer(clip.clipId);
-		container.remove();
-	});
-
-	const scrubSlider = document.createElement('input');
-	scrubSlider.type = 'range';
-	scrubSlider.className = 'clip-preview-scrub';
-	scrubSlider.min = 0;
-	scrubSlider.max = 0;
-	scrubSlider.value = 0;
-	scrubSlider.disabled = true;
-
-	const speedSelect = document.createElement('select');
-	speedSelect.className = 'clip-preview-speed';
-	for (const speed of [0.25, 0.5, 1, 2, 4]) {
-		const option = document.createElement('option');
-		option.value = String(speed);
-		option.textContent = `${speed}×`;
-		if (speed === 1) {
-			option.selected = true;
-		}
-		speedSelect.append(option);
-	}
-
-	controls.append(frameLabel, playPauseButton, stopButton, speedSelect);
-	container.append(canvas, controls, scrubSlider);
-
-	const clipMetadata = clip.meta;
-	const frameCount = clipMetadata.frames ?? clipMetadata.numberOfFrames ?? 1;
-	const framesPerRow = clipMetadata.framesPerRow ?? 1;
-	const playbackMode = clipMetadata.playback ?? (clipMetadata.loop === false ? 'once' : 'loop');
-	const frameRatesForFrames = clipMetadata.frameRatesForFrames || { 0: 15 };
-	const defaultFrameRate = frameRatesForFrames[0] ?? 15;
-
-	const spriteUrl = `${API}/clips/${encodeURIComponent(clip.clipId)}/sprite?t=${performance.now()}`;
-	const spriteImage = new Image();
-	spriteImage.crossOrigin = 'anonymous';
-
-	let currentFrame = 0;
-	let lastFrameTime = 0;
-	let animationFrameId = null;
-	let isPlaying = false;
-	let playbackSpeed = 1;
-	let isScrubbing = false;
-
-	function getFrameInterval(frameIndex) {
-		const fps = frameRatesForFrames[frameIndex] ?? defaultFrameRate;
-		return 1000 / fps / playbackSpeed;
-	}
-
-	function drawCurrentFrame() {
-		if (!spriteImage.complete || !spriteImage.naturalWidth) {
-			return;
-		}
-		const frameWidth = spriteImage.naturalWidth / framesPerRow;
-		const frameHeight = spriteImage.naturalHeight / Math.ceil(frameCount / framesPerRow);
-		const col = currentFrame % framesPerRow;
-		const row = Math.floor(currentFrame / framesPerRow);
-		ctx.clearRect(0, 0, canvas.width, canvas.height);
-		ctx.drawImage(spriteImage, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, canvas.width, canvas.height);
-		frameLabel.textContent = `Frame ${currentFrame + 1} / ${frameCount}`;
-		if (!isScrubbing) {
-			scrubSlider.value = String(currentFrame);
-		}
-	}
-
-	function setPlaying(playing) {
-		isPlaying = playing;
-		playPauseButton.textContent = playing ? 'Pause' : 'Play';
-		if (playing) {
-			lastFrameTime = 0;
-			if (animationFrameId === null) {
-				animationFrameId = requestAnimationFrame(animate);
-			}
-		}
-	}
-
-	function animate(timestamp) {
-		if (!isPlaying) {
-			animationFrameId = null;
-			return;
-		}
-		if (lastFrameTime === 0) {
-			lastFrameTime = timestamp;
-		}
-		const elapsed = timestamp - lastFrameTime;
-		if (elapsed >= getFrameInterval(currentFrame)) {
-			lastFrameTime = timestamp;
-			currentFrame++;
-			if (currentFrame >= frameCount) {
-				if (playbackMode !== 'once') {
-					currentFrame = 0;
-				} else {
-					currentFrame = frameCount - 1;
-					setPlaying(false);
-					frameLabel.textContent = `Frame ${currentFrame + 1} / ${frameCount} (finished)`;
-					drawCurrentFrame();
-					return;
-				}
-			}
-			drawCurrentFrame();
-		}
-		animationFrameId = requestAnimationFrame(animate);
-	}
-
-	playPauseButton.addEventListener('click', () => {
-		if (isPlaying) {
-			setPlaying(false);
-		} else {
-			if (currentFrame >= frameCount - 1 && playbackMode === 'once') {
-				currentFrame = 0;
-			}
-			setPlaying(true);
-		}
-	});
-
-	scrubSlider.addEventListener('input', () => {
-		isScrubbing = true;
-		currentFrame = Number(scrubSlider.value);
-		drawCurrentFrame();
-	});
-
-	scrubSlider.addEventListener('change', () => {
-		isScrubbing = false;
-	});
-
-	speedSelect.addEventListener('change', () => {
-		playbackSpeed = Number(speedSelect.value);
-	});
-
-	spriteImage.onload = () => {
-		scrubSlider.max = String(Math.max(0, frameCount - 1));
-		scrubSlider.disabled = false;
-		setPlaying(true);
-		drawCurrentFrame();
-	};
-
-	spriteImage.onerror = () => {
-		frameLabel.textContent = 'Failed to load sprite';
-		scrubSlider.disabled = true;
-	};
-
-	spriteImage.src = spriteUrl;
-
-	const player = {
-		stop() {
-			isPlaying = false;
-			if (animationFrameId !== null) {
-				cancelAnimationFrame(animationFrameId);
-				animationFrameId = null;
-			}
-		}
-	};
-	activePreviewPlayers.set(clip.clipId, player);
-
-	return container;
-}
-
-function createClipEditForm(clip) {
-	const form = document.createElement('div');
-	form.className = 'clip-edit-form';
-	const clipMetadata = clip.meta;
-
-	const nameInput = createTextInput('name', clipMetadata.name || '');
-	const numberFramesInput = createNumberInput('frames', clipMetadata.frames ?? clipMetadata.numberOfFrames, 1);
-	const framesPerRowInput = createNumberInput('framesPerRow', clipMetadata.framesPerRow, 1);
-	const playbackInput = document.createElement('select');
-	playbackInput.name = 'playback';
-	for (const mode of ['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub']) {
-		const option = document.createElement('option');
-		option.value = mode;
-		option.textContent = mode;
-		if ((clipMetadata.playback ?? (clipMetadata.loop === false ? 'once' : 'loop')) === mode) {
-			option.selected = true;
-		}
-		playbackInput.append(option);
-	}
-	const retriggerInput = createCheckbox('retrigger', clipMetadata.retrigger);
-	const roleInput = createTextInput('role', clipMetadata.role || '');
-	const bitDepthInput = createNumberInput('bitDepth', clipMetadata.bitDepth, 0);
-	const triggerTypeInput = document.createElement('select');
-	triggerTypeInput.name = 'triggerType';
-	for (const type of ['momentary', 'latch', 'one-shot']) {
-		const option = document.createElement('option');
-		option.value = type;
-		option.textContent = type;
-		if (clipMetadata.triggerType === type) {
-			option.selected = true;
-		}
-		triggerTypeInput.append(option);
-	}
-	const triggerGroupInput = createTextInput('triggerGroup', clipMetadata.triggerGroup || '');
-
-	const frameRatesTextarea = document.createElement('textarea');
-	frameRatesTextarea.className = 'clip-edit-textarea';
-	frameRatesTextarea.name = 'frameRatesForFrames';
-	frameRatesTextarea.rows = 2;
-	frameRatesTextarea.placeholder = '{"0": 15}';
-	frameRatesTextarea.value = clipMetadata.frameRatesForFrames ? JSON.stringify(clipMetadata.frameRatesForFrames) : '';
-
-	const frameRatesHint = document.createElement('span');
-	frameRatesHint.className = 'clip-edit-hint';
-
-	function validateFrameRatesForFrames() {
-		const raw = frameRatesTextarea.value.trim();
-		if (!raw) {
-			frameRatesHint.textContent = '';
-			frameRatesHint.className = 'clip-edit-hint';
-			return true;
-		}
-		let parsed;
-		try {
-			parsed = JSON.parse(raw);
-		} catch {
-			frameRatesHint.textContent = 'Invalid JSON';
-			frameRatesHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
-			frameRatesHint.textContent = 'Must be a JSON object like {"0": 15}';
-			frameRatesHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		const expectedFrames = Number(numberFramesInput.value);
-		const keys = Object.keys(parsed).map(Number);
-		const outOfRange = keys.filter(key => !Number.isInteger(key) || key < 0 || key >= expectedFrames);
-		if (outOfRange.length > 0) {
-			frameRatesHint.textContent = `Keys must be 0–${expectedFrames - 1}. Invalid: ${outOfRange.join(', ')}`;
-			frameRatesHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		const values = Object.values(parsed);
-		const invalidValues = values.filter(value => typeof value !== 'number' || !Number.isFinite(value) || value <= 0);
-		if (invalidValues.length > 0) {
-			frameRatesHint.textContent = `Values must be positive numbers. Invalid: ${invalidValues.join(', ')}`;
-			frameRatesHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		frameRatesHint.textContent = '';
-		frameRatesHint.className = 'clip-edit-hint';
-		return true;
-	}
-
-	const frameDurationBeatsTextarea = document.createElement('textarea');
-	frameDurationBeatsTextarea.className = 'clip-edit-textarea';
-	frameDurationBeatsTextarea.name = 'frameDurationBeats';
-	frameDurationBeatsTextarea.rows = 2;
-	frameDurationBeatsTextarea.placeholder = '0.25 or [0.25, 0.5, 0.25]';
-	frameDurationBeatsTextarea.value = clipMetadata.frameDurationBeats !== null && clipMetadata.frameDurationBeats !== undefined ? JSON.stringify(clipMetadata.frameDurationBeats) : '';
-
-	const frameDurationBeatsHint = document.createElement('span');
-	frameDurationBeatsHint.className = 'clip-edit-hint';
-
-	function validateFrameDurationBeats() {
-		const raw = frameDurationBeatsTextarea.value.trim();
-		if (!raw) {
-			frameDurationBeatsHint.textContent = '';
-			frameDurationBeatsHint.className = 'clip-edit-hint';
-			return true;
-		}
-		let parsed;
-		try {
-			parsed = JSON.parse(raw);
-		} catch {
-			frameDurationBeatsHint.textContent = 'Invalid JSON';
-			frameDurationBeatsHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		const values = Array.isArray(parsed) ? parsed : [parsed];
-		if (!Array.isArray(parsed) && typeof parsed !== 'number') {
-			frameDurationBeatsHint.textContent = 'Must be a number or array of numbers';
-			frameDurationBeatsHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		if (Array.isArray(parsed)) {
-			const expectedLength = Number(numberFramesInput.value);
-			if (parsed.length !== expectedLength) {
-				frameDurationBeatsHint.textContent = `Array length ${parsed.length} must equal frames (${expectedLength})`;
-				frameDurationBeatsHint.className = 'clip-edit-hint clip-edit-hint--err';
-				return false;
-			}
-		}
-		const invalidValues = values.filter(value => typeof value !== 'number' || !Number.isFinite(value) || value <= 0);
-		if (invalidValues.length > 0) {
-			frameDurationBeatsHint.textContent = `Values must be positive numbers. Invalid: ${invalidValues.join(', ')}`;
-			frameDurationBeatsHint.className = 'clip-edit-hint clip-edit-hint--err';
-			return false;
-		}
-		frameDurationBeatsHint.textContent = '';
-		frameDurationBeatsHint.className = 'clip-edit-hint';
-		return true;
-	}
-
-	frameDurationBeatsTextarea.addEventListener('input', validateFrameDurationBeats);
-	frameRatesTextarea.addEventListener('input', validateFrameRatesForFrames);
-	numberFramesInput.addEventListener('input', validateFrameDurationBeats);
-	numberFramesInput.addEventListener('input', validateFrameRatesForFrames);
-
-	form.append(createField('Name', nameInput), createField('Frames', numberFramesInput), createField('Frames/row', framesPerRowInput), createField('Playback', playbackInput), createField('Retrigger', retriggerInput), createField('Role', roleInput), createField('Bit depth', bitDepthInput), createField('Trigger type', triggerTypeInput), createField('Trigger group', triggerGroupInput), createField('Frame rates (JSON)', frameRatesTextarea), frameRatesHint, createField('Duration beats (JSON)', frameDurationBeatsTextarea), frameDurationBeatsHint);
-
-	const saveButton = document.createElement('button');
-	saveButton.type = 'button';
-	saveButton.textContent = 'Save metadata';
-	const statusSpan = document.createElement('span');
-	statusSpan.className = 'status';
-	saveButton.addEventListener('click', async () => {
-		if (!validateFrameRatesForFrames()) {
-			setStatus(statusSpan, 'Fix frameRatesForFrames errors first', 'is-err');
-			return;
-		}
-		if (!validateFrameDurationBeats()) {
-			setStatus(statusSpan, 'Fix frameDurationBeats errors first', 'is-err');
-			return;
-		}
-		setStatus(statusSpan, 'Saving…');
-		try {
-			const updates = {
-				name: nameInput.value.trim() || undefined,
-				frames: Number(numberFramesInput.value),
-				framesPerRow: Number(framesPerRowInput.value),
-				playback: playbackInput.value,
-				retrigger: retriggerInput.checked,
-				bitDepth: bitDepthInput.value ? Number(bitDepthInput.value) : undefined
-			};
-			if (roleInput.value.trim()) {
-				updates.role = roleInput.value.trim();
-			}
-			updates.triggerType = triggerTypeInput.value;
-			if (triggerGroupInput.value.trim()) {
-				updates.triggerGroup = triggerGroupInput.value.trim();
-			}
-			const frameRatesRaw = frameRatesTextarea.value.trim();
-			if (frameRatesRaw) {
-				updates.frameRatesForFrames = JSON.parse(frameRatesRaw);
-			}
-			const frameDurationBeatsRaw = frameDurationBeatsTextarea.value.trim();
-			if (frameDurationBeatsRaw) {
-				updates.frameDurationBeats = JSON.parse(frameDurationBeatsRaw);
-			}
-			await api(`/clips/${encodeURIComponent(clip.clipId)}`, { method: 'PUT', body: JSON.stringify(updates) });
-			setStatus(statusSpan, 'Saved', 'is-ok');
-			await loadLibrary();
-		} catch (error) {
-			setStatus(statusSpan, error.message, 'is-err');
-		}
-	});
-
-	const actionsRow = document.createElement('div');
-	actionsRow.className = 'clip-edit-actions';
-	actionsRow.append(saveButton, statusSpan);
-	form.append(actionsRow);
-
-	return form;
-}
-
-function createField(labelText, input) {
-	const label = document.createElement('label');
-	label.className = 'clip-edit-field';
-	label.append(labelText, input);
-	return label;
-}
-
-function createNumberInput(name, value, min) {
-	const input = document.createElement('input');
-	input.type = 'number';
-	input.name = name;
-	input.min = min;
-	if (value !== null && value !== undefined) {
-		input.value = value;
-	}
-	return input;
-}
-
-function createCheckbox(name, checked) {
-	const input = document.createElement('input');
-	input.type = 'checkbox';
-	input.name = name;
-	input.checked = !!checked;
-	return input;
-}
-
-function createTextInput(name, value) {
-	const input = document.createElement('input');
-	input.type = 'text';
-	input.name = name;
-	input.value = value;
-	return input;
-}
-
 async function deleteClip(clipId) {
 	if (!confirm(`Delete clip "${clipId}"? This removes it from the bucket.`)) {
 		return;
@@ -693,6 +213,7 @@ async function deleteClip(clipId) {
 		await api(`/clips/${encodeURIComponent(clipId)}`, { method: 'DELETE' });
 		await loadLibrary();
 	} catch (error) {
+		alert(`Failed to delete clip "${clipId}": ${error.message}`);
 		console.error(error);
 	}
 }
@@ -709,27 +230,16 @@ function fillClipSelect() {
 }
 
 function renderMapping() {
-	const body = document.getElementById('mapping-body');
-	body.replaceChildren();
-	updateMappingSummary();
+	mappingTableElement.mappings = mappingState;
+	mappingTableElement.clipCatalog = clipCatalog;
 	updatePianoKeyboard();
-	const sorted = [...mappingState].sort((a, b) => a.channel - b.channel || a.note - b.note || a.velocity - b.velocity);
-	for (const entry of sorted) {
-		const tr = document.createElement('tr');
-		tr.innerHTML = `<td>${entry.channel}</td><td>${entry.note}</td><td>${entry.velocity}</td><td>${entry.clipId}</td>`;
-		const td = document.createElement('td');
-		const remove = document.createElement('button');
-		remove.type = 'button';
-		remove.textContent = 'Remove';
-		remove.addEventListener('click', () => {
-			mappingState = mappingState.filter(existingEntry => !(existingEntry.channel === entry.channel && existingEntry.note === entry.note && existingEntry.velocity === entry.velocity));
-			renderMapping();
-		});
-		td.append(remove);
-		tr.append(td);
-		body.append(tr);
-	}
 }
+
+mappingTableElement.addEventListener('mappingremove', event => {
+	const { channel, note, velocity } = event.detail;
+	mappingState = mappingState.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
+	renderMapping();
+});
 
 const pianoKeyboard = document.getElementById('piano-keyboard');
 
@@ -748,27 +258,6 @@ pianoKeyboard.addEventListener('pianokeyclick', event => {
 function updatePianoKeyboard() {
 	pianoKeyboard.channel = pianoChannel;
 	pianoKeyboard.mappings = mappingState;
-}
-
-function updateMappingSummary() {
-	const summary = document.getElementById('mapping-summary');
-	summary.replaceChildren();
-	const mappedClipIds = new Set(mappingState.map(entry => entry.clipId));
-	const readyClips = clipCatalog.filter(clip => clip.pipelineReady);
-	const unmappedClips = readyClips.filter(clip => !mappedClipIds.has(clip.clipId));
-
-	const slotCount = document.createElement('span');
-	slotCount.className = 'mapping-summary-count';
-	slotCount.textContent = `${mappingState.length} mapped slot${mappingState.length === 1 ? '' : 's'}`;
-	summary.append(slotCount);
-
-	if (unmappedClips.length > 0) {
-		const unmappedLabel = document.createElement('span');
-		unmappedLabel.className = 'mapping-summary-unmapped';
-		const clipNames = unmappedClips.map(clip => clip.clipId).sort();
-		unmappedLabel.textContent = `Unmapped: ${clipNames.join(', ')}`;
-		summary.append(unmappedLabel);
-	}
 }
 
 async function loadLibrary() {
@@ -793,20 +282,108 @@ document.getElementById('refresh-library').addEventListener('click', () => {
 	loadLibrary().catch(error => console.error(error));
 });
 
-document.getElementById('upload-form').addEventListener('submit', async event => {
+const uploadForm = document.getElementById('upload-form');
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('upload-files');
+const fileListContainer = document.getElementById('file-list');
+let stagedFiles = [];
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('keydown', event => {
+	if (event.key === 'Enter' || event.key === ' ') {
+		event.preventDefault();
+		fileInput.click();
+	}
+});
+
+dropZone.addEventListener('dragover', event => {
+	event.preventDefault();
+	dropZone.classList.add('is-dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+	dropZone.classList.remove('is-dragover');
+});
+
+dropZone.addEventListener('drop', event => {
+	event.preventDefault();
+	dropZone.classList.remove('is-dragover');
+	const pngFiles = [...event.dataTransfer.files].filter(file => file.type === 'image/png');
+	if (pngFiles.length > 0) {
+		stagedFiles = pngFiles;
+		renderFileList();
+	}
+});
+
+fileInput.addEventListener('change', () => {
+	stagedFiles = [...fileInput.files].filter(file => file.type === 'image/png');
+	renderFileList();
+});
+
+const stagingPreview = document.getElementById('staging-preview');
+
+function renderFileList() {
+	fileListContainer.replaceChildren();
+	if (stagedFiles.length === 0) {
+		stagingPreview.loadFrames([]);
+		return;
+	}
+	for (const file of stagedFiles) {
+		const item = document.createElement('div');
+		item.className = 'file-list-item';
+		const name = document.createElement('span');
+		name.textContent = file.name;
+		const size = document.createElement('span');
+		size.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+		item.append(name, size);
+		fileListContainer.append(item);
+	}
+	const count = document.createElement('p');
+	count.className = 'file-list-item';
+	count.style.fontWeight = 'bold';
+	count.textContent = `${stagedFiles.length} frame${stagedFiles.length === 1 ? '' : 's'} staged`;
+	fileListContainer.append(count);
+	updateStagingPreview();
+}
+
+function updateStagingPreview() {
+	const targetWidth = Number(document.getElementById('upload-target-width').value) || 240;
+	const targetHeight = Number(document.getElementById('upload-target-height').value) || 135;
+	const frameRate = Number(document.getElementById('upload-frame-rate').value) || 12;
+	const playback = document.getElementById('upload-playback').value;
+	stagingPreview.loadFrames(stagedFiles, targetWidth, targetHeight, frameRate, playback);
+}
+
+document.getElementById('upload-target-width').addEventListener('change', updateStagingPreview);
+document.getElementById('upload-target-height').addEventListener('change', updateStagingPreview);
+document.getElementById('upload-frame-rate').addEventListener('change', updateStagingPreview);
+document.getElementById('upload-playback').addEventListener('change', updateStagingPreview);
+
+uploadForm.addEventListener('submit', async event => {
 	event.preventDefault();
 	const status = document.getElementById('upload-status');
+	if (stagedFiles.length === 0) {
+		setStatus(status, 'Select at least one PNG frame', 'is-err');
+		return;
+	}
 	setStatus(status, 'Uploading…');
 	try {
 		const clipId = document.getElementById('upload-clip-id').value.trim();
-		const role = document.getElementById('upload-role').value;
-		const files = [...document.getElementById('upload-files').files];
-		const frames = await readFilesAsDataURLs(files);
+		const name = document.getElementById('upload-name').value.trim() || undefined;
+		const role = document.getElementById('upload-role').value || undefined;
+		const targetWidth = Number(document.getElementById('upload-target-width').value) || undefined;
+		const targetHeight = Number(document.getElementById('upload-target-height').value) || undefined;
+		const playback = document.getElementById('upload-playback').value;
+		const frameRate = Number(document.getElementById('upload-frame-rate').value) || undefined;
+		const frames = await readFilesAsDataURLs(stagedFiles);
 		await api('/clips', {
 			method: 'POST',
-			body: JSON.stringify({ clipId, role: role || undefined, frames })
+			body: JSON.stringify({ clipId, name, role, frames, targetWidth, targetHeight, playback, frameRate })
 		});
 		setStatus(status, `Saved clip ${clipId}`, 'is-ok');
+		uploadForm.reset();
+		stagedFiles = [];
+		renderFileList();
 		await loadLibrary();
 	} catch (error) {
 		setStatus(status, error.message, 'is-err');

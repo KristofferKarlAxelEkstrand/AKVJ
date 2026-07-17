@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidClipId, clipDir, resolveSafeSpritePath, CLIPS_DIR, MIDI_LAYOUT_PATH } from '../server/paths.js';
+import { isValidClipId, clipDir, rawAssetsDir, resolveSafeSpritePath, CLIPS_DIR, KEY_MAP_PATH, RAW_ASSETS_DIR } from '../server/paths.js';
 import path from 'path';
 
 describe('paths', () => {
@@ -52,6 +52,19 @@ describe('paths', () => {
 		});
 	});
 
+	describe('rawAssetsDir', () => {
+		it('returns a path under RAW_ASSETS_DIR for valid clip IDs', () => {
+			const result = rawAssetsDir('c1-n0-v0');
+			expect(result).toBe(path.join(RAW_ASSETS_DIR, 'c1-n0-v0'));
+		});
+
+		it('throws for invalid clip IDs', () => {
+			expect(() => rawAssetsDir('../etc/passwd')).toThrow('Invalid clipId');
+			expect(() => rawAssetsDir('')).toThrow('Invalid clipId');
+			expect(() => rawAssetsDir('123')).toThrow('Invalid clipId');
+		});
+	});
+
 	describe('resolveSafeSpritePath', () => {
 		it('resolves a valid PNG filename under the clip directory', () => {
 			const result = resolveSafeSpritePath('c1-n0-v0', 'sprite.png');
@@ -92,8 +105,13 @@ describe('paths', () => {
 			expect(CLIPS_DIR.length).toBeGreaterThan(0);
 		});
 
-		it('exports MIDI_LAYOUT_PATH ending with midi-layout.json', () => {
-			expect(MIDI_LAYOUT_PATH.endsWith('midi-layout.json')).toBe(true);
+		it('exports RAW_ASSETS_DIR as a string', () => {
+			expect(typeof RAW_ASSETS_DIR).toBe('string');
+			expect(RAW_ASSETS_DIR.length).toBeGreaterThan(0);
+		});
+
+		it('exports KEY_MAP_PATH ending with key-map.json', () => {
+			expect(KEY_MAP_PATH.endsWith('key-map.json')).toBe(true);
 		});
 	});
 });

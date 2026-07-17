@@ -39,7 +39,7 @@ class Clip {
 	#frame = 0;
 	/** @type {number|null} Last timestamp from performance.now(), null if never played */
 	#lastTime = null;
-	#lastAdvanceTimestamp = null; // Prevent double-advancement within same timestamp
+	#lastRenderTimestamp = null; // Prevent double-rendering within same timestamp
 	#isFinished = false;
 	#playbackMode = 'loop';
 	#pingpongDirection = 1;
@@ -100,15 +100,21 @@ class Clip {
 
 	/**
 	 * Internal render step: advance frame and draw to the provided context.
+	 * Guards against double-rendering when called with the same timestamp
+	 * (e.g., both play() and renderToContext() invoked in the same frame).
 	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
 	 * @param {number} timestamp - performance.now() timestamp
 	 */
 	#renderFrame(ctx, timestamp) {
-		if (this.#isFinished) {
+		if (this.#isFinished || !this.#image) {
+			return;
+		}
+		if (this.#lastRenderTimestamp === timestamp) {
 			return;
 		}
 		this.#advanceFrame(timestamp);
 		this.#drawToContext(ctx);
+		this.#lastRenderTimestamp = timestamp;
 	}
 
 	/**
@@ -126,8 +132,7 @@ class Clip {
 	 * Useful for off-screen rendering in multi-layer-group compositing.
 	 *
 	 * Note: This method advances the clip frame based on the timestamp.
-	 * To prevent double-advancement, ensure only one of play() or renderToContext()
-	 * is called per clip per frame with the same timestamp.
+	 * Double-rendering with the same timestamp is guarded against internally.
 	 *
 	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
 	 * @param {number} [timestamp] - Optional performance.now() timestamp
@@ -144,9 +149,7 @@ class Clip {
 	 */
 	#advanceFrame(timestamp) {
 		if (this.#isUsingBPMSync && this.#pulsesPerFrame && appState.bpmSource === BPM_SOURCE_CLOCK) {
-			return;
-		}
-		if (this.#lastAdvanceTimestamp === timestamp || !this.#image) {
+			this.#lastTime = null;
 			return;
 		}
 		if (this.#lastTime === null) {
@@ -155,7 +158,6 @@ class Clip {
 
 		const elapsed = this.#consumeFrameIntervals(timestamp - this.#lastTime);
 		this.#lastTime = timestamp - Math.max(0, elapsed);
-		this.#lastAdvanceTimestamp = timestamp;
 	}
 
 	#consumeFrameIntervals(elapsed) {
@@ -236,6 +238,7 @@ class Clip {
 		if (this.#shouldRetrigger) {
 			this.#resetState();
 		}
+		this.#unsubscribeFromClock();
 	}
 
 	/**
@@ -247,6 +250,7 @@ class Clip {
 			return;
 		}
 		this.#resetState();
+		this.#subscribeToClock();
 	}
 
 	#resetState() {
@@ -254,7 +258,7 @@ class Clip {
 		this.#lastTime = null;
 		this.#isFinished = false;
 		this.#pulseCount = 0;
-		this.#lastAdvanceTimestamp = null;
+		this.#lastRenderTimestamp = null;
 		this.#pingpongDirection = 1;
 		this.#lastRandomFrame = -1;
 		this.#unplayedShuffleFrames = [];
@@ -280,7 +284,6 @@ class Clip {
 		} else {
 			throw new Error('Clip: invalid frameDurationBeats');
 		}
-		this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse());
 	}
 
 	/**
@@ -388,6 +391,7 @@ class Clip {
 		// 'once'
 		this.#frame = this.#numberOfFrames - 1;
 		this.#isFinished = true;
+		this.#unsubscribeFromClock();
 		return false;
 	}
 
@@ -431,10 +435,19 @@ class Clip {
 	}
 
 	/**
-	 * Destroy clip and release image resources for garbage collection.
-	 * Unsubscribes from clock events and clears the image reference.
+	 * Subscribe to MIDI clock events for BPM-synced playback.
+	 * Only subscribes if this clip uses BPM sync and is not already subscribed.
 	 */
-	destroy() {
+	#subscribeToClock() {
+		if (this.#isUsingBPMSync && !this.#unsubscribeClock) {
+			this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse());
+		}
+	}
+
+	/**
+	 * Unsubscribe from MIDI clock events.
+	 */
+	#unsubscribeFromClock() {
 		if (this.#unsubscribeClock) {
 			try {
 				this.#unsubscribeClock();
@@ -443,6 +456,14 @@ class Clip {
 			}
 			this.#unsubscribeClock = null;
 		}
+	}
+
+	/**
+	 * Destroy clip and release image resources for garbage collection.
+	 * Unsubscribes from clock events and clears the image reference.
+	 */
+	destroy() {
+		this.#unsubscribeFromClock();
 		this.#image = null;
 	}
 

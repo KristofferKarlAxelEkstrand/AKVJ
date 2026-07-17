@@ -26,6 +26,7 @@ export async function transformRtpMidi(markdownPath, outDir) {
 	// --- State variables ---
 	let currentSection = null;
 	let currentAbnfParam = null;
+	let currentChapter = null;
 
 	// --- Output arrays ---
 	const packetFigures = [];
@@ -83,7 +84,7 @@ export async function transformRtpMidi(markdownPath, outDir) {
 	 * @param {string} heading - The heading line (e.g., "A.2.  Chapter P: MIDI Program Change")
 	 * @returns {object} Chapter skeleton
 	 */
-	const parseChapterHeading = (heading) => {
+	const parseChapterHeading = heading => {
 		const match = heading.match(/^([AB])\.(\d+)\.\s+Chapter\s+(\w):\s+(.+)/);
 		if (match) {
 			return {
@@ -235,31 +236,32 @@ export async function transformRtpMidi(markdownPath, outDir) {
 			} else {
 				systemChapters.push(chapter);
 			}
+			currentChapter = chapter;
 			continue;
 		}
 
 		if (currentSection === 'chapter') {
-			const lastChapter = channelChapters.length > 0 ? channelChapters[channelChapters.length - 1] : systemChapters[systemChapters.length - 1];
 			// Check if we've moved to a new section
-			if (line.match(/^([AB])\.\d+\.\d+\./) || line.match(/^Appendix [A-Z]\./) || line.match(/^[A-Z]\.\d+\.\s+Chapter/)) {
+			if (line.match(/^Appendix [A-Z]\.\s+[A-Z]/) || line.match(/^[A-Z]\.\d+\.\s+(?:System\s+)?Chapter/)) {
 				currentSection = null;
+				currentChapter = null;
 				// Fall through to re-process this line
-			} else {
+			} else if (currentChapter) {
 				// Capture figure reference
 				const figMatch = line.match(/Figure\s+([A-B]\.\d+\.\d+|\d+)\s+--\s+(.+)/);
 				if (figMatch) {
-					lastChapter.figure_id = `Figure ${figMatch[1]}`;
+					currentChapter.figure_id = `Figure ${figMatch[1]}`;
 					continue;
 				}
 				// Capture size info
 				const sizeMatch = line.match(/fixed size of\s+(\d+)\s+bits/);
 				if (sizeMatch) {
-					lastChapter.size = `${sizeMatch[1]} bits`;
+					currentChapter.size = `${sizeMatch[1]} bits`;
 					continue;
 				}
 				const octetSizeMatch = line.match(/(\d+)-octet header/);
 				if (octetSizeMatch) {
-					lastChapter.size = `${octetSizeMatch[1]}-octet header`;
+					currentChapter.size = `${octetSizeMatch[1]}-octet header`;
 					continue;
 				}
 				// Capture field names from figure blocks (lines with | separators)
@@ -274,24 +276,16 @@ export async function transformRtpMidi(markdownPath, outDir) {
 						const fieldNames = cell.match(/[A-Z][A-Z0-9-]*/g);
 						if (fieldNames) {
 							for (const fn of fieldNames) {
-								if (fn.length >= 1 && !lastChapter.fields.includes(fn)) {
-									lastChapter.fields.push(fn);
+								if (fn.length >= 1 && !currentChapter.fields.includes(fn)) {
+									currentChapter.fields.push(fn);
 								}
 							}
 						}
 					}
 					continue;
 				}
-				// Skip page headers and figure labels
-				if (line.match(/^Lazzaro/) || line.match(/^RFC 6295/) || line.match(/^Figure/) || line.match(/^\s*0\s+1\s+2\s+3/)) {
-					continue;
-				}
-				// Skip ASCII art separator lines
-				if (line.match(/^[+-]+$/)) {
-					continue;
-				}
-				// Skip column number lines
-				if (line.match(/^\s*\d\s+\d\s+\d/)) {
+				// Skip page headers, figure labels, ASCII art, column numbers
+				if (line.match(/^Lazzaro/) || line.match(/^RFC 6295/) || line.match(/^Figure/) || line.match(/^\s*0\s+1\s+2\s+3/) || line.match(/^[+-]+$/) || line.match(/^\s*\d\s+\d\s+\d/)) {
 					continue;
 				}
 				continue;
@@ -303,8 +297,11 @@ export async function transformRtpMidi(markdownPath, outDir) {
 		if (figureLabelMatch && !line.match(/^Figure\s+[AB]\./)) {
 			// Look backwards for the ASCII art block
 			const figureLines = [];
-			for (let j = i - 1; j >= Math.max(0, i - 10); j--) {
+			for (let j = i - 1; j >= Math.max(0, i - 15); j--) {
 				const backLine = lines[j].trim();
+				if (!backLine) {
+					continue;
+				}
 				if (backLine.match(/^[+-]+$/) || backLine.match(/\|.*\|/)) {
 					figureLines.unshift(backLine);
 				} else if (backLine.match(/^\s*\d/) && !backLine.match(/\|/)) {
@@ -332,7 +329,7 @@ export async function transformRtpMidi(markdownPath, outDir) {
 
 			// ABNF parameter definitions
 			// "param-assign =/  ("param_name=" ...)"
-			const abnfParamMatch = line.match(/param-assign\s*=\/?\s*"([a-z_]+)="(.+)/);
+			const abnfParamMatch = line.match(/param-assign\s*=\/?\s*\(*\s*"([a-z_]+)="(.+)/);
 			if (abnfParamMatch) {
 				const paramName = abnfParamMatch[1];
 				const syntaxRest = abnfParamMatch[2].trim();
@@ -351,8 +348,8 @@ export async function transformRtpMidi(markdownPath, outDir) {
 			}
 
 			// Section reference comments
-			// "; Parameters defined in Appendix C.1"
-			const refMatch = line.match(/;\s*Parameters defined in (Appendix [A-Z]\.\d+)/);
+			// "; Parameters defined in Appendix C.1" or "; Parameter defined in Appendix C.4"
+			const refMatch = line.match(/;\s*Parameters?\s+defined in (Appendix [A-Z]\.\d+)/);
 			if (refMatch) {
 				currentAbnfParam = refMatch[1];
 				continue;
@@ -377,44 +374,48 @@ export async function transformRtpMidi(markdownPath, outDir) {
 			}
 		}
 
-		// --- Appendix C: Configuration Parameters ---
-		// Extract parameter definitions from the prose
+		// --- Appendix C: Track section for context ---
 		if (line.match(/^C\.\d+\.\s+/)) {
-			const sectionMatch = line.match(/^C\.\d+\.\s+(.+)/);
-			if (sectionMatch) {
-				currentSection = 'config';
-			}
+			currentSection = 'config';
 			continue;
-		}
-
-		if (currentSection === 'config' && line.match(/^C\.\d+\.\s+/) === null) {
-			// Look for parameter definitions in the text
-			// "o  param_name.  Description..."
-			const paramDefMatch = line.match(/^o\s+([a-z_]+)\.\s+(.+)/);
-			if (paramDefMatch) {
-				configParameters.push({
-					name: paramDefMatch[1],
-					description: paramDefMatch[2].trim(),
-					allowed_values: []
-				});
-				continue;
-			}
-			// "The param_name parameter" pattern
-			const paramRefMatch = line.match(/The\s+([a-z_]+)\s+parameter/);
-			if (paramRefMatch && !configParameters.find(p => p.name === paramRefMatch[1])) {
-				configParameters.push({
-					name: paramRefMatch[1],
-					description: '',
-					allowed_values: []
-				});
-				continue;
-			}
 		}
 
 		// End of config section
 		if (currentSection === 'config' && (line.match(/^Appendix [A-Z]\./) || line.match(/^\d+\./))) {
 			currentSection = null;
 		}
+	}
+
+	// --- Post-processing: Build configuration parameters from IANA + ABNF ---
+	const allIanaParams = new Map();
+	for (const reg of mediaTypeRegistrations) {
+		for (const param of [...reg.required_parameters, ...reg.optional_parameters]) {
+			if (!allIanaParams.has(param.name)) {
+				allIanaParams.set(param.name, {
+					name: param.name,
+					description: param.description,
+					allowed_values: [],
+					section_ref: null
+				});
+			}
+		}
+	}
+
+	// Enrich with ABNF syntax and allowed values
+	for (const abnf of abnfDefinitions) {
+		const configParam = allIanaParams.get(abnf.parameter);
+		if (configParam) {
+			configParam.section_ref = abnf.section_ref;
+			const valueMatches = abnf.syntax.match(/"([^"]+)"/g);
+			if (valueMatches) {
+				configParam.allowed_values = [...new Set(valueMatches.map(v => v.replace(/"/g, '')))];
+			}
+		}
+	}
+
+	// Convert Map to array
+	for (const param of allIanaParams.values()) {
+		configParameters.push(param);
 	}
 
 	// --- Build result ---

@@ -20,11 +20,21 @@ To use a workflow, you simply drop a `.md` file into its `inbox/` directory and 
 To trigger any of these systems, copy the provided trigger text and paste it directly into your AI chat window.
 
 ### 🏗️ Server Architect
-Iterative agent dedicated to deeply decoupling the lightweight visualizer (`vj-server`) from the heavy clip manager (`admin`). It manages its own architecture ledger and processes requests from its inbox.
+Iterative agent dedicated to deeply decoupling the lightweight visualizer (`akvj`) from the heavy clip manager (`mainframe`). It manages its own architecture ledger and processes requests from its inbox.
 
 **How to use:**
 1. Drop your feature request into `.agents/workflows/servers/inbox/`.
 2. Run the trigger below.
 
 **Trigger:**
-> `Read the latest .agents/workflows/servers/vj-server-and-admin-server.prompt.md from disk and execute exactly one iteration of its workflow.`
+> `Read the latest .agents/workflows/servers/akvj-and-mainframe.prompt.md from disk and execute exactly one iteration of its workflow.`
+
+### 🎹 MIDI MCP Developer
+Iterative agent tasked with transforming unstructured MIDI specifications in `midi-mcp/data/` into pristine JSON structures for the Model Context Protocol server. It manages its own schema ledger and processes requests from its inbox.
+
+**How to use:**
+1. Drop your feature request or new specification markdown into `.agents/workflows/midi-mcp/inbox/`.
+2. Run the trigger below.
+
+**Trigger:**
+> `Read the latest .agents/workflows/midi-mcp/midi-mcp-developer.prompt.md from disk and execute exactly one iteration of its workflow.`

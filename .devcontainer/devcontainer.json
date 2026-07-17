@@ -9,11 +9,11 @@
 		"memory": "8gb"
 	},
 
-	// akvj Vite (5173), preview (4173), mainframe Vite (5174), mainframe API (8787)
-	"forwardPorts": [5173, 4173, 5174, 8787],
+	// akvj Vite (8888), preview (4173), mainframe Vite (9999), mainframe API (7777)
+	"forwardPorts": [8888, 4173, 9999, 7777],
 
 	"portsAttributes": {
-		"5173": {
+		"8888": {
 			"label": "akvj Vite",
 			"onAutoForward": "openBrowser"
 		},
@@ -21,11 +21,11 @@
 			"label": "akvj Preview",
 			"onAutoForward": "notify"
 		},
-		"5174": {
+		"9999": {
 			"label": "mainframe Vite",
 			"onAutoForward": "notify"
 		},
-		"8787": {
+		"7777": {
 			"label": "mainframe API",
 			"onAutoForward": "silent"
 		}

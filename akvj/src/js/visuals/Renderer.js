@@ -132,6 +132,11 @@ class Renderer {
 			console.error('Error destroying compositor:', error);
 		}
 		this.#compositor = null;
+		try {
+			this.#effectsPipeline?.destroy();
+		} catch (error) {
+			console.error('Error destroying effectsPipeline:', error);
+		}
 		this.#effectsPipeline = null;
 	}
 

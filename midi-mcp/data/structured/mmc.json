@@ -1,0 +1,875 @@
+{
+  "metadata": {
+    "title": "MIDI Machine Control",
+    "doc_id": "RP-013",
+    "protocol": "midi1",
+    "version": "1.0",
+    "date": "1996-01",
+    "source": "RP-013_v1-0_MIDI_Machine_Control_Specification_96-1-4.pdf"
+  },
+  "message_types": [
+    {
+      "abbreviation": "Comm",
+      "description": "Support for communications e.g. WAIT, RESUME, GROUP."
+    },
+    {
+      "abbreviation": "Ctrl",
+      "description": "Directly affects operation of the \"transport\" e.g. PLAY, STOP, TRACK RECORD READY, etc."
+    },
+    {
+      "abbreviation": "Evnt",
+      "description": "Timed event triggering."
+    },
+    {
+      "abbreviation": "Gen",
+      "description": "Time code generator interface."
+    },
+    {
+      "abbreviation": "I/O",
+      "description": "READ and WRITE Commands, error handling, etc."
+    },
+    {
+      "abbreviation": "Sync",
+      "description": ", Used for time code synchronizing. Includes \"master\" time code fields."
+    },
+    {
+      "abbreviation": "Math",
+      "description": "Time code mathematics."
+    },
+    {
+      "abbreviation": "MTC",
+      "description": "MIDI Time Code input/output controls."
+    },
+    {
+      "abbreviation": "Proc",
+      "description": "Definition and execution of PROCEDURES (pre-defined command sequences)."
+    },
+    {
+      "abbreviation": "Time",
+      "description": "Information Fields directly related to the device's own time code stream."
+    }
+  ],
+  "abbreviations": [
+    {
+      "abbreviation": "ATR",
+      "description": "Audio Tape Recorder"
+    },
+    {
+      "abbreviation": "MCP",
+      "description": "Motion Control Process *"
+    },
+    {
+      "abbreviation": "MCS",
+      "description": "Motion Control State \"'"
+    },
+    {
+      "abbreviation": "MMC",
+      "description": "MIDI Machine Control"
+    },
+    {
+      "abbreviation": "r",
+      "description": "Information Field is READ only."
+    },
+    {
+      "abbreviation": "RW",
+      "description": "Information Field is READ/WRITE capable."
+    }
+  ],
+  "commands": [
+    {
+      "hex": "00",
+      "name": "reserved for extensions",
+      "type": "1234",
+      "data_bytes": "",
+      "guideline_min_sets": ""
+    },
+    {
+      "hex": "01",
+      "name": "STOP (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "1 234"
+    },
+    {
+      "hex": "02",
+      "name": "PLAY (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "—234"
+    },
+    {
+      "hex": "03",
+      "name": "DEFERRED PLAY (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "1234"
+    },
+    {
+      "hex": "04",
+      "name": "FAST FORWARD (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "1234"
+    },
+    {
+      "hex": "05",
+      "name": "'",
+      "type": "REWIND (MCS)",
+      "data_bytes": "Ctrl",
+      "guideline_min_sets": "- , 1234"
+    },
+    {
+      "hex": "06",
+      "name": "RECORD STROBE",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "1 234"
+    },
+    {
+      "hex": "07",
+      "name": "RECORD EXIT",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "1 234"
+    },
+    {
+      "hex": "09",
+      "name": "PAUSE (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "---—"
+    },
+    {
+      "hex": "0A",
+      "name": "EJECT (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "-",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "0C",
+      "name": "COMMAND ERROR RESET",
+      "type": "1/0",
+      "data_bytes": "-",
+      "guideline_min_sets": "—234"
+    },
+    {
+      "hex": "0D",
+      "name": "‘",
+      "type": "MMC RESET",
+      "data_bytes": "Ctrl",
+      "guideline_min_sets": "- 1 234"
+    },
+    {
+      "hex": "42",
+      "name": "READ",
+      "type": "I/O",
+      "data_bytes": "n",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "43",
+      "name": "UPDATE",
+      "type": "[/0",
+      "data_bytes": "n",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "45",
+      "name": "'",
+      "type": "VARIABLE PLAY (MCS)",
+      "data_bytes": "Ctrl",
+      "guideline_min_sets": "3 -234"
+    },
+    {
+      "hex": "46",
+      "name": "SEARCH (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "3",
+      "guideline_min_sets": "--34"
+    },
+    {
+      "hex": "48",
+      "name": "STEP (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "l",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "49",
+      "name": "ASSIGN SYSTEM MASTER",
+      "type": "Sync",
+      "data_bytes": "I",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "4A",
+      "name": "GENERATOR COMMAND",
+      "type": "Gen",
+      "data_bytes": "1",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "43",
+      "name": "MIDI TIME CODE COMMAND",
+      "type": "MTC",
+      "data_bytes": "1",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "4D",
+      "name": "ADD",
+      "type": "Math",
+      "data_bytes": "3",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "4E",
+      "name": "SUBT'RACT",
+      "type": "Math",
+      "data_bytes": "",
+      "guideline_min_sets": ""
+    },
+    {
+      "hex": "52",
+      "name": "GROUP",
+      "type": "Comm",
+      "data_bytes": "n",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "53",
+      "name": "COMMAND SEGMENT",
+      "type": "Comm",
+      "data_bytes": "n",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "54",
+      "name": "DEFERRED VARIABLE PLAY (MCS)",
+      "type": "Ctrl",
+      "data_bytes": "3",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "7F",
+      "name": "RESUME",
+      "type": "Comm",
+      "data_bytes": "",
+      "guideline_min_sets": ""
+    }
+  ],
+  "information_fields": [
+    {
+      "hex": "01",
+      "name": "SELECTED TIME CODE { st }",
+      "type": "Time",
+      "data_bytes": "5",
+      "read_write": "RW",
+      "guideline_min_sets": "1234"
+    },
+    {
+      "hex": "04",
+      "name": "ACTUAL OFFSET I ff}",
+      "type": "Sync",
+      "data_bytes": "5",
+      "read_write": "r",
+      "guideline_min_sets": "---4"
+    },
+    {
+      "hex": "08",
+      "name": "GPO / LOCATE POINT {ff}",
+      "type": "Math",
+      "data_bytes": "5",
+      "read_write": "RW",
+      "guideline_min_sets": "1234"
+    },
+    {
+      "hex": "09",
+      "name": "GP] {ff}",
+      "type": "Math",
+      "data_bytes": "5",
+      "read_write": "RW",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "0A",
+      "name": "'",
+      "type": "6P2 {ff}",
+      "data_bytes": "5",
+      "read_write": "Math",
+      "guideline_min_sets": "5 RW -234"
+    },
+    {
+      "hex": "40",
+      "name": "SIGNATURE",
+      "type": "I/O",
+      "data_bytes": "'",
+      "read_write": "n",
+      "guideline_min_sets": "r 4234"
+    },
+    {
+      "hex": "42",
+      "name": "RESPONSE ERROR",
+      "type": "I/O",
+      "data_bytes": "n",
+      "read_write": "-",
+      "guideline_min_sets": "—234"
+    },
+    {
+      "hex": "46",
+      "name": "SELECTED TIME CODE SOURCE",
+      "type": "Time",
+      "data_bytes": "1",
+      "read_write": "RW",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "47",
+      "name": "SELECTED TIME CODE USERBITS",
+      "type": "Time",
+      "data_bytes": "9",
+      "read_write": "r",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "48",
+      "name": "MOTION CONTROL TALLY",
+      "type": "Ctr]",
+      "data_bytes": "3",
+      "read_write": "r",
+      "guideline_min_sets": "-234"
+    },
+    {
+      "hex": "49",
+      "name": "VELOCITY TALLY",
+      "type": "Ctr]",
+      "data_bytes": "3",
+      "read_write": "r",
+      "guideline_min_sets": "---—"
+    },
+    {
+      "hex": "4B",
+      "name": "FAST MODE",
+      "type": "Ctr]",
+      "data_bytes": "1",
+      "read_write": "RW",
+      "guideline_min_sets": "----"
+    },
+    {
+      "hex": "50",
+      "name": "GLOBAL MONITOR",
+      "type": "Ctr]",
+      "data_bytes": "1",
+      "read_write": "RW",
+      "guideline_min_sets": "--3-"
+    },
+    {
+      "hex": "55",
+      "name": "PLAY SPEED REFERENCE",
+      "type": "Ctr]",
+      "data_bytes": "'",
+      "read_write": "1",
+      "guideline_min_sets": "RW -23-"
+    },
+    {
+      "hex": "58",
+      "name": "CONTROL DISABLE",
+      "type": "Ctr]",
+      "data_bytes": "]",
+      "read_write": "RW",
+      "guideline_min_sets": "---4"
+    },
+    {
+      "hex": "59",
+      "name": "RESOLVED PLAY MODE",
+      "type": "Sync",
+      "data_bytes": "1",
+      "read_write": "RW",
+      "guideline_min_sets": "-—-4"
+    },
+    {
+      "hex": "5A",
+      "name": "CHASE MODE",
+      "type": "Sync",
+      "data_bytes": "1",
+      "read_write": "RW",
+      "guideline_min_sets": "---4"
+    },
+    {
+      "hex": "5D",
+      "name": "GENERATOR USERBITS",
+      "type": "Gen",
+      "data_bytes": "9",
+      "read_write": "RW",
+      "guideline_min_sets": ""
+    }
+  ],
+  "command_descriptions": [
+    {
+      "hex": "01",
+      "name": "STOP",
+      "description": "Messages from the CONTROLLER to the CONTROLLED DEVICE. Reserved for extensions STOP (MCS command) Stop as soon as possible. Output monitoring is controlled by the STOP MODE Information Field. if supported. STOP will be cancelled by the receipt of another MCS or MCP command. Recording [rehearsing] tracks W."
+    },
+    {
+      "hex": "02",
+      "name": "PLAY",
+      "description": "PLAY \t(MCS command) Enter playback mode. PLAY will be cancelled by the receipt of another MCS or MCP'command."
+    },
+    {
+      "hex": "03",
+      "name": "DEFERRED PLAY",
+      "description": "NOTE“ Recording [rehearsing] tracks WW upon receipt of the PLAY command. \tlf that action is desired. then transmit <RECORD EXIT> <PLAY>. DEFERRED PLAY (MCS command) Identical to the PLAY command. with the exception that if the device is currently executing a LOCATE (MCP), then PLAY mode will not be invoked until the LOCATE is completed. Receipt of any other MCS or MCP command will cancel DEFERRED PLAY. When received while a LOCATE is in progress. the \"MC? Success Level\" field of the MOTION CONTROL TALLY Information Field must be set to indicate \"Actively locating with Deferred Play pending\" for the duration of the LOCATE. When the LOCATE has concluded: (i) An automatic PLAY (MCS) command will be issued; (ii) The MOTION CONTROL TALLY \"MCS command\" byte will switch to \"PLAY\"; (iii) \tThe MOTION CONTROL TALLY \"MCP command\" byte will become \"No MCP's currently active\", clearing both the LOCATE and Deferred Play indications. If the device is not executing or does not support the LOCATE command, then it should immediately enter playback mode."
+    },
+    {
+      "hex": "05",
+      "name": "REWIND",
+      "description": "NOTES: \t_ 1. \tIf a device is to support only a sing]; Play command, then DEFERRED PLAY is recommended. In the open loop case, it will not be possible for a Controller to simulate the operation of this command, as no \"locate complete\" status will be available. On the other hand, an immediate PLAY may be re-created by issuing STOP followed by DEFERRED PLAY. 2- \tRecording [rehearsing] tracks WW Upon receipt of the DEFERRED PLAY command. \tIf that action is desired, then transmit <RECORD EXIT> <DEFERRED PLAY>. FAST FORWARD \t(MCS command) Move forward at maximum possible speed. Output monitoring is controlled by the FAST MODE Information Field, if supported. FAST FORWARD will be cancelled by the receipt of another MCS or MCP command. Recording [rehearsing] tracks exit frgm r3931 [rem-arse]. 0 4 \tFAST FORWARD REWIND \t(MCS command) M0ve in reverse direction at maximum possible speed. Output monitoring is controlled by the FAST MODE Information Field, if supported. REWIND will be cancelled by the receipt of another MCS or MCP command. Recording [rehearsing] tracks W."
+    },
+    {
+      "hex": "07",
+      "name": "RECORD EXIT",
+      "description": "RECORD STROBE Switches Controlled Device into or out record or rehearse. according to setting RECORD MODE Information Field. \tRECORD STROBE will be honored under two conditions only: NDITI \tN I' Controlled Device already Playing: If the Controlled Device is already playing \t' \t\" \tr \tn I \tIV \tI \tn \tn \tl \t\" MQTIQN QQNTRQL TALLY Infgnnatjgn Figld is PLAY gr VARIABLE PLAY), then RECORD STROBE will cause record [rehearse] entry on all tracks which are presently in record ready state, and cause record [rehearse] exit on any cun'ently recording [rehearsing] tracks which are no longer record ready. \t*1‘8‘9 mm Controlled Device Stopped: If, when RECORD STROBE is received, the Controlled Device is completely stopped as a result of an explicit STOP or PAUSE command \ti \ti \t\"M \tM \tn \tn \tl \tm MQTIQN CONTROL TALLY Information Field is STQP gr PA USE; Iii] the \"MCS success level\" §t§ \"ggmplgtgly stopmd\"; and liiil the \"Most recently activated Motion Control Process\" byte is gt to \"No W then: (i) (ii) NOTES: \"' l. *3. An automatic PLAY (MCS) command will be issued; ‘3‘4 At an appropriate point in start up phase device, record [rehearse] entry will occur on all tracks which are presently in a record ready state. ’15 0 6 \tRECORD STROBE Tracks are switched in and out of the record ready state using the TRACK RECORD READY Information Field. It is recommended that, for new Controlled Device designs based on MMC, no recording [rehearsing] should take place following a RECORD STROBE command unless at least one track is in a record ready state. Among existing non-MMC devices, however, it is quite common that, given that record [rehearse] has been enabled (for example by setting the appropriate value in the RECORD MODE Information Field), recording [rehearsing] will be initiated even if no tracks are in a record ready state when the command to record [rehearse] is received. Such operation remains permissible under MMC,- provided that the resultant status is correctly indicated by including the \"No Tracks Active\" bit in the RECORD STATUS lnfonnation Field. ' Under CONDITION 2, an automatic PLAY (MCS) command will be issued only under the $1112? r PA n ' i n ifr . At no other time does RECORD STROBE have any implications , regarding play mode or playing speed. *4. *5. *8. I\"9. Also under CONDITION 2, the automatic PLAY (MCS) command will be issued whether or not any tracks are in record ready state. and whether or not RECORD MODE has been specified. The existence \"record-pause\" condition will not affect operation RECORD STROBE. (Refer to the RECORD PAUSE and PAUSE command descriptions.) Devices which support and have their RECORD MODE set to \"VTR:Insert\" or \"VTR:Assemble\", are expected to produce clean and correctly timed transitions into record [rehearse] under both Conditions 1 and 2 outlined above. \tWhen starting from STOP or PAUSE mode (Condition 2). it will usually be necessary to wait until device's start up phase has been completed before recording [rehearsing] is attempted. A Controlled Device will ignore any RECORD STROBE command which is received while it is neither already in play mode nor completely stopped as described. Under CONDITION 1, \"Controlled Device already Playing\", it is not necessary for PLAY or VARIABLE PLAY command to have been \"successful\" before RECORD STROBE is accepted. If, however. the desired play motion has not yet been achieved when RECORD STROBE is received, it may be necessary for device to defer the onset recording until an appropriate point in its start up phase. Note also that, under CONDITION 1, recording is not inhibited by Motion Control Process activity. '. Viv,\" ,,"
+    },
+    {
+      "hex": "08",
+      "name": "RECORD PAUSE",
+      "description": "Causes a record exit on all currently recording tracks. 07 \t_ \tRECORD EXIT RECORD PAUSE Causes the Controlled Device to enter \"record-pause\" mode provided that a PAUSE mode is already in effect (i.e. that the most recent Motion Control State is PAUSE). *4 No actual recording is initiated by RECORD PAUSE. but the device is placed in a state from which a transition into record mode can be made quickly and smoothly. All \"record ready\" track Outputs are switched to monitor their respective Inputs. A Controlled Device which supp_orts RECORD PAUSE command must fully implement \"record- \" \tri \thr \tn \tPA \tE \tmmni 11 \tll \tvi \twhih \tn \ti \tmmnm \tnvern \t\" \tr- Once in \"record-pause\", the effect of further commands is as follows: PAUSE: \t- \tNo change RECORD PAUSE: \tNo change RECORD EXIT: \tCancellation of “record-pause\". return to PAUSE ‘ \tRECORD STROBE: \tSmooth resumption of Play and Record. \t*6 RECORD STROBE VARIABLE: \tSmooth resumption of Variable Speed Play and Record. *6 Any other MCS or MCP command: \tExit \"record-pause\" mode prior to further action. *7 ';§:§cord-pause\" is tallied in the RECORD STATUS Information Field."
+    },
+    {
+      "hex": "09",
+      "name": "PAUSE",
+      "description": "NOTES: \t- 1. \tRECORD PAUSE is the only way to enter \"record-pause\" from a non-record PAUSE without initiating motion. 2. \tRECORD PAUSE in itself will not produce a PAUSE. 3. \tThe command sequence \t<PAUSE> \t<RE'CORD \tPA USE> \twill always produce a paused state, and. if implemented, the \"record-pause\" condition. *4. \tIt is not necessary for the PAUSE command to have been \"successful\" in order for a RECORD PAUSE command to be accepted. Therefore, after receiving a \t<PA USE» \t<RECORD \tPAUSE» command sequence, it may be necessary for the Controlled Device to defer the onset of \"recordpause\" until all motion has ceased following the PAUSE command. RECORD PAUSE must notcause any actual recording to take place. 5. \tRECORD PAUSE will be ignored by a Controlled Device if its Motion Control State is not already \"PAUSE\". *6. \tRefer also to the RECORD STROBE and RECORD STROBE VARIABLE command definitions. *7. \tThis category includes PLAY. DEFERRED PLAY, VARIABLE PLAY and DEFERRED VARIABLE PLAY, none of which will cause recording to take place following a RECORD PAUSE. 8. \tNo \"rehearse-pause\" mode is currently supponed. 0A OB PAUSE \t(MCS command) Stop as soon as possible. \t_ V'I'R's and other visual devices stop \"with picture\". The transport mechanism should be left in a state such that start up time will be minimized. PAUSE will be cancelled by the receipt of another MCS or MCP command. Recording tracks exit from record, with one exception: if (and only if) a device supports the RECORD PAUSE command, and if the PAUSE command is received while recording is taking place, then the \"record-pause\" condition will be invoked. (Please refer to RECORD PAUSE command description). Rehearsing tracks always exit from rehearse."
+    },
+    {
+      "hex": "0A",
+      "name": "EJECT",
+      "description": "NOTES: ' l. \tRepetition of the PAUSE command will 99; produce the pause/play toggling action found on some cassette type VTR's. 2. \tTo prevent head clogging, VTR's may switch to a \"without picture\" state after a pre-determined time-out period. A subsequent PAUSE command will cause a return of the picture. 3. \tThe PAUSE command implies an automatic \"standby on\" or \"ready\" command for devices which have this capability. 4. Devices which do not normally support separate pause function may still implement PAUSE Command by substituting a STOP. However, MOTION CONTROL TALLY must indicate PAUSE. EJECT \t(MCS command) Removeable media devices eject media (cassette or disk etc.) from the transport mechanism. When used as a tally'm the MOTION CONTROL TALLY Information Field, EJECI' indicates a lack of media which'is irrecoverable without operator intervention. Recording [rehearsing] tracks 9i from reggrg “£t"
+    },
+    {
+      "hex": "0D",
+      "name": "MMC RESET",
+      "description": "NOTE: EIECT may be used as a tally by devices which do not normally support EJECT as a command. For example, reel-to-reel device should show an EJECT tally when its tape has run off end the reel. , CHASE \t(MCP command) Causes the Controlled Device to attempt to follow, establish and maintain synchronism with the SELECTED MASTER CODE. When SELECTED MASTER CODE is detected to be in \"play\" mode, Controlled Device should play and attempt to synchronize. At other times, the Controlled Device should simply attempt to position itself so that, should the SELECTED MASTER CODE enter \"play\" mode. synchronism can be achieved in minimum possible time. .1 0C :OD Synchronism is to be achieved between the Controlled Device's SELECTED TIME CODE and the SELECTED MASTER CODE with an offset specified by the REQUESTED OFFSET Information Field using the formula: REQUESTED OFFSET = SELECTED TIME CODE - SELECTED MASTER CODE. If, when CHASE command is received, \"blank\" bit in REQUESTED OFFSET Information Field is set (Le. time code value has never been loaded into it), then \"Blank time code\" COMMAND ERROR will be generated. and Chase Status will be set to \"Failure\". The same error will be generated if Controlled Device is unable, through its own actions, to eliminate \"blank\" bit in either SELECTED TIME CODE or SELECTED MASTER CODE. The CHASE MODE Information Field defines the type of synchronization which is to take place. CHASE will be cancelled by the receipt of another MCP or MCS command. OB \tCHASE COMMAND ERROR RESET Resets the \"Error halt\" flag in the COMMAND ERROR Information Field. allowing resumption of command processing in the Controlled Device. Refer to the COMMAND ERROR and COMMAND ERROR LEVEL Information Field descriptions. 0C \t' \tCOMMAND ERROR RESET MMC RESET Resets the Controlled Device's MIDI Machine Control communications channel to its power up condition; plus: (a) \tempties the UPDATE list; (b) \tdeletes all PROCEDURES; (c) \tdeletes all EVENT's; (d) \tclears all GROUP assignments; (e) \tclears the COMMAND ERROR field, including the \"Error halt\" flag; (f) \t‘ \tresets COMMAND ERROR LEVEL to zero (\"All errors disabled\"); (g) \tsets all time code Information Field flags to their default state. as outlined in Appendix B; (h) resets the MCP command tally byte in MOTION CONTROL TALLY Information Field to \t7Fhex \t(\"No MCP‘s currently active”); (i) \tcancels any command sysex de-segmentation which may be in progress. R \tT m \td \tll MM \tn \t11 \tvi"
+    },
+    {
+      "hex": "41",
+      "name": "MASKED WRITE",
+      "description": "WRITE Loads data into the specified Information Field(s). The WRITE command is followed by one or more strings each consisting of an Information Field name together with the complete data which is to be loaded into that Information Field. Information Field data formats must be exactly as defined in \"Detailed Response and Information Field Descriptions\". The specified Information Field must be writeable. 4 0 \tWRITE <count=variab1 e> Byte count following information <name> Writeable Information Field name <data . . > Format defined by Information Field name. <name> \tMore \t<name> \t<data . . > \tpairs as required . \t. <data..> MASKED WRITE Allows specific bits to be altered in a bitmap style Information Field (see Note ‘1). To be \"mask-writeable\". the Information Field must be in the <count> \t<data> format, and the bitmap must begin immediately after the <cotmt> byte."
+    },
+    {
+      "hex": "42",
+      "name": "READ",
+      "description": "<count=04+ext> \tByte count of following data. <name> \tMask-writeable Information Field Name *1 <byte #> \tByte number target byte within bitmap. Byte is the first byte after the <count> field in the mask-writeable Information Field definition. . <mask> One's in this mask indicate which bits will be changed in target bitmap byte. <data> New data for target bitmap byte. NOTES: *1. \tThe only mask-writeable Information Fields currently defined are those which employ the. Standard Track Bitmap (see Section 3 \"Standard Specifications\"). 2. \tThe \"all one's\" value for both \t<mask> \tand \t<data> \tis, of course, 75'. READ Requests transmission of the contents of the specified Information Field(s). If an Information Field is unsupported by the Controlled Device, then RESPONSE ERROR message will be generated. \t(Refer to the RESPONSE ERROR lnforrnation Field description.)"
+    },
+    {
+      "hex": "43",
+      "name": "UPDATE [BEGIN]",
+      "description": "<count=vari abl e> \tByte count (not including command and count). <n ame> \tInformation Field name(s) UPDATE FORMAT 1 - UPDATE [BEGIN] UPDATE [BEGIN] causes a Controlled Device to irn_mediat§ly: (i) \ttransmit the contents of the specified Information Field(s); and \t(ii) \tadd the specified Information Field name(s) to an internal UPDATE \"list\". I\"l Following this, at intervals no more frequent than that swified by UPDATE RATE Infgrmatign Field, the Controlled Device will: (iii) rte-transmit contents any Information Fields in internal UPDATE \"list\" if those contents have changed and have become different to the contents most recently transmitted as a result of the UPDATE command. \t*2*3 If any specified Information Fields are unsupported by Controlled Device (or are undefined, or are defined as having \"no access\"), then RESPONSE ERROR message will be generated naming field(s) in error. (Valid names in same UPDATE [BEGIN] request will be added to UPDATE \"list\" in usual way.) The RESPONSE ERROR message will be transmitted once, without re-transmissions. *4 The internal \"list\" Information Fields being UPDA'I'E'd by Controlled Device is cumulative with each UPDATE command. If requested Information Field is a time code field, then the first (immediate) UPDATE response will always be in full WM (S-byte) format, while subsequent responses will use SW (2-byte) format whenever appropriate. (See Section 3, \"Standard Specifications - Standard Short Time Code\".) Use UPDATE [END] to delete items from the \"list\". An MMC RESET will completely clear the \"list\", and halt all UPDATE responses."
+    },
+    {
+      "hex": "43",
+      "name": "UPDATE [END]",
+      "description": "<count=va ri abl e> \tByte count (not including command and count). 00 \t\"BEGIN\" sub-command. <name> \tInformation Field name(s) *5 NOTES: *1. If newly requested Information Field name is already contained in internal UPDATE \"list\", then an immediate transmission the contents that field will occur as expected. \tThe internal \"list\" will not change. ”'2. If an Information Field value has changed more than once since the last UPDATE transmission. then only the most recent value will be transmitted. *3. If an Information Field value has changed more than once since the last UPDATE transmission, but has reverted to the same value last transmitted, then no new UPDA'I'E response will be required. *4. \tRefer also to the RESPONSE ERROR Information Field description. *5. \tTime code Information Field names may be specified either by their STANDARD TIME CODE names (01 thru 1F), or by their corresponding STANDARD SHORT TIME CODE names (21 thru 3F). Resulting UPDATE actions will be identical in either case. FORMAT 2 - UPDATE [END] The Controlled Device must delete the specified Information Field(s) from its UPDATE \"list\", and discontinue automatic re-transmissions of their contents. No errors will be generated if the specified narne(s) cannot be found in the current UPDATE list."
+    },
+    {
+      "hex": "45",
+      "name": "VARIABLE PLAY",
+      "description": "<count=va ri able> \tByte count (not including command and count). 01 \t\"END” sub-command <name> \tInformation Field name(s). 7F anywhere in this list will discontinue al_l UPDATE's. NOTES: \tv I. \tAn MMC RESET command will always empty the UPDATE \"list\" and cause all UPDATE activity to cease. 2. \tAn UPDATE command which specifies any sub-command other than [BEGIN] or [END]. will cause an \"Unrecognized sub-command\" COMMAND ERROR. LOCATE \t(MCP command) FORMAT l - LOCATE [-I/FJ Causes the Controlled Device to move to the time code position contained in the selected Information Field, in accordance with SELECTED TIME CODE. *1'2 If \"blank\" bit in target Information Field is set (i.e. time code value has never been loaded into it), then a \"Blank time cOde\" COMMAND ERROR will be generated, and the \"MCP Success level\" in the MOTION CONTROL TALLY Information Field will be set to \"Failure\". With exception theDEFERRED PLAY (MCS) and DEFERRED VARIABLE PLAY (MCS) commands, LOCATE [HP] will be cancelled by the receipt of any other MCS or MCP command. LOCATE [I/F] <count=02+ext> \tByte count (count=02 where extensions are not used). 00 \t\"HF\" sub-command <name> \tValid Information Field names are: 00 = reserved for extensions 08 = GPO / LOCATE POINT = GPI 0A = GP2 013 = GP3 0C = GP4 DD = GPS 02: = GP6 0? = GP7 FORMAT 2 - LOCATE [TARGET] Causes the Controlled Device to move to the time code position specified in the command data. in accordance with the SELECTED TIME CODE. With the exception of the DEFERRED PLAY (MCS) and DEFERRED VARIABLE PLAY (MCS) commands, LOCATE [TARGET] will be cancelled by the receipt of any other MCS or MCP command. 4 4 \tLOCATE [TARGET] <count=06> Byte count. 01 \t\"TARGET\" sub-command 1:: \tmn \tsc \tfr \tff \tStandard Time Specification with subframes (type {ff}) NOTES: *1. \tLOCATE [I/F] requires that at least one of the general purpose registers GPO thru GP7 be supported. *2. \tOnce a LOCATE [I/F] has been initiated, any subsequent changes to the specified Information Field will have no effect on Locating process. In other words. locate point time is read from general purpose register when the Lgx2ATE command is received, and moved to some other unspecified internal locate point register. 3. \tDevices which do not have the capability to locate with subframe accuracy should ignore any subframes data in the locate point field. 4. At conclusion any locating action. if Controlled Device supports PAUSE command, then PAUSE mode should be entered. Otherwise, LOCATE should be concluded with normal STOP command, with monitoring possibly specified by the STOP MODE Field. 5. \tRefer also to the descriptions of the DEFERRED PLAY and DEFERRED VARIABLE PLAY commands. 6. \tA LOCATE command which specifies any sub-command other than [I/F] or [TARGET] will cause an \"Unrecognized sub-command\" COMMAND ERROR. VARIABLE PLAY \t(MCS command) Enter continuously variable playback mode with the direction and speed specified. 'If’the requested speed value exceeds the capabilities Controlled Device, then it should play at its . searest available speed\". VARIABLE PLAY will be cancelled by the receipt of another MCS or MCP command."
+    },
+    {
+      "hex": "48",
+      "name": "STEP",
+      "description": "<count=03> Byte count. ' sh \tsm \t51 \tStandard Speed Specification NOTE: Recording [rehearsing] tracks n m \ti xi \tfr m r r \tr h upon receipt VARIABLE PLAY command. \tIf that action is desired, then transmit <RECORD EXIT> <VARIABLE PLAY>. SEARCH \t(MCS command) Causes the Controlled Device to move with specified direction and velocity. Output monitoring must be enabled, but need only be of sufficient quality that recorded material is recognizable. If the requested speed value exceeds the capabilities the device, then the device should move at its \"nearest available speed\". In the extreme case, a device which implements only fixed speed search in each direction can still be said to support the SEARCH command. SEARCH will be cancelled by receipt another MCS or MCP command. Recording [rehearsing] tracks W. 4 6 \tSEARCH <count=03> Byte count. sh \tsm \t51 \tStandard Speed Specification NOTE: A device which outputs both picture and audio is only required to monitor picture during a SEARCH. Concurrent audio monitoring remains at the discretion of the equipment manufacturer. SHUTTLE (MCS command) Causes the Controlled Device to travel at specified direction and velocity without necessarily reproducing audio or picture. If the requested speed value exceeds the capabilities of the device, then the device should move at its \"nearest available speed\". SHUTTLE will be cancelled by the receipt of another MCS or MCP command. Recording [rehearsing] tracks exit from record lrehgrsel. 4 7 \tSHUTTLE <count=03> Byte count. 512 \tsm \t51 \tStandard Speed Specification STEP \t(MCS command) Causes the Controlled Device to move specified distance forward or backward, with respect to its current position. Successive commands are cumulative until next MCS or MCP command other than STEP. Visual devices must provideat least visual monitoring during the STEP movement (audio is optional). and must maintain picture after completion of the STEP (similar to a PAUSE mode). Audio devices must provide audio monitoring during the STEP, and. if the device has digital \"looping\" capability, should continue to loop after the STEP has been completed. Sequencers should enable MIDI outputs during the STEP, and should refrain from turning Notes off at completion of the STEP. In all cases. monitoring should return to \"normal\" after cancellation of the STEP mode by another MCS or MCP command. The distance to be moved is measured in units which are defined in STEP LENGTH Information Field. The default unit is one video field (1/2 frame)."
+    },
+    {
+      "hex": "4A",
+      "name": "GENERATOR",
+      "description": "<count=01> Byte count. <steps> Number STEP LENGTH's: 9 \t53.5555 g = sign (1 = reverse) ssssss = quantity ASSIGN SYSTEM MASTER Most \"chase\" synchronization systems require definition \"master\" device. Other devices may then follow (chase) and synchronize to the time code from this device. The assignment a system master may cause appropriate distribution that \"master\" device's time code within the system. \tDevices receiving such code will normally load it directly or indirectly into their 4A 4B SELECTED MASTER CODE fields. No panicuhr method of time code distribution or operation is specified by this command. \t' The assignment of a master time code stream also provides a reference time within which all system-wide timed events may be consistently located. Reaction to ASSIGN SYSTEM MASTER is governed by following truth table: Own \t<device_ID> \tDevice \talready = \tcommand \tdata? \tsystem \tmaster? \tACTION none Release system master status Set up \tas new system master Continue \tas \tsystem \tmaster KKZZ NZKZ The A \tSIGN SYSTEM MASTER me \tmust be transmit \tvia \t\"All-Call\" device ID \t. A group device_ID may not be assigned as system master. 4.9 \tASSIGN SYSTEM MASTER <count=01 > Byte count. <devi ce_ ID> Idem assigned device. 71-\" = dis-assign any previously assigned master, leaving no master assigned. GENERATOR COMMAND Controls the running state of the time code generator. See also the GENERATOR SET UP Information Field. is . w"
+    },
+    {
+      "hex": "43",
+      "name": "MIDI TIME CODE COMMAND",
+      "description": "COMMAND <count=01> Byte count. nn \t. \tAction: ' \t00 = Stop 01 = Run, frame locked if and as required by the GENERATOR SET UP Information Field 02 = Copy/Jam: While running, transfer Source Time Code into the GENERATOR TIME CODE register. as specified by GENERATOR SET UP Information Field. MIDI TIME CODE COMMAND Controls the production of MIDI time code. See also the MIDI TIME CODE SET UP Information Field."
+    },
+    {
+      "hex": "4C",
+      "name": "MOVE",
+      "description": "<count=01 > \tByte count. nn \tAction: 00 = Off 02 = Follow time code defined by the MIDI TIME CODE SET UP Information Field. 4C 4D MOVE Transfer contents Same Information Field to Destination Information Field. Valid destination Information Fields are the Read/Writeable fields in the S-data-byte group (names 01 thru IF). Valid source Information Fields are all of the S-data-byte group (names 01 thru 1F). Subframes should be assumed to be zero in all sources not usually containing subframes (type { st }). Subframe data will be lost if the source contains subframes (type {ff }) while the destination does not (type (st})."
+    },
+    {
+      "hex": "40",
+      "name": "ADD",
+      "description": "<count=02+ext> Byte count (not including command and count). <destina ti on> \tValid destination Information Field name. <source> Valid source Information Field name. NOTES: 1. \tAll embedded time code status flags (see Section 3 \"Standard Specifications\") will be transferred from the Source field to Destination Field, with the exceptions that: (a) \tWhen MOVE'ing from an {st} type field to an { ff} field, set bit i = 0 as well as subframes = 00; (b) \tWhen MOVE'ing from an {ff} field to an { st ) field, set bits: 1' = 1. e = 0. v: 0, d= 0/1 as determined, and n = 1. 2. \tThe MOVE command may be used to instantaneously capture the value of a moving time code stream. For Example, to MOVE the current SELECTED TIME CODE to the LOCATE point register GPO; or to trap the current ACTUAL OFFSET by MOVE'ing it to the REQUESTED OFFSET. ADD Add the contents of two source Information Fields, and place the result in a destination Information Field: [Destination] = [Source #1] + [Source #2] The result will be a valid time code number between 00:00:00:00.00 and +/-23:59:59:nn.99, where nn depends on the frame rate used for the calculation. (Whether or not a negative result is permitted depends on the characteristics of the destination Information Field.) The result will always be expressed as a non-drop-frame QuantityI regardless of the droplnon-drop status of Wm Valid destination Information Fields are the Read/Writeable fields in the 5-data-byte group (01 thru 1F). Valid source Infonnation Fields are all of the S-data-byte group (names 01 thru 1F). It is permissible that the destination Field be the same as one of the source Fields. Care must be exercised so that such source data is not destroyed before the calculation is complete. Subframes should be assumed to be zero in all sources not usually containing subframes (0136 {st )). Subframe data will be lost if either source contains subframes (type { ff }) while destination does not (WC (5“)-"
+    },
+    {
+      "hex": "50",
+      "name": "PROCEDURE [EXECUTE]",
+      "description": "<count=03+ext> \tByte count (not including command and count). <destina ti on> \tValid destination Information Field name. <source \t#1 > \t' \tValid source Information Field name. <source \t#2> \tValid source Information Field name. 4E 4F NOTES: 1. \tThe frame rate and drop-frame status of each of the source fields is established entirely by the time code status bits embedded within those fields. \tThe TIME STANDARD Information Field has no bearing on this calculation. . \t2. \tEmbedded time code status flags of an { ff} type Destination field (see Section 3 \"Standard Specifications\") will be set up as follows: tt (time type) \tSame as m, with the exception that if Source #1 specifies drop-frame, then the Destination will be converted to non-drop-frame. c (color frame) \t0 k (blank) (sign) Set by result calculation. If Destination field does not allow signed negative data, then any negative result must first be added to \"24 hours\" to produce a positive value. . (final byte id) ‘ 3. \tEmbedded time code status flags of an {st} type Destination field (see Section 3 \"Standard Specifications\") will be set up as follows: tt, c, k, g \tSame as {ff} field 1' (final byte id) \t1 e (estimated code) v (invalid code) d (video field 1) \t0/1 as determined n (no time code) \t1 4. It is expected that many devices will be capable performing mixed frame drop and non-drop calculations. Very few, however, will produce correct results with other frame rate mis-matches. 5. \tCalculations involving drop frame code which “cross\" the 24 hour boundary may produce unpredictable results. SUBTRACT Subtract the contents of one source Information Field from that of the other, and place the result in a destination Information Field: [Destination] = [Source #1] - [Source #2] All the conditions for the ADD command apply also to the SUBTRACT command. 4E SUBTRACT <count=03+ext> <destination> <source \t#l> <source \t#2> Byte count (not including command and count). Valid destination Information Field name. Valid source Information Field name. Valid source Information Field name. DROP FRAME ADJUST Convert the contents of the named lnforrnation Field into drgpjrgme format (see \"Drop Frame Notes\" in the \"Standard Specifications\" section). Take no action if the contents are not currently expressed in 30 frame. non-drop-fi'arne format. May be used after ADD or SUB'I'RACT to produce a drop frame result. Valid lnfonnation Fields are the Read/Writeable fields in the 5-data-byte group (names 0] thru 1F). 4F DROP FRAME ADJUST <count=01 +ext> Byte count (not including command and count). <name> Valid Information Field name NOTE: Frame rate and drop frame status named Information Field is established entirely by time code status bits contained within that field. \tThe TIME STANDARD Information Field has no bearing on this calculation. PROCEDURE A Procedure is string commands defined by Controller and stored within Controlled Device. It may subsequently be executed by transmission single PROCEDURE [EXECUTE] command. FORMAT l - PROCEDURE [ASSEMBLE]: Assembles a string of commands for execution at a later time. Procedures are retained until receipt PROCEDURE [DELETE] or MMC RESET command. Re-definition of an already defined procedure implies that the previous definition first be deleted. The commands contained within a procedure must be pre-checked for \"MAJOR\" and \"IMPLEMENTATION\" errors when the procedure is assembled. If these embedded commands contain such errors, then: \t*1 (i) \tthe procedure will be discarded; (ii) error will be recorded in the COMMAND ERROR'Information Field; and \t(iii) \tthe PROCEDURE [ASSEMBLE] error flag will be set (also in the COMMAND ERROR Information Field). Any attempt to define a procedure which will overflow whatever procedure storage area is available will generate a \"PROCEDURE buffer overflow\" error in the COMMAND ERROR Information Field. 5 0 \tPROCEDURE [ASSEMBLE] <count=va ri able> Byte count. 00 \t\"ASSEMBLE\" sub-command. <procedure> Procedure Name in the range 00 thru 75'. 71“ is reserved. <command #1 . . > Any MMC commands except; <command #2. . > (i) another PROCEDURE [ASSEMBLE]; \t*2 <command #3. . > or (ii) PROCEDURE [EXECUTE] with the same procedure name as is being defined. *3 NOTES: *1. \t\"MAJOR\" and \"IMPLEMENTATION\" errors are described in the COMMAND ERROR Information Field definition. \tRefer also to NOTE 2 of that definition. *2. \tA \"Nested PROCEDURE [ASSEMBLE]\" error would be generated. *3. \tA \"Recursive PROCEDURE [EXECUTE]\" error would be generated. FORMAT 2 - PROCEDURE [DELETE]: Delete previously defined sequence commands. With exception \"delete all PROCEDURES\" version this command. any attempt to delete an undefined procedure will cause an \"Undefined PROCEDURE\" error in the COMMAND ERROR Information Field. 5 0 \tPROCEDURE [DELETE] <count=02> ~ Byte count. 01 \t\"DELETE\" sub-command. <procedure> Procedure Name in the range thru 7E. 7? means W. FORMAT 3 - PROCEDURE [SET]: Establishes the name of the procedure which will appear in the next READ of the PROCEDURE RESPONSE Information Field. With the exception of the \"set all PROCEDURE'S\" version of this command, specification an undefined procedure will cause an \"Undefined PROCEDURE\" error in COMMAND ERROR Information Field. 5 0 \tPROCEDURE [SET] <count=02> Byte count. 02 \t\"SET\" sub-command. <procedure> Procedure Name in the range thru 7E. 71\" means 5;] a]! PREEDL] E's. FORMAT 4 - PROCEDURE [EXECUTE]: Irrgmediately execute the named procedure. Any attempt to execute an undefined procedure will cause an \"Undefined PROCEDURE\" error in the COMMAND ERROR Information Field."
+    },
+    {
+      "hex": "51",
+      "name": "EVENT",
+      "description": "<count=02> Byte count. 03 \t\"EXECUTE\" sub-command. <procedure> \tProcedure Name in the range 00 thru 75‘. 71-\" is reserved. NOTES: 1. \tAn MMC RESET command will always delete an Procedures. 2. \tA PROCEDURE command which specifies any sub-command other than [ASSEMBLE], [DELETE], [SET] or [EXECUTE]. will cause an \"Unrecognized sub-command\" COMMAND ERROR. 3. Examples PROCEDURE [ASSEMBLE] and PROCEDURE [EXECUTE] commands may be found in Note 8 of the EVENT [DEFINE] command description."
+    },
+    {
+      "hex": "51",
+      "name": "EVENT [DEFINE]",
+      "description": "FORMAT l - EVENT [DEFINE] Allows any single MIDI Machine Comm] command to be executed by the Controlled Device at a specified trigger time, relative to a specified time code stream. Re-definition an already defined Event implies that previous definition first be deleted. Any attempt to define an Event which will overflow whatever Event storage area is available will generate an \"EVENT buffer overflow” error in the COMMAND ERROR Information Field. Similarly, if the requested \"trigger source\" Information Field is unavailable for any reason, an \"EVENT trigger source unavailable or unsupported\" error will be generated. and the Event will be discarded. The command contained within the Event must be pre-checked for \"MAJOR\" and \"IMPLEMENTATION\" errors when the Event is defined. \tIf this embedded command contains such errors, then: \t‘9 (i) \tthe Event will be discarded; (ii) error will be recorded in COMMAND ERROR Information Field: and \t(iii) \tthe EVENT [DEFINE] error flag will be set (also in the COMMAND ERROR Information Field)."
+    },
+    {
+      "hex": "51",
+      "name": "EVENT [DELETE]",
+      "description": "<coun t -va :1 abl e> Byte count. 00 \t\"DEFINE\" sub-command. <event> \tEvent Name in the range 00 thru 75. v \t7F is reserved. <f.1 .395» \tEvent control flags: k 0 \ta dd dd = Direction modes: 00 = Trigger only while moving forwards. 01 = Trigger only while-moving in reverse. 1 0 = Trigger while moving in either direction. a = \"All speeds\" flag: 0 = Trigger only when trigger time is equaled while moving at fixed or variable play-speed. 1 = Trigger immediately upon recognizing that the trigger time has been equaled or passed, while moving at any speed. k = \"Non-delete\" flag: = Big}: Event definitign immediately upon ming MW = Event definition remains in event queue after being triggered. \t*8 <tri gger \tsource) Information Field name time code stream relative to which event is to be triggered: \t*4 00 = reserved for extensions 01 = SELECTED TIME CODE *5 02 = SELECTED MASTER CODE 06: GENERATOR TIME CODE 0 7: MIDI TIME CODE INPUT <name> \tName Information Field containing the trigger time: *3 00: reserved for extensions 08 = GPO / LOCATE POINT 09 = GP] GA = GPZ OB = GP3 = 6P4 OD = GPS 05‘ = GP6 01-\" = 6P7 <command. . > Any single command plus data as required, with exception of: *6 (i) \tanother EVENT [DEFINE]; *10 or \t(ii) \ta PROCEDURE [ASSEMBLE]. * ll NOTES: 1. \tThe EVENT command requires that at least one of the general purpose registers GPO thru GP7 be supported. 2. \tAny subsequent changes to the specified trigger time register will have no effect on the Event. In other words, the trigger time is read from the general purpose register WW, and moved an unspecified internal Event trigger time area. \tAn EVENT RESPONSE will always send back the time from this internal area. *3. \tWhether or not to support subfrarne accurate Event triggering remains at the discretion of the device manufacturer. *4. Typical trigger sources will be SELECTED TIME CODE or SELECTED MASTER CODE. Limitations may occur in some devices which only support a single trigger source (probably SELECTED TIME CODE). Other devices may support multiple trigger sources, but only implement subframe triggering for one or more them. *5. \tIf no time code is present, and SELECTED TIME CODE is always updated by tachometer pulses. then it may not provide an ideal trigger source, as its numeric sequence can be discontinuous. This problem may be circumvented by defining Events which may be triggered at \"All speeds\" ., (refer to the EVENT command decription). *6. \tIn order to execute multiple commands at a time. the command PROCEDURE [EXECUTE] should be used. 7.1:; \tIt is important that MIDI Machine Control commands which may require advance triggering ’ \tshould be detected within the Controlled Device, and their trigger times advanced accordingly (for example, RECORD STROBE must allow for record ramp up delays). This action should be transparent to the Controller. *8. \tExample of an Event in the \"Non-delete\" mode: Consider a simple \"looping\" action where a tape machine is to begin playing from location \"A\" and continue up to point \"B\", at which time it must locate back to \"A\" and start again: F0 71-\" <devi ce_ID> <mcc> <WRITE> \t<count=0C> <GP 0> <5—byte loop start time \"A \"> <GP1> \t<5—byte \tloop \tend \ttime \t”B\"> <PROCEDURE> \t<count=06> \t<[ASSEMBLE] > \t<procedure_name> <LOCATE> \t<count=01> \t<GPO> <DEFERRED PLAY> <EVENT> \t<count=09> \t< [DEFINE] > \t<event_name> <flags=4 0> \t(SELECTED \tTIME \tCODE> \t<GP1> <PROCEDURE> \t<count=02> \t< [EXECUTE] > \t<procedure_name> (PROCEDURE) \t<count=02> \t<[EXECUTE] > \t<procedure_name> F7 \t’ *9. \t\"MAJOR\" and \"IMPLEMENTATION\" errors are described in the COMMAND ERROR Information Field definition. Refer also to NOTE 2 of that definition. *10. \tA \"Nested EVENT [DEFINE]\" error would be generated. \t. *11. \tA \"PROCEDURE [ASSEMBLE] within EVENT [DEFINE] \" error would be generated. FORMAT 2 - EVENT [DELETE] Delete a previously defined Event. With the exception of the \"delete all EVENTS\" version of this command, any attempt to delete an undefined event will cause an \"Undefined EVENT\" error in the COMMAND ERROR Information Field."
+    },
+    {
+      "hex": "51",
+      "name": "EVENT [SET]",
+      "description": "<count=02> Byte count. 01 \t\"DELETE\" sub-command. <event> ' Event Name in the range thru 7E. ' \t71' means W- FORMAT 3 ~ EVENT [SET] Establishes the name of the Event which will appear in the next READ of the EVENT RESPONSE Information Field. With exception the \"set all EVENTS\" version this command, specification an undefined Event will cause an \"Undefined EVENT“ error in COMMAND ERROR Information Field."
+    },
+    {
+      "hex": "52",
+      "name": "GROUP",
+      "description": "<count=02> Byte count. 02 \t\"SET\" sub-command. <event> \tEvent Name in the range 00 thru 73. ' 7? means 55:; all EVEN]; FORMAT 4 - EVENT [TEST] Immediately execute the command contained in the named Event, as if a trigger had occured. n \tl \tv Any attempt to test an undefined Event will cause an \"Undefined EVENT\" error in the COMMAND ERROR Information Field. .51 \tEVENT [TEST] <count=02> Byte count. 03 \t\"TEST\" sub-command. <event> \tEvent Name in the range 00 thru 75 7? is reserved. NOTES: 1. \tAn MMC RESET command will always delete all Events. 2. \tAn EVENT command which specifies any sub-command other than [DEFINE], [DELETE], [SET] or [TEST], will cause an \"Unrecognized sub-command\" COMMAND ERROR."
+    },
+    {
+      "hex": "52",
+      "name": "GROUP [ASSIGN]",
+      "description": "FORMAT l - GROUP [ASSIGN] The Controlled Device is to become assigned to the indicated Group if the device's <devi ce_ID> appears in the received list of device_lD's. Once assigned, the Controlled Device is to honour all commands received via the Group device_ID in addition to those received through its own device_ID. A Group assignment is retained until receipt of an MMC RESET or an appropriate GROUP [DIS- ASSIGN] command. Group wsignment is cumulative with each GROUP [ASSIGN] message. For example, to add new device to an already existing group. a Controller may simply transmit a GROUP [ASSIGN] listing only the new device. Any attempt to assign the device to more groups than it can accomodate will produce a \"Group buffer overflow\" error in the COMMAND ERROR Information Field. \t\"3"
+    },
+    {
+      "hex": "52",
+      "name": "GROUP [DIS-ASSIGN]",
+      "description": "<coun t =va ri abl e> Byte count (not including command and count). 0 0 \t\"ASSIGN\" sub-command. <group> Group number - any unused device_ID may be assigned as group number, with the exception of 7F. <devi ce_ID> List devices which are to begin responding to Group number . . (devi ce_ID> FORMAT 2 - GROUP [DIS-ASSIGN] The Controlled Device should remove itself from indicated Group if the device's <devi ce_ID> appears in the received list of device_lD's."
+    },
+    {
+      "hex": "53",
+      "name": "COMMAND SEGMENT",
+      "description": "<count=variab1 e> Byte count. 01 \t\"DIS-ASSIGN\" sub-command. <group> Group number 7F= dis-assign from afl groups. <devi ce_ID> List devices which are to be dis-assigned from Group number . . <devi ce_ID> \t7F anywhere in this list will dis-assign fl devices. *4 NOTES: 1. \tAn MMC RESET command will always delete afl Group assignments. 2. \tGROUP [ASSIGN] and [DIS-ASSIGN'J messages will normally be transmitted via the \"all-call\" device_ID (<devi ce_ID> = 71-\"). *3. \tIt is recommended that a Controlled Device should accommodate being assigned to at least 16 groups at any one time. *4. When dis-assigning an entire group, the \"list devices\" will normally contain only single entry (71“). For example, to dis-assign all devices from all groups, the Controller transmits: F0 \t7F \t7F \t<mCC> \t<GROUP> <count=03> 71-\" 71“ F7 5. \tA GROUP command which specifies any sub-command other titan [ASSIGN] or [DIS-ASSIGN], will cause an \"Unrecognized sub-command\" COMMAND ERROR. COMMAND SEGMENT Allows a command (or a string of commands), which is greater in length than the maximum MMC System Exclusive data field length (48 bytes), to be divided into segments and transmitted piece by piece across multiple System Exclusives. Commands received by a Controlled Device in this way will be executed exactly as if they had arrived all in the same sysex. COMMAND SEGMENT must always be first command in its sysexI and there must be no other -. commands in the sysex save those which are contained within the body of CQMMAND SEGMENT itself. Segment divisions need not fall on command boundaries. Partial commands, which may occur at the end of a COMMAND SEGMENT sysex, must be detected by the Controlled Device so that command processing may be correctly resumed when the next segment arrives. A Controlled Device will generate a \"Segmentation Error\", one of the \"MAJOR ERRORS\" defined in the COMMAND ERROR Information Field, under any of the following conditions: (a) \tCOMMAND SEGMENT not first command in sysex; or \t(b) \tByte count not exactly equal to number of bytes remaining in sysex; or \t(c) \tA \"subsequent\" segment is received without receiving a \"first\" segment; or (d) Segments are received out order; / De-segmentation will be cancelled upon the occurrence of a Segmentation Error. With the exception of WAIT} or RESUME messages, if a non-segmented (i.e. normal) sysex is received by Controlled Device when \"subsequent\" segment sysex was expected, it will be processed normally, and de-segmentation will be cancelled. Refer also to Section 2 \"General Structure\" - \"Segmentation\"."
+    },
+    {
+      "hex": "54",
+      "name": "DEFERRED VARIABLE PLAY",
+      "description": "<count =va ri abl e> \tByte count (command string segment length + I) 51' \tSegment Identification: 0 \tf \tssssss ' \tf: \t' \t1 = first segment 0 = subsequent segment ssssss = segment number (down count, last=0 0 0 0 00) <. . comman ds . . > \tCommand string segment DEFERRED VARIABLE PLAY \t(MCS command) Identical to the VARIABLE PLAY command, with exception that if device is currently executing LOCATE (MCP), then VARIABLE PLAY mode will not be invoked until LOCATE is completed. Receipt of any other MCS or MCP command will cancel DEFERRED VARIABLE PLAY. When received while a LOCATE is in progress, the \"MCP Success Level\" field of the MOTION CONTROL TALLY Information Field will be set to indicate \"Actively locating with Deferred m Play pending\" for the duration of the LOCATE. ss_ When the LOCATE has concluded: (i) \tAn automatic VARIABLE PLAY (MCS) command will be issued, and the device will enter continuously variable playback mode with the direction and speed specified (If the requested speed value exceeds the capabilities of the Controlled Device, then it should play at its \"nearest available speed\"); (ii) \tThe MOTION CONTROL TALLY \"MCS command\" byte will switch to \"VARLABLE PLAY\"; (iii) \tThe MOTION CONTROL TALLY \"MCP command” byte will become \"No MCP's currently active\", clearing both the LOCATE and Deferred Variable Play indications. If the device is not executing or does not support the LOCATE command, then it should immediately enter variable playback mode."
+    },
+    {
+      "hex": "55",
+      "name": "RECORD STROBE VARIABLE",
+      "description": "<count=03> Byte count. sh \tsm \t51 \tStandard Speed Specification NOTE: Recording [rehearsing] tracks WWW upon receipt of the DEFERRED VARIABLE PLAY command. \tIf that action is desired, then transmit <RECORD EXIT> (DEFERRED VARIABLE PLAY>. RECORD STROBE VARIABLE Switches the Controlled Device into or out of record or rehearSe, according to the setting of the RECORD MODE Information Field. RECORD STROBE VARIABLE will be honored under two conditions onlyé 5:95 9111193 I; \tControlled Device already Playing: If theControlled Device is alreadyplaying \ti \th \t\"M \tn \t'v \tM \tin \tntrl N \tNTR \tLTALLYInfn'n \tinFil \ti \tPAY \tV \tPAY,thenRECORD STROBE VARIABLE will cause record [rehearse] entry on all tracks which are presently in a record ready state. and cause record [rehearse] exit on any currently recording [rehearsing] tracks that are no longer record ready. *2‘9'10 W Controlled Device Stopped: If when RECORD STROBE VARIABLE [5 received, the Controlled Device'ts completely stopped as a result of an eXPliciI STOP or PAUSE command W in the MOTION CONTROL TALL'Y Information Field ts STOP or PAUSE; [ii] the \"MCS success level\" \"N \tM \tP' \t, then: (i) \tAn automatic VARIABLE PLAY (MCS) command will be issued, and the device will enter continuously variable playback mode with the direction and speed specified. (If the requested speed value exceeds the capabilities of the Controlled Device, then it should play at its \"nearest available speed\"); \t*4’5 (ii) \tI \tAt an appropriate point in the varispeed start up phase of the device, record [rehearse] entry will occur on all tracks which are presently in a record ready state. *2*6"
+    },
+    {
+      "hex": "7C",
+      "name": "WAIT",
+      "description": "<count=03> \tByte count. \t. sh \tsm \t5]. \tStandard Speed Specification NOTES: 1. \tThe recording [rehearsing] characteristics of RECORD STROBE VARIABLE are identical to those RECORD STROBE command. \tThe only difference between the two commands lies in nature play mode command which is invoked automatically if Controlled Device W RECORD STROBE VARIABLE will therefore be used if variable speed recording [rehearsing] must be achieved from a standing start. *2. \tTracks are switched in and out of the record ready state using the TRACK RECORD READY lnforrnation Field. 3. \tIt is recommended that, for new Controlled Device designs based on MMC, no recording [rehearsing] should take place following a RECORD STROBE VARIABLE command unless at least one track is in a rectord ready state. Among existing non-MMC devices, however. it is quite common that, given that record [rehearse] has been enabled (for example by setting the appropriate value in the RECORD MODE Information Field), recording [rehearsing] will be initiated even if no cracks are in a record ready state when the command to record [rehearse] is received. \tSuch operation remains permissible under MMC, provided that the resultant status is correctly indicated by including the \"No Tracks Active\" bit in the RECORD STATUS Information Field. *4. \tUnder CONDITION 2, an automatic VARIABLE PLAY (MCS) command will be issued SL1! under the STS 2? or PA! [SE ggnditigns smgifigg. At no other time does RECORD STROBE VARIABLE have any implications regarding play mode or playing speed. *5. \tAlso under CONDITION 2, the automatic VARIABLE PLAY (MCS) command will be issued whether or not any tracks are in record ready state, and whether or not RECORD MODE has been specified. *6. \tThe existence of a \"record-pause\" condition will not affect the operation of RECORD STROBE VARIABLE. \t(Refer to the RECORD PAUSE and PAUSE command descriptions.) 7. \tDevices which support and have their RECORD MODE set to \"VTR:Insert\" or \"VTRzAssemble\", are expected to produce clean and correctly timed transitions into record [rehearse] under both‘ Conditions I and 2 outlined above. \tWhen starting from STOP or PAUSE mode (Condition 2), it will usually be necessary to wait until the device's start up phase has been completed before recording [rehearsing] is attempted. 8. \tA Controlled Device will ignore any RECORD STROBE VARIABLE command which is received while it is neither already in play mode nor completely stopped as described. *9. \tUnder CONDITION 1, \"Controlled Device already Playing\", it is not necessary for the PLAY or VARIABLE PLAY command to have been \"successful\" before RECORD STROBE VARIABLE is accepted. If, however, the desired play motion has not yet been achieved when RECORD STROBE VARIABLE is received, it may be necessary for the device to defer the onset of recording until an appropriate point in its start up phase. *10. Note also that, under CONDITION 1, recording is not inhibited by Motion Control Process activity."
+    },
+    {
+      "hex": "7C",
+      "name": "WAIT",
+      "description": "Signals the Controlled Device that the Controller's receive buffer is filling (or that the Controller is otherwise unavailable), and that Machine Control Response transmissions must be discontinued until receipt RESUME from Controller. Any Response transmission which is currently in progress will be allowed to proceed up to its normal End of System Exclusive (F7). Transmission of subsequent Responses may resume after receipt RESUME from Controller. The Responses WAIT and RESUME, however, are mt inhibited by the WAIT Command. Neither is transmission of the WAIT Command itself inhibited by receipt of a WAIT Response. A Controlled Device must guarantee: (i) \tto recognize the receipt of a WAIT message within IQ milliseconds after the arrival of the End of System Exclusive (F7) of that WAIT message; and \t(ii) \tto then halt all transmissions at the next available MMC System Exclusive boundary (up to 53 bytes. the maximum MMC sysex length. may therefore have to be transmitted before the halt can take effect). The WAIT command is always the only command in its Sysex, and is directed to the \"all-call\" address i.e. \tF0 \t71’ \t7F \t<mcc> \t<WAIT> \tF7. ' NOTES:"
+    }
+  ],
+  "field_descriptions": [
+    {
+      "hex": "01",
+      "name": "SELECTED TIME CODE",
+      "description": "Messages from CONTROLLED DEVICE to CONTROLLER. Reserved for extensions SELECTED TIME CODE [read/write] Contains the time code normally used to reference the Controlled Device's current position. (It may also be referred to as \"Self“ code, or \"Slave\" time code.) The Information Field SELECTED TIME CODE SOURCE determines the source of this time code. \tIt is selected from Longitudinal Time Code (LTC), Vertical Interval Time Code (VITC). and the \"tape counter\" found on most tape machines."
+    },
+    {
+      "hex": "02",
+      "name": "SELECTED MASTER CODE",
+      "description": "hr run so fr st Standard Time Specification with status (type {st }) NOTES: 1. \tMore details concerning time code choices may be found in the SELECTED TIME CODE SOURCE Information Field description. 2. \tThe SELECTED TIME CODE status byte will indicate whether or not the current time code has been updated by Tachometer or Control Track pulses, for example, during fast wind modes. 3. \tIf no time code is available at all. then SELECTED TIME CODE will be equivalent to the \"tape counter\" which is found on most tape machines, usually updated by Tachometer or Control Track pulses. For compatibility in time code systems, this \"tape counter\" must count in hours, minutes, ' seconds and frames. The time code mode for this counter will normally be determined either by the TIME STANDARD Information Field, if supported, or by some other form of locally adjustable default. If, however, the Controller WRITE‘s a value into SELECTED TIME CODE, then the time code mode will be determined by the \ttt \t(time type) field in the WRITE data. Negatively signed values of SELECTED TIME CODE are not permitted. 4. \tSELECTED TIME CODE is specified as WRITE-capable in order to adequately support the above \"tach only\" mode of operation. In this case, setting the SELECTED TIME CODE \"counter\" to a new value is an accepted operational procedure. However, when time code is available from the tape, WRITE'ing a new value to this Field may produce unexpected results. 5. \tIt is not expected that synchronization will be attempted unless \"real\" time code is available in SELECTED TIME CODE \t(i.e. time code status bit n = 0). 6. Refer to Appendix B. \"Time Code Status Implementation Tables\" for exact usage all embedded time code status bits as they apply to SELECTED TIME CODE. Refer to Section 3, \"Standard Specifications\", for definition of these bits. SELECTED MASTER CODE \t[read only] Contains the time value the time code relative to which all synchronization operations are to take place (see the CHASE command). \tHow this time code an'ives at the Controlled Device is not specified."
+    },
+    {
+      "hex": "03",
+      "name": "REQUESTED OFFSET",
+      "description": "hr mn sc fr st: \tStandard Time Specification with status (type {st)) NOTES: 1. Future versions MIDI Machine Control specification may provide method selecting this MASTER CODE from a number of specific time code sources. 2. Refer to Appendix B. \"Time Code Status Implementation Tables\" for exact usage all embedded time code stams bits as they apply to SELECTED MASTER CODE. Refer to Section 3. \"Standard Specifications\". for definition these bits. REQUESTED OFFSET [read/write] Contains desired time offset between SELECTED TIME CODE and SELECTED MASTER CODE for use with the CHASEcommand. and is def'med as follows: REQUESTED OFFSET = SELECTED TIME CODE -. SELECTED MASTER CODE [Example: If the Controlled Device is to lead the Master Device by one minute, then REQUESTED OFFSET = 00:01 :00:00.00 ] This offset represents the desired difference in frames between the master and slave positions. and is REQUESTED OFFSET may be expressed in any positive or negative range. MMC devices will interpret an'offset of +23:00:00:00.00, for example, as being equivalent to one of -Ol:00.00:00.00."
+    },
+    {
+      "hex": "05",
+      "name": "LOCK DEVIATION",
+      "description": "hr run so fr it Standard Time Specification with subframes (type. If!» Refer to Appendix B. \"Time Code Status Implementation Tables\" for exact usage all embedded “9? \ttime code status bits as they apply to REQUESTED OFFSET. Refer to Section 3. \"Standard Specifications\". for definition these bits. :55; ‘cL. ACTUAL OFFSET [read only] For synchronization purposes. this field contains the actual time difference between the current values of SELECTED MASTER CODE and SELECTED TIME CODE. where: ACTUAL OFFSET = SELECTED TIME CODE - SELECTED MASTER CODE (Example: If Controlled Device leads MastEr Device by one minute. then the ACTUAL OFFSET is 00:01:00:00.00] - V This offset represents the difference in frames between the slave and master positions and is aim W- ACTUAL OFFSET must be expressed in the range +/-12:00:00:00.00. based on the \"time code equivalence\" of numbers such as 01:00:00:00.00 and +23:00:00:00.00. 04 \t' \tACTUAL OFFSET hr run so fr \tff Standard Time Specification with subframes (type (ff}) NOTE: Refer to Appendix 3. \"Time Code Status Implementation Tables\" for exact usage of all embedded time code status bits 3 they apply to ACTUAL OFFSET. Refer to Section 3. \"Standard Specifications\". for definition of these bits. LOCK DEVIATION [read only] For synchronization purposes, this field contains the time difference between the position of the Controlled Device's SELECTED TIME CODE and the SELECTED MASTER CODE after adjustment by the REQUEs OFFSET: LOCK DEVIATION = ACTUAL OFFSET - REQUESTED OFFSET or LOCK DEVIATION = SELECTED TIME CODE - SELECTED MASTER CODE - REQ’D OFFSET LOCK DEVIATION is always 2 WM and must be expressed in the range +/-12:00:00:00.00."
+    },
+    {
+      "hex": "06",
+      "name": "GENERATOR TIME CODE",
+      "description": "hr mn \tsc \tfr \tff \tStandard Time Specification with subfiames (type {ff}) NOTE: Refer to Appendix B. \"Time Code Status Implementation Tables\" for exact usage all embedded time code status bits as they apply to LOCK DEVIATION. ‘ Refer to Section 3, \"Standard Specifications\", for definition of these bits. GENERATOR TIME CODE \t[read/write] Contains the current time code value being generated by the time code generator."
+    },
+    {
+      "hex": "08",
+      "name": "GPO / LOCATE POINT",
+      "description": "hr mn \tsc \t1\": \tst: \tStandard Time Specification with status (type (52:1) NOTE: Refer to Appendix B, \"Time Code Status Implementation Tables\" for exact usage of all embedded time code status bits as they apply to GENERATOR TIME CODE. Refer to Section 3. \"Standard Specifications\", for definition of these bits. MIDI TIME CODE INPUT \t[read only] Contains the most recent incoming MIDI Time Code value. 0 7 \tMIDI TIME CODE INPUT hr mn sc fr st Standard Time Specification with status (type {st}) NOTE: Refer to Appendix B, \"Time Code Status Implementation Tables\" for exact usage of all embedded time code status bits as they apply to MIDI TIME CODE INPUT. Refer to Section 3, \"Standard Specifications\", for definition of these bits. 0A OB ‘0C \t' 0D 0E 0F 2A 2B 2C 2D 2F 2F GPO / LOCATE POINT [read/write] General Purpose time code and calculation register 0."
+    },
+    {
+      "hex": "C0",
+      "name": "Command bitmap 0: Commands 00 thru 06: 0 \tgfedcba",
+      "description": "hr run \tso \tfr \tff \tStandard Time Specification with subframes (type {ff}) NOTES: 1. The LOCATE [I/F] command specifies that General Purpose register must contain its target location time. Similarly. EVENT command takes its trigger time from General Purpose register. Therefore, WW if either LOCATE or the EVENT commands are to be used. 2. \tGeneral Purpose registers may be employed to capture moving time code \"on the fly\" (for example by MOVE'ing SELECTED TIME CODE to GPn). This can also remove the need for Controller to always read back actual time code values. thus facilitating operation in \"open loop\" mode. Signed time code is permitted in a General Purpose register. Refer to Appendix B, \"Time Code Status Implementation Tables\" for exact usage all embedded time code status bits as they apply to the General Purpose registers. Refer to Section 3. \"Standard Specifications\", for definition of these bits. 3‘5” GPl [read/write] GPZ \t[read/write] GP3 \t[read/write] GP4 \t[read/write] GPS [read/write] GP6 [read/write] GP7 \t[read/write] General Purpose time code and calculation registers 1 thru 7. (See notes for General Purpose register 0) <name> \tGP] thru GP7 hr mn \tsc \tfr \tff \tStandard Time Specification with subframes (type { ff)) Short SELECTED TIME CODE \t[read only] Short SELECTED MASTER CODE \t[read only] Short REQUESTED OFFSET \t[read only] Short ACTUAL OFFSET [read only] Short LOCK DEVIA'I‘ION [read only] Short GENERATOR TIME CODE \t[read only] Short MIDI TIME CODE INPUT \t[read only] Short GPO / LOCATE POINT [read only] Short 01’] [read only] Short GPZ [read only] Short GP3 [read only] Short GP4 [read only] Short GPS \t[read only] Short GP6 [read only] Short GP7 \t[read only] Refer to Section 3, \"Standard Specifications\", for definition of \"Standard Short Time Code\". In each case, refer also to the corresponding 5-byte time code Information Field for description of data content. <name> Short time code Information Field name fr {st I ff } Standard Short Time Code Specification SIGNATURE [read only] Dual bitmap array of (a) all Command functions and (b) all Responses/Infonnation Fields supported by the . \tControlled Device. In all cases. bits are set to 1 if the corresponding functions are supported, or partially supported. The §IGNATURE Information Field for a atrglled Device must be published by its manufacturer, using the format shown in Note *5. 4 0 \tSIGNATURE <count=variabl e> Byte count all subsequent data. *1 vi \tMMC Version implemented by the device; integer part, convened to binary. For the current version \tvi=01. vf MMC Version implemented by device; fractional part. 00 thru 99, converted to binary (00- 63h). For current version, vf=00. Va \treserved, must be set to 00 (MMC version extension) vb \treserved. must be set to 00 (MMC version extension) <coun t_1 > Byte count for WM!"
+    },
+    {
+      "hex": "C1",
+      "name": "Command bitmap 01: Commands 07 thru 0D \t-",
+      "description": "a = Command 00 b = Command 01 c = Command 02 d = Command 03 e = Command 04 f = Command 05 g = Command 06"
+    },
+    {
+      "hex": "C4",
+      "name": "Command bitmap 18: Commands 1C thru IF: 0000 \tdcba",
+      "description": "c2 Command bitmap 02: Commands 0E thru c3 Command bitmap 03: Commands thru 13"
+    },
+    {
+      "hex": "C5",
+      "name": "Command bitmap 05: \tCommands 20 thru 26",
+      "description": "a = command 1C b = command ID c = Command d = Command IF"
+    },
+    {
+      "hex": "C0",
+      "name": "Command bitmap 08: Commands 35 thru 33",
+      "description": "c6 Command bitmap 06: \tCommands 27 thru 2D c7 Command bitmap O7: Commands 2E thru"
+    },
+    {
+      "hex": "C9",
+      "name": "Command bitmap O9: Commands 3C thru 3F",
+      "description": ""
+    },
+    {
+      "hex": "44",
+      "name": "COMMAND ERROR LEVEL",
+      "description": "* NOTES: cl 0 \tCommand bitmap 10: Commands 40 thru 46 all \tCommand biunap ll: Commands 47 thru 4D c12 \tCommand bitmap 12: Commands 4E thru 54 CL? \tCommand bitmap 13: Commands 55 thru SB cl 4 \tCommand bitmap l4: Commands 5C thru 5F cl 5 \tCommand bitmap 15: Commands 60 thru 66 cl 6 \tCommand bitmap 16: Commands 67 thru 6D cl 7 \tCommand bitmap l7: Commands 6E thru 74 c1 8 \tCommand bitmap 17: Commands 75 thru 7B c1 9 \tCommand bitmap l7: Commands 7C thru 7F c20 \tthru \tc39 \tCommand bitmaps 20 thru 39: Extended commands 00 01 thru 00 7F c4 0 \tthru \tc59 \tCommand bitmaps 40 thru 59: Extended commands 00 oo 01 thru 00 00 7F <coun t_2> Byte count for MW! :0 \tthru \t:1 .9 \tResponse/Infonnation Field bitmaps 00 thru 19: Responses and Information Fields 00 thru 7F :20 \tthru \t:39 \tResponse/Infonnation Field bitmaps 20 thru 39:- Extended Responses and lnfonnation Fields 00 thru 7F :4 0 \tthru \t:59 \tResponse/Information Field bitmaps 40 thru 59: ' Extended Responses and Information Fields thru 00 00 7F The maximum value far <count>. when both extension sets are fully supported, is 75'. Transmit as only many bytes in each array as are required. Commands and Responses/Information Fields not included in transmission are assumed to be unsupported. In addition to this SIGNATURE, all devices should support the MIDI Inquiry message. When published, the SIGNATURE will appear in the following format: vi vf va vb <count_l> c0 \tcl \tc2 \tc3 \tc4 \tc5 \tc6 \tc7> \tc8 \tc9 c10 cll c12 cl3 \tcl4 c15 \tc16 \tc17 \tc18 \tc19 c20 c21 c22 em. <counq_2> r0 \tr1 \tr2 \tr3 \tr4 \tr5 \tr6 \tr7 \tr8 \t:9 r10 \tr11 \tr12 \tr13 \tr14 \tr15 \tr16 \tr17 \tr18 \tr19 r20 \tr21 \tr22 \tem. (Refer also to Appendix C \"Signature Table\".) All Controlled Devices will show Command \t00 as being supported, and will have the capability to correctly parse extended commands, even if none are supported. Response 00, on the other hand, will always be shown as unsupported in current version. \tIn future versions, the Response 00 \tbit will be the logical \"OR\" of all extended Response bits. UPDATE RATE \t[read/write] Establishes a minimum time between repetitive UPDATE transmission cycles. Refer to the UPDATE command description. UPDATE RATE <count=01> Byte count. <interva1> \tMinimum time interval between repetitive UPDATE transmissions expressed as a 7 bit frame count. Default interval is one frame ( <in t erval =01 >). RESPONSE ERROR \t[no access] Every READ or UPDATE request for a particular Information Field must generate a response from the Controlled Device. If, however, requested Information Field is: (a) unsupported by Controlled Device. or \t(b) \tundefined within MMC. or \t(c) \tdefined by MMC as having \"no access\". then a RESPONSE ERROR message will be substituted for the expected Information Field response. A READ command with a list ofn\t\" \t\" different Information Fields will be treated as \"rt\" different requests, all of which must be responded to. The same is true for the UPDATE command. If desired, several unsupported Information Field names may be gathered into a single RESPONSE ERROR message. Although an UPDATE command would normally produce repeated Information Field responses for each request, a RESPONSE ERROR for an unsupported request will be sent only once. ' RESPONSE ERROR «man I: =va ri abl e>, \tByte count (not including command and count). <name> \tInformation Field name(s) NOTES: 1. \tA Controller can be assured that. as a result of this message. every request for data will produce some kind of response under normal circumstances. 2. \tThe following example presents a possible sequence of responses to a READ of three information fields, two of which are unsupported by the device (\"BADJ\" and \"BAD2\"), and the third of which is supported (\" GOOD\"): Command: F0 \t71“ \t<devi ce__ ID> \t<mcc> \t<READ> \t<count=03> \t(BADl > \t<BA02> \t<GOOD> \tF7 Responses: \t, F0 \t72-\" \t<devi ce_ID> \t<mcr> \t«RESPONSE \tERROR> \t<count=01 > \t<BAD1 > \tF7 F0 \t75‘ \t<devi ce_ID> \t<mcr> \t<RESPONSE \tERROR> \t<count=01 > \t<8ADZ> \tF7 F0 \t7F <devi ce_ID> <mcr> <GOOD> <. . da ta . . > F7 COMMAND ERROR \t[read only] This reSponse will be transmitted by Controlled Device: (a) \twhen requested by READ command from Controller; or (b) \tautomatically. whenever an \"enabled\" error occurs. Errors are \"enabled\" by setting COMMAND ERROR LEVEL Information Field. If error code newly detected error is W COMMAND ERROR LEVEL value. then that error is enabled. If W, error is disabled. 4 .3 \tCOMMAND ERROR <count=04+ext +count_1> Byte count <flags> \tError flag bits: 0 \tgfedcba a = Error Halt flag 0 = false (condition after a COMMAND ERROR RESET. MMC RESET or power up) 1 = Error halt in effect: Set by the occurrence of an \"enabled\" error. All commands received after that which caused the error will have been discarded; No further commands will be processed until COMMAND ERROR RESET is received. b = PROCEDURE [ASSEMBLE] error flag: 0 = false L = Error found while pre-checking commands embedded in a Procedure assembly. c = EVENT [DEFINE] error flag: 0 = false 1 = Error found while pie-checking an embedded Event command. d = 0 e = Unsolicited COMMAND ERROR response flag: 0 = This transmission in response to a READ . request. 1 = This transmission unsolicited, and caused by occurrence of an \"enabled\" error and the consequent setting Error halt flag. 1’: Previous COMMAND ERROR transmission flag: = COMMAND ERROR field not transmitted since most recent error was recorded in it. (Reset to after each error occurrence.) = COMMAND ERROR field (with most recent error) has been transmitted previously. (Set to whenever COMMAND ERROR is transmitted, whether unsolicited or not). 9 = 0 <1 evel> Current setting COMMAND ERROR LEVEL Information Field. <error> \tError code: 00 = reserved for extensions thru 75' (see COMMAND ERROR CODE LIST below) 7? = No errors since power up or MMC RESET. <coun t_1 > \tByte count of following offset and command string. \t- (For \"Receive buffer overflow\" and \"Command Sysex length\" errors, or if ee = 71\", set <count_l > = 00 and omit <offset> and <command \tstring>.) <offset> \tOffset relative to the start of <command \tstring> of the byte which caused the error (<offset=00> for first byte of string). Set to 7? if byte position is unavailable or undefined due to the nature of the error. <command \tstring> \tCommand which caused the most recent error. \t(Must be included in its entirety. with the exception that truncation may occur where command is too large for the response Sysex, or where length is uncertain due to the nature of the error.): <command name> or \t<command name> <count> <command data> COMMAND ERROR CODE LIST: Error codes are classified in much the same way as are MMC commands and responses. Code 0 0 is reserved for extensions. Properties exhibited by any particular error class will be inherited by the corresponding extended class. For example, error codes 00 \t20 thru 0 0 \t31\" will be classified as IMMEDIATE OPERATIONAL ERRORS, the same as codes 20 thru 3F. Reaction to any \"enabled\" error within a Controlled Device is the same, whatever the error: Update the COMMAND ERROR Information Field; Set the \"Error halt\" flag: Automatically transmit the COMMAND ERROR field: Discard all commands received after that which caused the error; ' Discard and do not process any funher commands until the \"Error halt\" flag has been reset (either by COMMAND ERROR RESET or an MMC RESET). Reaction to'a \"disabled\" error'depends on the error classification,‘and is in each case described below. MAJOR ERRORS = Receive buffer Overflow 02 = Command Sysex length error (EOX or status byte not at legal message boundary) 03 = Command <count> error (inconsistent with Sysex length) 04 = Information Field <count> error during WRITE (inconsistent with Sysex length) 05 = Illegal Group name (7?) 06 = Illegal Procedure name (71“) 0 7 = Illegal Event name (7F) 08 = Illegal name extension beyond 2nd level (Le. 00 \t00 \t00 received where a \"name\" was expected) 09 = Segmentation Error (see COMMAND SEGMENT Command description) R \tin \t\"i \tl\"M \tRERRRi \tfllw- Update the COMMAND ERROR Information Field (do not set the \"Error halt\" flag); Discontinue all parsing of the cunent Sysex; Do not execute any command containing an error; Continue normal operations as soon as possible. IMMEDIATE OPERATIONAL ERRORS (Commands embedded within PROCEDURE or an EVENT will not cause these errors until the procedure or event is actually executed.) *2 20 = UPDATE list overflow = GROUP buffer overflow 22 = Undefined PROCEDURE 23 = PROCEDURE buffer overflow 24 = Undefined EVENT 25 = EVENT buffer overflOw 26: Blank time code 'n \t\"i \tl\" \tMEDIA'I‘EPRA \tNALRR \t' \tflw' Update the COMMAND ERROR Information Field (do not set the \"Error halt\" flag); Continue parsing the current Sysex at the next message boundary; Do not execute the command containing the error. IMPLEMENTATION ERRORS 4 0 = Unsupported command 41 = Unrecognized sub-command 42 = Unrecognized command data 43 = Unsupponed Information Field name in command data area = Unsupported Information Field name in READ or UPDATE request within PROCEDURE . 45 = EVENT trigger source unavailable or unsupported 4 6 = Nested PROCEDURE [ASSEMBLE] 4 7 = Recursive PROCEDURE [EXECUTE] 4 8 = Nested EVENT [DEFINE] 49 = PROCEDURE [ASSEMBLE] within EVENT [DEFINE] 60 = Attempted WRITE to unsupported Information Field 61 = Attempted WRITE to Information Field which is \"read only\" (by definition or implementation) 62 = Unrecognized Information Field data during WRITE = Unsupported Information Field name in Information Field data field during WRITE ‘n \t“i \tI\"IMPLEM \tNTA \tRRi \tllw' Update the COMMAND ERROR Information Field (do not set the \"Error halt\" flag); Continue parsing the current Sysex at the next message boundary; Do not execute the command containing error; If the error is found while pre--checking commands which are embedded in a Procedure or Event definition, then discard that definition and continue parsing at the next message boundary AFTER the PROCEDURE [ASSEMBLE] or EVENT [DEFINE] command itself. NOTES: 1. \tAfter power up or an MMC RESET, the COMMAND ERROR Information Field will assume the following state: <count=04> <flags=00> <1 eve]. =0 0> <error= 7F> <coun t_1 -00> *2. \tTo clarify some PROCEDURE and EVENT error handling details, consider the following example in which an EVENT is defined within a PROCEDURE: F0 71-\" <devi ce_ID> <mcc> <PROCEDURE> \t<count=0A> \t<[ASSEmI-J'] > \t<procedure_name> <EVENT> \t<count=06> \t<[DEFINEJ > \t<even t_name> <fl ags=0 0> \t<SELECTED TIME CODE> <6? 6) <RECORD \tSTROBE> F7 (a) \tIf the procedure definition is longer than the available procedure memory, then a \"PROCEDURE buffer overflow\" error will be generated. (b) \tBy comparison, even if the embedded EVENT definition would overflow available EVENT space, an \"EVENT buffer overflow” will not occur when the procedure is defined. but may do so when the procedure is eventually executed. (c) \tIf \t<procedure_name> \tcontained \t7Fhex, then an \"Illegal Procedure name\" error would be generated. (d) If <even t_name> contained 7Fhex, then an \"Illegal Event name\" error would be ' generated, and the PROCEDURE [ASSEMBLE] error flag would be set, as the error occurred while pre-checking the EVENT command which is embedded within the procedure. (e) \tIf register \t<GP 6> \twere not supported by the device, then an \"Unsupported Information Field name in command data area\" error would be generated. In addition, both PROCEDURE [ASSEMBLE] and EVENT [DEFINE] error flags would be set. COMMAND ERROR LEVEL \t[read/write] Command Errors are \"enabled\" by the setting of the COMMAND ERROR LEVEL Information Field. If the error code of a newly detected error is 13W the COMMAND ERROR LEVEL value, then that error is enabled. \tIf Wan, the error is disabled. The default condition, after power up or an MMC RESET, is \"All errors disabled“."
+    },
+    {
+      "hex": "45",
+      "name": "TIME STANDARD [read/write]",
+      "description": "<count=01 > Byte count. vv \tLevel: 00 = All errors disabled \t(Default) 01 thru 75': SeleCLive error enabling (refer to the COMMAND ERROR Information Field description). 71“ = All errors enabled NOTES: 1. \tAn extension set error code is compared on the basis of its final (non—zero) byte only. 2. \tWhen operating in an \"open loop\" configuration. it is recommended that errors be disabled. 3. \tCOMMAND ERROR LEVEL will typically be used to enable errors according to their . classification. For example, a level of 1? will enable all \"Major\" errors; 21“ will enable \"Major\" and \"Operational\" errors; etc. 4. \tRefer also to the COMMAND ERROR Information Field and the COMMAND ERROR RESET Command descriptions."
+    },
+    {
+      "hex": "46",
+      "name": "SELECTED TIME CODE SOURCE [read/write]",
+      "description": "Contains nominal time code type to be used by Controlled Device. No default value is specified. 4 5 \tTIME STANDARD <count=01 > \tByte count. <type> Frame count encoded as: 0 t t 0 0 0 0 0 ct = time type: 00 = 24 frame 01 = 25 frame 1 0 = 30 drop frame 11 = 30 frame NOTES: 1. \tFor each of the MMC time code Information Fields, this nominal setting may be overridden by specific occurrences. For example, SELECTED TIME CODE will use frame rate received by time code reader; GENERATOR TIME CODE may be set to different frame rate when new time code value is loaded; etc. Refer to Appendix B. \"Time Code Status Implementation Tables\" for usage tt’(time type) bits which are embedded in each time code Information Field. 2. \tFor a \"clean\" change of time standard, the following command sequence is recommended: <MMC \tRESET) \t<TIME \tSTANDARD> \t<count=01> \t<type>"
+    },
+    {
+      "hex": "53",
+      "name": "Source identification:",
+      "description": "Selects the source of time code to be presented in the SELECTED TIME CODE lnforrnation Field. Devices without access to time code should default to the \"tape counter\" selection. Otherwise, Longitudinal Time Code (LTC) should be used as the default. 4 6 \tSELECTED TIME CODE SOURCE \t_ <count=01 > \tByte count. ."
+    },
+    {
+      "hex": "4A",
+      "name": "STOP MODE '",
+      "description": "00 = Longitudinal Time Code (LTC) \t*1 *2 01 = Vertical Interval Time Code (VITC) \t*2 *3 02 = \"Tape Counter\" \t*2 04 = Auto VITC/LTC *2 *3 *4 _ 71\" = As defined locally [write only] NOTES: *1. \tLocal implementations of Pilot Tone or Bi-Phase readers should present synthesized time code as Longitudinal Time Code (LTC). *2. \tLTC, VITC and Auto VI'I‘C/LTC may be updated by Tachometer or Control Track pulses in the absence of the selected code, for example, during fast wind modes. *3. \tWhere VI'I'C is not available. then default to LTC when either Vl'I'C or Auto VITC/LTC are selected. *4. \tAutomatic VITC/LTC switchover characteristics are to be determined locally. SELECTED TIME CODE USERBITS [read only] Contains the userbits most recently extracted from SELECTED TIME CODE. The Information Field SELECTED TIME CODE SOURCE determines the source of these userbits. SELECTED TIME CODE USERBI’I‘S <count=09> \tByte count (not including command and count). ul thru Standard Userbits Specification MOTION CONTROL TALLY [read only] Tallies: \t(a) \tthe current \"Motion Control State\" of the Controlled Device, and specifies its success in achieving that state, and \t(b) \tthe current \"Motion Control Process\" of the Controlled Device, and specifies its success at accomplishing that process. Motion Control States and Processes are described in Section \"Standard Specifications\". MOTION CONTROL TALLY <count=03+ext> Byte count (not including command and count). Most recently activated Motion Control State: 00 = reserved for extensions 01 = STOP 02 = PLAY 04 = FAST FORWARD 05 = REWIND 09 = PAUSE 0A = EJECT 45 = VARIABLE PLAY 4 6 = SEARCH 4 7 = SHUTTLE 4 8 = STEP Most recently activated Motion Control Process: 00 = reserved for extensions 015 = CHASE 44 = LOCATE 7F= No MCP's currently active *1 Status and success levels: 0 \tbbb \t0 \taaa aaa = MCS Success level (see below) bbb = MCP Success level (see below) SS Vl'\"M \tlvl\"l'rhv' \tM \tm \tn STOP: \t000 = Transition in progress 001 = Completely stopped 01 0 = Failure 011 = Deduced motion \t*2 FAST FORWARD, REWIND, PLAY (unresolved): 0 0 0 = Transition in progress 0 01 == Requested motion achieved 01 0 = Failure 011 = Deduced motion *2 Resolved PLAY: 0 0 0 = Transition in progress 001 = Playing and resolved (servo lock) 01 0 = Failure 1 01 = Playing but not resolved PAUSE: \t000 = Transition in progress 0 01 = Completely stopped 01 0 = Failure EJECT: \t000 = Transition in progress ' = Media ejected/unloaded = Failure VARIABLE PLAY. SEARCH. SHUTTLE: 00 0 = Transition in progress 001 = Requested motion achieved 01 0 = Failure STEP: \t000 = Transition in progress 0 01 = STEP completed. holding position = Failure 1 00 = STEP in progress V i \"M v I \" h v ' n LOCATE: \t000: Actively locating 001: Locate complete \ttransport stopped at the requested locate point 01 0: Failure 1 00 = Actively locating with Deferred Play pending ’3 = Actively locating with Deferred Variable Play pending *4 CHASE: \t’ \t000 = Actively attempting to synchronize in play mode 001 = Successfully synchronized (play mode only) = Failure ' 1 00 = Actively moving and chasing the master in non-play mode (typically high speed wind mode etc.) 1 1 0 = Parked *5 NOTES: *1. \tThe MC? command tally must return to this inactive state when the current MCP has been terminated by receipt of an MCS command (with the exception that LOCATE will not be terminated by DEFERRED PLAY or DEFERRED VARIABLE PLAY). It will also be the » condition after power up or an MMC RESET. The \"MC? Success level\" must always be reset to \t000 \twhile there are \"No MCP's currently active\". 4A *2. If synchronizer or other interface is interposed between Controller and the actual transport, then commands issued outside that interface (for example by operator at transport itself) may not be directly monitored by the interface, but may be successfully deduced. The deduced motion will be reported in the MCS Command tally. *3. Refer to DEFERRED PLAY command description. *4. \tRefer to the DEFERRED VARIABLE PLAY command description. *5. Parked status, valid only during CHASE MCP, indicates that slave (chasing) machine is stopped and ready to synchronize with master device. This is useful when the master device has been LOCATE'd to certain position, and Controller must ascertain whether or not slave has \"caught up\". The \"stopped\" condition is not sufficient in this case. as the slave may pass through that state while aligning itself with the master position. 6. \tMCS and MCP commands which cause \"MAJOR\" or \"IMPLEMENTATION\" COMMAND ERROR's must never appear in the \"Most recently activated\" bytes of this Information Field. (Refer to the COMMAND ERROR Information Field for definitions of these terms). On the other hand, an MCS or MCP command which encounters an \"IMMEDIATE OPERATIONAL\" COMMAND ERROR will appear in MOTION CONTROL TALLY, but with a \"Success level\" set to \"Failure\". 7. \tAny attempt to execute MCS or MCP commands when the most recent MCS command is EJEC'I' will likely result in failure. Ejected media will typically require operator intervention before normal operation can be resumed. VELOCITY TALLY [read only] Tallies actual transport velocity at all times, and is independent prevailing Motion Control State and/or Process. \t' 49 \t' \tVELOCITY TALLY <count=03> \tByte count. sh \tem \t51 \tStandard Speed Specification STOP MODE \t[read/write] Determines whether the Controlled Device should attempt to provide monitoring of recorded material while stopped as a result of a STOP command."
+    },
+    {
+      "hex": "CC",
+      "name": "Mode code:",
+      "description": "<count=01> Byte count."
+    },
+    {
+      "hex": "4C",
+      "name": "RECORD MODE \t[read/write]",
+      "description": "0 0 = Disable monitoring. 01 = Enable monitoring.*l 7F = As defined locally [Default/write only] NOTES: *1. \tWith monitoring enabled, the STOP command is effectively convened to PAUSE, with exception that there is no support for the \"record-pause\" mode, and that recording tracks will always exit from record. 4B 2. \tA Controlled Device which cannot provide monitoring while stopped need not support STOP MODE. 3. \t' \tSTOP MODE affords a Controller the opportunity to apply the STOP command universally to all devices. assuming that STOP MODE has been set up in accordance with the operator‘s preferences. Changing STOP MODE will not affect a stopped condition which has already been established. STOP MODE governs all STOP commands received explicitly from the Controller. It does not apply to commands issued from the device's control panel. Neither does it apply to STOP commands issued automatically timing the execution of a \"Motion Control Process\" (MCP), with the exception that any MCP which leaves the device in a stopped state at the end of its processing, must at that time honor STOP MODE setting. 5\".“ 6. \tSTOP MODE may be used to force V'I'R's to produce pictttre while stopped. This would also prevent cassette-style V'I'R's from \"unthreading\" at each STOP command. FAST MODE \t[read/write] Determines whether the Controlled Device should attempt to provide monitoring of recorded material during the execution of subsequent FAST FORWARD or REWIND commands from the Controller. FAST MODE €count=01 > \tByte count. cc Mode code: 00 a Move at maximum velocity. without monitoring. 01 = Move at maximum velocity attainable with monitoring of sufficient quality that recorded material is recognizable. 7?: As defined locally [Default/write only] \t' NOTES: 1. A device need only support FAST MODE if two monitoring alternatives are in fact available while fast motion is taking place. 2. \tChanging this field will not affect a FAST FORWARD or REWIND operation which is already in progress. 3. \tFAST MODE governs only those FAST FORWARD and REWIND commands received explicitly from Controller. It does not apply to commands issued from the device's control panel, nor does it apply to FAST FORWARD and REWIND commands issued automatically during the execution \"Motion Control Process\" (MCP). 4. FAST MODE may be used to force V'I'R's to produce picture while winding tape. This would also prevent cassette-style VTR's from \"unthneading\" before initiating fast motion. 5. Ifa device outputs both picture and audio. then pictttre monitoring alone must follow requirements FAST MODE. Concurrent audio monitoring remains at the discretion ' . equipment manufacturer. 6. FAST MODE should not be used to control an ATR's Tape Lifter mechanism unless audio outputs can be restricted to comfortable listening levels. requiring no external attenuation. (Dynamic lifter control, without regard to output level, is provided elsewhere in MIDI Machine Control.) A’I'R's without capability controlled monitoring at wind speeds should not support FAST MODE."
+    },
+    {
+      "hex": "4C",
+      "name": "RECORD MODE",
+      "description": "Selects the mode of subsequent operation of the RECORD STROBE or RECORD STROBE VARIABLE commands. Changing this Field while tracks are already Recording [or Rehearsing] will m1 affect those tracks."
+    },
+    {
+      "hex": "DD",
+      "name": "Mode:",
+      "description": "<count=01 > Byte count."
+    },
+    {
+      "hex": "4E",
+      "name": "TRACK RECORD STATUS",
+      "description": ". \t00 = Disabled 01 = ATRzRecord \tVTRzlnsert \t*1 02 = ATR:Record \tVTRzAssemble 04 = Rehearse 05 = ATRzRecord \tVTR2Ctash/Full Record 71-\" = As selected locally [Default/write only] \"ATR:Record\": Record onall tracks specified by TRACK RECORD READY Information Field. \"Rehearse\": All monitoring functions mimic those produced by \"01 ATRzRecord/V'I'Rzlnsert\" mode record operation. without actually erasing old material or recording new. \t*2 \"VTRzlnsert\": Assumes that recording is to take place on tape which has been pre-recorded with Control Track information. The Control Track will be preserved during recording. Clean and correctly timed transitions will be achieved between previously recorded material and the new material about the record punch in and punch out locations. Recording channels are determined by TRACK RECORD READY Information Field. “V'l'RzAssemble”: . The Control Track and all program ghanngls will be recorded upon. ‘3’4 A clean. correctly timed transition will be achieved between previously recorded material and new material at the record punch in location only, assuming that previously recorded material already exists at that location. \"VTR:Crash/Full Record\": Control Track and 31mm will be recorded upon. \t*3 No attempt will be made to achieve clean transitions or to match Control Track timing between previously recorded material and new material. NOTES: *1 \tMost recording will be performed in \"01 ATR:Record/VTR:Insert\" RECORD MODE. ’2. On many devices. the delay between receipt RECORD STROBE command and the actual onset rehearsing may be slightly different to the delay between RECORD STROBE and actual recording. *3. \tThe TRACK RECORD READY Information Field, if supported, will not be affected by the selection \"V'I'RzAssemble\" or \"VTR:Crash/Full Record\" modes. \tThese modes will. however, override all TRACK RECORD READY settings. and force recording on all tracks plus the Control Track. *4. \tMMC does not currently support \"track selectable\" VTR:Asscmble mode. 5. \tVTR modes \"Insert\". \"Assemble\" and \"Crash/Full Record\" may be used by non-VTR devices which employ similar Control Track schemes. 4E 4F RECORD STATUS [read only] Reflects'actual record and rehearse operations taking place at the Controlled Device. 4D ’ RECORD STATUS <count=01 > \tByte count. Status: d c b aaaa aaaa = Current Record/Rehearse activity (Hex digit): 0 = No Record/Rehearse 1 = ATR:Recording \tVTR:Insert Recording 2 = \tV'I'R:Assemble Recording *1 4 = Rehearsing 5 = \tVTR:Crash/Full Record *1 6 = Record-Pause b = Local Record inhibit flag (1 = inhibited) \tI\"2 c = Local Rehearse inhibit flag (1 = inhibited) \"2 d = No Tracks Active (i.e recording or rehearsing); \t*3 Negative-OR all TRACK RECORD STATUS bits; Only valid when aaaa is non-zero. NOTES: *1. \tWhile RECORD STATUS indicates \"VTRzAssemble Recording\" or \"VTR:Crash/Full Record\", the TRACK RECORD STATUS Information Field will indicate that all available tracks are recording. \t, ’2. \t\"Local inhibit\" flags may be set due to operator action or due to record tab orientation in casseues , or disks etc. *3'5-4 \t\"No Tracks Active\", when set to a 1 , indicates that despite the record [rehearse] status shown in -‘v :33“ aaaa, no tracks are actually recording [rehearsing]. Whether or not this condition can arise is . device-dependent. ’ A Controller may choose to ignore this bit, or to interpret condition as ~~ \tx2 \t\"non-reco \t\" [\"non-rehearse\"]. ' TRACK RECORD STATUS [react only] Contains bitmap of the tracks that are currently recording [or rehearsing]. Whether recording or rehearsing is tallied by RECORD STATUS lnfon'nation Field. In all cases. the appropriate bit is set to 1 if the track is recording [rehearsing]. Unused bits must be zero. The Controlled Device need transmit only as many bytes of this response as are required. \tTracks not included in Response transmission will be msumed _n_Qt to be recording [rehearsing]. A Byte count may be used if no tracks are recording [rehearsing]."
+    },
+    {
+      "hex": "DD",
+      "name": "Mode:",
+      "description": "<coun t =vari abl e> \tByte count. r0 \tr1 \tr2 \t. \t. \tStandard Track Bitmap (see Section 3). TRACK RECORD READY [read/write] A \"track\" is moved into a \"record ready\" State when its bit is set to 1 in this track bitmap. Upon receipt of the next RECORD STROBE or RECORD STROBE VARIABLE command, if recording or rehearsing is enabled in the RECORD MODE Information Field, tracks which are \"record ready\" but are not recording [or rehearsing] will enter record [or rehearse], while tracks which are recording [rehearsing] but are not \"record ready\" will exit record [rehearse]. Changing this Information Field will not in itself cause tracks to enter or to exit record [or rehearse]. When read as a Response. the Controlled Device need transmit only as many bytes as are required. \tTracks not included in Response transmission will be assumed not to be in TRACK RECORD READY state. A Byte count of 00 may be used if no tracks are in a ready state. W by a WRITE command, tracks not included in the transmission will be set to the W state. A Byte count may be used if all tracks are to be disabled. 4? \tTRACK RECORD READY <count =vari able> \tByte count of following bitmap. r0 \tr1 \tr2 \t. \t. \tStandard Track Bitmap (see Section 3). NOTES: \t- 1. \tBefore any recording or rehearsing can take place, Record or Rehearse must also be enabled in the RECORD MODE lnfonnation Field. 2. \tTRACK RECORD READY will not be affected by the selection of \"VTR:Assemble\" or \"VTR:Crash/Full Record\" in the RECORD MODE Information Field. These modes will, however, override all TRACK RECORD READY settings, and force recording on all tracks plus the Control Track. 3. \tThe MASKED WRITE command may be used to change individual bits in the TRACK RECORD READY Information Field. GLOBAL MONITOR \t[read/write] Selects Playback or lnputmonitor modes for all tracks. Two playback modes are defined: (a) \t\"Synchronous\" mode will be regarded as \"normal\" playback for a majority of devices. The term is derived from the fact that playback signals are synchronous with any new signals being recorded; (b) \t\"Repro\" mode is commonly implemented in ATR's by the use of a separate tape head optimized for playback as opposed to recording. The physical separation Repro head from Record head causes the playback signal to be out of sync with signals being recorded. GLOBAL MONITOR may be overridden on a uack by u'ack basis by the settings of the TRACK SYNC MONITOR, TRACK INPUT MONITOR and TRACK MUTE lnfonnation Fields. 5 0 \tGLOBAL MONITOR <coun t =01 > Byte count."
+    },
+    {
+      "hex": "51",
+      "name": "RECORD MONITOR",
+      "description": "0 0 = Playback [\"Synchronous\"] \t(Default) 01 = Input / Full EB 02 = Playback [\"Repro\"] \t*2 7F = As selected locally [write only] NOTES: 1. Although many ATR's regard \"Repro\" as their native playback mode, the \"Synchronous\" mode must become default mode when the device is addressed by MIDI Machine Control. \tThis will provide a uniform approach for all Controlled Devices. *2. If \"Repro\" mode is not supported, then use \"Synchronous\" playback. RECORD MONITOR [read/write] SeleCts the conditions under which track Inputs are to be monitored at their respective Outputs during Record operations. Applies only to those tracks selected for \"Synchronous\" playback. Such selections are made either at device's control panel or by writing to the GLOBAL MONITOR or TRACK SYNC MONITOR Information Fields, if supported. A track designated for time code will not be affected by RECORD MONITOR setting."
+    },
+    {
+      "hex": "DD",
+      "name": "Mode:",
+      "description": "<count=01> Byte count."
+    },
+    {
+      "hex": "00",
+      "name": "Record \tOnly: \tSync \tSync \tInput",
+      "description": "00 = Record Only = Record or Non-Play 02 = Record or Record-Ready 75': As selected locally [Default/write only] ‘ \"Record Only\": All tracks that are set to monitor Synchronous Playback will monitor Input, only when recording. Upon conclusion record operation, those tracks will revert back to Synchronous Playback. \"Record or Non-Play\": All tracks that are set to monitor Synchronous Playback will monitor input when recording. Upon conclusion record operation. those tracks will revert back to Synchronous Playback. In addition, all Record Ready tracks will monitor Input when not in PLAY mode. \"Record or Record-Ready\": All tracks that are set to monitor Synchronous Playback, and are set to Record Ready or are Recording, will monitor Input. ‘ \tNOTES: 1. RECORD MONITOR is typically applied to audio tracks only. '- \t2 = \tReiteration. in table form, of the three RECORD MONITOR settings: Record \tReady \tRecord \tReady and \tPlay \tand \tNon-play \tRECORDING"
+    },
+    {
+      "hex": "01",
+      "name": "Record \tor \tNon-Play: \tSync \tInput \tInput",
+      "description": ""
+    },
+    {
+      "hex": "02",
+      "name": "Record \tor \tRecord-Ready: \tInput \tInput \tInput",
+      "description": ""
+    },
+    {
+      "hex": "52",
+      "name": "TRACK",
+      "description": "3. \tActual monitoring may be overridden by the TRACK INPUT MONITOR and/or TRACK MUTE Information Fields. TRACK SYNC MONITOR \t[read/write] Selects individual tracks that will present \"Synchronous“ playback on their respective outputs. (Refer to the GLOBAL MONITOR Information Field for a description of \"S ynchronous\" playback.) TRACK SYNC MONITOR will always oven'ide the GLOBAL MONITOR setting for tracks selected, but will itself be oven-idden by the TRACK INPUT MONITOR and TRACK MUTE Information Fields. For any particular track, these overrides may be tabulated as follows (x=\"don't care\"): TRACK \tSYNC \tTRACK \tINPUT \tTRACK MONITOR bit MONITOR bit MUTE bit Resultant \tmonitoring : O As defined by GLOBAL \tMONITOR l \t0 \t0 \t\"Synchronous\" \tplayback x \tl \t0 \tInput x \tx \t1 \tMute _63 When rad as a Response, the Controlled Device need transmit only as many bytes of TRACK SYNC MONITOR as are required. Tracks not included in a Response transmission will be assumed net to be individually selected for \"Synchronous\" playback. A Byte mum of 00 may be used if no tracks are individually selected. When written t9 by WRITE command, tracks not included in transmission will have their individual TRACK SYNC MONITOR bits reset to zero. A Byte count of 00 may be used if all tracks are to be reset."
+    },
+    {
+      "hex": "53",
+      "name": "TRACK INPUT MONITOR",
+      "description": "SYNC MONITOR <courit=vari abl e> \tByte count of following bitmap. r0 \tr1 \tr2 \t. \t. \tStandard Track Bitmap (see Section 3). NOTES: 1. \tTRACK SYNC MONITOR is intended as an adjunct to the \"Repro\" playback mode in the GLOBAL MONITOR Information Field, and allows combinations of tracks in \"Repro\" and u'acks in \"Sync\" playback. This type of functionality is traditionally associated with AIR audio ducks. 2. \tThe RECORD MONITOR Information Field will further govern \"Synchronous\" track monitoring during record operations. 3. \tThe MASKED WRITE command may be used to change individual bits in the TRACK SYNC MONITOR Information Field. 4. A READ or UPDATE will return TRACK SYNC MONITOR setting only, and may not reflect the final track monitoring configuration which results from the combination of GLOBAL MONITOR, TRACK SYNC MONITOR, TRACK INPUT MONITOR and TRACK MUTE. TRACK INPUT'MONITOR \t[read/write] Selectsindividual tracks that will monitor Input signals at their respective Outputs. TRACK INPUT MONITOR will always override both the TRACK SYNC MONITOR and GLOBAL MONITOR Information Field settings, but will itself be overridden by the TRACK MUTE Information Field. For any particular track. these overrides may be tabulated as follows (x=\"don‘t care\"): 'TRACK \tSYNC \tTRACK \tINPUT \tTRACK MONITOR bit MONITOR bit MUTE bit Resultant \tmonitoring : O \t0 \t0 \tAs \tdefined \tby \tGLOBAL \tMONITOR l \t0 \t0 \t\"Synchronous\" \tplayback x \t1 \t0 \tInput x \tx \t1 \tMute When me! as a Response. the Controlled Device need transmit only as many bytes TRACK INPUT MONITOR as are required. Tracks not included in a Response transmission will be assumed mt to be selected for individual Input monitoring. A Byte count of 00 may be used if no tracks are individually selected. When written t9 by WRITE command, tracks not included in transmission will have their individual TRACK INPUT MONITOR bits reset to zero. A Byte count 00 may be used if all tracks are to be reset."
+    },
+    {
+      "hex": "54",
+      "name": "STEP LENGTH",
+      "description": "<count=vari able> Byte count of following bitmap. r0 \tr1 \tr2 \t. \t. \tStandard Track Biunap (see Section 3). rss NOTES. 1. \tThe MASKED WRITE command may be used to change individual bits tn the TRACK INPUT MONITOR Information Field. 2. \tA READ or UPDATE will return the TRACK INPUT MONITOR setting only, and may not reflect the final track monitoring configuration which results from the combination of GLOBAL MONITOR, TRACK SYNC MONITOR, TRACK INPUT MONITOR and TRACK MUTE. STEP LENGTH \t[read/write] Defines distance unit used by STEP Command. The STEP LENGTH is in turn measured in 1/100's time code frame."
+    },
+    {
+      "hex": "55",
+      "name": "PLAY SPEED REFERENCE",
+      "description": "<count=01> \tByte count. nn \tNumber of frames/100 in the STEP unit. Default value = 32hex (frame/2). PLAY SPEED REFERENCE [read/write] Determines whether a Controlled Device should control its speed internally when in standard PLAY mode, or allow direct play-speed control from an external source. The contents of this field will be ignored during internal execution of CHASE or \"Free Resolve\" PLAY MODE. as play-speed is then under the control of the internal synchronization procedures."
+    },
+    {
+      "hex": "CC",
+      "name": "Control:",
+      "description": "#5 \t<count=01 > \t' \tByte count. 4:: \tReference: 0 0 = Internal 01 = External 7F: As selected locally [Default/write only] FIXED SPEED \t[read/write] Selects a nominal fixed play-speed for a Controlled Device which supports more than one speed. All other velocity measurements will be calculated relative to this fixed speed. 5 6 FIXED SPEED <count =01 > \tByte count. PP ‘ Speed: 3F = next lower speed 4 0 = Medium, or \"standar \" speed 41 = next higher speed 7F = As Selected locally [Default/write only] NOTES: 1. If WRITE command contains an out-of-range speed value, then the nearest available speed will be enabled. v 2. \tSpeed values must be assigned contiguously. 3. \tExamples: (a) A three speed ATR might equate 3F, 40 and with its Low, Medium and High speeds respectively. When written, all values in the range 00 thru 35‘ would in fact produce Low speed, and values 41 thru 75‘ would produce High speed. (b) \tA VHS video deck may equate 4 0 with its normal speed, and provide 3F and 31-: as alternative lower speeds for extended playing time. LIFTER DEFEAT [read/write] Defeats the tape lifter mechanism of a controlled reel-to-reel device, allowing tape contact with the heads. 5 7 \tLlI-‘I'ER DEFEAT <count=01> \tByte count."
+    },
+    {
+      "hex": "58",
+      "name": "CONTROL DISABLE",
+      "description": "0 0 = No defeat (Default) 01 = Defeat 71-\" = As selected locally [write only] NOTE: Many AT'R's will produce excessive audio monitoring levels when lifters are defeated. CONTROL DISABLE {read/write] When disabled, Controlled Device will ignore all Commands and all WRITE's involving \"Transport Control\" (Ctrl) and \"Synchronization\" (Sync) message types, whether received directly from the Controller or as a result of Procedure or Event execution (see Section 4,1ndex List, for message type definitions). \tAll other message types will remain active. The Controller is thereby denied any direct control of the device itself, but may continue to monitor (READ) all Information Fields."
+    },
+    {
+      "hex": "CC",
+      "name": "Control:",
+      "description": "<count=01 > \tByte count."
+    },
+    {
+      "hex": "DD",
+      "name": "Mode:",
+      "description": "00 = Enable (Default) 01 = Disable \t. 7F= As selected locally [write only] NOTES: 1. This Information Field will typically be implemented by synchmnizers and other interfaces which may be interposed between the Controller and the target device. The effect then is that the synchronizer will disable its control outputs, leaving the target device totally free of external control. 2. \tThe CONTROL DISABLE Information Field itself will m; be disabled. SA RESOLVED PLAY MODE [read/write] Selects the manner in which the Controlled Device establishes it's nominal fixed speed forward operation, ' when commanded by PLAY command. RESOLVED PLAY MODE <count=01 > \tByte count."
+    },
+    {
+      "hex": "DD",
+      "name": "Mode:",
+      "description": "00 = Normal, not resolved 01 = Free Resolve Mode 7F: As selected locally [Default/write only] \"Normal\": Achieve PLAY as defined by the PLAY SPEED REFERENCE. No relationship is implied to any time code or other frame reference. \t‘ \"Free Resolve Mode\": Achieve PLAY in manner that resolves frame edges SELECTED TIME CODE to locally defined Frame Reference, data independent, maintaining resolve data independent. \t*1 NOTES: *1. \tFuture versions of the MIDI Machine Control Specification may allow selection of this Frame Reference from. for example, a video reference signal, or simply the sync word of the incoming SELECTED MASTER CODE. 2. \tThis Information Field need not be supported by devices which are inherently self-resolving (e.g. most V'TR's). CHASE MODE \t[read/write] . Selects manner in which Controlled Device achieves, and maintains synchronization between its SELECTED TIME CODE and the SELECTED MASTER CODE, when commanded by the CHASE command. 5A CHASE MODE <courtt=01 > \tByte count."
+    },
+    {
+      "hex": "5D",
+      "name": "GENERATOR USERBITS \t[read/write]",
+      "description": "00 = Absolute Standard Mode 01 = Absolute Resolve Mode 7F = As selected locally [Default/write only] \"Absolute Standard Mode\": Achieve synchronism to the SELECTED MASTER CODE data dependent, maintain synchronism data dependent. \"Absolute Resolve Mode\": Achieve synchronism to SELECTED MASTER CODE data dependent, maintain synchronism data independent. NOTE: Resolving, or locking \"data independent\", is simply a matter of synchronizing the SELECTED TIME CODE frame edges to an appropriate master Frame Reference. The actual numeric values of the time codes used while resolving are ignored. (Future versions of MIDI Machine Control may allow selection of this Frame Reference from, for example, a video reference signal, or simply the sync word of the incoming SELECTED MASTER CODE.) 5B GENERATOR COMMAND TALLY [read only] Tallies running state time code generator <count=02> SS GENERATOR COMMAND TALLY Byte count. Most recent generator command: 00 = Stop = Run = Copy/Jam Status (bit: if status true) and success level: 0 \t0 ch aaa aaa = Success level: 000 = Transition in progress 001 = Successful 01 0 = Failure 22 = Loss of Time Code Source data (during Copy/Jam) c = Loss External Frame Sync Reference 5C GENERATOR SET UP [read/write] Controls operating modes time code generator. 5C <count=03+ext> <reference> <source> <copy/jam> GENERATOR SET UP Byte count (not including command and count). Generator Frame Sync References: \t0 \tyyy \t0 \tnnn ' mm = Frame Sync Reference for Run mode: 0 00 = Internal crystal: \"Standard\" mode \t‘1 001 = Locally defined eXtemal Frame \tReference 01 0 = lntemal crystal: \"Drop A\" mode \t*1 011 = lntemal crystal: \"Drop B\" mode ’1 111 = As locally defined [write only] yyy = Frame Sync Reference for Copy/Jam mode: 000 = Time Code Source frame edges 001 = Locally defined external Frame Reference 111 = As locally defined [write only] Time Code Source for Copy/Jam: 0 0 = reserved for extensions 01 = SELECTED TIME CODE (Default) 02 = SELECTED MASTER CODE 7F = As locally defined [write only] Copy/Jam mode: 0 0 = If Time Code Source copied GENERATOR TIME CODE stops or disappears, then the GENERATOR TIME CODE should also stop. 01 = If Time Code Source the copied GENERATOR TIME CODE stops or disappears. then the GENERATOR TIME CODE should continue to run with no interruption in the number stream (also called W mode). NOTES: *1 \tInternal Crystal Rate Table: GENERATOR TIME CODE time \ttype (tt) man \t24 \t25 \t30D? \t30 000 \t(Standard) \t24 \t25 \t29.97 \t'30 (Drop A) \t24 29.97 \t29.97 (Drop B) 23.976 \t24.975 29.97 \t29.97 2. \tFuture versions of MMC may provide support for generator color framing."
+    },
+    {
+      "hex": "5F",
+      "name": "MIDI TIME CODE SET UP \t[read/write]",
+      "description": "Contains the current userbit contents being generated by the time code generator. SD <count=09> ul \tthru \tU9 GENERATOR USERBITS Byte count. Standard Userbits Specification ‘ ‘ 5E Mi’DI TIME CODE COMMAND TALLY [read only] Tallies the-running state of MIDI Time Code generator. SE <count=02> mm 55' MIDI TIME CODE COMMAND TALLY Byte count. Most recent MIDI time code command: 00 = Off 02 = Follow time code Status: 0 \t0000 \taaa aaa = Success level: 000 = Transition in progress 001 = Successful 01 0 = Failure"
+    },
+    {
+      "hex": "60",
+      "name": "PROCEDURE RESPONSE",
+      "description": "Controls operating modes MIDI time code generator. 51\" <count-02+ext> <flags> <SOUIC6> NOTES: *1 MIDI TIME CODE SET UP Byte count (not including command and count). MTC flags: gfedcba a = \"Transmit while stopped\" flag: 0 = Inhibit MTC transmission when Time Code Source is detected to have stopped 1 = Continue transmission when source has stopped. with data type specified by bit b. b = \"Stopped\" data type, if enabled by bit a: 0 = Quarter frame messages with no frame incrementing. 1 = Full Messages transmitted at regular. but unspecified, intervals. c = \"Transmit while fast\" flag: 0 = Inhibit MTC transmission when Time Code Source is detected be moving at a rate higher than at least twice its nominal frame rate. 1 = When source is moving faster than at least twice its nominal frame rate. continue transmission with data type specified by bit d. d = \"Fast\" data type, if enabled by bit c: ' \t0 = Quarter frame messages. *1 1 = Full Messages transmitted at regular, but unspecified, intervals. ~ e = \"Transmit userbits\" flag: 0 = Inhibit MTC transmission of userbits. 1 = Transmit UserBits Message whenever userbits contents change. or at regular. unspecified, intervals. f = MMC Response cable mute flag: 0 = MIDI Time Code, when operating, will be transmitted on the MMC Response cable 1 = MIDI Time Code will m be transmitted on the MMC Response cable, but may appear at other, unspecified, MIDI Out ports. 9 = 0 Time Code Source: = reserved for extensions 01 = SELECTED TIME CODE 02 = SELECTED MASTER CODE = GENERATOR TIME CODE 0 7 = MIDI TIME CODE INPUT (produces a \"soft-THRU\" mode) 71“: As locally defined [write only] In order to adequately track a high speed Time Code Source, and to guarantee correct MTC reception, these quarter frame messages should: 7O (a) run at the nominal frame rate; and \t(b) \tbe transmitted in \"bursts\", where each \"burst\" consists of several time code frames incrementing in a normal frame sequence. 2. \tThe \"time type\" flags (2: t) of the transmitted MIDI Time Code will be the same as those of the Time Code Source. PROCEDURE RESPONSE [read only] I Allows the Controller to read back any, or all, of the assembled Procedures. The name of the Procedure to be read back must first be established by the PROCEDURE [SET] command. . If the PROCEDURE [SET] command specified \"set all PROCEDURES\", then a separate PROCEDURE RESPONSE will be transmitted for each Procedure currently assembled within the Controlled Device. See also the PROCEDURE Command."
+    },
+    {
+      "hex": "61",
+      "name": "EVENT RESPONSE",
+      "description": "<count=va ri abl e> \tByte count (not including command and count). <procedure> Procedure Name in range thru 75. 7? = invalid Procedure set (i.e either PROCEDURE [SET] command was never issued. or it specified an undefined Procedure, or there are currently no Procedures defined.) No further data required \t(<coun t=01 >). <command \t#1 . . > \t‘ <command \t#2 . . > <command \t#3. .> EVENT RESPONSE \t[read only] Allows the Controller to read back any, or all. of the defined Events. The name of the Event to be read back must first be established by the EVENT [SET] command. \t_ If the EVENT [SET] command specified \"set all EVENTS\", then a separate EVENT RESPONSE will be transmitted for each Event currently defined within Controlled Device. See also the EVENT Command."
+    },
+    {
+      "hex": "62",
+      "name": "TRACK MUTE",
+      "description": "<count=vari abl e> \tByte count of following bytes. <event> Event Name in the range 00 thru 7E. 71-“ = invalid Event set . (i.e either the EVENT [SET] command was never issued, or it specified an undefined Event, or there are currently no Events defined.) No further data required (<count=01>). <flags> Event control flags (see the EVENT [DEFINE] command for bit definitions.) <t n' gger \tsource> Information Field name time code stream relative to which the event is to be triggered (see the EVENT [DEFINE] command). hr mn sc fr \tff Event time (type {ff}). <command. . > \tSingle command plus data. TRACK MUTE \t[read/write] Selects individual tracks that will have their Output signals muted. v rri l h r m ni ' mm as a Response, Controlled Device need transmit only as many bytes TRACK MUTE as are required. Tracks not included in a Response transmission will be assumed rm to be selected for individual muting. \tA Byte count of 00 may be used if no tracks are muted. When written [9 by a WRITE command, tracks not included in the transmission will have their individual TRACK MUTE bits reset to zero (track unmuted). \tA Byte count of 00 may be used if all tracks are to be unmuted."
+    },
+    {
+      "hex": "63",
+      "name": "VITC INSERT ENABLE",
+      "description": "<count=vari able> Byte count following bitmap. r0 , r1 \tr2 \t. ‘ . \tStandard Track Bitmap (see Section 3). \t*2 NOTES: . l. \t' \tThe MASKED WRITE command may be used to change individual bits in the TRACK MUTE Information Field. *2. \tTRACK MUTE is directed primarily at audio tracks. The \"Video\" bit will normally be zero. VITC INSERT ENABLE [read/write] Selects whether or not Vertical Interval Time Code is to be embedded in video signal which is received at the Controlled Device's video input, If that video is subsequently to berecorded. then the VITC infomation will be recorded along with it. VITC is derived from the Device's time code generator, and is therefore controlled also by the GENERATOR COMMAND and the GENERATOR SET UP Information Field. \t*1"
+    },
+    {
+      "hex": "64",
+      "name": "RESPONSE SEGMENT",
+      "description": "<count=03> Byte count. cc \ti \tControl: 00 = Disable 01 = Enable 71-\" = As selected locally [Default/write only] M \tFirst horizontal line number for VITC insertion; OAhex thru tex NTSC 06hex thru Max PAL 71\" = As selected locally [Default/write only] h2 \tSecond (non-adjacent) horizontal line number for VITC insertion, where \t122 \t> \thi +1. 0Chex thru 1 4hex NTSC 08hex thru 1 6hex PAL 71-\" = As selected locally [Default/write only] NOTES: *1. \tThe \t<reference> \tdata in the GENERATOR SET UP Information Field may be internally overridden when VITC is enabled. as the generator must then be referenced to video. RESPONSE SEGMENT \t[no access] Allows a response (or a string of responses), which is greater in length than the maximum MMC System Exclusive data field length (48 bytes), to be divided into segments and transmitted piece by piece across multiple System Exclusives. Responses received by Controller in this way will be treated exactly as if they had arrived all in same sysex. RESPONSE SEGMENT must always be the first resmnse in its sysex, and there must m n9 other res \tnses in the \tsex \tve th \tse which are contained within the \tof RESPONSE SEGMENTi \tIf. Segment divisions need not fall on response boundaries. Partial responses. which may occur at the end of a RESPONSE SEGMENT sysex. must be detected by the Controller so that response processing may be correctly resumed when the next segment arrives. With exception of WAIT or RESUME messages, if non-segmented (i.e. normal) sysex is received by a Controller when a \"subsequent\" segment sysex from the same Controlled Device was expected, it will be processed normally, and de-segmentation for that device will be cancelled. *1 Refer to Section \"General Structure\" - \"Segmentation\" for further explanation and examples."
+    },
+    {
+      "hex": "65",
+      "name": "FAILURE",
+      "description": "<count=vari abl e> \tByte count (response string segment length + I) 51' \tSegment Identification: 0 \tf \t535555 f: \t1 = first segment 0 = subsequent segment ssssss = segment number (down count, last= 0 0 0 0 0 0) <. . responses. . > \tResponse suing segment. NOTE: *1. \tA Controller must maintain separate de-segmentation processes for each of the Controlled Devices which are attached to it. FAILURE \t[no access] Warns catastrophic failure Controlled Device Le. a failure which requires local operator intervention."
+    },
+    {
+      "hex": "70",
+      "name": "WAIT",
+      "description": "<count> Byte count (<count=0> if no data). <data . \t. > ASCII data for optional display at the Controller (may be truncated to fit display size). 7C 7F WAIT \t[no access] The WAIT Response signals the Controller that the Controlled Device's receive buffer is filling (or that the Device is otherwise busy), and that Machine Control Command transmissions must be discontinued until receipt of a RESUME from the Controlled Device. Any Command transmission which is currently in progress will be allowed to proceed up to its normal End of System Exclusive (F7). Transmission of subsequent Commands may resume after receipt of a RESUME from the Controlled Device. The Commands WAIT and RESUME. however. are not inhibited by the WAIT Response. Neither is transmission of the WAIT Response itself inhibited by receipt of a WAIT Command. A Controller must guarantee: (i) to recognize receipt WAIT message within MW after arrival the End of System Exclusive (F7) of that WAIT message; and \t(ii) \tto then halt all transmissions at the next available MMC System Exclusive boundary (up to 53 bytes. the maximum MMC sysex length. may therefore have to be transmitted before the hall can take effect). The WAIT Response is transmitted as the only response in its Sysex i.e. \tF0 \t7F \t<devi ce_ID> \t<mcr> \t<WAIT> F7."
+    },
+    {
+      "hex": "03",
+      "name": "REQUESTED OFFSET [read/write]:",
+      "description": "NOTES: 1. \tCorrect operation of the WAIT response requires a certain minimum size for the MIDI receive buffer in the Controlled Device. Refer to Appendix E, \"Determination of Receive Buffer Size\". 2. Additional WAIT responses may be transmitted by Controlled Device should its receive buffer continue to fill. RESUME \t[no access] Signal to the Controller that the Controlled Device is ready to receive Machine Control Commands. The default (power up) state is \"ready to receive\". The RESUME Response is used primarily to allow Controller to resume transmissions after WAIT. Transmission of the RESUME Response is m inhibited by the receipt of a WAIT Command. The RESUME Response is transmitted as the only response in its Sysex i.e. \tF0 \t71’ \t<device__ID> \t<mcr> \t<RE$UME> \tF7. 71-\" ' RESUME Appendix A \tEXAMPLES EXAMPLE \t1 A very basic tape transport has been manufactured which supports the Commands: \t<STOP> <DEFERRED \tPLAY> \t<FAST \tFORWARD) \t<REWIND> \t<RECORD \tSTROBE> \t(RECORD \tEXIT> <MMC RESET) <WRITE> \t<LOCATE> <MOVE>; and the Information Fields: <SELECTED TIME CODE> <GPO/LOCATE POINT>. The manufacturer has published the device's SIGNATURE: \t01 \t00 \t00 \t00 0C 00 \t00 00 \t00 1 l \t20 02 \t02 Communication is in \"open loop\" mode only. The transport accepts commands at its MIDI In port, but provides no responses at its MIDI Out. The machine‘s device_ID is dipswitch selectable, and has been set to hex. The following command sequence is typical of \"open loop\" style MMC operation: Play: F0 \t7F \t01 \t<mcc> \t<DEFERRED \tPLAY> \tF7 Stop: F0 \t7F \t01 \t<mcc> \t<STOP> \tF7 Reset 'counter' to all zeroes, 30 frame: F0 \t7F \t01 \t<mcc> \t<WRITE> \t<count=06> \t<SELECTED \tTIME \tCODE> \t60 \t00 \t00 \t20 \t00 \tF7 Fast forward: F0 \t7F \t01 \t<mcc> \t<FAST \tFORWARD) \tF7 Stop: F0 \t7F \t01 \t<mcc> \t<STOP> \tF7 Establish a locate point: F0 \t7F \t01 \t<mcc> \t<MOVE> \t<count=02> \t<GPO/LOCATE \tPOINT> \t<SELECTED \tTIME \tCODE> \tF7 Play: F0 \t7F \t01 \t<mcc> \t<DEFERRED-PLAY> \tF7 Punch into record: F0 \t7F \t01 \t<mcc> \t<RECORD \tSTROBE> \tF7 Punch out of record: F0 7F <mcc> <RECORD EXIT> \tF7 Return to locate point and play: F0 7F \t01 <mcc> <LOCATE> \t<count=02> \t<[I/F]> \t<GPO/LOCATE \tPOINT> \t<DEFERRED \tPLAY> F7 RetumtoZero: F0 71-\" 01 \t<mcc> \t<LOCATE> <count=06> \t<[TARGET]> \t60 \t00 \t00 \t00 \t00 \tF7 EXAMPLE 2 MIDI Machine Control and MIDI Time Code are combined in this two part example. Control single device by a computer based Sequencer will typically follow one of these formats. Ex m 2A' \tw' ' v | MMC Commands l\tl \tI | | ------------------------------- >| I l Sequencer | . I Controlled l l l MTC l | I Device I | l< --------- | Time Code l< ------- | I | l . l -> MTC l Time I | | Converter l Code . l The unusual feature of this hook up is that the Sequencer knows the exact tape time code position of the Controlled Device (via MTC), whereas the device itself does not. In most cases. the device will rely on tachometer pulses to update its internal \t<SELECTED \tTIME \tCODE> \tregister. MMC communication is once again in \"open loop\" mode only. The transport is identical to that Example I, and accepts commands at its MIDI In port while providing no responses at its MIDI Out. Its. device_ID has been set to 01hex. Commands from the Sequencer to the device will be shown towards the left side of the page, and MIDI Time Code from Converter towards right. The Sequencer is assumed to'be operated using mouse and keyboard. ' \tThe Sequencer always- issues an MMC Reset at the beginning of the session: F0 71-“ <mcc> <MMC RESET> F7 ’ The operator clicks the \"Remote Machine PLAY\" button on the Sequencer screen. As the Sequencer supports the convention that this button may also be used to punch out of record, it transmits the following message: F0 \t71-\" \t01 \t<mcc> \t<RECORD \tEXIT> \t<DEFERRED \tPLA to \tF7 The Sequencer begins interpreting MIDI Time Code. After a short stabilization period. frame 01:02:03:04 (3O frames/sec, non-drop) is received: F1 \t04 \t. \t. \tFl \t10 \t. \t. \tFl \t23 \t. \t. \tF1 \t30 \t. Fl \t42 \t. \t. \tFl \t50 \t. \t. \tF1 \t61 \t. \t. \tF1 \t76 \t. F1 \t06 \t. Immediately after receiving the frames digit of the next two-frame MTC \"wor \tthe Sequencer forces the current MTC time back into the Controlled Device's time code register: F0 \t7F \t01 \t<mcc> \t<WRITE> \t<count=06> <5ELECTED \tTIME CODE> \t61 02 \t03 F7 The operator clicks \"Remote Machine RECORD\". The Sequencer internally saves the current MTC time (01:02:13z20), and sends the command: F0 71“ \t01 <mcc> <RECORD \tSTROBE> \tF7 Operator clicks \"Remote Machine PLAY\" to punch out record: F0 7F <mcc> <RECORD EXIT> <DEFERRED PLAY> \tF7 Operator clicks \"Remote Machine STOP\": F0 \t71“ \t01 \t<mcc> \t<STOP> \tF7 Operator requests that the Sequencer review the material recorded on the Remote Machine. The Sequencer locates the device to 01:02:08:20, five seconds prior to the previously stored record punch in point: F0 \t7? \t01 \t<mcc> <LOCATE> <count=06> <[TARGETJ> 02 \t08 <DEFERRED \tPLAY> F7 NOTES: 1. There will usually be some drift between MIDI Time Code and the tachometer updated values maintained by device. The extent this drift will depend not only on mechanical condition device. but also on the possibility that the time code has been recorded slightly \"off-speed\". In order to minimize effect drift, Sequencer may, at regular intervals, force most recently received MIDI Time Code back into device's <SELECTED TIME CODE> register. Care should be exercised so that only valid and current time code values are used. 2. Despite taking above precaution. some positioning errors during execution LOCATE command may be unavoidable. 3. \tUsing the EVENT command to punch in and out of record may be problematic when the device is operating from tach pulses only. | MMC Commands. I | ------------------------------- >l | I \t. l \tSequencer \t' \tI \tl \tControlled I \t| \tMTC \t(and \tMC \tResponses) \t*3 \t| \tDevice l |< ------------------------------- l *2 I This example represents considerable improvement over example 2A. Here device itself performs time code to MTC conversion, and therefore has access to exact time code positioning information. Commands from the controller to the device will be shown towards the left side of the page, and Responses and MIDI Time Code from device towards the right. The Controlled Device conforms to Guideline Minimum Set #3, with the addition of MIDI Time de command and information fields. \tIts device_ID is shown as \t<1 dent). The Sequencer always issues an MMC Reset at the beginning the session: F0 \t7F <ident> <mcc> <MMC RESET> F7 It then checks the device’s capabilities: F0 \t7F <ident> <mcc> \t<READ> <count=01> <SIGNATURE> \tF7 The machine replies: F0 71-\" <ident> <mcr> <SIGNATURE> <count=2E> 00 \t00 \t00 <count_1 =1 4> 7F \t61 \t00 \t00 \t00 \t00 \t00 \t00 \t00 \t00 7F \t70 \t7F \t00 \t00 \t00 \t00 \t00 \t00 \t09 <count_2=1 4> 02 \t1E \t00 \t00 \t00 \t02 \t13 \t00 \t00 \t00 3F \t62 \t07 \t01 \t0C \t37 \t00 \t00 \t00 \t09 F7 The Sequencer sets the Command Error Level for \"Major\" and \"Immediate Operational\" errors only, and sets up the MIDI Time Code generator/converter: F0 \t71-“ \t<ident> \t<mcc> <WRITE> «want-03> (COMMAND ERROR LEVEL> <count=01> 3F <WRITE> <count=04> <MIDI \tTIME \tCODE \tSET \tUP> \t<count=02> <SELECTED TIME CODE> F7 The operator requests Play. \tThe Sequencer also requests that MIDI Time Code be turned on: F0 \t7F \t<1 dent> \t<mcc> <RECORD EXIT) <PLAY> (MIDI TIME CODE \tCOMMAND> <count-01> F7 MIDI Time Code 03:02:20z28 (drop frame) arrives at the Sequencer's MIDI In: F1 \t0C \t. \t. \tEl \t11 \t. \t. \tF1 \t24 \t. \t. \tF1 \t31 F1 \t42 \t. \t. \tF1 \t50 \t. \t. \tF1 \t63 \t. \t. \tF1 \t74 \t. \t. The Sequencer checks that the device's internal copy of the current time code is in fact the same as received MTC: F0 \t71“ \t<ident> \t<mcc> <READ? \t<count-01> \t<SELECTED \tTIME \tCODE» F7 The device responds in the middle of the MTC frame 03:02:21:00~01: F1 \t00 . . Fl . . F1 . \t. Fl F1 \t42 \t. \t. F0 7F <i dent> <mcr> <SELECTED TIME CODE) 43 \t02 \t15 \t21 \t00 F7 » \t. \t. \tF1 \t50 \t. \t. \tF1 \t63 \t. \t. \tF1 \t74 \t. \t. The operator \"marks\" on the fly a record punch in time of 03:02:27z08, which the Sequencer saves internally. Some time later, the operator marks a record out point of 03:02:41: 15, which the Sequencer also saves. The operator then requests that the Sequencer rewind the transport and put it into record between the marked punch in and punch out points. RecOrding is to occur on tracks and only. The Sequencer initiates locate action, with MIDI Time Code turned off, and monitors MOTION CONTROL TALLY until the locate is complete: F0 7F <ident> <mcc> <MTDI TIME CODE COMMAND) <count=01> <LOCATE> <count=06> <[TARGET] > l <UPDATE> \t<count=02> <[BEGIN]> <MOTION CONTROL TALLY> F7 The device responds immediately, showing that locating has begun in the reverse (rewind) direction: F0 7? <ident> <mcr> V <MOTION \tCONTROL \tTALLY> \t<count=03> <REWIND> \t<LOCATE> \t01 F7 The device may pass through several different stages in the course of the locate: F0 \t7F \t<ident> \t<mcr> <MOTION \tCONTROL \tTALLY) \t<count=03> <EAST FORWARD> <LOCATE> F7 F0 \t7F \t<ident> \t<mcr> <MOT1'ON \tCONTROL \tTALLY> \t<count=03> (EAST \tFORWARD> \t<LOCATE> \t01 F7 F0 71-\" <ident> <mcr> _ (MOTION \tCONTROL \tTALLY> \t<count=03> <STOP> \t<LOCATE> \t00 F7 F0 75' <ident> <mcr> <MOTION \tCONTROL \tIALLY) \t<count=03> <STOP> \t<LOCATE> \t11 F7 After receiving the above \"Locate complete\" tally, the Sequencer ceases monitoring MOTION CONTROL TALLY, and then checks that the device ha indeed located to the correct position: F0 7F <ident> <mcc> <UPDATE> <count=02> \t<[END]> 7F <READ> <count=01> <SELECTED \tTIME CODE> F7 79, The device's response, although representing a locate error of three frames, is deemed by the Sequencer to be satisfactory. F0 7F <i dent> <mcr> (SELECTED \tTIME CODE> 16 \t25 F7 The Sequencer now sets up all subsequent record activities, and chooses to monitor the RECORD STATUS information field in order to update its screen display: F0 7F <ident> <mcc> <WRI TE> \t<count=0F> <TRACK RECORD READY> <count=01> <GP1> 43 \t02 IE 08 \t00 <GP2> 43 \t02 0F \t00 ' <EVENT> \t<count=06> \t<[DEFINE] > \t<event #=01 > <flag5=00> \t<SELECTED \tTIME \tCODE> \t<GP1> (RECORD \tSTROBE> <EVENT> \t<count=06> \t<[DEFINE] > \t<event#=02> <flags=00> \t<SELECTED \tTIME \tCODE> \t<GP2> <RECORD \tEXIT> <UPDATE> \t<COunt=02> \t<[BEGIN]> \t<RECORD \tSTATUS> F7 The device immediately returns RECORD STATUS (\"not recording\"): F0 \t7F \t<ident> \t<mcr> \t(RECORD \tSTATUS> \t<count=01> \t00 \tF7 Finally, a Play command is issued.» with MIDI Time Code tnmed on: ' F0 71-\" <i dent> <mcc> <PLAY> <MIDI \tTIME \tCODE \tCOMMAND> \t<count=01> \t02 F7 At record punch in point (03:02:27:08), device inserts \"recording\" status between MTC messages: \t*1 Fl . F0 \t7F \t<ident> \t<mcr> <RECORD \tSTATUS> \t<count=01> \t01 F7 F110. \t.FlZB..F131 F1 . \t. F1 . . Fl . . F1 Similarly, \"not recording\" is returned at punch out point (03:02:41215): \t*1 F1 \t0E \t. \t. \tFl \t10 \t. \t. \tFl \t29 \t. \t. \tFl \t31 F1 \t42 F0 7F <i dent> <mcr> <RECORD STATUS) <count=01> F7 F1 . \t. Fl . . F1 At the conclusion of recording, the transport is stopped. MIDI Time Code is turned off, as is monitoring of RECORD STATUS. and all necks are returned to the \"record not ready” state: F0 7? <1 dent> <mcc> <5 TOP> <MIDI TIME CODE COWD> <count=01> <UPDATE> \t<count-02> \t<[END] > \t7F <WRITE> \t<count=02> <TRACK \tRECORD \tREADY) \t<count-00> F NOTES: *1 Although it is essentially responsibility Controller (Sequencer) to keep MIDI response line free traffic during those periods when MTC timing is critical, an intelligent Controlled Device will make every attempt to prevent MMC Responses from causing jitter in the MTC messages. *2. Whole systems machines could be operated using this configuration. An intelligent translator would be required which would represent such a system as a single virtual machine. *3. An additional MIDI In port at Sequencer would make possible operations similar to this example while using an external Time Code to MTC converter. Control over MTC generation would be lost however. and the device would still need to be equipped with an internal time code reader. I MMC Commands |\tI \tl l I ------------------------------- >l I I \tSequencer \tl \t' \t. \t| \tControlled \tI I \tI \tMMC \tResponses \tl \tDevice \tl I \tl< ------------------------------- l \tI l \t“3\" \tI \t| \tl I,“ I MTC l I l. I ‘ I \tI< --------- I \tTime \tCode \tl< ------- I \tI I l I -> MTC I Time I I | \tConverter \t| | EXAMPLE 3 This example represents a far more complex situation than the previous two. The controlled devices are two identical synchronizers (or tape transports with embedded synchronizers), and the controller is capable of initiating some basic automated \"edit\" sequences. as well as displaying time code and other transport related status. Communications are \"closed loop\". The controller's MIDI Out is fed to the MIDI In of both devices, using one device's MIDI Thru. The MIDI Outputs from the two devices are fed to separate MIDI Inputs at the controller. One of the devices has been designated as the \"Master\" for synchronization purposes, and its device_ID has been set to Olhex. The other device, the \"Slave\", has a device_ID of 02hex. All actions associated with assigning this Master, and the associated routing of \"Master Time Code\" to the Slave synchronizer, are assumed to have taken place at the devices themselves, and are not in this instance the concern of the MIDI system. Each device supports the following Commands: (STOP> \t(PLAY> \t(DEFERRED \tPLAY> \t<EA$T \tFORWARD> \t<REWIND> \t(RECORD \tSTROBE> (RECORD \tEXIT> \t<CHASE> \t<COMMAND \tERROR \tRESET> \t<MMC \tRESET> \t<WRITE> \t(READ) (UPDATE> \t<LOCATE> \t<VARIABLE \tPLAY) \t<MOVE> \t<ADD> \t(SUBTRACT> \t<DROP \tFRAME \tADJUST> (PROCEDURE> \t<EVENT> \t<GROUP> \t(COMMAND \tSEGMENT> \t<DEFERRED \tVARIABLE \tPLAY> \t(WAIT) (RESUME> Each device supports the following Responses/Information Fields: (SELECTED \tTIME \tCODE) \t<SELECTED \tMASTER \tCODE> \t<REQUESTED \tOFFSET> \t<ACTUAL \tOFFSET) (LOCK \tDEVIATION> \t<GPO/LOCATE \tPOINT> \t<GP1> \t<GP2> \t<GP3> \t(Short \ttime \tcodes> <$IGNATURE> \t<UPDATE \tRATE> \t<RESPONSE \tERROR> \t<COMMAND \tERROR> <COMMAND \tERROR \tLEVEL) \t<TIME \tSTANDARD> \t<MOTION \tCONTROL \t£ALLY> \t(RECORD \tMODE> (RECORD SflATUS> <CONTROL DISABLE> (RESOLVED PLAY MODE> (CHASE MODE> <PROCEDURE \tRESPONSE) \t<EVENT \tRESPONSE> \t(RESPONSE \tSEGMENT> \t(RAILURE> \t(WAIT> <RESUME> The published SIGNATURE for each device is as follows: 01 \t00 \t00 \t00 14' 7F \t71 \t00 \t00 \t00 \t00 \t00 \t00 \t00 \t00 3D \t60 \t7F \t00 \t00 \t00 \t00 \t00 \t00 \t09 35 \t1E \t00 \t00 \t00 \t3E \t13 \t00 \t00 \t00 3F \t62 \t00 \t38 \t00 \t33 \t00 \t00 \t00 \t09 Commands from the controller to the devices will be shown towards the left side of the page. and Responses from the devices towards the right. Master and Slave Responses are distinguished by their respective device_lD's (third byte of the Sysex). The control methods shown here are constructed mainly to demonstrate the power and flexibility of MIDI Machine Control. and certainly do not represent the only, or even the best, approach to the task. The Controller first clears all previous settings, and establishes group consisting both the master and slave: F0 71-\" <a1 —ca.ll=7z='> \t<mcc> (MMC \tRESET> <GROUP> \t<count=04> \t<[ASSIGN]> \t<group=7C> \t01 \t02 F7 The Controller sets 30 frame time standard in both devices. and enables all command errors: F0 \t71-\" \t<group= 7C> \t<mcc> <WRITE> \t<count=06> <TIME STANDARD> <count=01> <COMMAND \tERROR \tLEVEL> \t<count-01> \t<all=7F> F7 . The operator initiates Play on the Master and then on the Slave. (Note that this is not yet a CHASE operation): , F0 75' <master=01> <mcc> \t<PLAY> F7 F0 75‘ <51 ave=02> <mcc> \t<PLAY> F7 The Controller requests continuous updating both time codes and motion tallies from both devices: F0 \t7F \t<group=7C> \t<mcc> <UPDATE> <count=03> \t<[BEGIN]> (SELECTED \tTIME \tCODE) <MOTION CONTROL TALLY) F7 Both master and slave respond with full 5 byte time code and tallies: Master is PLAYing at 00:22:05: 12 (00: 16:05:0C hex). Slave is PLAYing at 10:01:58z28 (0A:01:3A:1C hex). F0 \t71“ \t<master=01> \t<mcr> <SELECTED TIME CODE> 05 \t2C \t00 “ <MOTION CONTROL TALLY) <count=03> <PLAY> \t7F 01' F7 F0 \t7? \t<slave=02> \t<mcr> <SELECTED \tTIME \tCODE> \t6A \t01 \t3A \t3C \t00 <MOTION CONTROL TALLY) <count=03> <PLAY> \t7F F7 The next time code from the master (00:22:05: 13) is in \"short\" form, as only frames have changed. There has been no change at all in the MOTION \t' CONTROL TALLY: F0 7F <master=01> <mcr> <Short \tSELECTED \tTIME \tCODE> \t2D \t00 F7 Next slave code (10:01:58z29): F0 71-\" <slave=02> <mcr> (Short \tSELECTED \tTIME \tCODE> \t3D \t00 F7 \\ More master (00:22:05: 14) and slave (10:01:59200) times . . notice that the slave has seen a change in its \"seconds\", and has transmitted the entire 5 bytes of time code: F0 \t7F <master=01> \t<mcr> <5): ort SELECTED \tTIME CODE> \t25‘ 0 0 F7 F0 7F <slave=02> <mcr> <SELECTED TIME CODE> \t6A 3B F7 If the Controller's buffer were now filling up, it would transmit a WAIT request: F0 7F <all -call= 7F) <mcc> \t<WAIT> F7 Buffer clear: (all uansmissions halted) F0 \t7F \t<all-Call=7F> \t<mCC> \t<RESUME> \tF7 Operator Stops the master: F0 7F <master=01> <mcc> Operator Stops the slave: More master (00:22:05: 16) and slave (10:01:59:02) time codes: F0 \t71-\" \t<master=01> \t<mcr> <Short \tSELECTED \tTIME \tCODE> \t30 \t00 F7 F0 \t7F \t<slave=02> \t<mcr> <Short SELECTED TIME CODE> F7 <STOP> F7 The master tally changes to reflecta \"stopped\" condition: F0 7F <master=01> <mcr> <MOTION CONTROL TALLY> <count=03> <STOP> 7F F7 More slave time code (10:01:59:03): F0 71-\" <slave=02> <mcr> (Short SELECTED TIME CODE> F7 Slave at 10:01:59204: F0 \t7F <slave=02> <mcr> <Short \tSELECTED \tTIME \tCODE> \t24 \t00 F7 F0 7F <51ave=02> <mcc> <STOP> F7 The slave tally shows \"stopped\": F0 \t7F <slave=02> \t<mcr> <MOTION \tCONTROL TALLY) \t<count=03> <STOP> \t7F \t01 F7 Operator requests that current difference between master and slave positions become the slave's synchronization offset: F0 75' <slave=02> <mcc> <MOVE> \t<count=02> <REQUESTED \tOFFSET> \t<ACTUAL \tOFFSET> F7 The Controller reads back the offset for display purposes: F0 \t7F \t<slave-02> \t<mcc> <READ> \t<count=01 > \t<REQUESTED \tOFFSET> F7 The slave responds with an offset of 09:39:53:18.00 (09:27:35:12.00 hex): F0 \t7F \t<slave-02> \t<mcr> <REQUESTED \tOFFSET> \t69 \t27 \t35 \t12 \t00 F7 Operator pushes the \"slave chase\" button: F0 7F <slave=02> <mcc> <CHASE> F7 The slave tally adjusts, showing chase mode. \"stopped\" and \"parked\" status: F0 7? \t<51 ave-02> <mcr> ' <MOTION CONTROL TALLY> <Count=03> <STOP> <CflA$E> F7 OperatorPlays the master (slave follows): F0 \t7F \t<master=01> \t<mcc> \t<PLAY> \tF7 Master (00:22:05z24) and slave (10:01:59:09) return new tallies and time codes. The slave begins its synchronization process: F0 \t7F \t<master=01> \t<mcr> (Short \tSELECTED \tTIME \tCODE> \t38 \t00 <MOTION CONTROL TALLY) <count=03> <PLAY> \t7F F7 \t' F0 7F <slave=02> <mcr> (Short SELECTED TIME CODE> <MOTION CONTROL TALLY> <count=03> <PLAY> <CHASE> \t01 F7 The operator chooses to observe the slave lock deviation (error) while synchronization is taking place: F0 71-“ <slave=02> <mcc> <UPDATE> \t<count=02> \t<[BEGIN]> \t<LOCK \tDEVIATION> F7 The slave obliges (deviation = +5.02 frames): F0 \t7F <slave=02> \t<mcr> <LOCK DEVIATION) 60 \t00 \t00 \t05 \t02 F7 More master Lime (00:22:05:25): F0 71-\" <master=01> <mcr> <Short \tSELECTED \tTIME \tCODE> \t39 \t00 F7 Slave time (10:01:59:10) and deviation (-1.17 frames), not yet synchronized: F0 \t7F \t<51 ave=02> \t<mcr> <Short SELECTED TIME CODE> 2A \t00 <Short \tLOCK \tDEVIATION> \t41 \t17 F7 ' Slave time (10:02:01200), deviation and tally (synchronization achieved): F0 7? <slave=02> <mcr> , <SELECTED TIME CODE> \t6A <Short LOCK DEVIATION) 00 \t00 . <MOTION CONTROL TALLY> <count=03> <PLAY> <CHASE> F7 Wi \tM \trinl \th \tlv \tnhrniz \trnwwih . \t. \t. \tin \tR \t. in‘Th \tlr \trinwill \trfrm \tnh \tIvmhin rmi \tin \tnw \thlnlhwinifi \tDATER \tn Operator marks an \"IN\" point. The Controller captures the current time code by moving it into the GP] general purpose register/in both the master and slave machines using the group device__ID: F0 7F <group=7C> <mcc> <MOVE> \t<count=02> \t<GP1> \t<$ELECTED \tTIME \tCODE> F7 Some time later, the operator marks an \"OUT\" point, and the Controller captures to the 6P2 register: F0 7F <group=7C> <mcc> V <MOVE> \t<count=02> \t<GP2> \t<SELECTED \tTIME \tCODE) F7 Th \tr n w \th \t\" \ti \" \trf rm \tto \ti \tl The Controller sets up events in slave to punch into record at time in GP], and to punch out at time 0P2. Both events are to be deleted after being triggered, and both are to be triggered only by forward motion play-speed time code. The Controller also sets the slave‘s record mode and requests an automatic update of record status: F0 71-“ <51ave=02> <mcc> <EVENT> \t<count=06> \t<[DEFINE]> \t<event=¥01> (flags=00> \t(SELECTED \tTIME \tCODE) \t(GPl) (RECORD \tSTROEE) <EVENT> <count=06> <[DEFINE]> <event-#02> (flags=00> \t(SELECTED \tTIME \tCODE) \t(GP2) (RECORD \tEXIT) <WRITE> \t<count=03> \t(RECORD \tMODE) \t<count=01> \t01 (UPDATE) \t(count=02> \t([BEGINJ) \t(RECORD \tSTATUS) F7 The slave immediately returns its current (non) record status: F0 \t7? <slave=02> <mcr> (RECORD \tSTATUS) \t<count=01> \t00 F7 Next, the Controller sets up the master to (a) locate to a \"preroll\" point 5 seconds before the record punch in point in GP! (GPO is employed for the calculation); and (b) trigger an event to cause an automatic stop when the master reaches a point 2 seconds beyond the punch out point in GPZ (the trigger point is'set up in 6P3). F0 \t7? \t<master=01 > \t<mcc> (WRITE) <count=06> (GPO/LOCATE POINT) 60 \t00 \t05 \t00 \t00 (SUBTRACT> \t<count=03> \t(GPO/LOCATE \tPOINT) \t(GPl) \t(GPO/LOCATE \tPOINT) (LOCATE) \t(count=02> \t([I/F]> \t(GPO/LOCATE \tPOINT) (WRITE) <count=06> <GP3) 60 \t00 02 \t00 \t00 (ADD; \t<count=03> \t<GP3> \t<GP3> \t<GP2> (EVENT) \t<count=0 6) \t([DEFINE] > \t(event=#01 > (f1ags=10) \t(SELECTED \tTIME \tCODE) \t(6P3) <STOP> F7 In addition to time codes and slave lock deviation, the following master and slave motion tallies will have been returned, indicating that the master is \t' locating with the slave chasing: F0 \t7F \t<master=01 > \t<mcr> (MOTION CONTROL TALLY) (count=03> (REWIND) \t(LOCATE) F7 F0 \t7? <51ave=02> \t<mcr> (MOTION CONTROL TALLY) <count=03> (REWIND) \t(CHASE) F7 Eventually the master will finish locating. but the slave may still be active: F0 75' <master=01> <mcr> (MOTION \tCONTROL \tTALLY> \t<count-03> <STOP> <LOCATE> \t11 F7 F0 7F <slave=02> <mcr> (MOTION \tCONTROL \tTALLY> \t<count=03> <REWIND> \t<CHASE> \t41 F7 Finally. the slave parks with the master: F0 7F <slave=02> <mcr> <MOTION \tCONTROL \tTALLY) \t<count=03> <STOP> \t<CHASE> F7 \t‘ Upon detecting that the machines have successfully located and parked, the Controller issues a play to the master, thus initiating the automated series of events previously loaded: F0 \t7F \t<master=01> \t<mcc> \t<PLAY> \tF7 _ \tMaster plays, slave attempts to synchronize: F0 7F <ma$ter=01> <mcr> (MOTION CONTROL TALLY) <count=03> <PLAY> 7F \t01 F7 F0 \t7F \t<slave=02> \t<mcr> (MOTION CONTROL 'TALLY> <count=03>r <PLAY> <CHASE> \t01 F7 Eventually, the slave is synchronized: F0 \t7? \t<slave=02> \t<m¢r> <MOTION CONTROL TALLY) <count=03> <PLAY> <CHASE> F7 The slave punches into record at pre-artanged point (and deletes Event #01): F0 \t7? <slave=02> <mcr> <RECORD STATUS) <count=01> F7 Some time later, the slave punches out (and deletes Event #02): F0 \t7F <slave=02> <mcr> <RECORD STATUS> <count=01> F7 Two seconds after punch out, the master stops, causing the slave also to stop and park: F0 7? <master=01> <mcr> ' {MOTION CONTROL TALLY> <count=03> <STOP> \t7F F7 F0 7F <51ave=02> <mcr> <MOTION CONTROL TALLY> <count=03> <STOP> \t<CHASE> F7 At the end of the session, the Controller mutes all update responses and disables both machines: \t' F0 7F <group= 7C> <mcc> <UPDATE> \t<count-02> \t<[END] > \t<a11-7F> <WRITE> <count=03> <CONTROL DISABLE> <count=01> F7 Finally. the operator attempts to manipulate a (non-existent) time code generator in the master device: F0 7F <master=01> <mcc> <READ> \t<count=01> \t<GENERATOR \tTIME \tCODE) <GENERATOR \tSET \tUP> \t<count=03> 00 \t(SELECTED \t1'11l CODE) \t01 <GENERATOR \tCOMMAND> \t<count=01> \t01 F7 The master first responds to the READ of the unsupported GENERATOR TIME CODE: F0 7F <master=01> <mcr> (RESPONSE \tERROR) <count=01> <GENERATOR TIME CODE> F7 Then follows notification that the GENERATOR SET UP command is also unsupported. Since all errors have been ambled by the Controller, the master will enter \"Error Halt\" mode, and the cease all command processing. The final command, GENERATOR COMMAND, will be discarded. F0 7F <master=01 > <mcr> <COMMAND \tERROR> \t<count=0A> <f1 ags=ll > \t<1 evel=7F> \t<error=4 0> <count__l =0 6> \t<offset=00> <GENBRATOR SET UP> <count=03> 00 \t<SELECTED \tTIME \tCODE) \t01 F7 The Controller acknowledges the COMMAND ERROR message, thus enabling the master to resume command processing: F0 \t7F <master=01> <mcc> <COMMAND \tERROR RESET> \tF7 Appendix B TIME CODE STATUS IMPLEMENTATION TABLES Time code status bits are defined in Section 3, \"Standard Specifications\". Their exact implementation for each MMC time code Information Field is shown in this Appendix. \t. Value after power up or Time code \tMMC Status Bits \t; \tRESET \t; t t (time type) \tTIME STAN- DARD or other internal default c (color frame) \t0 k (blank) \t1 9 (sign) \t0 1: (final byte id) \t1 e (estimated code) \t0 v (invalid code) \t0 d (video field I) \t0 (0/1 if implemented) n (no time code) \tI SELECTED TIME CODE [read/write]: \t‘ V rin 'n If n = 1 (time code never read): ti: = TIME STANDARD (or default) or as loaded with WRITE or \"Math\" commands Hn=m tt = As read from time code Hn=h c=0 If n = 0: \tc = As read from time code I: = 0 only after time code has been: - (a) \tread (from \"tape\") or \t(b) \tincremented by tachpulses or \t(c) \tloaded by WRITE or \t(d) \tloaded by \"Math\" command Otherwise, I: = I l e = 1 only if m time code change came as a result of tachometer or control track pulse updating. Set as required. Set/reset as required, and if implemented. n = 0 MW mg frgm \"mpg\". Interpretation time code bits ' \tggntajnm in WRIZI E data \t; WRITE to tt only if bit :2 = (time code never read), else ignore t: t in WRITE data. Ignore c in WRITE data Always set I: = 0 after a WRITE; Ignore k in WRITE data. Ignore g in WRITE data. Ignore 1' in WRITE data. Always set e = after WRITE; Ignore e in WRITE data. Always set v = 0 after WRITE; Ignore v in WRITE data. Ignore d in WRITE data. Always set n = after WRITE; (i.e. \"reset\" to \"time code never read\"); Ignore n in WRITE data. 02 v \tSELECTED MASTER CODE [read only]: Same as SELECTED TIME CODE, with exception that WRITE‘s cannot occur."
+    },
+    {
+      "hex": "04",
+      "name": "ACTUAL OFFSET [read only]:",
+      "description": "Value after power up or Time code \tMMC \tInterpretation of time code bits 5mm: Big : RESEI ; Value dmjng Norma] gmrafign: ; confined in WRITE data ; tt (time type) \tSee next \tFollows tt in SELECTED TIME \tIgnore t t in WRITE data. column. \tCODE, except that REQUESTED \t(Future versions of MMC may allow OFFSET will remain w \tsome variation here.) (1: t=1 1) when SELECTED TIME CODE is drop-frame ( t t =1 0). c (color frame) \t0 Ignore c in WRITE data. k (blank) \t_ . \tI \tk = 0 only after time code has been: \tAlways set I: = 0 after a WRITE; (a) \tloaded by WRITE \tIgnore k in WRITE data. or \t(b) \tloaded by \"Math\" command Otherwise, I: = I (sign) \t0 0/1 as required ox w WRITE gbit. 1' (final byte id) \t0 \t0 \tIf i = 0 in WRITE data: Load final data byte as subframes; Hi: I inWRITEdata: Ignore final data byte; Load subframes = 00"
+    },
+    {
+      "hex": "06",
+      "name": "GENERATOR TIME CODE \t[read/write]:",
+      "description": "LOCK DEVIATION [read only]: Value after power “P 01’ V Time code MMC . Smyg Bits \t; \tBELT—4 \tValu; gnring Ngrmal gamma]: \t; tt (time type) \tSee next \tFollows tt in SELECTED TIME column. \tCODE, except that ACTUAL OFFSET - \tand LOCK DEVIATION will remain Wm: (tt=l 1) when SELECTED TIME CODE is dropframc (tt=l 0). \t- c (color frame) \t0 \t0 1: (blank) \t0 \to (sign) 0 \t0/1 as required 1 (final byte id) \t0 \to"
+    },
+    {
+      "hex": "0F",
+      "name": "GPO thru GP7 \t[read/write]:",
+      "description": "Value after power up or Time code MMC Interpretation time code bits Slam: Bit; ; RESET ; V ' rm ' n ' n 'n in I tt (time type) TIME tt = TIME STANDARD (or default), OK to WRITE to tt. Subsequently STAN- \tor as loaded by WRITE or \"Math\" determines the time code counting DARD or \tcommands or by a Copy/Jam from \tmode of the Generator. other \tanother time code source. internal default c (color frame) \t0 \t0 \tIgnore c in WRITE data. k (blank) \t0 \to \t' \tIgnore k in WRITE data. 9 (sign) \t. \t0 \t0 \tIgnore gin WRITE data. i (final byte id) \t1 \t1 \t_ \tIgnore i in WRITE data. e (estimated code) \t0 \tO \tIgnore e in WRITE data. v (invalid code) \t0 \t0 \tIgnore v in WRITE data. d (video field I) \t0 \tSet/reset as required, and if \tIgnore din WRITE data. \t- (0/1 if im- \timplemented. plemented) n (no time code) \t0 \t0 \tIgnore :1 in WRITE data. MIDI TIME CODE INPUT [read only]: Value after power up or Time code \tMMC Emu: Bits \t; \tRESET \t; \tV \tl \t'n \trm \t' \tn tt (time type) \tTIME \tIf n = 1 (time code never read): STAN- \tct = TIME STANDARD DARD or , (or default) other \tIf n = 0: internal tt = As read from MTC default c (color frame) \t0 \t0 k (blank) \tI \tk = 0 only after MTC has been received at the device's MIDI In. Otherwise. k = I 9 (sign) \t0 \t0 .12 (final byte id) \t1 \tl e (estimated code) \t0 \t0 v (invalid code) \t0 - \tSet as required. d (video field 1) \t» \t0 \t0 n (no time code) \tI \t“n =0-only after'MTC has been received at the device‘s MIDI In. Otherwise, n = 1 (Le. n = k) thru"
+    },
+    {
+      "hex": "04",
+      "name": "Delete Punch Out point",
+      "description": "Time code MEAL-.4 tt (time type) c (color frame) I: (blank) 9 (sign) i (final byte: id) Value after power up or: MMC RESET \t,' TIME STAN- DARD or other internal default V! \t'N tt = As loaded with WRITE or “Math\" commands c = As loaded with WRITE or \"Math\" commands k = 0 only after time code has been: (a) \tloaded by WRITE or \t(b) \tloaded by \"Math\" command Otherwise. I: = l 9: As loaded with WRITE or \"Math\" commands I Interpretation of time code bits ' \tggngjngg in WRITE gala \t; OKtoWRlTEto tt. OKtoWRITEtoc. Always set k = after WRITE; Ignore k in WRITE data. OKtoWRITElog. \t' Ifi=0inWRITEdataz Load final data byte as subframes; Ifi = 1 in WRITE data: Ignore final data byte; Load subframes = 00 Appendix C \tSIGNATURE TABLE .JiLtBi \t1’ \tW4 \t‘ \tW \tW \t2&m COMMAND BITMAP ARRAY: Em W to \t0 6 \t05 RECORD REWIND STROBE cl 0D 0C MMC RESET \tCOMMAND ERROR RESEI‘ c2 \t1 4 \tl 3 c3 IE 1A c4 \t- \t- c5 c6 2D \t2C c7 \t34 \t33 c8 \t33 \t311 C9 \t- \t- ell) . SEARCH \tVARIABLE PLAY cll \t4D \t4 C ADD \tMOVE (:12 \t54 \t53 DEFERRED \tCOMMAND VARIABLE \tSEGMENI' PLAY (:13 CM \t- \t- as \t6 6 \t65 cl6 6D \t6C €17 \t74 \t73 as 7A cl9 \t- \t- 0 4 FAST FORWARD CHASE 4 4 LOCATE MIDI TIME CODE COMMAND GROUP 5.9 6B DEFERRED PLAY 0A ETECI' 1F 2A 3F VUPDATE 4A GENERATOR COMMAND V EVENT 5F 6A 7F RESUME PLAY 0 9 PAUSE 11:7 3E i READ 4 9 ASSIGN SYSTEM MASTER 5 0 PROCEDURE 5E 7E STOP 0 8 RECORD PAUSE 0F 1 6 ID 2F 3D 1 MASKED ‘ WRITE STEP 4 F DROP FRAME ADJUST 5D 6F 7D (userved) 0 7 RECORD EXIT 01? 1C 2E 3C SHUTTLE 4E SUBTRACT 5 5 RECORD STROBE VARIABLE 5C 6E 7C WAIT RESPONSE/INFORMATION FIELD BITMAP ARRAY: 1m: \t1w\t4 h r0 \t0 6 GENERATOR TIME CODE r1 \t0D GPS r2 \t1 4 r3 \t18 r4 \t- r5 \t26 Short GENERATOR TIME CODE r6 \t2D;- Shoi'i’GPs 1'7 \t34 r8 \t38 1'9 \t- r10 \t4 6 SELECTED TIME CODE SOURCE r11 \t4D RECORD STATUS r12 - \t54 STEP LENGTH 0 5 LOCK DEVIATION 0C 6P4 1A 2 5 Short LOCK DEVIATION 2C Shon 6P4 3A 4 5 TIME STANDARD 4 C RECORD MODE TRACK INPUT MONITOR Bi; 5 1232M \t51140913) 0 4 ACTUAL OFFSET OB 6P3 2 4 Short ACTUAL OFFSET Short 0P3 4 4 COMMAND ERROR LEVEL 4 B FAST MODE TRACK SYNC MONITOR Bi; 3 (98h) 0 3 REQUESTED OFFSET 0A 6P2 1F Short REQUESTED OFFSET 2A Shon GP2 3F 4 3 COMMAND ERROR 4A STOP MODE 5 1 RECORD MONITOR Bi121flh1 SEI£CTED MASTER CODE GP] IE Short SELECTED MASTER CODE Short GPI \tV 3B 4 2 RESPONSE ERROR VELOCITY TALLY 5 0 GLOBAL MONITOR W SELECTED TIME CODE GPO / LOCATE POINT OF 0P7 1D Shon SEIECTED TIME CODE Short GPO/ LOCATE POINT 2F Shot! GP7 3D UPDATE RATE 4 8 MOTION CONTROL TA LLY 4F TRACK RECORD READY mum; 0 0 (reserved) 0 7 MIDI TIME CODE INPUT OE GP6 1C 2 0 (reserved) 2 7 Short MIDI TIME CODE INPUT 25' Short GP6 3C 4 0 SIGNATURE 4 7 SELECTED TIME CODE USERBITS 4 E TRACK RECORD STATUS 41:8 \tW r13 SB GENERATOR COMMAND TALLY r14 \t- r15 \t66 r16 \t60 r17 \t74 r18 \t73 r19 - Bi; 5 (29h) 5A CHASE MODE FAILURE 6C 7A B114 (mm RESOLVED PLAY MODE RESPONSE SEGMENT 6B 7.9 BM (98!” CONTROL DISABLE, 51\" MIDI TIME CODE SET UP VlTC INSERT ENABLE 6A 7F RESUME W DEFEAT 55' MIDI TIME CODE COMMAND TALLY .62 TRACK MUTE 7E Bi; (92m 5 6 FIXED SPEED SD GENERATOR USERBITS EVENT RESPONSE 6F 7D Bi \t1 5 5 PLAY SPEED REFERENCE 5C GENERATOR SET UP PROCEDURE RESPONSE 6E 7C WAIT Appendix D \tMIDI MACHINE CONTROL and MTC CUEING It is anticipated that some devices will implement both MIDI Machine Control and MTC Cueing. In such cases, it may be expedient to merge MMC Events with MTC Cueing Event List. In an effort to be both self-contained and adaptable to ESbus methods, MIDI Machine Comm] has not adopted MTC Cueing as its means of triggering events. This section will attempt to define those areas where MIDI Machine Control and MTC Cueing overlap, as well as those where they do not. Comparison MIDI Machine Control and MTC Cueing event Specifications: MID] Machine aml \t; MMC \"Events\" trigger other MMC commands only. Events are defined by the EVENT command. Each event is unique, and is identified by a single 7-bit name. Edeh Event definition specifies source time code stream against which the Event should be triggered. Events contain additional flags for triggering at other than play speeds, and when moving forward or reverse or either. For compatibility with ESbus. each event may optionally be deleted after being triggered. No overall event enable/disable is provided. Error trapping checks for \"Illegal Event name\". \"Undefined EVENT\", \"EVENT buffer overflow\", and performs complete pre—checking the command which is to be executed at the EVENT trigger time. MTC Cueing MTC \"Events\" trigger event sequences. cues, and track punch in and out. Events are defined by MTC Set-Up messages. The same event number can be triggered at different times. and each Event List item is therefore identified by combination trigger time and event number. No time code source is specified, but is assumed to be MIDI Time Code. No motion variations or restrictions are specified. Events are not deleted when triggering occurs. Event enable/disable commands turn all events on and off without affecting the Event List itself. No error trapping is provided. Review MTC Cueing messages, and their relationship to MMC: Punch In points Punch Out points Delete Punch In point"
+    },
+    {
+      "hex": "05",
+      "name": "Event Start points",
+      "description": "These MTC messages are functionally duplicated by MIDI Machine Control commands, although exact translation is awkward. . The following example illustrates a translation of the MTC Punch In message into MMC commands: MTC Cueing: F0 75' <chan> hr mn sc fr ff sl sm F7 (where \t51 \tsm=track number) MMC: \tF0 7F <device__ID> <mcc> <PROCEDURE> \t<count=09> \t<[ASSEMBLE]> \t<procedure_name> <MASKED \tWRITE> \t<count=04> <TRACK RECORD READY> <byte #> <mask> <data=7F> (RECORD \tSTROBE) <WRITE> <count=06> <GPO> hr mn sc fr ff <EVENT> \t<count=09> \t<[DEFINE]> \t<event_name> <flags=40> \t(MIDI \tTIME \tCODE \tINPUT> \t<GPO> <PROCEDURE> <count=02> <[EXECUTEJ> <procedure_name> F7"
+    },
+    {
+      "hex": "06",
+      "name": "Event Stop points",
+      "description": ""
+    },
+    {
+      "hex": "08",
+      "name": "Event Stop points with additional info.",
+      "description": "0 7 \tEvent Start points with additional info."
+    },
+    {
+      "hex": "09",
+      "name": "Delete Event Start point",
+      "description": ""
+    },
+    {
+      "hex": "0A",
+      "name": "Delete Event Stop point",
+      "description": ""
+    },
+    {
+      "hex": "0E",
+      "name": "Event Name in additional info.",
+      "description": ""
+    },
+    {
+      "hex": "0C",
+      "name": "Cue points with additional info.",
+      "description": "The MTC Event Start and Stop messages \"imply that large sequence events or continuous event is to be started or stopped\" (MIDI 1.00 Detailed Specification). MIDI Machine Control has no real equivalent for this style of Event Cue points"
+    },
+    {
+      "hex": "0D",
+      "name": "Delete Cue point",
+      "description": ""
+    }
+  ],
+  "summary": {
+    "message_type_count": 10,
+    "abbreviation_count": 6,
+    "command_count": 26,
+    "information_field_count": 18,
+    "command_description_count": 32,
+    "field_description_count": 59
+  }
+}

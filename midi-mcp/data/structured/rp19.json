@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "title": "Recommended Practice (RP-019) SMF Device Name and Program Name Meta Events",
+    "doc_id": "RP-019",
+    "protocol": "midi1",
+    "source": ".midi-raw-data/rp19 SMF Device & Program Name Meta-events.pdf",
+    "pages": 1,
+    "summary": "MMA/AMEI Recommended Practice RP-019: Recommended Practice (RP-019) SMF Device Name and Program Name Meta Events."
+  },
+  "meta_events": [
+    {
+      "meta_event_type": "0x09",
+      "format": "FF 09 len text",
+      "label": "DEVICE NAME",
+      "name": "Device Name Meta Event",
+      "description": "The Device Name is the name of the device that this track is intended to address. It will often be the model name of a synthesizer, but can be any string which uniquely identifies a particular device in a given setup. There should only be one Device Name (Meta Event 09) per track, and it should appear at the beginning of a track before any events which are sendable (i.e., it should be grouped with the text events before the proposed Program Name [Meta Event 08 - see below] and before bank select and program change messages). This will ensure that each track can only address one device. 2) A new text Meta Event called Program Name, names the program referenced by the immediately following sequence of bank select and program change messages."
+    },
+    {
+      "meta_event_type": "0x08",
+      "format": "FF 08 len text",
+      "label": "PROGRAM NAME",
+      "name": "Program Name Meta Event",
+      "description": "One purpose of this event is to aid in reorchestration; since one non-General-MIDI device's piano can be another one's drum kit; knowing the intended program name can be an important clue. The Program Name is the name of the program called up by the immediately following sequence of bank select and program change messages. The channel for the program change is identified by the bank select and program change messages. The Program Name Meta Event may appear anywhere in a track, but should only be used in conjunction with optional bank selects and a program change. There may be more than one Program Name Meta Events in a track."
+    }
+  ],
+  "usage_rules": [
+    "Each track of a MIDI File can contain one MIDI stream, including SysEx and up to 16 channels. The Device Name Meta Event",
+    "is used to label each track in a MIDI File with a text label.",
+    "If a Type 1 Standard MIDI File contains MIDI data for several devices, the data for each device is contained in a separate",
+    "track, each with a different Device Name Meta Event. It is possible to have any number of tracks which address the same",
+    "Device Name; however, each track can only address one device, as noted above.",
+    "Since a Type 0 Standard MIDI File has only one track, it can have only one Device Name Meta Event."
+  ],
+  "device_naming_recommendations": [
+    "There are many ways MIDI Files are used, and the Device Name Meta Events may be used as appropriate. For MIDI Files",
+    "which are used by a single user on a single computer between many programs, Device Name Meta Events are a useful way of",
+    "preserving the information between programs. The names make perfect sense within the context of that user's system,",
+    "especially with systems that keep track of where the devices are actually located.",
+    "When a single user's MIDI File is used on another computer, the Device Names often will not match the devices on that other",
+    "computer. In this case, it's handy having the original Device Names stored as text in the track so that the user or an",
+    "intelligent software package can make the best decision about what device the track should play on the second computer.",
+    "When MIDI Files are authored for widespread distribution to unknown studio setups, generic names indicating the type of",
+    "desired instrument (the synth if SysEx is included, or the sound if it isn't) are useful Device Names, or Device Names may be",
+    "omitted entirely, especially if the entire file contains fewer than 16 channels.",
+    "When MIDI Files are authored for widespread distribution to run on a specific type of system, the system manufacturer can",
+    "choose to use a textual representation of numbers (\"0\", \"1\", etc.) as Device Name labels, or the manufacturer can",
+    "recommend more specific names (\"FM\", \"Wave\", etc.)."
+  ],
+  "approval": {
+    "mma_date": "4/10/98",
+    "amei_date": "5/7/99",
+    "copyright": "1999"
+  },
+  "summary": {
+    "meta_event_count": 2,
+    "usage_rule_count": 6,
+    "device_naming_recommendation_count": 13
+  }
+}

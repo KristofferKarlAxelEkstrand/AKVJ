@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "title": "Standards that Incorporate MIDI",
+    "protocol": "general",
+    "source": ".midi-raw-data/Standards that Incorporate MIDI – MIDI.org.html",
+    "summary": "Overview of standards outside the MMA that incorporate MIDI."
+  },
+  "standards": [
+    {
+      "sdo": "1394TA",
+      "specification_name": "AM824 Protocol (FireWire “Adaptation Layer” for MIDI)",
+      "specification_number": "1999014",
+      "form_of_reference": "“Normative”",
+      "mma_references": "RP-27 and Complete MIDI"
+    },
+    {
+      "sdo": "3GPP/ETSI",
+      "specification_name": "UMTS Streaming Protocol and Codecs (SP-MIDI, DLS, and XMF content support for mobile phones)",
+      "specification_number": "RTS/TSGS-0426234v620",
+      "form_of_reference": "“Constitute Provisions”",
+      "mma_references": "RP-01, 34, 35, 41, 42 and Complete MIDI"
+    },
+    {
+      "sdo": "CMIA",
+      "specification_name": "General Technical Requirement of MIDI Keyboards (China)",
+      "specification_number": "QB/T 4015-2010",
+      "form_of_reference": "“Normative”",
+      "mma_references": "Complete MIDI"
+    },
+    {
+      "sdo": "IEC",
+      "specification_name": "AM824 Protocol (FireWire “Adaptation Layer” for MIDI)",
+      "specification_number": "61883.6",
+      "form_of_reference": "*see Note 1 below",
+      "mma_references": "RP-27 and Complete MIDI"
+    },
+    {
+      "sdo": "IEC",
+      "specification_name": "Interface for Loudspeakers (MIDI over AES3/SPDIF with MSC-based control protocol)",
+      "specification_number": "62537",
+      "form_of_reference": "“Normative”",
+      "mma_references": "Complete MIDI"
+    },
+    {
+      "sdo": "IEC",
+      "specification_name": "Abridged MIDI 1.0 Specification",
+      "specification_number": "63035",
+      "form_of_reference": "“Normative”",
+      "mma_references": "All"
+    },
+    {
+      "sdo": "IEEE",
+      "specification_name": "AVB Transport Protocol (Payload Type for MMA Data Formats e.g. MIDI, etc.)",
+      "specification_number": "1722",
+      "form_of_reference": "“Normative”",
+      "mma_references": "MMA Payload Format Specification for AVBTP"
+    },
+    {
+      "sdo": "IETF",
+      "specification_name": "RTP Payload Format for MIDI (MIDI over Ethernet/Internet using RTP)",
+      "specification_number": "RFC-6295",
+      "form_of_reference": "“Normative”",
+      "mma_references": "Complete MIDI “Informative” | SP-MIDI (RP-34 & 35)"
+    },
+    {
+      "sdo": "ISO/IEC JTC1",
+      "specification_name": "VRML 97 Specification (Virtual Reality Modeling Language)",
+      "specification_number": "14772-1:1997",
+      "form_of_reference": "“Normative”",
+      "mma_references": "Complete MIDI"
+    },
+    {
+      "sdo": "ISO/IEC JTC1",
+      "specification_name": "MPEG4 Structured Audio (MIDI and/or DLS as an MPEG stream)",
+      "specification_number": "14496.3 sub part 4",
+      "form_of_reference": "“Normative”",
+      "mma_references": "DLS1, DLS2 and Complete MIDI"
+    },
+    {
+      "sdo": "Khronos",
+      "specification_name": "OpenSL ES Specification 1.1 Application-level Audio API for Embedded and Mobile Multimedia Devices",
+      "specification_number": "n/a",
+      "form_of_reference": "“References”",
+      "mma_references": "Complete MIDI, RP-25amd1, RP-34, RP-41 & 42, I3DL1 & I3DL2"
+    },
+    {
+      "sdo": "USB-IF",
+      "specification_name": "Class Definition for MIDI Devices (MIDI over USB)",
+      "specification_number": "n/a",
+      "form_of_reference": "“Related Documents”",
+      "mma_references": "General MIDI 1 and Complete MIDI"
+    }
+  ],
+  "summary": {
+    "standard_count": 12
+  }
+}

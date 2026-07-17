@@ -157,8 +157,8 @@ describe('settings', () => {
 			expect(settings.performance.clipsJsonUrl).toBeTruthy();
 		});
 
-		test('defines MIDI layout JSON URL', () => {
-			expect(settings.performance.midiLayoutJsonUrl).toBeTruthy();
+		test('defines key map JSON URL', () => {
+			expect(settings.performance.keyMapJsonUrl).toBeTruthy();
 		});
 
 		test('maxConcurrentClipLoads is a positive integer', () => {

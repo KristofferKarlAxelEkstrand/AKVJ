@@ -2,11 +2,11 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import ClipLoader from '../src/js/visuals/ClipLoader.js';
 import settings from '../src/js/core/settings.js';
 
-function mockFetchCatalogAndLayout(catalog, midiLayout) {
+function mockFetchCatalogAndLayout(catalog, keyMap) {
 	globalThis.fetch = vi.fn(async url => {
 		const href = String(url);
-		if (href.includes('midi-layout')) {
-			return { ok: true, json: async () => midiLayout };
+		if (href.includes('key-map')) {
+			return { ok: true, json: async () => keyMap };
 		}
 		return { ok: true, json: async () => catalog };
 	});
@@ -57,12 +57,12 @@ describe('ClipLoader', () => {
 		const catalog = {
 			'neon-skull': { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { 1: { 60: { 0: 'neon-skull' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 60: { 0: 'neon-skull' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(clips).toBeTruthy();
 		// DAW channel 1 → code channel 0
 		expect(clips[0][60]).toBeDefined();
@@ -87,12 +87,12 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		const catalog = {
 			evil: { png: '../secret.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { 1: { 60: { 0: 'evil' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 60: { 0: 'evil' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '../secret.png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
@@ -102,12 +102,12 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		const catalog = {
 			ok: { png: 'sprite01.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { 1: { 60: { 0: 'ok' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 60: { 0: 'ok' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(clips[0][60][0]).toBeDefined();
 	});
 
@@ -116,12 +116,12 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		const catalog = {
 			bad: { png: '....png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { 1: { 60: { 0: 'bad' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 60: { 0: 'bad' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '....png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
@@ -132,12 +132,12 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		const catalog = {
 			ok: { png: 'sprite01.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { '../etc': { 60: { 0: 'ok' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { '../etc': { 60: { 0: 'ok' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring clip with non-numeric path keys'), expect.any(Object));
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
@@ -161,12 +161,12 @@ describe('ClipLoader - mapping edge cases', () => {
 		const catalog = {
 			'mask-clip': { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true, bitDepth: 1 }
 		};
-		const midiLayout = { 5: { 0: { 0: 'mask-clip' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 5: { 0: { 0: 'mask-clip' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(clips[4][0][0]).toBeDefined();
 		expect(clips[5]).toBeUndefined();
 	});
@@ -174,13 +174,13 @@ describe('ClipLoader - mapping edge cases', () => {
 	test('skips unknown clipId with a warning', async () => {
 		const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const catalog = {};
-		const midiLayout = { 1: { 0: { 0: 'missing-clip' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 0: { 0: 'missing-clip' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
-		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: midi-layout references unknown clipId', 'missing-clip');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: key-map references unknown clipId', 'missing-clip');
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
 	});
@@ -189,19 +189,19 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout({ ok: { png: 'sprite.png', frames: 1, framesPerRow: 1 } }, 'not-an-object');
 		installMockImage();
 		const loader = new ClipLoader({});
-		await expect(loader.setupClips('/clips/clips.json', '/clips/midi-layout.json')).rejects.toThrow(/must be a JSON object/);
+		await expect(loader.setupClips('/clips/clips.json', '/clips/key-map.json')).rejects.toThrow(/must be a JSON object/);
 	});
 
 	test('throws when mapping fetch fails', async () => {
 		globalThis.fetch = vi.fn(async url => {
-			if (String(url).includes('midi-layout')) {
+			if (String(url).includes('key-map')) {
 				return { ok: false, status: 404 };
 			}
 			return { ok: true, json: async () => ({}) };
 		});
 		installMockImage();
 		const loader = new ClipLoader({});
-		await expect(loader.setupClips('/clips/clips.json', '/clips/midi-layout.json')).rejects.toThrow(/status: 404/);
+		await expect(loader.setupClips('/clips/clips.json', '/clips/key-map.json')).rejects.toThrow(/status: 404/);
 	});
 
 	test('rejects bare numeric clipIds', async () => {
@@ -209,12 +209,12 @@ describe('ClipLoader - mapping edge cases', () => {
 		const catalog = {
 			5: { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = { 1: { 0: { 0: '5' } } };
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		const keyMap = { 1: { 0: { 0: '5' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: invalid clipId', '5');
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
@@ -224,17 +224,17 @@ describe('ClipLoader - mapping edge cases', () => {
 		const catalog = {
 			'neon-skull': { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
-		const midiLayout = {
+		const keyMap = {
 			1: {
 				60: { 0: 'neon-skull' },
 				61: { 0: { clipId: 'neon-skull', triggerType: 'latch', triggerGroup: 'bg' } }
 			}
 		};
-		mockFetchCatalogAndLayout(catalog, midiLayout);
+		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/midi-layout.json');
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
 
 		// String mapping: default triggerType
 		const clip1 = clips[0][60][0];

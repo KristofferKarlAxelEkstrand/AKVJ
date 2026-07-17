@@ -198,8 +198,8 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 
 | Package      | Port               | Purpose                                        |
 | ------------ | ------------------ | ---------------------------------------------- |
-| `akvj/`      | 5173               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
-| `mainframe/` | 5174 UI · 8787 API | Clip bucket + set-mapping authoring            |
+| `akvj/`      | 8888               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
+| `mainframe/` | 9999 UI · 7777 API | Clip bucket + set-mapping authoring            |
 | `clips/`     | —                  | Shared source clip bucket + `set-mapping.json` |
 
 ## Development
@@ -255,8 +255,8 @@ AKVJ/
 ### Core Commands
 
 ```bash
-npm run akvj                           # akvj VJ engine (localhost:5173)
-npm run mainframe                      # mainframe UI + API (5174 / 8787)
+npm run akvj                           # akvj VJ engine (localhost:8888)
+npm run mainframe                      # mainframe UI + API (9999 / 7777)
 npm run build                            # Build akvj
 npm run build:all                        # clips + akvj + mainframe
 npm run preview                          # Preview akvj production build

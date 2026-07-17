@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "title": "MIDIConnectionEvent Interface (MDN Reference)",
+    "protocol": "web-midi",
+    "source": "https://developer.mozilla.org/en-US/docs/Web/API/MIDIConnectionEvent",
+    "summary": "MDN reference for MIDIConnectionEvent: hot-plug connect/disconnect notifications via statechange."
+  },
+  "description": "The MIDIConnectionEvent interface of the Web MIDI API is the event passed to the statechange event of the MIDIAccess interface and the statechange event of the MIDIPort interface. This occurs any time a new port becomes available, or when a previously available port becomes unavailable. For example, this event is fired whenever a MIDI device is either plugged in to or unplugged from a computer.",
+  "availability": "Limited availability This feature is not Baseline because it does not work in some of the most widely-used browsers.",
+  "secure_context": true,
+  "constructor": {
+    "name": "MIDIConnectionEvent",
+    "signature": "MIDIConnectionEvent()",
+    "description": "Creates a new MIDIConnectionEvent object."
+  },
+  "instance_properties": [
+    {
+      "name": "port",
+      "modifiers": "Read only",
+      "description": "Returns a reference to a MIDIPort instance for a port that has been connected or disconnected."
+    }
+  ],
+  "instance_methods": [],
+  "events": [],
+  "examples": [
+    "<code>navigator.requestMIDIAccess().then((access) => {\n  access.onstatechange = (event) => {\n    console.log(event.port.name, event.port.manufacturer, event.port.state);\n  };\n});\n</code>"
+  ],
+  "specifications": [
+    "Web MIDI API # midiconnectionevent-interface"
+  ],
+  "browser_compatibility": {},
+  "summary": {
+    "instance_property_count": 1,
+    "instance_method_count": 0,
+    "event_count": 0,
+    "example_count": 1,
+    "specification_count": 1
+  }
+}

@@ -1,0 +1,1168 @@
+{
+  "metadata": {
+    "title": "Universal MIDI Packet (UMP) Format and MIDI 2.0 Protocol Specification",
+    "doc_id": "M2-104-UM",
+    "protocol": "midi2",
+    "version": "1.1.2",
+    "date": "2023-11",
+    "source": "https://amei-music.github.io/midi2.0-docs/amei-pdf/M2-104-UM_v1-1-2_UMP_and_MIDI_2-0_Protocol_Specification.pdf"
+  },
+  "message_type_allocation": [
+    {
+      "mt": "0x0",
+      "ump_size": "32 bits",
+      "description": "Utility Messages"
+    },
+    {
+      "mt": "0x1",
+      "ump_size": "32 bits",
+      "description": "System Real Time and System Common Messages (except System Exclusive)"
+    },
+    {
+      "mt": "0x2",
+      "ump_size": "32 bits",
+      "description": "MIDI 1.0 Channel Voice Messages"
+    },
+    {
+      "mt": "0x3",
+      "ump_size": "64 bits",
+      "description": "Data Messages (including System Exclusive)"
+    },
+    {
+      "mt": "0x4",
+      "ump_size": "64 bits",
+      "description": "MIDI 2.0 Channel Voice Messages"
+    },
+    {
+      "mt": "0x5",
+      "ump_size": "128 bits",
+      "description": "Data Messages"
+    },
+    {
+      "mt": "0x6",
+      "ump_size": "32 bits",
+      "description": "Reserved for future definition by MMA/AMEI"
+    },
+    {
+      "mt": "0x7",
+      "ump_size": "32 bits",
+      "description": ""
+    },
+    {
+      "mt": "0x8",
+      "ump_size": "64 bits",
+      "description": ""
+    },
+    {
+      "mt": "0x9",
+      "ump_size": "64 bits",
+      "description": ""
+    },
+    {
+      "mt": "0xA",
+      "ump_size": "64 bits",
+      "description": ""
+    },
+    {
+      "mt": "0xB",
+      "ump_size": "96 bits",
+      "description": ""
+    },
+    {
+      "mt": "0xC",
+      "ump_size": "96 bits",
+      "description": ""
+    },
+    {
+      "mt": "0xD",
+      "ump_size": "128 bits",
+      "description": "Flex Data Messages"
+    },
+    {
+      "mt": "0xE",
+      "ump_size": "128 bits",
+      "description": "Reserved for future definition by MMA/AMEI"
+    },
+    {
+      "mt": "0xF",
+      "ump_size": "128 bits",
+      "description": "UMP Stream Messages"
+    }
+  ],
+  "attribute_types": [
+    {
+      "attribute_type": "0x00",
+      "definition": "No Attribute Data Sender shall set Attribute Value to 0x0000"
+    },
+    {
+      "attribute_type": "0x01",
+      "definition": "Manufacturer Specific Interpretation of Attribute Data is determined by manufacturer"
+    },
+    {
+      "attribute_type": "0x02",
+      "definition": "Profile Specific Interpretation of Attribute Data is determined by MIDI-CI"
+    },
+    {
+      "attribute_type": "0x03",
+      "definition": "Pitch 7.9 See Section 7.4.15.3"
+    },
+    {
+      "attribute_type": "0x04",
+      "definition": "– 0xFF Reserved Do not use"
+    }
+  ],
+  "flex_data_format_fields": [
+    {
+      "value": 0,
+      "ump_type": "Complete Flex Data Message in one UMP"
+    },
+    {
+      "value": 1,
+      "ump_type": "Flex Data Message Start UMP"
+    },
+    {
+      "value": 2,
+      "ump_type": "Flex Data Message Continue UMP"
+    },
+    {
+      "value": 3,
+      "ump_type": "Flex Data Message End UMP"
+    }
+  ],
+  "flex_data_address_fields": [
+    {
+      "value": 0,
+      "addressing": "Message is sent to the Channel set in the Channel Field"
+    },
+    {
+      "value": 1,
+      "addressing": "Message is sent to the Group (ignore Channel Field)"
+    },
+    {
+      "value": 2,
+      "addressing": "Reserved"
+    },
+    {
+      "value": 3,
+      "addressing": "Reserved"
+    }
+  ],
+  "status_bank_classifications": [
+    {
+      "status_bank": "0x00",
+      "classification": "Setup & Performance Events (does not include text events)"
+    },
+    {
+      "status_bank": "0x01",
+      "classification": "Metadata Text"
+    },
+    {
+      "status_bank": "0x02",
+      "classification": "Performance Text Events (including lyrics)"
+    },
+    {
+      "status_bank": "0x03-FF",
+      "classification": "Reserved"
+    }
+  ],
+  "sharps_flats_examples": [
+    {
+      "sharps_flats_field": "One Sharp",
+      "tonic_note": "D",
+      "intended_tonic_note": "D Natural"
+    },
+    {
+      "sharps_flats_field": "Five Sharps",
+      "tonic_note": "D",
+      "intended_tonic_note": "D Sharp"
+    },
+    {
+      "sharps_flats_field": "Four Flats",
+      "tonic_note": "D",
+      "intended_tonic_note": "D Flat"
+    }
+  ],
+  "tonic_sharps_flats": [
+    {
+      "twos_complement": "0x2",
+      "decimal_value": 2,
+      "applied_to_tonic": "Double Sharp"
+    },
+    {
+      "twos_complement": "0x1",
+      "decimal_value": 1,
+      "applied_to_tonic": "Sharp"
+    },
+    {
+      "twos_complement": "0x0",
+      "decimal_value": 0,
+      "applied_to_tonic": "Natural"
+    },
+    {
+      "twos_complement": "0xF",
+      "decimal_value": -1,
+      "applied_to_tonic": "Flat"
+    },
+    {
+      "twos_complement": "0xE",
+      "decimal_value": -2,
+      "applied_to_tonic": "Double Flat"
+    }
+  ],
+  "chord_types": [
+    {
+      "value": "0x00",
+      "chord_type": "Clear Chord - No Chord"
+    },
+    {
+      "value": "0x01",
+      "chord_type": "Major"
+    },
+    {
+      "value": "0x02",
+      "chord_type": "Major 6th"
+    },
+    {
+      "value": "0x03",
+      "chord_type": "Major 7th"
+    },
+    {
+      "value": "0x04",
+      "chord_type": "Major 9th"
+    },
+    {
+      "value": "0x05",
+      "chord_type": "Major 11th"
+    },
+    {
+      "value": "0x06",
+      "chord_type": "Major 13th"
+    },
+    {
+      "value": "0x07",
+      "chord_type": "Minor"
+    },
+    {
+      "value": "0x08",
+      "chord_type": "Minor 6th"
+    },
+    {
+      "value": "0x09",
+      "chord_type": "Minor 7th"
+    },
+    {
+      "value": "0x0A",
+      "chord_type": "Minor 9th"
+    },
+    {
+      "value": "0x0B",
+      "chord_type": "Minor 11th"
+    },
+    {
+      "value": "0x0C",
+      "chord_type": "Minor 13th"
+    },
+    {
+      "value": "0x0D",
+      "chord_type": "Dominant"
+    },
+    {
+      "value": "0x0E",
+      "chord_type": "Dominant ninth"
+    },
+    {
+      "value": "0x0F",
+      "chord_type": "Dominant 11th"
+    },
+    {
+      "value": "0x10",
+      "chord_type": "Dominant 13th"
+    },
+    {
+      "value": "0x11",
+      "chord_type": "Augmented"
+    },
+    {
+      "value": "0x12",
+      "chord_type": "Augmented seventh"
+    },
+    {
+      "value": "0x13",
+      "chord_type": "Diminished"
+    },
+    {
+      "value": "0x14",
+      "chord_type": "Diminished seventh"
+    },
+    {
+      "value": "0x15",
+      "chord_type": "Half diminished (Diminished triad,"
+    },
+    {
+      "value": "0x16",
+      "chord_type": "Major-minor or Minor-major (Minor"
+    },
+    {
+      "value": "0x17",
+      "chord_type": "Pedal (e.g. XF 1+8)"
+    },
+    {
+      "value": "0x18",
+      "chord_type": "Power (e.g. XF 1+5)"
+    },
+    {
+      "value": "0x19",
+      "chord_type": "Suspended 2nd (e.g. XF 1+2+5)"
+    },
+    {
+      "value": "0x1A",
+      "chord_type": "Suspended 4th"
+    },
+    {
+      "value": "0x1B",
+      "chord_type": "7 Suspended 4th"
+    },
+    {
+      "value": "0x1C - 0xFF",
+      "chord_type": "Reserved"
+    }
+  ],
+  "bass_note_sharps_flats": [
+    {
+      "twos_complement": "0x2",
+      "decimal_value": 2,
+      "applied_to_bass_note": "Double Sharp"
+    },
+    {
+      "twos_complement": "0x1",
+      "decimal_value": 1,
+      "applied_to_bass_note": "Sharp"
+    },
+    {
+      "twos_complement": "0x0",
+      "decimal_value": 0,
+      "applied_to_bass_note": "Natural"
+    },
+    {
+      "twos_complement": "0xF",
+      "decimal_value": -1,
+      "applied_to_bass_note": "Flat"
+    },
+    {
+      "twos_complement": "0xE",
+      "decimal_value": -2,
+      "applied_to_bass_note": "Double Flat"
+    },
+    {
+      "twos_complement": "0x8",
+      "decimal_value": -8,
+      "applied_to_bass_note": "Same Note as Chord Tonic Note"
+    }
+  ],
+  "text_messages": [
+    {
+      "status_bank": "0x01",
+      "status": "0x00",
+      "message": "Unknown Metadata Text"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x01",
+      "message": "Project Name Address field should be set"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x02",
+      "message": "Composition (Song)"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x03",
+      "message": "MIDI Clip Name Address field should be set"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x04",
+      "message": "Copyright Notice"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x05",
+      "message": "Composer Name"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x06",
+      "message": "Lyricist Name"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x07",
+      "message": "Arranger Name"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x08",
+      "message": "Publisher Name"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x09",
+      "message": "Primary Performer Name"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x0A",
+      "message": "Accompanying Performer"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x0B",
+      "message": "Recording/Concert Date See Section 7.5.9.2"
+    },
+    {
+      "status_bank": "0x01",
+      "status": "0x0C",
+      "message": "Recording/Concert"
+    },
+    {
+      "status_bank": "0x02",
+      "status": "0x00",
+      "message": "Unknown Performance"
+    },
+    {
+      "status_bank": "0x02",
+      "status": "0x01",
+      "message": "Lyrics"
+    },
+    {
+      "status_bank": "0x02",
+      "status": "0x02",
+      "message": "Lyrics Language"
+    },
+    {
+      "status_bank": "0x02",
+      "status": "0x03",
+      "message": "Ruby"
+    },
+    {
+      "status_bank": "0x02",
+      "status": "0x04",
+      "message": "Ruby Language"
+    }
+  ],
+  "system_message_formats": [
+    {
+      "message": "Reserved",
+      "status": "0xF0",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "MIDI Time Code",
+      "status": "0xF1",
+      "byte_2": "0nnndddd",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Song Position Pointer",
+      "status": "0xF2",
+      "byte_2": "0lllllll*",
+      "byte_3": "0mmmmmmm*"
+    },
+    {
+      "message": "Song Select",
+      "status": "0xF3",
+      "byte_2": "0sssssss",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reserved",
+      "status": "0xF4",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reserved",
+      "status": "0xF5",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Tune Request",
+      "status": "0xF6",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reserved",
+      "status": "0xF7",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Timing Clock",
+      "status": "0xF8",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reserved",
+      "status": "0xF9",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Start",
+      "status": "0xFA",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Continue",
+      "status": "0xFB",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Stop",
+      "status": "0xFC",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reserved",
+      "status": "0xFD",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Active Sensing",
+      "status": "0xFE",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    },
+    {
+      "message": "Reset",
+      "status": "0xFF",
+      "byte_2": "Reserved",
+      "byte_3": "Reserved"
+    }
+  ],
+  "sysex7_status_values": [
+    {
+      "status": "0x0",
+      "ump_type": "Complete System Exclusive Message in one UMP"
+    },
+    {
+      "status": "0x1",
+      "ump_type": "System Exclusive Start UMP"
+    },
+    {
+      "status": "0x2",
+      "ump_type": "System Exclusive Continue UMP"
+    },
+    {
+      "status": "0x3",
+      "ump_type": "System Exclusive End UMP"
+    }
+  ],
+  "sysex8_status_values": [
+    {
+      "status": "0x0",
+      "ump_type": "Complete System Exclusive 8 Message in one UMP"
+    },
+    {
+      "status": "0x1",
+      "ump_type": "System Exclusive 8 Start UMP"
+    },
+    {
+      "status": "0x2",
+      "ump_type": "System Exclusive 8 Continue UMP"
+    },
+    {
+      "status": "0x3",
+      "ump_type": "System Exclusive 8 End UMP"
+    }
+  ],
+  "special_id_conversions": [
+    {
+      "special_id": "Universal System Exclusive Non-Real Time",
+      "seven_bit_value": "0x7E",
+      "sixteen_bit_value": "0x007E"
+    },
+    {
+      "special_id": "Universal System Exclusive Real Time",
+      "seven_bit_value": "0x7F",
+      "sixteen_bit_value": "0x007F"
+    },
+    {
+      "special_id": "Reserved",
+      "seven_bit_value": "0x00",
+      "sixteen_bit_value": "0x0000"
+    }
+  ],
+  "manufacturer_id_conversions": [
+    {
+      "manufacturer": "Moog",
+      "mfid_1": "0x04",
+      "mfid_2": "–",
+      "mfid_3": "–",
+      "mfid_32": "0x00040000",
+      "mfrid": "0x0004",
+      "mfrid_hi": "0x00",
+      "mfrid_lo": "0x04"
+    },
+    {
+      "manufacturer": "Midi 9",
+      "mfid_1": "0x09",
+      "mfid_2": "–",
+      "mfid_3": "–",
+      "mfid_32": "0x00090000",
+      "mfrid": "0x0009",
+      "mfrid_hi": "0x00",
+      "mfrid_lo": "0x09"
+    },
+    {
+      "manufacturer": "Yamaha",
+      "mfid_1": "0x43",
+      "mfid_2": "–",
+      "mfid_3": "–",
+      "mfid_32": "0x00430000",
+      "mfrid": "0x0043",
+      "mfrid_hi": "0x00",
+      "mfrid_lo": "0x43"
+    },
+    {
+      "manufacturer": "Mark of the Unicorn",
+      "mfid_1": "0x00",
+      "mfid_2": "0x00",
+      "mfid_3": "0x3b",
+      "mfid_32": "0x0000003b",
+      "mfrid": "0x803b",
+      "mfrid_hi": "0x80",
+      "mfrid_lo": "0x3b"
+    },
+    {
+      "manufacturer": "imitone",
+      "mfid_1": "0x00",
+      "mfid_2": "0x02",
+      "mfid_3": "0x13",
+      "mfid_32": "0x00000213",
+      "mfrid": "0x8213",
+      "mfrid_hi": "0x80",
+      "mfrid_lo": "0x3b"
+    },
+    {
+      "manufacturer": "Sensel Inc",
+      "mfid_1": "0x00",
+      "mfid_2": "0x02",
+      "mfid_3": "0x1d",
+      "mfid_32": "0x0000021d",
+      "mfrid": "0x821d",
+      "mfrid_hi": "0x82",
+      "mfrid_lo": "0x1d"
+    },
+    {
+      "manufacturer": "Samick",
+      "mfid_1": "0x00",
+      "mfid_2": "0x20",
+      "mfid_3": "0x25",
+      "mfid_32": "0x00002025",
+      "mfrid": "0xa025",
+      "mfrid_hi": "0xa0",
+      "mfrid_lo": "0x25"
+    },
+    {
+      "manufacturer": "Native Instruments",
+      "mfid_1": "0x00",
+      "mfid_2": "0x21",
+      "mfid_3": "0x09",
+      "mfid_32": "0x00002109",
+      "mfrid": "0xa109",
+      "mfrid_hi": "0xa1",
+      "mfrid_lo": "0x09"
+    },
+    {
+      "manufacturer": "Bome Software",
+      "mfid_1": "0x00",
+      "mfid_2": "0x21",
+      "mfid_3": "0x32",
+      "mfid_32": "0x00002132",
+      "mfrid": "0xa132",
+      "mfrid_hi": "0xa1",
+      "mfrid_lo": "0x32"
+    }
+  ],
+  "registered_per_note_controllers": [
+    {
+      "number": "0",
+      "controller_name": "Reserved",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "1",
+      "controller_name": "Modulation",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "2",
+      "controller_name": "Breath",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "3",
+      "controller_name": "Pitch 7.25",
+      "default_value": "Section 7.4.15.2",
+      "reference": "Section 7.4.15.2"
+    },
+    {
+      "number": "4–6",
+      "controller_name": "Reserved",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "7",
+      "controller_name": "Volume",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "8",
+      "controller_name": "Balance",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "9",
+      "controller_name": "Reserved",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "10",
+      "controller_name": "Pan",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "11",
+      "controller_name": "Expression",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "12–69",
+      "controller_name": "Reserved",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "70",
+      "controller_name": "Sound Controller 1 Sound Variation",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "71",
+      "controller_name": "Sound Controller 2 Timbre/Harmonic",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "72",
+      "controller_name": "Sound Controller 3 Release Time",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "73",
+      "controller_name": "Sound Controller 4 Attack Time",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "74",
+      "controller_name": "Sound Controller 5 Brightness",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "75",
+      "controller_name": "Sound Controller 6 Decay Time",
+      "default_value": "–",
+      "reference": "MMA RP-021"
+    },
+    {
+      "number": "76",
+      "controller_name": "Sound Controller 7 Vibrato Rate",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "77",
+      "controller_name": "Sound Controller 8 Vibrato Depth",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "78",
+      "controller_name": "Sound Controller 9 Vibrato Delay",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "79",
+      "controller_name": "Sound Controller 10 Undefined",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "80–90",
+      "controller_name": "Reserved",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "91",
+      "controller_name": "Effects 1 Depth Reverb Send",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "92",
+      "controller_name": "Effects 2 Depth (formerly Tremolo Depth)",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "93",
+      "controller_name": "Effects 3 Depth Chorus Send",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "94",
+      "controller_name": "Effects 4 Depth (formerly Celeste [Detune]",
+      "default_value": "–",
+      "reference": "–"
+    },
+    {
+      "number": "95",
+      "controller_name": "Effects 5 Depth (formerly Phaser Depth)",
+      "default_value": "–",
+      "reference": "–"
+    }
+  ],
+  "center_value_examples": [
+    {
+      "value_size": "7 bits",
+      "center_hex": "0x40",
+      "center_binary": "8’b 01000000"
+    },
+    {
+      "value_size": "14 bits",
+      "center_hex": "0x2000",
+      "center_binary": "16’b 00100000 00000000"
+    },
+    {
+      "value_size": "8 bits",
+      "center_hex": "0x80",
+      "center_binary": "8’b 10000000"
+    },
+    {
+      "value_size": "16 bits",
+      "center_hex": "0x8000",
+      "center_binary": "16’b 10000000 00000000"
+    },
+    {
+      "value_size": "32 bits",
+      "center_hex": "0x80000000",
+      "center_binary": "32’b 10000000 00000000 00000000 00000000"
+    }
+  ],
+  "ump_formats": [
+    {
+      "message": "NOOP",
+      "mt": "0x0",
+      "group": "reserved",
+      "fields": "0000 0000 00000000 00000000"
+    },
+    {
+      "message": "JR Clock",
+      "mt": "0x0",
+      "group": "reserved",
+      "fields": "0001 reserved tttttttt tttttttt"
+    },
+    {
+      "message": "JR Timestamp",
+      "mt": "0x0",
+      "group": "reserved",
+      "fields": "0010 reserved tttttttt tttttttt"
+    },
+    {
+      "message": "Delta Clockstamp",
+      "mt": "0x0",
+      "group": "reserved",
+      "fields": "0100 tttt tttttttt tttttttt"
+    },
+    {
+      "message": "MIDI Time Code",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11110001 0nnndddd reserved"
+    },
+    {
+      "message": "Song Position Pointer",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11110010 0lllllll 0mmmmmmm"
+    },
+    {
+      "message": "Song Select",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11110011 0sssssss reserved"
+    },
+    {
+      "message": "Tune Request",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11110110 reserved reserved"
+    },
+    {
+      "message": "Timing Clock",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111000 reserved reserved"
+    },
+    {
+      "message": "Start",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111010 reserved reserved"
+    },
+    {
+      "message": "Continue",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111011 reserved reserved"
+    },
+    {
+      "message": "Stop",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111100 reserved reserved"
+    },
+    {
+      "message": "Active Sensing",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111110 reserved reserved"
+    },
+    {
+      "message": "Reset",
+      "mt": "0x1",
+      "group": "gggg",
+      "fields": "11111111 reserved reserved"
+    },
+    {
+      "message": "Note Off",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1000nnnn rkkkkkkk rvvvvvvvv"
+    },
+    {
+      "message": "Note On",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1001nnnn rkkkkkkk rvvvvvvvv"
+    },
+    {
+      "message": "Poly Pressure",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1010nnnn rkkkkkkk rddddddd"
+    },
+    {
+      "message": "Control Change",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1011nnnn rccccccc rddddddd"
+    },
+    {
+      "message": "Program Change",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1100nnnn rppppppp reserved"
+    },
+    {
+      "message": "Channel Pressure",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1101nnnn rddddddd reserved"
+    },
+    {
+      "message": "Pitch Bend",
+      "mt": "0x2",
+      "group": "gggg",
+      "fields": "1110nnnn rddddddd rDDDDDDD"
+    },
+    {
+      "message": "SysEx Start",
+      "mt": "0x3",
+      "group": "gggg",
+      "fields": "0001bbbb 0data/pad 0data/pad 0data/pad 0data/pad 0data/pad 0data/pad"
+    },
+    {
+      "message": "SysEx End",
+      "mt": "0x3",
+      "group": "gggg",
+      "fields": "0011bbbb 0data/pad 0data/pad 0data/pad 0data/pad 0data/pad 0data/pad"
+    },
+    {
+      "message": "Note Off",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "1000nnnn rkkkkkkk AttributeType VVVVVVVV vvvvvvvv AAAAAAAA aaaaaaaa"
+    },
+    {
+      "message": "Note On",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "1001nnnn rkkkkkkk AttributeType VVVVVVVV vvvvvvvv AAAAAAAA aaaaaaaa"
+    },
+    {
+      "message": "Poly Pressure",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "1010nnnn rkkkkkkk reserved DDDDDDDD dddddddd dddddddd dddddddd"
+    },
+    {
+      "message": "Per-Note Ctrl.",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "0000nnnn rkkkkkkk cccccccc DDDDDDDD dddddddd dddddddd dddddddd"
+    },
+    {
+      "message": "Per-Note Ctrl.",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "0001nnnn rkkkkkkk cccccccc DDDDDDDD dddddddd dddddddd dddddddd"
+    },
+    {
+      "message": "Pitch Bend",
+      "mt": "0x4",
+      "group": "gggg",
+      "fields": "1110nnnn reserved reserved DDDDDDDD dddddddd dddddddd dddddddd"
+    },
+    {
+      "message": "SysEx8 in 1 UMP",
+      "mt": "0x5",
+      "group": "gggg",
+      "fields": "0000 #bytes stream id data/pad"
+    },
+    {
+      "message": "SysEx8 Start",
+      "mt": "0x5",
+      "group": "gggg",
+      "fields": "0001 #bytes stream id data/pad"
+    },
+    {
+      "message": "SysEx8 Continue",
+      "mt": "0x5",
+      "group": "gggg",
+      "fields": "0010 #bytes stream id data/pad"
+    },
+    {
+      "message": "SysEx8 End",
+      "mt": "0x5",
+      "group": "gggg",
+      "fields": "0011 #bytes stream id data/pad"
+    },
+    {
+      "message": "Mixed Data Set Header",
+      "mt": "0x5",
+      "group": "gggg",
+      "fields": "1000 mds id Header Fields"
+    }
+  ],
+  "midi2_addressing": [
+    {
+      "entry": "data computers can understand. Controllers are now easier to use, and there are more of them: over 32,000"
+    },
+    {
+      "entry": "MIDI 2.0 Protocol"
+    },
+    {
+      "entry": "Group: A field in the UMP Format addressing some UMP Format MIDI message (and some UMP comprising"
+    },
+    {
+      "entry": "MIDI 2.0 Protocol specification [MA06]."
+    },
+    {
+      "entry": "MIDI 1.0 Protocol: Version 1.0 of the MIDI Protocol as originally specified in [MA01] and extended by MA and"
+    },
+    {
+      "entry": "MIDI 1.0 Specification: Complete MIDI 1.0 Detailed Specification, Document Version 96.1, Third Edition"
+    },
+    {
+      "entry": "MIDI 2.0: The MIDI environment that encompasses all of MIDI 1.0, MIDI-CI, Universal MIDI Packet (UMP),"
+    },
+    {
+      "entry": "MIDI 2.0 Protocol, MIDI 2.0 messages, and other extensions to MIDI as described in AMEI and MA"
+    },
+    {
+      "entry": "MIDI 2.0 Protocol: Version 2.0 of the MIDI Protocol. The native format for MIDI 2.0 Protocol messages is UMP"
+    },
+    {
+      "entry": "MIDI-CI: MIDI Capability Inquiry [MA03], a specification published by The MIDI Association and AMEI."
+    },
+    {
+      "entry": "data structure that defines the semantics for MIDI messages. See [MA01] and [MA06]."
+    },
+    {
+      "entry": "UMP Stream Function Block UMP Group Channel"
+    },
+    {
+      "entry": "UMP Stream"
+    },
+    {
+      "entry": "Utility Messages"
+    },
+    {
+      "entry": "MIDI-CI - System"
+    },
+    {
+      "entry": "Flex Data Messages"
+    },
+    {
+      "entry": "Channel fields"
+    }
+  ],
+  "summary": {
+    "message_type_allocation_count": 16,
+    "attribute_type_count": 5,
+    "flex_data_format_field_count": 4,
+    "flex_data_address_field_count": 4,
+    "status_bank_classification_count": 4,
+    "sharps_flats_example_count": 3,
+    "tonic_sharps_flats_count": 5,
+    "chord_type_count": 29,
+    "bass_note_sharps_flats_count": 6,
+    "text_message_count": 18,
+    "system_message_format_count": 16,
+    "sysex7_status_value_count": 4,
+    "sysex8_status_value_count": 4,
+    "special_id_conversion_count": 3,
+    "manufacturer_id_conversion_count": 9,
+    "registered_per_note_controller_count": 27,
+    "center_value_example_count": 5,
+    "ump_format_count": 34,
+    "midi2_addressing_count": 17
+  }
+}

@@ -11,10 +11,12 @@ describe('MIDI', () => {
 	test('dispatches midiNoteOn when Note On message received', async () => {
 		const env = getEnv();
 
-		// Reset modules to get fresh singleton instances with the fake MIDI environment
+		// Reset modules to get fresh instances with the fake MIDI environment
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/Midi.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
 
 		// Wait for event from AppState
 		const promise = waitForEvent(appState, 'midiNoteOn');
@@ -28,7 +30,7 @@ describe('MIDI', () => {
 		expect(event.detail.note).toBe(60);
 		expect(event.detail.velocity).toBe(127);
 
-		// midi.destroy() is now handled by the fixture's afterEach if midi was imported
+		midi.destroy();
 	});
 
 	test('Note On with velocity 0 dispatches midiNoteOff', async () => {
@@ -36,14 +38,16 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/Midi.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-2');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x90, 60, 0]) }); // velocity 0 -> Note Off
 		const event = await promise;
 		expect(event.detail.channel).toBe(0);
 		expect(event.detail.note).toBe(60);
-		// midi.destroy() and env teardown are handled by fixture
+		midi.destroy();
 	});
 
 	test('Note Off command dispatches midiNoteOff', async () => {
@@ -51,14 +55,16 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/Midi.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
 		const promise = waitForEvent(appState, 'midiNoteOff');
 		const fakeInput = env.getInputById('fake-3');
 		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x80, 60, 127]) }); // Note Off command
 		const event = await promise;
 		expect(event.detail.channel).toBe(0);
 		expect(event.detail.note).toBe(60);
-		// midi.destroy() and env teardown are handled by fixture
+		midi.destroy();
 	});
 
 	test('ignores malformed messages (length < 3)', async () => {
@@ -66,7 +72,9 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		await import('../src/js/midi-input/Midi.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
 
 		const fakeInput = env.getInputById('fake-4');
 
@@ -91,7 +99,7 @@ describe('MIDI', () => {
 
 		noteOnSpy.mockRestore();
 		noteOffSpy.mockRestore();
-		// midi.destroy() and env teardown are handled by fixture
+		midi.destroy();
 	});
 
 	test('destroy clears inputs and updates appState.midiConnected', async () => {
@@ -99,9 +107,11 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi-input/Midi.js')).default;
+		const Midi = (await import('../src/js/midi-input/Midi.js')).default;
+		const midi = new Midi();
+		await midi.ready;
 
-		// MIDI connection is set during module import - check state directly
+		// MIDI connection is set during construction - check state directly
 		expect(appState.midiConnected).toBe(true);
 
 		// The device should be present
@@ -125,7 +135,9 @@ describe('MIDI', () => {
 
 		vi.resetModules();
 		const { default: appState } = await import('../src/js/core/AppState.js');
-		const midi = (await import('../src/js/midi-input/Midi.js')).default;
+		const Midi = (await import('../src/js/midi-input/Midi.js')).default;
+		const midi = new Midi();
+		await midi.ready;
 
 		// Initially no devices
 		expect(appState.midiConnected).toBe(false);
@@ -141,6 +153,6 @@ describe('MIDI', () => {
 		expect(midi.getConnectedDevices()).toEqual([]);
 		expect(appState.midiConnected).toBe(false);
 
-		// midi.destroy() and env teardown are handled by fixture
+		midi.destroy();
 	});
 });

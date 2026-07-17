@@ -43,6 +43,7 @@ class AppState extends EventTarget {
 	#lastClockTime = null;
 	#clockTimeoutId = null;
 	#recentPulseIntervals = []; // Last few pulse intervals for BPM calculation
+	#resetGeneration = 0; // Increments on each reset() to invalidate pending callbacks
 
 	/**
 	 * @param {Object} [settings=defaultSettings] - Runtime configuration (defaults to global settings)
@@ -189,12 +190,16 @@ class AppState extends EventTarget {
 		if (this.#clockTimeoutId !== null) {
 			clearTimeout(this.#clockTimeoutId);
 		}
+		const generation = this.#resetGeneration;
 		this.#clockTimeoutId = setTimeout(() => {
+			this.#clockTimeoutId = null;
+			if (generation !== this.#resetGeneration) {
+				return;
+			}
 			if (this.#bpmSource === BPM_SOURCE_CLOCK) {
 				this.#bpmSource = BPM_SOURCE_DEFAULT;
 				this.#dispatchStateEvent(EVENT_BPM_SOURCE_CHANGED, { source: BPM_SOURCE_DEFAULT, bpm: this.#currentBPM });
 			}
-			this.#clockTimeoutId = null;
 		}, this.#settings.bpm.clockTimeoutMs);
 	}
 
@@ -320,10 +325,20 @@ class AppState extends EventTarget {
 			clearTimeout(this.#clockTimeoutId);
 			this.#clockTimeoutId = null;
 		}
+		this.#resetGeneration++;
 	}
 }
 
 const appState = new AppState();
+
+/**
+ * Create a fresh AppState instance for testing isolation.
+ * @param {Object} [settings] - Optional settings override
+ * @returns {AppState}
+ */
+export function createAppState(settings) {
+	return new AppState(settings);
+}
 
 export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, BPM_SOURCE_CLOCK };
 export default appState;

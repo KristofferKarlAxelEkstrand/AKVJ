@@ -83,7 +83,7 @@ function printCreateInstructions(relativeDir) {
 	console.log('Next steps:');
 	console.log('  1. Add your sprite.png to the same folder');
 	console.log('  2. Update meta.json with correct frames and framesPerRow');
-	console.log('  3. Map the clip in clips/midi-layout.json (or Admin Mapping UI)');
+	console.log('  3. Map the clip in clips/key-map.json (or Mainframe Mapping UI)');
 	console.log('  4. Run: npm run clips');
 }
 

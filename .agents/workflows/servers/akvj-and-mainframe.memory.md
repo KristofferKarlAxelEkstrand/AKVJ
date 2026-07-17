@@ -971,6 +971,700 @@ Decouple the `akvj` (pure, lightweight visualizer) from the `mainframe` server (
 - `npm run test:all` — passes (akvj: 321, mainframe: 71, midi-mcp: 1802 = 2194 total)
 - `npm run lint` — clean
 
+### Iteration 49 — Rename Workspaces Documentation Cleanup (2025-07-16)
+
+**Inbox processed:** `unblock_task_19.md` — user explicitly unblocked Task 19 ("i dont think it is do it!"). Moved original to `inbox/read/`.
+
+**Task source:** `tasks/19-rename-workspaces.md` (previously blocked on user confirmation)
+
+**Findings:**
+- The codebase (folders, `package.json`, configs, source code, tests) was already fully renamed to `akvj`/`mainframe` in earlier iterations.
+- Remaining `vj-server`/`admin` references were only in `.agents/` documentation files — 5 files total.
+
+**Changes implemented:**
+1. **`.agents/prompts/specs/admin-and-akwf.prompt.md`** — All `vj-server`→`akvj`, `admin`→`mainframe`, `Admin`→`Mainframe` references updated (title, motivation, architecture, constraints, all 4 execution phases).
+2. **`.agents/prompts/README.md`** — Server Architect description and trigger text updated to `akvj`/`mainframe` and correct prompt filename.
+3. **`.agents/prompts/_memory.md`** — `admin/server/`→`mainframe/server/` path references updated (2 lines).
+4. **`.agents/prompts/code-of-conduct.prompt.md`** — `vj-server`→`akvj` in Core Architecture rule.
+5. **`.agents/workflows/README.md`** — Server Architect description and trigger text updated to `akvj`/`mainframe` and correct prompt filename.
+
+**Verification:**
+- `npm run build:all` — passes
+- `npm run test:all` — passes (akvj: 321, mainframe: 71, midi-mcp: 1873 = 2265 total — note: midi-mcp count increased from previous iterations, likely due to ongoing midi-mcp agent work)
+
+**Task moved to `tasks/done/19-rename-workspaces.md`**.
+
 **Remaining tasks in `tasks/` folder:**
-- 19-rename-workspaces.md (blocked — requires user confirmation on naming)
 - 20-asset-ingestion-ui.md (needs scoping into sub-tasks)
+
+### Iteration 50 — Rename Workspaces: Source Code Cleanup (2026-07-16)
+
+**Inbox processed:** `unblock_task_19.md` was already processed in iteration 49. No new inbox items.
+
+**Task 19 follow-up:** Iteration 49 handled `.agents/` documentation references but missed stale `admin`/`Admin` references in actual source code files.
+
+**Changes implemented:**
+1. **`mainframe/server/index.js`**: `createAdminServer()` → `createMainframeServer()` (export + call site), `ADMIN_API_PORT` → `MAINFRAME_API_PORT` env var, "Lightweight Admin API" → "Lightweight Mainframe API" in JSDoc, "admin UI" → "mainframe UI" in comment, "AKVJ admin API" → "AKVJ mainframe API" in startup log.
+2. **`mainframe/test/server.test.js`**: `createAdminServer()` → `createMainframeServer()` in import.
+3. **`mainframe/scripts/clips/new.js`**: "Admin Mapping UI" → "Mainframe Mapping UI" in help text.
+4. **`.agents/prompts/specs/admin-and-akwf.prompt.md`** → renamed to **`mainframe-and-akvj.prompt.md`** (filename still had old `admin` name despite content being updated in iteration 49).
+
+**Verification:**
+- `npm run build:all` — passes
+- `npm run test:all` — passes (akvj: 321, mainframe: 71, midi-mcp: 1873 = 2265 total; one flaky `generate.test.js` ENOTEMPTY fixture cleanup failure on first run, passes on re-run — pre-existing, unrelated)
+- `npm run lint` — clean
+
+**Remaining tasks in `tasks/` folder:**
+- 20-asset-ingestion-ui.md (needs scoping into sub-tasks)
+
+## Current TODO
+1. Execute task 20b: Frontend staging UI with drag & drop (depends on 20a — now unblocked).
+
+### Iteration 51 — Task 20 Scoping + Sub-task 20a: Backend Raw Asset Storage (2026-07-16)
+
+**Task 20 scoped into sub-tasks:**
+- 20a: Backend raw asset storage + sharp pipeline ✅
+- 20b: Frontend staging UI with drag & drop
+- 20c: Live preview canvas with scale/color depth
+- 20d: Sprite sheet compilation endpoint
+
+Original task 20 moved to `tasks/done/`. Sub-task files created in `tasks/`.
+
+**Sub-task 20a executed:**
+
+**Changes implemented:**
+
+1. **`mainframe/server/paths.js`**: Added `RAW_ASSETS_DIR` constant (`clips/.raw-assets`) and `rawAssetsDir(clipId)` function with same clipId validation as `clipDir()`.
+
+2. **`mainframe/server/spritesheet.js`**: Major update to `createClipFromFrames()`:
+   - Added `storeRawAssets()` — saves original frame buffers to `clips/.raw-assets/{clipId}/frame-NNNN.png` before processing
+   - Added `resizeFrames()` — uses sharp to resize each frame to `targetWidth`×`targetHeight` (defaults: 240×135) with `fit: 'fill'` before compositing
+   - Expanded config params: `name`, `playback`, `frameRate` — all optional with sensible defaults
+   - `writeClipFiles()` signature changed: `role` → `clipOptions` object
+   - `buildClipMeta()` now sets `name`, `playback`, and `frameRate` from clipOptions
+
+3. **`mainframe/server/index.js`**: `POST /api/clips` handler now destructures `targetWidth`, `targetHeight`, `name`, `playback`, `frameRate` from request body and passes to `createClipFromFrames()`.
+
+4. **`mainframe/src/index.html`**: Fixed stale "AKVJ Admin" → "AKVJ Mainframe" in `<title>` and `<h1>`.
+
+5. **Tests added:**
+   - `mainframe/test/paths.test.js`: 3 new tests — `rawAssetsDir()` returns correct path, throws for invalid clipIds, `RAW_ASSETS_DIR` export sanity check.
+   - `mainframe/test/server.test.js`: 2 new tests — raw assets stored alongside compiled clip, config params (name, playback, frameRate, targetWidth, targetHeight) accepted and applied correctly. afterEach cleanup updated to remove `.raw-assets/` directories.
+
+**Verification:**
+- `npm run build:all` — passes
+- `npm run test:all` — passes (akvj: 321, mainframe: 76 (+5 new), midi-mcp: 1873 = 2270 total)
+- `npm run lint` — clean
+
+**Sub-task 20a moved to `tasks/done/20a-backend-raw-asset-storage.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+
+### Iteration 52 — Inbox Processing + Task 21: Check Implementations Audit (2026-07-16)
+
+**Inbox processed (4 items → 4 tasks created):**
+1. `check-implementations.md` → Task 21 (audit recent features)
+2. `continue-custom-element-migration.md` → Task 22 (extract clip-list, clip-editor, mapping-table components)
+3. `improve-test-coverage.md` → Task 23 (tests for spritesheet.js and other gaps)
+4. `metadata-form-improvements.md` → Task 24 (PNG validation, sort dropdown, batch ops)
+
+All originals moved to `inbox/read/`.
+
+**Task 21 executed — Audit findings and fixes:**
+
+**1. midi-layout.json serialization/deserialization:**
+- **BUG FIXED**: `flattenMidiLayout()` in `mainframe/server/index.js` had no guards against non-object intermediate values (null, string, array). If `midi-layout.json` had a channel key mapped to `null` or a string, `Object.entries()` would throw. Added defensive `typeof`/`Array.isArray()` checks at both the `notes` and `velocities` levels.
+- `nestMappingEntries()` — correct, no issues.
+- `readMapping()` — correct, has proper top-level guards.
+- `writeMapping()` / `validateMappingEntry()` — correct, thorough validation.
+- `ClipLoader.js` `#buildLoadTasks()` — correct, has proper guards for unknown clipId, non-numeric keys, channel range.
+- `ClipLoader.js` `#parseMappingValue()` — correct, handles both string and object mapping formats.
+- **Test added**: malformed midi-layout with null/string intermediate values → GET /api/mapping returns only valid entries.
+
+**2. Custom element memory leaks:**
+- `PianoKeyboard.js` — **No leak found.** `disconnectedCallback()` calls `replaceChildren()` which removes all child DOM nodes. Click listeners are on child nodes (not on `document`/`window`), so they're garbage collected with the nodes. Pattern is correct.
+
+**3. Error handling gaps:**
+- **XSS FIXED**: `renderMapping()` in `mainframe/src/main.js` used `innerHTML` with unsanitized `entry.clipId` for table cells. Replaced with safe `textContent` cell creation.
+- **UX FIXED**: `deleteClip()` caught errors with only `console.error()` — no user feedback. Added `alert()` with error message.
+- All other fetch calls (`loadLibrary`, `loadMapping`, upload form, save mapping, run pipeline) have proper try/catch with user-visible status messages.
+
+**Verification:**
+- `npm run build:all` — passes
+- `npm run test -w mainframe` — 77 tests pass (+1 new malformed-layout test)
+- `npm run lint` — clean
+
+**Task 21 moved to `tasks/done/21-check-implementations.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 22-continue-custom-element-migration.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+
+### Iteration 53 — Task 22 Scoping + Sub-task 22a: Extract `<akvj-clip-list>` Component (2026-07-16)
+
+**Task 22 scoped into sub-tasks:**
+- 22a: Extract `<akvj-clip-list>` component ✅
+- 22b: Extract `<akvj-clip-editor>` component
+- 22c: Extract `<akvj-mapping-table>` component
+
+Original task 22 moved to `tasks/done/`. Sub-task files created in `tasks/`.
+
+**Sub-task 22a executed:**
+
+**Changes implemented:**
+
+1. **`mainframe/src/js/ClipList.js`** (new file, 282 lines): `<akvj-clip-list>` custom element encapsulating:
+   - Clip list rendering with thumbnails, metadata display, and action buttons (Preview, Edit, Map, Delete)
+   - Search query and role filter via setters (`searchQuery`, `roleFilter`)
+   - Clip preview player with canvas, play/pause, scrub, speed controls, animation loop
+   - `disconnectedCallback()` cleanup: stops all active preview players and removes children
+   - Dispatches `clipedit` (with clip + listItem), `clipdelete`, `clipmap` events (bubbles: true)
+   - `attachEditForm()` method for parent to append edit forms to list items
+
+2. **`mainframe/src/main.js`**: Removed ~210 lines of inline rendering code:
+   - `createClipListItem()`, `filterClipsBySearch()`, `toggleClipPreview()`, `stopPreviewPlayer()`, `createClipPreviewPlayer()`, `toggleClipEditForm()`, `activePreviewPlayers` Map
+   - `renderLibrary()` simplified to `clipListElement.clips = clipCatalog` + summary/filter visibility
+   - Search/filter handlers now set `clipListElement.searchQuery` / `clipListElement.roleFilter` directly
+   - Event listeners on `clipListElement` for `clipedit`, `clipdelete`, `clipmap` delegation
+   - `createClipEditForm()` stays in `main.js` (will be extracted in task 22b)
+
+3. **`mainframe/src/index.html`**: Replaced `<ul id="clip-list" class="clip-list">` with `<akvj-clip-list id="clip-list" class="clip-list">`. CSS `.clip-list` class still applies (grid layout, li styling).
+
+**Verification:**
+- `npm run build:all` — passes (7 modules transformed, up from 6 — new ClipList.js)
+- `npm run test:all` — 1923 tests pass
+- `npm run lint` — clean
+
+**Sub-task 22a moved to `tasks/done/22a-clip-list-component.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 22b-clip-editor-component.md
+- 22c-mapping-table-component.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+
+### Iteration 54 — Sub-task 22b: Extract `<akvj-clip-editor>` Component (2026-07-16)
+
+**Sub-task 22b executed:**
+
+**Changes implemented:**
+
+1. **`mainframe/src/js/ClipEditor.js`** (new file, 259 lines): `<akvj-clip-editor>` custom element encapsulating:
+   - Full clip metadata edit form: name, frames, framesPerRow, playback, retrigger, role, bitDepth, triggerType, triggerGroup, frameRatesForFrames (JSON with validation), frameDurationBeats (JSON with validation)
+   - `clip` setter triggers re-render
+   - Save handler calls `PUT /api/clips/:clipId` directly via `fetch()`, then dispatches `clipsaved` event (bubbles: true) with `{ detail: { clipId } }`
+   - Private helper methods: `#createField()`, `#createNumberInput()`, `#createCheckbox()`, `#createTextInput()`, `#setStatus()`
+   - `disconnectedCallback()` cleanup via `replaceChildren()`
+   - Extracted constants: `PLAYBACK_MODES`, `TRIGGER_TYPES`
+
+2. **`mainframe/src/main.js`**: Removed ~230 lines:
+   - `createClipEditForm()` function (195 lines) — moved to component
+   - `createField()`, `createNumberInput()`, `createCheckbox()`, `createTextInput()` helpers — moved as private methods
+   - `clipedit` event handler now creates `<akvj-clip-editor>` element and sets `clip` property
+   - New `clipsaved` event listener triggers `loadLibrary()` reload
+
+**Verification:**
+- `npm run build:all` — passes (8 modules transformed, up from 7 — new ClipEditor.js)
+- `npm run test:all` — 1923 tests pass
+- `npm run lint` — 3 pre-existing errors in `midi-mcp/lib/transformers/umpMidi2ProtocolTransformer.js` (confirmed pre-existing via git stash). My changes are lint-clean.
+
+**Sub-task 22b moved to `tasks/done/22b-clip-editor-component.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 22c-mapping-table-component.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+
+### Iteration 55 — Task 25: Fix Server Startup Hang (2026-07-16)
+
+**Inbox processed:** 2 new items → tasks 25, 26 created. Originals archived to `inbox/read/`.
+
+**Task 25 executed — investigated and fixed server startup hang:**
+
+**Root cause analysis:**
+1. **API server crashes on EADDRINUSE**: `mainframe/server/index.js` had no error handler on the server's `error` event. When port 8787 was already in use (stale process), Node threw an unhandled `error` event, crashing with a stack trace. The `node --watch` supervisor then waited for file changes, making it appear hung.
+2. **akvj Vite silent port fallback**: `akvj/vite.config.js` lacked `strictPort: true`, so Vite silently moved to port 5174 (mainframe's port) or 5175, making the UI unreachable at the expected URL.
+3. **No startup verification**: No smoke test existed to catch these issues automatically.
+
+**Changes implemented:**
+
+1. **`mainframe/server/index.js`** (lines 440-452): Added `server.on('error', ...)` handler that catches `EADDRINUSE` and exits with a helpful message: `Port 8787 is already in use. Stop the other process or set MAINFRAME_API_PORT.`
+
+2. **`akvj/vite.config.js`** (lines 33-35): Added `port: 5173` and `strictPort: true` to server config, preventing silent port fallback. Vite will now error clearly if port 5173 is occupied.
+
+3. **`mainframe/test/smoke/startup.test.js`** (new file, 149 lines): Startup smoke test that:
+   - Kills stale processes on target ports before starting
+   - Spawns both `npm run akvj` and `npm run mainframe` via `child_process.spawn`
+   - Polls `http://localhost:5173/`, `http://localhost:5174/`, `http://localhost:8787/api/health`
+   - Fails if any endpoint doesn't return HTTP 200 within timeout (default 15s)
+   - Cleans up all child processes on exit
+
+4. **`mainframe/vitest.config.js`**: Added `**/smoke/**` to exclude list so vitest doesn't pick up the smoke test as a test suite.
+
+5. **`package.json`**: Added `test:smoke` script: `node mainframe/test/smoke/startup.test.js`
+
+**Verification:**
+- `npm run build:all` — passes (8 modules transformed)
+- `npm run test:all` — 1990 tests pass (56 test files)
+- `npm run lint` — clean (3 pre-existing errors in midi-mcp only)
+- Individual server tests confirmed: API responds with `{"ok":true}` on health endpoint, both Vite servers return HTTP 200
+
+**Task 25 moved to `tasks/done/25-fix-server-startup-hang.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 22c-mapping-table-component.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+
+### Iteration 56 — Task 28: Devcontainer Port Locking (2026-07-16)
+
+**Inbox processed:** 4 items (2 duplicates of already-processed, 2 new) → tasks 27, 28 created. All archived to `inbox/read/`.
+
+**Task 28 executed — locked down Vite ports to custom distinct numbers:**
+
+**Port mapping change:**
+- akvj Vite: 5173 → **8888**
+- mainframe Vite: 5174 → **9999**
+- mainframe API: 8787 (unchanged)
+- akvj preview: 4173 (unchanged)
+
+**Changes implemented:**
+
+1. **`akvj/vite.config.js`**: Changed `port: 5173` → `port: 8888` (strictPort already added in task 25)
+2. **`mainframe/vite.config.js`**: Changed `port: 5174` → `port: 9999`
+3. **`mainframe/server/index.js`**: Updated `ALLOWED_ORIGINS` to use ports 8888 and 9999 instead of 5173 and 5174
+4. **`.devcontainer/devcontainer.json`**: Updated `forwardPorts` to `[8888, 4173, 9999, 8787]` and updated `portsAttributes` labels and port keys
+5. **`mainframe/test/smoke/startup.test.js`**: Updated URL constants and `killStaleProcesses` pkill patterns to use new ports
+6. **`README.md`**: Updated maintenance packages table and core commands to reference new ports
+7. **`mainframe/README.md`**: Updated port reference from `:5174` to `:9999`
+8. **`AGENTS.md`**: Updated all port references — common commands, troubleshooting, port forwarding table, container access URLs
+
+**Verification:**
+- `npm run build:all` — passes (8 modules transformed)
+- `npm run test:all` — 1990 tests pass (56 test files)
+- `npm run lint` — clean (3 pre-existing errors in midi-mcp only)
+
+**Task 28 moved to `tasks/done/28-devcontainer-port-locking.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 22c-mapping-table-component.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+
+### Iteration 57 — Sub-task 22c: Extract `<akvj-mapping-table>` Component (2026-07-16)
+
+**Sub-task 22c executed — completed the custom element migration trilogy (22a ✅, 22b ✅, 22c ✅):**
+
+**Changes implemented:**
+
+1. **`mainframe/src/js/MappingTable.js`** (new file, 131 lines): `<akvj-mapping-table>` custom element encapsulating:
+   - Mapping summary (mapped slot count + unmapped clips list)
+   - Mapping table with sorted rows (channel, note, velocity, clipId, remove button)
+   - `mappings` setter (array of entries) triggers re-render
+   - `clipCatalog` setter (for unmapped clips calculation) triggers re-render
+   - Dispatches `mappingremove` event (bubbles: true) with `{ detail: { channel, note, velocity, clipId } }`
+   - `disconnectedCallback()` cleanup via `replaceChildren()`
+
+2. **`mainframe/src/main.js`**: Removed ~50 lines:
+   - `renderMapping()` simplified to `mappingTableElement.mappings = mappingState` + `clipCatalog` + `updatePianoKeyboard()`
+   - `updateMappingSummary()` removed — moved to component
+   - Table row creation loop removed — moved to component
+   - New `mappingremove` event listener handles removal + re-render
+
+3. **`mainframe/src/index.html`**: Replaced `<div id="mapping-summary">` + `<table class="mapping-table">` with `<akvj-mapping-table id="mapping-table">`. Kept the `mapping-add` form (channel/note/velocity/clipId inputs) outside the component since it's an input form, not display.
+
+**Custom element migration complete:** All three UI components extracted:
+- `<akvj-clip-list>` (22a) — clip library list + preview player
+- `<akvj-clip-editor>` (22b) — clip metadata edit form
+- `<akvj-mapping-table>` (22c) — mapping table + summary
+- `<akvj-piano-keyboard>` (pre-existing) — piano keyboard for note selection
+
+**Verification:**
+- `npm run build:all` — passes (9 modules transformed, up from 8 — new MappingTable.js)
+- `npm run test:all` — 2026 tests pass (57 test files)
+- `npm run lint` — clean (3 pre-existing errors in midi-mcp only)
+
+**Sub-task 22c moved to `tasks/done/22c-mapping-table-component.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+
+### Iteration 58 — Task 29: Rename midi-layout to key-map (2026-07-16)
+
+**Inbox processed:** 1 new item (`rename-to-key-map.md`) → task 29 created. Archived.
+
+**Task 29 executed — complete cross-codebase rename from `midi-layout` to `key-map`:**
+
+**Files renamed:**
+- `clips/midi-layout.json` → `clips/key-map.json`
+- `akvj/src/public/clips/midi-layout.json` → `akvj/src/public/clips/key-map.json`
+- `akvj/dist/clips/midi-layout.json` → `akvj/dist/clips/key-map.json`
+
+**Source files updated (7):**
+1. **`mainframe/server/paths.js`**: `MIDI_LAYOUT_PATH` → `KEY_MAP_PATH`, path points to `key-map.json`
+2. **`mainframe/server/index.js`**: Import updated, `flattenMidiLayout()` → `flattenKeyMap()`, `midiLayout` variable → `keyMap`, all file read/write paths updated, comment updated
+3. **`mainframe/scripts/clips/Pipeline.js`**: Import `validateMidiLayout` → `validateKeyMap`, log messages and copy paths updated
+4. **`mainframe/scripts/clips/lib/validateMapping.js`**: `validateMidiLayout()` → `validateKeyMap()`, `loadMidiLayout()` → `loadKeyMap()`, all error path strings updated from `midi-layout.json` to `key-map.json`
+5. **`mainframe/scripts/clips/lib/validate/index.js`**: Error message updated
+6. **`mainframe/scripts/clips/new.js`**: Console log instructions updated
+7. **`akvj/src/js/core/settings.js`**: `midiLayoutJsonUrl` → `keyMapJsonUrl`, path to `/clips/key-map.json`
+8. **`akvj/src/js/visuals/ClipLoader.js`**: `midiLayoutJsonUrl` parameter → `keyMapJsonUrl`, `midiLayout` variable → `keyMap`, `#buildLoadTasks(midiLayout, ...)` → `#buildLoadTasks(keyMap, ...)`, all JSDoc, log messages, and error messages updated
+
+**Test files updated (5):**
+1. **`akvj/test/ClipLoader.test.js`**: `mockFetchCatalogAndLayout(catalog, midiLayout)` → `(catalog, keyMap)`, all `midiLayout` variables → `keyMap`, URL strings updated, warning assertion updated
+2. **`akvj/test/settings.test.js`**: `midiLayoutJsonUrl` → `keyMapJsonUrl`
+3. **`mainframe/test/server.test.js`**: File paths in setup/teardown updated, test descriptions updated
+4. **`mainframe/test/validateMapping.test.js`**: Import `validateMidiLayout` → `validateKeyMap`, describe block name, all function calls, file paths, assertion strings updated
+5. **`mainframe/test/Pipeline.test.js`**: Fixture file path updated
+6. **`mainframe/test/paths.test.js`**: Import `MIDI_LAYOUT_PATH` → `KEY_MAP_PATH`, assertion updated
+
+**Verification:**
+- `npm run build:all` — passes (9 modules transformed)
+- `npm run test:all` — 2058 tests pass (58 test files, up from 57 — new test file counted)
+- `npm run lint` — clean
+
+**Task 29 moved to `tasks/done/29-rename-midi-layout-to-key-map.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+
+### Iteration 59 — Task 31: Change Mainframe API Port to 7777 (2026-07-16)
+
+**Inbox processed:** 1 new item (`change-api-port-to-7777.md`) → task 31 created. Archived.
+
+**Port scheme now perfectly aligned:**
+- `7777` — Mainframe API (Backend)
+- `8888` — AKVJ (Frontend Visualizer)
+- `9999` — Mainframe UI (Frontend Dashboard)
+
+**Files updated (7):**
+1. **`mainframe/server/index.js`**: Default port `8787` → `7777`
+2. **`mainframe/vite.config.js`**: `/api` proxy target `http://127.0.0.1:8787` → `http://127.0.0.1:7777`
+3. **`mainframe/test/smoke/startup.test.js`**: `MAINFRAME_API_URL` port `8787` → `7777`
+4. **`.devcontainer/devcontainer.json`**: `forwardPorts` and `portsAttributes` updated from `8787` to `7777`
+5. **`README.md`**: Maintenance packages table and core commands updated
+6. **`AGENTS.md`**: Common commands and port forwarding table updated
+7. **`mainframe/README.md`**: Command comment and API heading updated
+
+**Note:** Task 30 (ensure-everything-works) is still in `tasks/` — it was partially executed in a previous iteration (server entry point bug fixed, smoke test timeout increased). The smoke test Vite UI timeout issue remains unresolved but is a devcontainer environment issue, not a code bug.
+
+**Verification:**
+- `npm run build:all` — passes (9 modules transformed)
+- `npm run test:all` — 2122 tests pass (60 test files)
+- `npm run lint` — clean
+
+**Task 31 moved to `tasks/done/31-change-api-port-to-7777.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+- 30-ensure-everything-works.md (partially done — server entry point fixed, smoke test Vite UI timeout unresolved)
+
+### Iteration 60 — Task 30: Comprehensive Verification Pass (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 30 completed — fixed smoke test failures and ensured everything works end-to-end.**
+
+**Root causes identified and fixed:**
+
+1. **Server entry point detection bug** (fixed in prior iteration): `import.meta.url === \`file://${process.argv[1]}\`` failed with relative paths. Fixed with `path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)`.
+
+2. **Vite binding to IPv6 only**: In the devcontainer, Vite defaulted to binding on `::1` (IPv6 localhost) but the smoke test connected via `127.0.0.1` (IPv4), causing `ECONNREFUSED`. Fixed by adding `host: '127.0.0.1'` to both Vite configs.
+
+3. **Node `fetch` (undici) incompatibility**: Node's built-in `fetch` failed to connect to Vite dev servers even when they were reachable via `curl`. Replaced with `http.get` which uses a different networking stack.
+
+4. **Stale process cleanup**: `pkill -f "vite.*8888"` patterns didn't match actual Vite commands (port is in config, not CLI args). Replaced with `fuser -k <port>/tcp` to kill by port number.
+
+5. **Fetch timeout too short**: 500ms `AbortSignal.timeout` was insufficient for Vite's on-demand module compilation on first request. Added separate `FETCH_TIMEOUT_MS = 5000` constant.
+
+**Files updated (3):**
+1. **`akvj/vite.config.js`**: Added `host: '127.0.0.1'` to server config
+2. **`mainframe/vite.config.js`**: Added `host: '127.0.0.1'` to server config
+3. **`mainframe/test/smoke/startup.test.js`**: Replaced `fetch` with `http.get`, added `FETCH_TIMEOUT_MS`, replaced `pkill` patterns with `fuser -k` by port, added port-based cleanup in `finally` block, removed debug logging
+
+**Verification — all 4 checks pass:**
+- `npm run build:all` — passes (9 modules transformed)
+- `npm run test:all` — 2122 tests pass (60 test files)
+- `npm run lint` — clean
+- `npm run test:smoke` — ✅ All 3 server startup checks pass (akvj UI, mainframe UI, mainframe API)
+
+**Task 30 moved to `tasks/done/30-ensure-everything-works.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 23-improve-test-coverage.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+
+### Iteration 61 — Task 23: Improve Test Coverage (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 23 completed — wrote comprehensive test suite for `mainframe/server/spritesheet.js`.**
+
+**New test file:** `mainframe/test/spritesheet.test.js` (13 tests)
+
+**Tests written for `createClipFromFrames`:**
+1. **Input validation**: rejects invalid clipId, empty frame array, non-array frameBuffers
+2. **Single frame creation**: creates clip with sprite.png and meta.json
+3. **Multiple frames**: verifies frames count, framesPerRow, meta fields
+4. **Bitmask role**: writes meta with `role: 'bitmask'` and `bitDepth: 1`
+5. **Custom options**: writes meta with custom name, playback mode, and frame rate
+6. **Dimension mismatch**: rejects frames with different dimensions
+7. **Duplicate clip**: rejects when clip already exists
+8. **Raw asset storage**: stores original frames in `.raw-assets/{clipId}/`
+9. **Custom dimensions**: resizes frames to custom target width/height
+10. **Default dimensions**: uses 240x135 (AKVJ canvas resolution) by default
+11. **framesPerRow cap**: caps at 16 for clips with 20+ frames
+
+**Technical approach:**
+- Used dynamic `import()` with `vi.resetModules()` in `beforeEach` to ensure `AKVJ_CLIPS_DIR` env var is re-read by `paths.js` on each test
+- Generated valid PNG buffers using sharp at test setup time
+- Each test gets a fresh temp directory for clip isolation
+
+**Verification:**
+- `npm run test:all` — 2151 tests pass (61 test files, up from 60)
+- `npm run lint` — clean
+
+**Task 23 moved to `tasks/done/23-improve-test-coverage.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+- 27-code-quality-tools.md
+
+### Iteration 62 — Task 27: Code Quality Tools (Knip + commitlint) (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 27 partially completed — integrated Knip (unused code detection) and commitlint (conventional commits).**
+
+**Sub-tasks completed (2 of 5):**
+1. **Knip** — Installed, configured `knip.json` for workspaces, added `npm run knip` script
+2. **commitlint** — Installed `@commitlint/cli` + `@commitlint/config-conventional`, added `commitlint.config.js`, added `commit-msg` Husky hook
+
+**Sub-tasks remaining (3 of 5):**
+3. tsc --checkJs (type checking)
+4. @vitest/coverage-v8 (coverage thresholds)
+5. Lighthouse CI (performance guarding)
+
+**Dead code removed (5 exports cleaned up):**
+- `readHashFile` in `hash.js` — removed export, kept as internal (used by `isCacheValid`)
+- `applyBitDepthPipeline` and `VALID_BIT_DEPTHS` in `optimize.js` — removed from export, kept as internal
+- `PROTOCOLS` in `protocol.js` — removed export, kept as internal (used by `detectProtocol`)
+- `createFakeInput` and `createFakeAccess` in `fakeMidi.js` — removed exports, kept as internal
+- `createMockClip` in `visualTestHelpers.js` — removed export, kept as internal
+
+**Other changes:**
+- Removed workaround dependencies (`@rolldown/binding-linux-x64-gnu`, `@vitest/mocker`) from `package.json` — they were npm bug workarounds, not real deps
+- `knip.json` ignores `ClipPreview.js` (planned future tool) and `mtcTransformer.js` (planned transformer)
+- `knip.json` ignores `fuser` and `pkill` binaries (used in smoke test)
+
+**New files:**
+- `knip.json` — workspace-aware config
+- `commitlint.config.js` — conventional commits config
+- `.husky/commit-msg` — commit message linting hook
+
+**Verification:**
+- `npm run knip` — ✅ No issues found
+- `npm run test:all` — 2151 tests pass (61 test files)
+- `npm run lint` — clean
+
+**Task 27 moved to `tasks/done/27-code-quality-tools.md`** (partial — 3 sub-tasks remain for future iteration).
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 24-metadata-form-improvements.md
+- 26-comprehensive-testing-strategy.md
+
+### Iteration 63 — Task 24: Metadata Edit Form Improvements (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 24 completed — added PNG filename field to clip editor and clip sort dropdown to library.**
+
+**Feature 1: PNG filename field in ClipEditor**
+- Added `png` text input to the clip edit form (between Name and Frames)
+- Added `validatePngFilename()` function that checks filename pattern and verifies file existence via HEAD request to `/api/clips/{clipId}/sprite`
+- Validation triggers on blur — shows "File exists" or warning if not found
+- Added `png` field to the save updates object sent to the API
+- Files modified: `mainframe/src/js/ClipEditor.js`
+
+**Feature 2: Clip sort dropdown in Library tab**
+- Added `<select id="clip-sort">` with 4 sort options: Name, ID, Role, Frames
+- Added `#sortMode` field and `sortMode` setter/getter to `AkvjClipList`
+- Sorting logic in `#filterClips()` with switch on sort mode (name, clipId, role, frames)
+- Wired up event listener in `main.js`, resets on clear filters
+- Added `.clip-sort` CSS styling matching `.clip-role-filter`
+- Files modified: `mainframe/src/index.html`, `mainframe/src/js/ClipList.js`, `mainframe/src/main.js`, `mainframe/src/styles.css`
+
+**Feature 3 (batch operations):** Not implemented — task said "consider" and it doesn't fit naturally into the current single-clip editing workflow.
+
+**Verification:**
+- `npm run lint` — clean
+- `npm run build -w mainframe` — passes (22.67 kB JS bundle)
+- `npm run test:all` — 2190 tests pass (62 test files)
+
+**Task 24 moved to `tasks/done/24-metadata-form-improvements.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 20d-sprite-sheet-compilation-endpoint.md
+- 26-comprehensive-testing-strategy.md
+
+### Iteration 64 — Task 20d: Sprite Sheet Compilation Endpoint (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 20d completed — added `POST /api/clips/:clipId/recompile` endpoint for re-compiling sprite sheets from stored raw assets.**
+
+**New export: `recompileClip` in `mainframe/server/spritesheet.js`**
+- Reads raw PNG frames from `clips/.raw-assets/{clipId}/`
+- Re-processes with new config (targetWidth, targetHeight, playback, frameRate, name, role)
+- Overwrites existing `sprite.png` and `meta.json` (merges new meta over existing, preserving fields like `role`/`bitDepth`)
+- Throws clear errors for invalid clipId or missing raw assets
+
+**New route: `POST /api/clips/:clipId/recompile` in `mainframe/server/index.js`**
+- Validates clipId, checks clip directory exists (404 if not)
+- Parses body for config params, calls `recompileClip`
+- Returns 200 with result or 400 on error
+
+**New helper: `overwriteClipFiles` in `spritesheet.js`**
+- Unlike `writeClipFiles` (which throws if clip exists), this overwrites sprite.png and merges meta.json
+
+**Tests: 7 new tests in `mainframe/test/spritesheet.test.js`**
+1. Rejects invalid clipId
+2. Throws when no raw assets exist
+3. Recompiles with default dimensions from raw assets
+4. Recompiles with custom target dimensions (verifies sprite width/height via sharp)
+5. Recompiles with updated playback and frameRate
+6. Preserves existing meta fields (role, bitDepth) not overridden by recompile
+7. Overwrites existing sprite.png (verifies file size changes)
+
+**Verification:**
+- `npm run lint` — clean
+- `npm run test:all` — 2238 tests pass (63 test files, up from 62)
+- `npm run build -w mainframe` — passes
+
+**Task 20d moved to `tasks/done/20d-sprite-sheet-compilation-endpoint.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20b-frontend-staging-ui.md
+- 20c-live-preview-canvas.md
+- 26-comprehensive-testing-strategy.md
+
+### Iteration 65 — Task 20b: Frontend Staging UI with Drag & Drop (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 20b completed — replaced the basic upload form with a drag-and-drop staging UI including clip config options.**
+
+**New UI features:**
+1. **Drag & drop zone** — Drop PNG frames directly or click to browse. Filters for `image/png` only. Shows visual feedback during dragover.
+2. **File list** — Displays staged file names and sizes, plus frame count summary
+3. **Clip config fields** — Name, Role, Target Width (default 240), Target Height (default 135), Playback mode (7 options), Frame rate (default 12)
+4. **Submit** — Calls `POST /api/clips` with all config params + base64 frames. Resets form and file list on success.
+
+**Files modified:**
+- `mainframe/src/index.html` — Replaced upload form with drop zone, file list, name field, config row
+- `mainframe/src/main.js` — Added drag/drop handlers, file staging, renderFileList(), updated submit handler with config params
+- `mainframe/src/styles.css` — Added `.drop-zone`, `.file-list`, `.upload-config-row` styles
+
+**Verification:**
+- `npm run lint` — clean
+- `npm run test:all` — 2238 tests pass (63 test files)
+- `npm run build -w mainframe` — passes (24.25 kB JS, up from 22.67 kB)
+
+**Task 20b moved to `tasks/done/20b-frontend-staging-ui.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 20c-live-preview-canvas.md
+- 26-comprehensive-testing-strategy.md
+
+### Iteration 66 — Task 20c: Live Preview Canvas with Scale/Color Depth (2026-07-16)
+
+**Inbox processed:** No new items.
+
+**Task 20c completed — added live canvas preview of staged frames in the upload tab.**
+
+**New custom element: `AkvjStagingPreview` in `mainframe/src/js/StagingPreview.js`**
+- Canvas preview player showing frames at target resolution (240x135 default, updates when config changes)
+- Pixel-perfect rendering (`imageSmoothingEnabled = false`)
+- Play/pause button, frame scrub slider, speed controls (0.25×, 0.5×, 1×, 2×, 4×)
+- Supports all 7 playback modes (loop, once, pingpong, random, reverse, shuffle, scrub)
+- Loads staged File objects via `URL.createObjectURL` and cleans up object URLs
+- `loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode)` public method
+- Dispatches `framesloaded` event when frames finish loading
+- Follows the existing ClipList preview player pattern (private fields, `#animate`, `#drawCurrentFrame`)
+
+**Integration in `main.js`:**
+- `stagingPreview` element referenced and `updateStagingPreview()` function calls `loadFrames` with current config values
+- Config change listeners on width/height/frameRate/playback trigger preview reload
+- `renderFileList()` calls `updateStagingPreview()` when files are staged, or `loadFrames([])` when cleared
+- Form reset after successful upload clears the preview
+
+**Files created/modified:**
+- `mainframe/src/js/StagingPreview.js` (new — 200 lines)
+- `mainframe/src/index.html` — Added `<akvj-staging-preview>` element after file list
+- `mainframe/src/main.js` — Added import, staging preview wiring, config change listeners
+
+**Color depth preview:** Not implemented (task marked it optional). Would require canvas pixel manipulation to simulate bit-depth reduction — can be added later if needed.
+
+**Verification:**
+- `npm run lint` — clean
+- `npm run test:all` — 2238 tests pass (63 test files)
+- `npm run build -w mainframe` — passes (28.80 kB JS, up from 24.25 kB)
+
+**Task 20c moved to `tasks/done/20c-live-preview-canvas.md`**.
+
+**Remaining tasks in `tasks/` folder:**
+- 26-comprehensive-testing-strategy.md

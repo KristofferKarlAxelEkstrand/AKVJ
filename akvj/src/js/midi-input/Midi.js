@@ -14,14 +14,20 @@ class Midi {
 	#connectedInputs = new Map();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
+	#setupPromise = Promise.resolve();
+	#destroyed = false;
 
 	constructor() {
 		this.#setup();
 	}
 
+	get ready() {
+		return this.#setupPromise;
+	}
+
 	#setup() {
 		if (this.#isSupported()) {
-			this.#requestAccess();
+			this.#setupPromise = this.#requestAccess();
 		} else {
 			if (import.meta.env.DEV) {
 				console.log('WebMIDI is not supported in this browser.');
@@ -35,9 +41,16 @@ class Midi {
 
 	async #requestAccess() {
 		try {
-			this.#midiAccess = await navigator.requestMIDIAccess();
+			const midiAccess = await navigator.requestMIDIAccess();
+			if (this.#destroyed) {
+				return;
+			}
+			this.#midiAccess = midiAccess;
 			this.#handleMIDISuccess(this.#midiAccess);
 		} catch (error) {
+			if (this.#destroyed) {
+				return;
+			}
 			this.#handleMIDIFailure(error);
 		}
 	}
@@ -253,6 +266,7 @@ class Midi {
 	 * Safe to call multiple times. Used for teardown in tests and HMR.
 	 */
 	destroy() {
+		this.#destroyed = true;
 		for (const input of this.#connectedInputs.values()) {
 			this.#disconnectInput(input);
 		}
@@ -283,6 +297,4 @@ class Midi {
 	}
 }
 
-const midi = new Midi();
-
-export default midi;
+export default Midi;
