@@ -9,7 +9,10 @@
  */
 
 import { resolveScaleMode } from '../../../shared/frameFit.js';
-import { DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_RATE, MAX_FRAMES_PER_ROW } from '../../../shared/clipSchema.js';
+import { DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_RATE, MAX_FRAMES_PER_ROW, resolvePlacement } from '../../../shared/clipSchema.js';
+import { resolveFrameBakeConfig } from '../../../shared/frameBake.js';
+
+export { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from '../../../shared/frameBake.js';
 
 /** Transparent background color for sharp compositing. */
 export const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
@@ -50,54 +53,171 @@ export async function assertReadableFrames(sharpLib, frameBuffers) {
 
 /**
  * Fit each frame into target dimensions with alpha preserved.
+ * `scaleModeOrConfigs` may be one shared scale mode string, or a per-frame bake config array.
  * @param {import('sharp').Sharp} sharpLib
  * @param {Buffer[]} frameBuffers
  * @param {number} targetWidth
  * @param {number} targetHeight
- * @param {string} scaleMode
+ * @param {string|FrameBakeConfig[]} [scaleModeOrConfigs='fit']
  * @returns {Promise<Buffer[]>}
  */
-export async function resizeFrames(sharpLib, frameBuffers, targetWidth, targetHeight, scaleMode) {
-	return Promise.all(frameBuffers.map(buf => fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, scaleMode)));
+export async function resizeFrames(sharpLib, frameBuffers, targetWidth, targetHeight, scaleModeOrConfigs = 'fit') {
+	return Promise.all(
+		frameBuffers.map((buf, index) => {
+			const config = Array.isArray(scaleModeOrConfigs)
+				? resolveFrameBakeConfig(scaleModeOrConfigs[index], targetWidth, targetHeight)
+				: resolveFrameBakeConfig({ scaleMode: scaleModeOrConfigs }, targetWidth, targetHeight);
+			return fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, config);
+		})
+	);
 }
 
 /**
+ * Fit one source buffer into a frame cell.
  * @param {import('sharp').Sharp} sharpLib
  * @param {Buffer} buf
  * @param {number} targetWidth
  * @param {number} targetHeight
- * @param {string} scaleMode
+ * @param {string|FrameBakeConfig} [scaleModeOrConfig='fit']
  * @returns {Promise<Buffer>}
  */
-export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, scaleMode) {
-	const mode = resolveScaleMode(scaleMode);
+export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, scaleModeOrConfig = 'fit') {
+	const config =
+		typeof scaleModeOrConfig === 'string'
+			? resolveFrameBakeConfig({ scaleMode: scaleModeOrConfig }, targetWidth, targetHeight)
+			: resolveFrameBakeConfig(scaleModeOrConfig, targetWidth, targetHeight);
+
+	if (config.scaleMode === 'custom') {
+		const sized = await sharpLib(buf)
+			.ensureAlpha()
+			.resize(config.width, config.height, { fit: 'fill' })
+			.ensureAlpha()
+			.png()
+			.toBuffer();
+		return compositeContentOntoCell(sharpLib, sized, targetWidth, targetHeight, config.placement);
+	}
+
+	const mode = resolveScaleMode(config.scaleMode === 'custom' ? 'fit' : config.scaleMode);
 	const base = sharpLib(buf).ensureAlpha();
 
 	if (mode === 'stretch') {
 		return base.resize(targetWidth, targetHeight, { fit: 'fill' }).ensureAlpha().png().toBuffer();
 	}
 	if (mode === 'fit') {
-		return base
+		const fitted = await base
 			.resize(targetWidth, targetHeight, { fit: 'contain', background: TRANSPARENT })
 			.ensureAlpha()
 			.png()
 			.toBuffer();
+		return applyPlacementToCellSizedBuffer(sharpLib, fitted, targetWidth, targetHeight, config.placement);
 	}
 	if (mode === 'cover') {
-		return base.resize(targetWidth, targetHeight, { fit: 'cover', position: 'centre' }).ensureAlpha().png().toBuffer();
+		const covered = await base.resize(targetWidth, targetHeight, { fit: 'cover', position: 'centre' }).ensureAlpha().png().toBuffer();
+		return applyPlacementToCellSizedBuffer(sharpLib, covered, targetWidth, targetHeight, config.placement);
 	}
-	return fitNone(sharpLib, buf, targetWidth, targetHeight);
+	// none + pattern — cell stored at native size; pattern tiles at runtime
+	return fitNone(sharpLib, buf, targetWidth, targetHeight, config.placement);
 }
 
 /**
- * No scale: center with transparent pad and/or centered crop.
+ * Shift a cell-sized buffer by placement (center-origin). Stretch-like fills ignore this path.
+ * @param {import('sharp').Sharp} sharpLib
+ * @param {Buffer} cellBuffer
+ * @param {number} targetWidth
+ * @param {number} targetHeight
+ * @param {{ x: number, y: number }} placement
+ * @returns {Promise<Buffer>}
+ */
+async function applyPlacementToCellSizedBuffer(sharpLib, cellBuffer, targetWidth, targetHeight, placement) {
+	if (placement.x === 0 && placement.y === 0) {
+		return cellBuffer;
+	}
+	return compositeContentOntoCell(sharpLib, cellBuffer, targetWidth, targetHeight, placement, true);
+}
+
+/**
+ * Place content onto a transparent cell with center-origin placement.
+ * @param {import('sharp').Sharp} sharpLib
+ * @param {Buffer} contentBuf
+ * @param {number} targetWidth
+ * @param {number} targetHeight
+ * @param {{ x: number, y: number }} placement
+ * @param {boolean} [contentIsFullCell=false] - when true, content is already cell-sized (shift whole layer)
+ * @returns {Promise<Buffer>}
+ */
+export async function compositeContentOntoCell(sharpLib, contentBuf, targetWidth, targetHeight, placement, contentIsFullCell = false) {
+	const contentMeta = await sharpLib(contentBuf).metadata();
+	const contentWidth = contentMeta.width;
+	const contentHeight = contentMeta.height;
+	if (!contentWidth || !contentHeight) {
+		throw new Error('Could not read content dimensions');
+	}
+
+	const place = resolvePlacement(placement);
+	let left = contentIsFullCell ? place.x : Math.floor((targetWidth - contentWidth) / 2) + place.x;
+	let top = contentIsFullCell ? place.y : Math.floor((targetHeight - contentHeight) / 2) + place.y;
+
+	let input = contentBuf;
+	let extractLeft = 0;
+	let extractTop = 0;
+	let extractWidth = contentWidth;
+	let extractHeight = contentHeight;
+
+	if (left < 0) {
+		extractLeft = -left;
+		extractWidth -= extractLeft;
+		left = 0;
+	}
+	if (top < 0) {
+		extractTop = -top;
+		extractHeight -= extractTop;
+		top = 0;
+	}
+	if (left + extractWidth > targetWidth) {
+		extractWidth = targetWidth - left;
+	}
+	if (top + extractHeight > targetHeight) {
+		extractHeight = targetHeight - top;
+	}
+
+	if (extractWidth <= 0 || extractHeight <= 0) {
+		return sharpLib({
+			create: { width: targetWidth, height: targetHeight, channels: 4, background: TRANSPARENT }
+		})
+			.png()
+			.toBuffer();
+	}
+
+	if (extractLeft !== 0 || extractTop !== 0 || extractWidth !== contentWidth || extractHeight !== contentHeight) {
+		input = await sharpLib(contentBuf)
+			.extract({ left: extractLeft, top: extractTop, width: extractWidth, height: extractHeight })
+			.png()
+			.toBuffer();
+	}
+
+	return sharpLib({
+		create: {
+			width: targetWidth,
+			height: targetHeight,
+			channels: 4,
+			background: TRANSPARENT
+		}
+	})
+		.composite([{ input, left, top }])
+		.png()
+		.toBuffer();
+}
+
+/**
+ * No scale: center with transparent pad and/or centered crop, then apply placement.
  * @param {import('sharp').Sharp} sharpLib
  * @param {Buffer} buf
  * @param {number} targetWidth
  * @param {number} targetHeight
+ * @param {{ x?: number, y?: number }} [placement]
  * @returns {Promise<Buffer>}
  */
-export async function fitNone(sharpLib, buf, targetWidth, targetHeight) {
+export async function fitNone(sharpLib, buf, targetWidth, targetHeight, placement = { x: 0, y: 0 }) {
 	const meta = await sharpLib(buf).metadata();
 	const sourceWidth = meta.width;
 	const sourceHeight = meta.height;
@@ -115,21 +235,7 @@ export async function fitNone(sharpLib, buf, targetWidth, targetHeight) {
 	}
 
 	const extracted = await pipeline.png().toBuffer();
-	const extractedMeta = await sharpLib(extracted).metadata();
-	const left = Math.floor((targetWidth - extractedMeta.width) / 2);
-	const top = Math.floor((targetHeight - extractedMeta.height) / 2);
-
-	return sharpLib({
-		create: {
-			width: targetWidth,
-			height: targetHeight,
-			channels: 4,
-			background: TRANSPARENT
-		}
-	})
-		.composite([{ input: extracted, left, top }])
-		.png()
-		.toBuffer();
+	return compositeContentOntoCell(sharpLib, extracted, targetWidth, targetHeight, placement);
 }
 
 /**
@@ -157,11 +263,11 @@ export function buildComposites(frameBuffers, width, height, maxFramesPerRow = D
  * @param {Array<{input: Buffer, left: number, top: number}>} composites
  * @param {number} width - Frame width in pixels
  * @param {number} height - Frame height in pixels
- * @param {number} frameCount - Total number of frames
+ * @param {number} frameCount - Total frames
  * @param {number} [maxFramesPerRow=16] - Maximum frames per row
  * @returns {Promise<Buffer>}
  */
-export async function renderSpriteSheet(sharpLib, composites, width, height, frameCount, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
+export function renderSpriteSheet(sharpLib, composites, width, height, frameCount, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
 	const framesPerRow = Math.min(frameCount, maxFramesPerRow);
 	const rows = Math.ceil(frameCount / framesPerRow);
 	return sharpLib({

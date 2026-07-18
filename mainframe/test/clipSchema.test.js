@@ -1,6 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import { validateMetaFields } from '../scripts/clips/lib/validate/meta.js';
 import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, MAX_FRAMES_PER_ROW } from '../src/js/clipSchema.js';
+import { SCALE_MODES } from '../shared/frameFit.js';
 
 describe('validateMetaFields — non-mutation', () => {
 	test('does not mutate meta when loop is present', () => {
@@ -48,6 +49,41 @@ describe('validateMetaFields — non-mutation', () => {
 		const meta = { frames: 4, framesPerRow: 2, loop: false };
 		const errors = validateMetaFields(meta);
 		expect(errors).not.toContain(expect.stringContaining('playback must be one of'));
+	});
+});
+
+describe('validateMetaFields — scaleMode', () => {
+	function baseMeta(overrides = {}) {
+		return { frames: 4, framesPerRow: 2, playback: 'loop', ...overrides };
+	}
+
+	test('accepts scaleMode: "pattern"', () => {
+		const errors = validateMetaFields(baseMeta({ scaleMode: 'pattern' }));
+		expect(errors.filter(e => e.includes('scaleMode'))).toEqual([]);
+	});
+
+	test('accepts every SCALE_MODES value', () => {
+		for (const scaleMode of SCALE_MODES) {
+			const errors = validateMetaFields(baseMeta({ scaleMode }));
+			expect(errors.filter(e => e.includes('scaleMode')), scaleMode).toEqual([]);
+		}
+	});
+
+	test('rejects invalid scaleMode', () => {
+		const errors = validateMetaFields(baseMeta({ scaleMode: 'tile' }));
+		expect(errors.some(e => e.includes('scaleMode must be one of'))).toBe(true);
+		expect(errors.some(e => e.includes('pattern'))).toBe(true);
+	});
+
+	test('accepts placement object with finite x/y', () => {
+		const errors = validateMetaFields(baseMeta({ placement: { x: -12, y: 4.5 } }));
+		expect(errors.filter(e => e.includes('placement'))).toEqual([]);
+	});
+
+	test('rejects malformed placement', () => {
+		expect(validateMetaFields(baseMeta({ placement: 'center' })).some(e => e.includes('placement must be an object'))).toBe(true);
+		expect(validateMetaFields(baseMeta({ placement: { x: 'a', y: 0 } })).some(e => e.includes('placement.x'))).toBe(true);
+		expect(validateMetaFields(baseMeta({ placement: { x: 0, y: NaN } })).some(e => e.includes('placement.y'))).toBe(true);
 	});
 });
 

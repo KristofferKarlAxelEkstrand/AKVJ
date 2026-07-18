@@ -44,7 +44,7 @@ class Fullscreen {
 	/**
 	 * Initialize fullscreen toggle listeners
 	 */
-	setup() {
+	enable() {
 		document.addEventListener('keydown', this.#boundHandleKeydown);
 		document.addEventListener('dblclick', this.#boundToggle);
 	}

@@ -3,33 +3,32 @@ import { ClipCategory } from './ClipCategory.js';
 import { ClipInstance } from './ClipInstance.js';
 
 /**
- * AkvjClipList — custom element encapsulating the clip library list.
+ * ClipList — custom element encapsulating the clip library list.
  * Renders clip items with thumbnails, metadata, and action buttons.
  * Dispatches `clipedit`, `clipdelete`, `clipmap` events (bubbles: true)
  * with `{ detail: { clipId } }` for the parent to handle.
  *
- * @fires AkvjClipList#clipedit - CustomEvent with `{ detail: { clipId, clip } }`
- * @fires AkvjClipList#clipdelete - CustomEvent with `{ detail: { clipId } }`
- * @fires AkvjClipList#clipmap - CustomEvent with `{ detail: { clipId } }`
+ * @fires ClipList#clipedit - CustomEvent with `{ detail: { clipId, clip } }`
+ * @fires ClipList#clipdelete - CustomEvent with `{ detail: { clipId } }`
+ * @fires ClipList#clipmap - CustomEvent with `{ detail: { clipId } }`
  */
-class AkvjClipList extends HTMLElement {
+class ClipList extends HTMLElement {
 	/** @type {Array<{clipId: string, meta: object, hasSprite: boolean, pipelineReady: boolean}>} */
-	#clips = [];
+	#loadedClips = [];
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
-	#category = '';
 
 	/**
 	 * @param {Array<{clipId: string, meta: object, hasSprite: boolean, pipelineReady: boolean}>} clips
 	 */
 	set clips(clips) {
-		this.#clips = clips;
+		this.#loadedClips = clips;
 		this.#render();
 	}
 
 	get clips() {
-		return this.#clips;
+		return this.#loadedClips;
 	}
 
 	/**
@@ -68,18 +67,6 @@ class AkvjClipList extends HTMLElement {
 		return this.#sortMode;
 	}
 
-	/**
-	 * @param {string} category - Selected category (empty string = folder view)
-	 */
-	set category(category) {
-		this.#category = category;
-		this.#render();
-	}
-
-	get category() {
-		return this.#category;
-	}
-
 	connectedCallback() {
 		this.#render();
 	}
@@ -91,7 +78,7 @@ class AkvjClipList extends HTMLElement {
 	#render() {
 		this.replaceChildren();
 
-		if (this.#clips.length === 0) {
+		if (this.#loadedClips.length === 0) {
 			const empty = document.createElement('li');
 			empty.textContent = 'No clips in the bucket yet.';
 			this.append(empty);
@@ -137,11 +124,7 @@ class AkvjClipList extends HTMLElement {
 	}
 
 	#filterClips() {
-		const filtered = this.#clips.filter(clip => {
-			const clipCategory = clip.meta.category || 'uncategorized';
-			if (this.#category && clipCategory !== this.#category) {
-				return false;
-			}
+		const filtered = this.#loadedClips.filter(clip => {
 			const clipRole = clip.meta.role || 'clip';
 			if (this.#roleFilter && clipRole !== this.#roleFilter) {
 				return false;
@@ -173,6 +156,6 @@ class AkvjClipList extends HTMLElement {
 	}
 }
 
-customElements.define('akvj-clip-list', AkvjClipList);
+customElements.define('akvj-clip-list', ClipList);
 
-export default AkvjClipList;
+export default ClipList;

@@ -54,6 +54,9 @@ class EffectsPipeline {
 	 * @param {{width: number, height: number, bpm: number, bpmMin?: number, bpmDefault?: number}} renderContext
 	 */
 	apply(ctx, activeEffects, timestamp, renderContext) {
+		if (!this.#effectContext) {
+			return;
+		}
 		if (!activeEffects || activeEffects.length === 0) {
 			return;
 		}

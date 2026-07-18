@@ -11,7 +11,7 @@
  */
 
 import settings from '../core/settings.js';
-import appState, { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK } from '../core/AppState.js';
+import appState, { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK, EVENT_MIDI_START } from '../core/AppState.js';
 import { MS_PER_MINUTE } from '../utils/timing.js';
 
 const MS_PER_SECOND = 1000;
@@ -49,8 +49,8 @@ class ClipTiming {
 	#isUsingBPMSync = false;
 	#pulsesPerFrame = null;
 	#pulseCount = 0;
-	#lastTime = null;
-	#unsubscribeClock = null;
+	#lastTimestamp = null;
+	#unsubscribeFromClock = null;
 	#bpmProvider;
 	#clockSource;
 	#currentFrameIndex = 0;
@@ -108,14 +108,14 @@ class ClipTiming {
 	 */
 	advanceFrame(timestamp, onAdvance) {
 		if (this.isClockDriven) {
-			this.#lastTime = null;
+			this.#lastTimestamp = null;
 			return;
 		}
-		if (this.#lastTime === null) {
-			this.#lastTime = timestamp;
+		if (this.#lastTimestamp === null) {
+			this.#lastTimestamp = timestamp;
 		}
 
-		let elapsed = timestamp - this.#lastTime;
+		let elapsed = timestamp - this.#lastTimestamp;
 		while (elapsed > 0) {
 			const interval = this.getFrameInterval(this.#currentFrameIndex);
 			if (elapsed < interval) {
@@ -126,7 +126,7 @@ class ClipTiming {
 				break;
 			}
 		}
-		this.#lastTime = timestamp - Math.max(0, elapsed);
+		this.#lastTimestamp = timestamp - Math.max(0, elapsed);
 	}
 
 	/**
@@ -140,12 +140,27 @@ class ClipTiming {
 
 	/**
 	 * Subscribe to MIDI clock events for BPM-synced playback.
-	 * Only subscribes if this clip uses BPM sync.
+	 * Also listens for MIDI Start so residual pulse phase is cleared on DAW restart.
+	 * Only subscribes if this clip uses BPM sync. Does not reset on Continue.
 	 * @param {() => boolean} onAdvance - Callback for clock-driven frame advance
 	 */
 	subscribeToClock(onAdvance) {
-		if (this.#isUsingBPMSync && !this.#unsubscribeClock) {
-			this.#unsubscribeClock = this.#clockSource.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse(onAdvance));
+		if (this.#isUsingBPMSync && !this.#unsubscribeFromClock) {
+			const unsubscribeFromClockPulses = this.#clockSource.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse(onAdvance));
+			const unsubscribeFromMidiStart = this.#clockSource.subscribe(EVENT_MIDI_START, () => this.reset());
+			this.#unsubscribeFromClock = () => {
+				let firstError = null;
+				for (const unsubscribe of [unsubscribeFromClockPulses, unsubscribeFromMidiStart]) {
+					try {
+						unsubscribe();
+					} catch (error) {
+						firstError ??= error;
+					}
+				}
+				if (firstError) {
+					throw firstError;
+				}
+			};
 		}
 	}
 
@@ -153,21 +168,21 @@ class ClipTiming {
 	 * Unsubscribe from MIDI clock events.
 	 */
 	unsubscribeFromClock() {
-		if (this.#unsubscribeClock) {
+		if (this.#unsubscribeFromClock) {
 			try {
-				this.#unsubscribeClock();
+				this.#unsubscribeFromClock();
 			} catch (error) {
 				console.error('Error unsubscribing from clock events in ClipTiming:', error);
 			}
-			this.#unsubscribeClock = null;
+			this.#unsubscribeFromClock = null;
 		}
 	}
 
 	/**
-	 * Reset timing state (lastTime, pulseCount).
+	 * Reset timing state (lastTimestamp, pulseCount).
 	 */
 	reset() {
-		this.#lastTime = null;
+		this.#lastTimestamp = null;
 		this.#pulseCount = 0;
 	}
 

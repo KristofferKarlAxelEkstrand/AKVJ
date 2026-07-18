@@ -2,10 +2,13 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import ClipLoader from '../src/js/visuals/ClipLoader.js';
 import settings from '../src/js/core/settings.js';
 
-function mockFetchCatalogAndLayout(catalog, keyMap) {
+function mockFetchCatalogAndLayout(catalog, keyMap, { activeProject = null } = {}) {
 	globalThis.fetch = vi.fn(async url => {
 		const href = String(url);
 		if (href.includes('active-project')) {
+			if (activeProject) {
+				return { ok: true, json: async () => ({ project: activeProject }) };
+			}
 			return { ok: false, status: 404, json: async () => ({}) };
 		}
 		if (href.includes('key-map')) {
@@ -15,7 +18,10 @@ function mockFetchCatalogAndLayout(catalog, keyMap) {
 	});
 }
 
-function installMockImage() {
+/**
+ * @param {string[]|null} [loadedSrcs] - Optional collector for image.src values
+ */
+function installMockImage(loadedSrcs = null) {
 	class MockImage {
 		constructor() {
 			this.onload = null;
@@ -24,6 +30,9 @@ function installMockImage() {
 			this.height = 135;
 		}
 		set src(v) {
+			if (loadedSrcs) {
+				loadedSrcs.push(v);
+			}
 			if (!v || v.endsWith('/')) {
 				if (typeof this.onerror === 'function') {
 					this.onerror();
@@ -282,5 +291,106 @@ describe('ClipLoader - mapping edge cases', () => {
 		const twoBars = normalizeClipMetadata({ ...baseMeta, sync: 'beat', syncLength: '2 bars', beatsPerBar: 4 });
 		expect(oneBar.frameDurationBeats).toEqual([1, 1, 1, 1]);
 		expect(twoBars.frameDurationBeats).toEqual([2, 2, 2, 2]);
+	});
+});
+
+
+describe('ClipLoader - project load path', () => {
+	let originalFetch;
+	let originalImage;
+
+	beforeEach(() => {
+		originalFetch = globalThis.fetch;
+		originalImage = globalThis.Image;
+	});
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+		globalThis.Image = originalImage;
+	});
+
+	test('setupClipsFromProject fetches project-scoped catalog and key-map', async () => {
+		const catalog = {
+			'neon-skull': { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
+		};
+		const keyMap = { 1: { 60: { 0: 'neon-skull' } } };
+		const loadedSrcs = [];
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage(loadedSrcs);
+
+		const loader = new ClipLoader({});
+		const clips = await loader.setupClipsFromProject('demo');
+
+		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
+		expect(fetchUrls.some(url => url.includes('/projects/demo/clips/clips.json'))).toBe(true);
+		expect(fetchUrls.some(url => url.includes('/projects/demo/clips/key-map.json'))).toBe(true);
+		// DAW channel 1 → code channel 0
+		expect(clips[0][60][0]).toBeDefined();
+		expect(loadedSrcs.some(src => src.includes('/projects/demo/clips/neon-skull/sprite.png'))).toBe(true);
+	});
+
+	test('setupClipsFromProject throws on invalid projectId', async () => {
+		const loader = new ClipLoader({});
+		await expect(loader.setupClipsFromProject('../etc')).rejects.toThrow(/Invalid project ID/);
+	});
+
+	test('setupClips uses active project URLs instead of legacy args', async () => {
+		const catalog = {
+			'live-clip': { png: 'sheet.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
+		};
+		const keyMap = { 1: { 60: { 0: 'live-clip' } } };
+		const loadedSrcs = [];
+		mockFetchCatalogAndLayout(catalog, keyMap, { activeProject: 'live-set' });
+		installMockImage(loadedSrcs);
+
+		const loader = new ClipLoader({});
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+
+		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
+		expect(fetchUrls.some(url => url.includes('/projects/live-set/clips/clips.json'))).toBe(true);
+		expect(fetchUrls.some(url => url.includes('/projects/live-set/clips/key-map.json'))).toBe(true);
+		expect(fetchUrls.some(url => url.includes('/clips/clips.json') && !url.includes('/projects/'))).toBe(false);
+		expect(fetchUrls.some(url => url.includes('/clips/key-map.json') && !url.includes('/projects/'))).toBe(false);
+		expect(clips[0][60][0]).toBeDefined();
+		expect(loadedSrcs.some(src => src.includes('/projects/live-set/clips/live-clip/sheet.png'))).toBe(true);
+	});
+});
+
+describe('ClipLoader - destroy()', () => {
+	test('calls destroy on every nested clip once', () => {
+		const a = { destroy: vi.fn() };
+		const b = { destroy: vi.fn() };
+		const clips = {
+			0: { 60: { 0: a } },
+			1: { 61: { 0: b } }
+		};
+		const loader = new ClipLoader({});
+		loader.destroy(clips);
+		expect(a.destroy).toHaveBeenCalledTimes(1);
+		expect(b.destroy).toHaveBeenCalledTimes(1);
+	});
+
+	test('destroy(null) and destroy(undefined) do not throw', () => {
+		const loader = new ClipLoader({});
+		expect(() => loader.destroy(null)).not.toThrow();
+		expect(() => loader.destroy(undefined)).not.toThrow();
+	});
+
+	test('continues destroying siblings when one destroy() throws', () => {
+		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const exploding = {
+			destroy: vi.fn(() => {
+				throw new Error('boom');
+			})
+		};
+		const survivor = { destroy: vi.fn() };
+		const clips = {
+			0: { 60: { 0: exploding, 64: survivor } }
+		};
+		const loader = new ClipLoader({});
+		expect(() => loader.destroy(clips)).not.toThrow();
+		expect(exploding.destroy).toHaveBeenCalledTimes(1);
+		expect(survivor.destroy).toHaveBeenCalledTimes(1);
+		expect(errorSpy).toHaveBeenCalledWith('Failed to destroy clip:', expect.any(Error));
+		errorSpy.mockRestore();
 	});
 });

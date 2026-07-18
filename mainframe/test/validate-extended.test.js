@@ -1,7 +1,8 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
+import { writeClip } from './utils/clipFixtures.js';
 
 // We'll create a minimal test directory structure and test the validation
 
@@ -26,85 +27,7 @@ describe('validate.js extended validation', () => {
 	});
 
 	async function createTestClip(clipId, meta, hasPng = true) {
-		const clipDir = path.join(testClipsDir, clipId);
-		await fs.mkdir(clipDir, { recursive: true });
-		await fs.writeFile(path.join(clipDir, 'meta.json'), JSON.stringify(meta));
-		if (hasPng) {
-			// Create a minimal valid 1x1 PNG
-			// This is a minimal valid 1x1 pixel transparent PNG
-			const minimalPng = Buffer.from([
-				0x89,
-				0x50,
-				0x4e,
-				0x47,
-				0x0d,
-				0x0a,
-				0x1a,
-				0x0a, // PNG signature
-				0x00,
-				0x00,
-				0x00,
-				0x0d,
-				0x49,
-				0x48,
-				0x44,
-				0x52, // IHDR chunk
-				0x00,
-				0x00,
-				0x00,
-				0x01,
-				0x00,
-				0x00,
-				0x00,
-				0x01, // 1x1 dimensions
-				0x08,
-				0x02,
-				0x00,
-				0x00,
-				0x00,
-				0x90,
-				0x77,
-				0x53,
-				0xde, // bit depth, color type, etc
-				0x00,
-				0x00,
-				0x00,
-				0x0c,
-				0x49,
-				0x44,
-				0x41,
-				0x54, // IDAT chunk
-				0x08,
-				0xd7,
-				0x63,
-				0xf8,
-				0xff,
-				0xff,
-				0x3f,
-				0x00, // compressed data
-				0x05,
-				0xfe,
-				0x02,
-				0xfe,
-				0xa5,
-				0x56,
-				0x68,
-				0x3e, // CRC
-				0x00,
-				0x00,
-				0x00,
-				0x00,
-				0x49,
-				0x45,
-				0x4e,
-				0x44, // IEND chunk
-				0xae,
-				0x42,
-				0x60,
-				0x82
-			]);
-			await fs.writeFile(path.join(clipDir, 'sprite.png'), minimalPng);
-		}
+		await writeClip(testClipsDir, clipId, { meta, hasPng });
 	}
 
 	describe('bitDepth validation', () => {
@@ -205,7 +128,9 @@ describe('validate.js extended validation', () => {
 			}
 		});
 
-		test('migrates loop boolean to playback', async () => {
+		test('accepts legacy loop boolean without mutating meta', async () => {
+			const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -215,10 +140,10 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(0);
-			expect(result.valid[0].meta.playback).toBe('loop');
-			expect(result.valid[0].meta.loop).toBeUndefined();
+			expect(result.valid[0].meta.loop).toBe(true);
+			expect(result.valid[0].meta.playback).toBeUndefined();
+			expect(warnSpy.mock.calls.some(call => String(call[0]).includes('"loop" property is deprecated'))).toBe(true);
 
-			// Test false -> once
 			await fs.rm(testClipsDir, { recursive: true, force: true });
 			testClipsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-validate-test-'));
 
@@ -231,7 +156,10 @@ describe('validate.js extended validation', () => {
 
 			const result2 = await validate(testClipsDir);
 			expect(result2.errors).toHaveLength(0);
-			expect(result2.valid[0].meta.playback).toBe('once');
+			expect(result2.valid[0].meta.loop).toBe(false);
+			expect(result2.valid[0].meta.playback).toBeUndefined();
+
+			warnSpy.mockRestore();
 		});
 	});
 

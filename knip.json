@@ -4,17 +4,12 @@
 	"workspaces": {
 		"akvj": {
 			"entry": ["test/**/*.test.js"],
-			"project": ["src/**/*.js", "test/**/*.js", "scripts/**/*.js"],
+			"project": ["src/**/*.js", "test/**/*.js"],
 			"ignore": ["src/tools/clip-preview/ClipPreview.js"]
 		},
 		"mainframe": {
 			"entry": ["test/**/*.test.js"],
 			"project": ["src/**/*.js", "server/**/*.js", "scripts/**/*.js", "test/**/*.js"]
-		},
-		"midi-mcp": {
-			"entry": ["test/**/*.test.js"],
-			"project": ["lib/**/*.js", "test/**/*.js"],
-			"ignore": ["lib/transformers/mtcTransformer.js"]
 		}
 	},
 	"ignoreBinaries": ["fuser", "pkill"]

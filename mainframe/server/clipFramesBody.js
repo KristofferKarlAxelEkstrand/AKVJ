@@ -49,7 +49,9 @@ export function parseClipFramesBody(body) {
 		sync,
 		syncLength,
 		syncBeats,
-		beatsPerBar
+		beatsPerBar,
+		placement,
+		frameBakeConfigs
 	} = body ?? {};
 	const frameBuffers = Array.isArray(frames) && frames.length > 0 ? decodeFrameDataUrls(frames) : null;
 	const frameRatesForFrames = Array.isArray(frameDurations) && frameDurations.length > 0 ? durationsMsToFrameRates(frameDurations) : undefined;
@@ -72,6 +74,8 @@ export function parseClipFramesBody(body) {
 		sync,
 		syncLength,
 		syncBeats,
-		beatsPerBar
+		beatsPerBar,
+		placement,
+		frameBakeConfigs: Array.isArray(frameBakeConfigs) ? frameBakeConfigs : undefined
 	};
 }

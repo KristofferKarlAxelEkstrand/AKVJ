@@ -1,4 +1,8 @@
 piano-roll {
+	// Sticks to the bottom of the viewport so it stays under the cursor as a
+	// drag-and-drop target while the clip list / mapping table scroll above it.
+	// No footer/bottom toolbar exists in this app currently, hence bottom: 0.
+	bottom: 0;
 	display: flex;
 	flex-direction: column;
 	gap: 0.35rem;
@@ -30,14 +34,6 @@ piano-roll {
 		padding: 0.3rem 0.4rem;
 	}
 
-	.piano-roll-keys {
-		bottom: 0;
-		display: flex;
-		gap: 2px;
-		overflow-x: auto;
-		width: 100%;
-	}
-
 	piano-key {
 		height: 8rem;
 		width: 1.5rem;
@@ -48,25 +44,15 @@ piano-roll {
 		width: 1.75rem;
 	}
 
-	&.is-compact {
-		background: #1e1e2e;
-		border-bottom: 2px solid #444;
-		padding: 0.2rem 0;
-		top: 0;
-
-		piano-key {
-			height: 3.5rem;
-			width: 1rem;
-		}
-
-		.piano-key-label {
-			bottom: 0.1rem;
-			font-size: 0.45rem;
+	&.is-select {
+		piano-key.is-active {
+			outline: 2px solid var(--accent, #d9773a);
+			outline-offset: -2px;
 		}
 	}
 
 	&.is-play {
-		.piano-roll-keys {
+		key-bed {
 			user-select: none;
 		}
 
@@ -75,48 +61,21 @@ piano-roll {
 			outline-offset: -2px;
 		}
 	}
+}
 
-	.piano-roll-clip-view {
-		background: color-mix(in srgb, var(--surface, #1c2030) 92%, transparent);
-		border-top: 1px solid var(--line, #2f3548);
-		color: var(--ink, #e8e6e1);
-		font-size: 0.85rem;
-		padding: 0.5rem 0.75rem;
-	}
+// The Mapping tab stacks an edit roll, a play/test toolbar, and a play roll.
+// Letting each <piano-roll> stick to bottom: 0 independently would make them
+// overlap once scrolled — anchor the whole group as a single sticky unit instead.
+.piano-roll-dock {
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	position: sticky;
+	z-index: 10;
 
-	.piano-roll-clip-view[hidden] {
-		display: none;
-	}
-
-	.piano-roll-clip-view-heading {
-		color: var(--muted, #9a968c);
-		font-size: 0.8rem;
-		margin: 0 0 0.35rem;
-	}
-
-	.piano-roll-clip-view-empty {
-		color: var(--muted, #9a968c);
-		font-style: italic;
-		margin: 0;
-	}
-
-	.piano-roll-clip-list {
-		display: grid;
-		gap: 0.25rem;
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-
-	.piano-roll-clip-item {
-		align-items: baseline;
-		display: flex;
-		gap: 0.75rem;
-		justify-content: space-between;
-	}
-
-	.piano-roll-clip-item span {
-		color: var(--muted, #9a968c);
-		font-size: 0.8rem;
+	piano-roll {
+		bottom: auto;
+		position: static;
 	}
 }

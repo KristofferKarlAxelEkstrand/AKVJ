@@ -25,6 +25,7 @@ export default function withSettings(patches, fn) {
 		if (result instanceof Promise) {
 			return result.finally(restore);
 		}
+		restore();
 		return result;
 	} catch (error) {
 		restore();

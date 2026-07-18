@@ -20,7 +20,7 @@ class LayerGroup {
 	#activeClips = new Map();
 
 	/** @type {Object} */
-	#clips = {};
+	#loadedClips = {};
 
 	/** @type {Map<number, Map<number, number[]>>} */
 	#velocityCache = new Map();
@@ -29,7 +29,7 @@ class LayerGroup {
 	#cachedActiveClips = null;
 
 	/** @type {boolean} Flag indicating cache needs rebuild */
-	#isClipsDirty = true;
+	#isClipCacheDirty = true;
 
 	/** @type {Map<string, Map<string, {channel: number, note: number}>>} Choke group → active note slots keyed by `${channel}:${note}` */
 	#triggerGroups = new Map();
@@ -51,7 +51,7 @@ class LayerGroup {
 	 * @param {Object} clips - Clip data keyed by channel/note/velocity
 	 */
 	setClips(clips) {
-		this.#clips = clips;
+		this.#loadedClips = clips;
 
 		this.#velocityCache.clear();
 		for (const channel of this.#channels) {
@@ -60,7 +60,7 @@ class LayerGroup {
 				this.#velocityCache.set(channel, buildVelocityCache(channelClips));
 			}
 		}
-		this.#isClipsDirty = true;
+		this.#isClipCacheDirty = true;
 	}
 
 	/**
@@ -78,7 +78,7 @@ class LayerGroup {
 			return false;
 		}
 
-		const clip = resolveClip(this.#clips[channel], note, velocity, this.#velocityCache.get(channel));
+		const clip = resolveClip(this.#loadedClips[channel], note, velocity, this.#velocityCache.get(channel));
 		if (!clip) {
 			return false;
 		}
@@ -90,7 +90,7 @@ class LayerGroup {
 			clip.stop();
 			activeClipsByNote.delete(note);
 			this.#removeFromTriggerGroup(clip, channel, note);
-			this.#isClipsDirty = true;
+			this.#isClipCacheDirty = true;
 			return true;
 		}
 
@@ -108,7 +108,7 @@ class LayerGroup {
 		clip.reset();
 		activeClipsByNote.set(note, clip);
 		this.#addToTriggerGroup(clip, channel, note);
-		this.#isClipsDirty = true;
+		this.#isClipCacheDirty = true;
 
 		return true;
 	}
@@ -143,7 +143,7 @@ class LayerGroup {
 		clip.stop();
 		activeClipsByNote.delete(note);
 		this.#removeFromTriggerGroup(clip, channel, note);
-		this.#isClipsDirty = true;
+		this.#isClipCacheDirty = true;
 		return true;
 	}
 
@@ -154,13 +154,13 @@ class LayerGroup {
 	 * @returns {Clip[]} Array of active clips
 	 */
 	getActiveClips() {
-		if (!this.#isClipsDirty && this.#cachedActiveClips !== null && !this.#hasFinishedClip()) {
+		if (!this.#isClipCacheDirty && this.#cachedActiveClips !== null && !this.#hasFinishedClip()) {
 			return this.#cachedActiveClips;
 		}
 
 		this.#cleanupFinishedClips();
 		this.#cachedActiveClips = this.#buildActiveClipsCache();
-		this.#isClipsDirty = false;
+		this.#isClipCacheDirty = false;
 		return this.#cachedActiveClips;
 	}
 
@@ -261,7 +261,7 @@ class LayerGroup {
 			channelClips.clear();
 		}
 		this.#cachedActiveClips = null;
-		this.#isClipsDirty = true;
+		this.#isClipCacheDirty = true;
 		this.#triggerGroups.clear();
 	}
 
@@ -341,14 +341,14 @@ class LayerGroup {
 		} catch (error) {
 			console.error('Error clearing clips in LayerGroup:', error);
 		}
-		this.#clips = {};
+		this.#loadedClips = {};
 		try {
 			this.#velocityCache.clear();
 		} catch (error) {
 			console.error('Error clearing velocityCache in LayerGroup:', error);
 		}
 		this.#cachedActiveClips = null;
-		this.#isClipsDirty = true;
+		this.#isClipCacheDirty = true;
 		this.#triggerGroups.clear();
 	}
 }

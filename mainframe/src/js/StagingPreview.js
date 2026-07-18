@@ -3,19 +3,20 @@ import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 import { computeFrameDrawRect, resolveScaleMode } from './frameFit.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
 import { fpsToMs } from './frameTiming.js';
-import { PLAYBACK_MODES } from './clipSchema.js';
+import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, resolvePlacement } from './clipSchema.js';
+import { resolveFrameBakeConfig } from './frameBake.js';
 
 /**
- * AkvjStagingPreview — custom element showing a live canvas preview of staged
+ * StagingPreview — custom element showing a live canvas preview of staged
  * frames at target resolution with scale modes. Provides play/pause, scrub, and speed controls.
  * Reuses the preview player pattern from ClipList.
  *
- * @fires AkvjStagingPreview#framesloaded - CustomEvent when frames finish loading
+ * @fires StagingPreview#framesloaded - CustomEvent when frames finish loading
  */
-class AkvjStagingPreview extends HTMLElement {
+class StagingPreview extends HTMLElement {
 	#stagedImages = [];
 	#currentFrame = 0;
-	#lastFrameTime = null;
+	#lastFrameTimestamp = null;
 	#animationFrameId = null;
 	#isPlaying = false;
 	#playbackSpeed = 1;
@@ -27,6 +28,9 @@ class AkvjStagingPreview extends HTMLElement {
 	#frameDurationsMs = [];
 	#playbackMode = 'loop';
 	#scaleMode = 'fit';
+	#placement = { x: 0, y: 0 };
+	/** @type {ReturnType<typeof resolveFrameBakeConfig>[]} */
+	#bakeConfigs = [];
 	#shuffleState = null;
 	#pingpongState = null;
 	#canvas = null;
@@ -35,6 +39,7 @@ class AkvjStagingPreview extends HTMLElement {
 	#scrubSlider = null;
 	#playPauseButton = null;
 	#speedSelect = null;
+	#tileCanvas = null;
 
 	connectedCallback() {
 		this.#render();
@@ -56,20 +61,26 @@ class AkvjStagingPreview extends HTMLElement {
 	/**
 	 * Load staged File objects as Image elements.
 	 * @param {File[]} files
-	 * @param {number} targetWidth
-	 * @param {number} targetHeight
+	 * @param {number} targetWidth - Clip cell width
+	 * @param {number} targetHeight - Clip cell height
 	 * @param {number} frameRate - Fallback FPS when a frame has no explicit duration
 	 * @param {string} playbackMode
 	 * @param {string} [scaleMode='fit']
 	 * @param {number[]} [frameDurationsMs] - Per-frame hold times in ms (same shape as clip-frames)
+	 * @param {{ x?: number, y?: number }} [placement] - Runtime clip placement
+	 * @param {object[]} [bakeConfigs] - Per-frame bake composition (session-only)
 	 */
-	async loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode, scaleMode, frameDurationsMs) {
+	async loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode, scaleMode, frameDurationsMs, placement, bakeConfigs) {
 		this.#targetWidth = targetWidth || 240;
 		this.#targetHeight = targetHeight || 135;
 		this.#frameRate = frameRate || 12;
 		this.#frameDurationsMs = this.#normalizeDurationsMs(frameDurationsMs, files?.length ?? 0);
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
 		this.#scaleMode = resolveScaleMode(scaleMode);
+		this.#placement = resolvePlacement(placement);
+		this.#bakeConfigs = (files || []).map((_, index) =>
+			resolveFrameBakeConfig(Array.isArray(bakeConfigs) ? bakeConfigs[index] : undefined, this.#targetWidth, this.#targetHeight)
+		);
 		this.#playbackSpeed = 1;
 		this.#shuffleState = null;
 		this.#pingpongState = null;
@@ -216,17 +227,114 @@ class AkvjStagingPreview extends HTMLElement {
 			return;
 		}
 
-		if (this.#canvas.width !== this.#targetWidth || this.#canvas.height !== this.#targetHeight) {
-			this.#syncCanvasBufferSize();
+		this.#syncCanvasBufferSize();
+		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+
+		const bake = this.#bakeConfigs[this.#currentFrame] ?? resolveFrameBakeConfig({}, this.#targetWidth, this.#targetHeight);
+		const cell = this.#ensureTileCanvas(this.#targetWidth, this.#targetHeight);
+		this.#drawBakedCell(img, cell, bake);
+
+		if (this.#scaleMode === 'pattern') {
+			this.#drawPatternFromCell(cell);
+		} else {
+			const rect = computeFrameDrawRect(this.#targetWidth, this.#targetHeight, this.#canvas.width, this.#canvas.height, this.#scaleMode);
+			const placeX = this.#scaleMode === 'stretch' ? 0 : this.#placement.x;
+			const placeY = this.#scaleMode === 'stretch' ? 0 : this.#placement.y;
+			this.#ctx.drawImage(
+				cell,
+				rect.sx,
+				rect.sy,
+				rect.sWidth,
+				rect.sHeight,
+				Math.floor(rect.dx + placeX),
+				Math.floor(rect.dy + placeY),
+				rect.dWidth,
+				rect.dHeight
+			);
 		}
 
-		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-		const rect = computeFrameDrawRect(img.naturalWidth || img.width, img.naturalHeight || img.height, this.#canvas.width, this.#canvas.height, this.#scaleMode);
-		this.#ctx.drawImage(img, rect.sx, rect.sy, rect.sWidth, rect.sHeight, rect.dx, rect.dy, rect.dWidth, rect.dHeight);
 		this.#frameLabel.textContent = `Frame ${this.#currentFrame + 1} / ${this.#stagedImages.length}`;
 		if (!this.#isScrubbing) {
 			this.#scrubSlider.value = String(this.#currentFrame);
 		}
+	}
+
+	/**
+	 * Bake one source image into a cell canvas (mirrors spritesheet fit semantics in the browser).
+	 * @param {HTMLImageElement} img
+	 * @param {HTMLCanvasElement} cell
+	 * @param {ReturnType<typeof resolveFrameBakeConfig>} bake
+	 */
+	#drawBakedCell(img, cell, bake) {
+		const cellCtx = cell.getContext('2d');
+		cellCtx.imageSmoothingEnabled = false;
+		cellCtx.clearRect(0, 0, cell.width, cell.height);
+		const srcW = img.naturalWidth || img.width;
+		const srcH = img.naturalHeight || img.height;
+
+		if (bake.scaleMode === 'custom') {
+			const left = Math.floor((cell.width - bake.width) / 2) + bake.placement.x;
+			const top = Math.floor((cell.height - bake.height) / 2) + bake.placement.y;
+			cellCtx.drawImage(img, 0, 0, srcW, srcH, left, top, bake.width, bake.height);
+			return;
+		}
+
+		const mode = bake.scaleMode === 'pattern' ? 'none' : bake.scaleMode;
+		const rect = computeFrameDrawRect(srcW, srcH, cell.width, cell.height, mode);
+		const placeX = mode === 'stretch' ? 0 : bake.placement.x;
+		const placeY = mode === 'stretch' ? 0 : bake.placement.y;
+		cellCtx.drawImage(
+			img,
+			rect.sx,
+			rect.sy,
+			rect.sWidth,
+			rect.sHeight,
+			Math.floor(rect.dx + placeX),
+			Math.floor(rect.dy + placeY),
+			rect.dWidth,
+			rect.dHeight
+		);
+	}
+
+	/**
+	 * @param {HTMLCanvasElement} cell
+	 */
+	#drawPatternFromCell(cell) {
+		const tileWidth = cell.width;
+		const tileHeight = cell.height;
+		const offsetX = Math.floor(this.#placement.x % tileWidth);
+		const offsetY = Math.floor(this.#placement.y % tileHeight);
+		for (let y = offsetY - tileHeight; y < this.#canvas.height; y += tileHeight) {
+			for (let x = offsetX - tileWidth; x < this.#canvas.width; x += tileWidth) {
+				this.#ctx.drawImage(cell, x, y);
+			}
+		}
+	}
+
+	/**
+	 * @param {number} tileWidth
+	 * @param {number} tileHeight
+	 * @returns {HTMLCanvasElement}
+	 */
+	#ensureTileCanvas(tileWidth, tileHeight) {
+		if (!this.#tileCanvas) {
+			this.#tileCanvas = document.createElement('canvas');
+		}
+		if (this.#tileCanvas.width !== tileWidth || this.#tileCanvas.height !== tileHeight) {
+			this.#tileCanvas.width = tileWidth;
+			this.#tileCanvas.height = tileHeight;
+		}
+		return this.#tileCanvas;
+	}
+
+	/**
+	 * Pattern previews on the live 240×135 output; other modes preview at cell size.
+	 */
+	#previewBufferSize() {
+		if (this.#scaleMode === 'pattern') {
+			return { width: DEFAULT_FRAME_WIDTH, height: DEFAULT_FRAME_HEIGHT };
+		}
+		return { width: this.#targetWidth, height: this.#targetHeight };
 	}
 
 	/**
@@ -236,13 +344,14 @@ class AkvjStagingPreview extends HTMLElement {
 		if (!this.#canvas) {
 			return;
 		}
-		if (this.#canvas.width !== this.#targetWidth || this.#canvas.height !== this.#targetHeight) {
-			this.#canvas.width = this.#targetWidth;
-			this.#canvas.height = this.#targetHeight;
+		const { width, height } = this.#previewBufferSize();
+		if (this.#canvas.width !== width || this.#canvas.height !== height) {
+			this.#canvas.width = width;
+			this.#canvas.height = height;
 			this.#ctx = this.#canvas.getContext('2d');
 			this.#ctx.imageSmoothingEnabled = false;
 		}
-		const { displayWidth, displayHeight } = computeStagingDisplaySize(this.#targetWidth, this.#targetHeight);
+		const { displayWidth, displayHeight } = computeStagingDisplaySize(width, height);
 		this.#canvas.style.width = `${displayWidth}px`;
 		this.#canvas.style.height = `${displayHeight}px`;
 	}
@@ -271,7 +380,7 @@ class AkvjStagingPreview extends HTMLElement {
 		this.#isPlaying = playing;
 		this.#playPauseButton.textContent = playing ? 'Pause' : 'Play';
 		if (playing) {
-			this.#lastFrameTime = null;
+			this.#lastFrameTimestamp = null;
 			if (this.#animationFrameId === null) {
 				this.#animationFrameId = requestAnimationFrame(timestamp => this.#animate(timestamp));
 			}
@@ -283,12 +392,12 @@ class AkvjStagingPreview extends HTMLElement {
 			this.#animationFrameId = null;
 			return;
 		}
-		if (this.#lastFrameTime === null) {
-			this.#lastFrameTime = timestamp;
+		if (this.#lastFrameTimestamp === null) {
+			this.#lastFrameTimestamp = timestamp;
 		}
-		const elapsed = timestamp - this.#lastFrameTime;
+		const elapsed = timestamp - this.#lastFrameTimestamp;
 		if (elapsed >= this.#getFrameInterval()) {
-			this.#lastFrameTime = timestamp;
+			this.#lastFrameTimestamp = timestamp;
 			this.#advanceFrame();
 			this.#drawCurrentFrame();
 		}
@@ -320,6 +429,6 @@ class AkvjStagingPreview extends HTMLElement {
 	}
 }
 
-customElements.define('akvj-staging-preview', AkvjStagingPreview);
+customElements.define('akvj-staging-preview', StagingPreview);
 
-export default AkvjStagingPreview;
+export default StagingPreview;

@@ -51,7 +51,7 @@ export default [
 	},
 	// Node config for build/dev tools
 	{
-		files: ['**/*.config.js', '**/scripts/**/*.js', 'monorepo-scripts/**/*.js', 'mainframe/server/**/*.js', '**/server/**/*.js', 'mainframe/scripts/**/*.js', 'midi-mcp/**/*.js'],
+		files: ['**/*.config.js', '**/scripts/**/*.js', 'monorepo-scripts/**/*.js', 'mainframe/server/**/*.js', '**/server/**/*.js', 'mainframe/scripts/**/*.js'],
 		languageOptions: {
 			globals: {
 				...globals.node
@@ -60,6 +60,6 @@ export default [
 	},
 	// Ignore artifact folders
 	{
-		ignores: ['**/dist/**', '**/node_modules/**', '**/src/public/**', 'clips/**', '.cache/**', 'midi-mcp/data/**', 'midi-mcp/.cache/**']
+		ignores: ['**/dist/**', '**/node_modules/**', '**/src/public/**', 'clips/**', '.cache/**']
 	}
 ];

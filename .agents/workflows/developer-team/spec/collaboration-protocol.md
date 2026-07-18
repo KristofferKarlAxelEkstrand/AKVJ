@@ -1,6 +1,6 @@
 # Collaboration Protocol (Ways of Working)
 
-This is the canonical reference for *how* the developer team collaborates through the file-based system — the message conventions, mailbox rules, and hygiene that keep five asynchronous agents from stepping on each other. It is owned and kept current by the **Overseer**; every other agent should follow it, but only the Overseer edits it (propose changes via an `outbox/` question or by flagging process friction in `slack/overseer/`).
+This is the canonical reference for *how* the developer team collaborates through the file-based system — the message conventions, mailbox rules, and hygiene that keep the asynchronous agents (six core + two optional specialists) from stepping on each other. It is owned and kept current by the **Overseer**; every other agent should follow it, but only the Overseer edits it (propose changes via an `outbox/` question or by flagging process friction in `slack/overseer/`).
 
 This file is about *process*. Product vision and architecture live in `goal.md`, `code-standards.md`, `aesthetics.md`, and `clip-schema.md` — those are also Overseer-owned product specs, separate from this protocol.
 
@@ -8,7 +8,8 @@ This file is about *process*. Product vision and architecture live in `goal.md`,
 
 | Folder | Who writes | Who reads | Purpose |
 | --- | --- | --- | --- |
-| `inbox/` | Human | Team Lead | New feature requests / bug reports. Moved to `inbox/read/` once triaged. |
+| `inbox/` | Human, Overseer (bug/architecture tickets from sweeps) | Team Lead | New feature requests / bug reports. Moved to `inbox/read/` once triaged. |
+| `drafts/` | Human | Human | Staging area for feature specs still being written (may have an open "Open Questions" section). Not yet ready for Team Lead triage — nothing should move a file out of here into `inbox/` except the human. |
 | `outbox/` | Any agent | Human | Questions that need a human decision. Strict `Question:` / `Answer:` format; delete once the answer is internalized. |
 | `tasks/` | Team Lead | Team Lead | The shared backlog. Completed tasks move to `tasks/done/`. |
 | `epics/` | Team Lead | Team Lead, developers (when assigned a related task) | Living record of large, multi-task initiatives (e.g. `refactor-for-greateness.md`) — status, rationale, and a "check before re-proposing" list so future audits don't rediscover already-shipped work. Team Lead's planning artifact, same ownership model as `tasks/`. |
@@ -22,6 +23,9 @@ This file is about *process*. Product vision and architecture live in `goal.md`,
 | --- | --- | --- |
 | `[TASK]` | Team Lead → a developer | An assigned unit of work. |
 | `[FEEDBACK]` | QA Reviewer → a developer | A small, non-blocking fix noticed in passing. |
+| `[NIT]` | Nitpicker → `inbox/` | A naming/semantics/readability finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
+| `[TEST]` | Test Marshal → `inbox/` | A test-coverage gap / flaky / stale-test finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
+| `[DEPS]` | Quartermaster → `inbox/` | A dependency / lockfile / version-skew / config-hygiene finding for the Team Lead to triage (flag anything needing `[NPM-REQUEST]` / `[LOCK]`). |
 | `[REPORT]` | Developer → Team Lead | Work finished, self-verified, ready for QA. |
 | `[BLOCKED]` | Developer → Team Lead | Self-healing attempts exhausted; needs help. |
 | `[APPROVED]-<task-id>` | QA Reviewer → Team Lead | Task verified; safe to move to `tasks/done/`. |
@@ -34,6 +38,27 @@ This file is about *process*. Product vision and architecture live in `goal.md`,
 ## The Golden Hygiene Rule
 
 **Always delete or move a message file once you've acted on it.** A file left sitting in your personal `slack/` folder looks like unread mail on your next wakeup and will re-trigger you (or, worse, be silently re-processed). Every prompt's workflow loop ends with an explicit cleanup step for exactly this reason — it is not optional.
+
+## The Sleep Step (background execution — do not let it end your session)
+
+Every role ends its loop by running a blocking script (`await-messages.js` or `await-messages-random.js`). Two failure modes have both been observed in practice — one strongly suspected as the real cause of the ~11.5-hour QA Reviewer stall on 2026-07-18, the other confirmed live on the Nitpicker the same day — and both produce the same silent symptom: the agent looks "asleep" but is actually gone, and nothing arrives to wake it.
+
+**Rule — always invoke the sleep command as a background task, then immediately end your turn:**
+
+1. **Run it in the background, never in the foreground.** `await-messages.js` (Team Lead, both developers, QA Reviewer) has **no self-imposed timeout at all** — it blocks until a file arrives, however long that takes. `await-messages-random.js` (Overseer, Nitpicker, Test Marshal, Quartermaster) can block up to that role's max window (10–60 minutes depending on role). If you run either in the foreground, the harness's own tool-call timeout can silently kill the command before a real message ever arrives — you get back a killed/timed-out result, not a clean wake, and your loop desyncs from a stuck-but-invisible state. Use your tool's background-execution option so the command keeps running independently of the current turn.
+2. **The instant you've started it in the background, stop.** End your turn with nothing more than a short one-line acknowledgment (or nothing at all) — no further tool calls, no extra sweeping, no "while I'm waiting, let me also check X." Ending the turn is what actually puts the session into an idle, waiting state. If you keep working after starting the background sleep, you were never actually asleep, and this defeats the entire point of the step.
+3. **Ending your turn is not ending your session.** The two are different things. Do not `exit 0`/terminate your process here — that's reserved for the `[PROMPT-UPDATED]` self-restart flow (see below). The background task's own completion (new file or timeout) is what the harness uses to resume this same session back at Step 1, automatically. You do not need to, and must not try to, cause that resumption yourself.
+4. **If the sleep command ever comes back as an error, kill, abort, or timeout instead of a clean "message waiting" / "random sweep triggered" result, that is not a real event.** Do not treat it as license to do unrelated work or skip sleeping. Just immediately re-invoke the identical sleep command in the background and end your turn again. Observed live on 2026-07-18: the Cursor harness sometimes **aborts** a correctly backgrounded sleep after only a few seconds (status `aborted` / `exit_code: unknown`) even though no message arrived — same recovery: re-invoke + end turn. Do not "give up" after repeated aborts; that is how a role silently leaves the await state the human expects.
+
+### Agent restart hygiene (duplicate pollers)
+
+Restarting an agent chat does **not** automatically kill that role's previous `await-messages*.js` process. If the old session never exited cleanly, its poller keeps watching the same mailbox. Observed live on 2026-07-18: duplicate pollers on `akvj-developer`, `mainframe-developer`, and `team-lead` at the same time (and earlier, overlapping Overseer sessions writing `sweep-log.md` concurrently).
+
+**Symptom:** one new file can wake more than one session for the same role — double-processing, log races, or a "zombie" session that looks alive in `ps` but is no longer the chat you are talking to.
+
+**Human (when restarting a role):** before (or right after) pasting the startup prompt, check `ps aux | rg await-messages` and kill any orphaned poller still watching that role's `slack/<agent-name>/` (and for Team Lead / Overseer, their extra watched dirs) if the old chat window is gone. One poller per mailbox is the healthy state.
+
+**Agents:** you cannot safely kill another role's poller. On process sweeps the Overseer logs duplicate-poller counts as a watch item. Keep following the sleep step above in *your* session — do not skip sleeping because you see another poller on your mailbox (that usually means a prior incarnation, which the human should clear).
 
 ## Workflow retention / idle cleanup
 
@@ -56,7 +81,7 @@ Every agent's workflow loop re-checks its mailbox on each wakeup, but it does **
 **Rule**: any time a `prompts/*.prompt.md` file (or another file an agent's loop depends on, e.g. this protocol doc or `slack/general/team-guidelines.md`) is edited:
 1. The editor drops a `[PROMPT-UPDATED]-<slug>.md` file into the affected agent's personal `slack/<agent-name>/` folder.
 2. The notice must name the exact file that changed and summarize what changed and why.
-3. If the change affects a *shared* file (this protocol doc, `team-guidelines.md`), the same notice goes to **every other** agent's personal slack folder (`team-lead`, `akvj-developer`, `mainframe-developer`, `qa-reviewer`) — not the Overseer's own folder.
+3. If the change affects a *shared* file (this protocol doc, `team-guidelines.md`), the same notice goes to **every other** agent's personal slack folder (`team-lead`, `akvj-developer`, `mainframe-developer`, `qa-reviewer`, `nitpicker`, `test-marshal`, `quartermaster`) — not the Overseer's own folder. (The last three are timer-driven specialists; the Test Marshal and Quartermaster are optional and may not be running — dropping the notice is harmless either way.)
 4. The receiving agent's first workflow step ("check messages") will surface it. The agent must **delete the notice and gracefully exit their loop (`exit 0`)**. They will automatically be restarted with the fresh prompt in their system context.
 
 ## Plan-Approval Gate
@@ -69,15 +94,35 @@ Neither Team Lead nor the developers read `outbox/` — only the Overseer polls 
 2. **Team Lead**: on receiving `[AWAITING-APPROVAL]-<task-id>`, do **not** reassign or re-dispatch that task — leave it blocked. Delete the notice only once you send a genuinely fresh `[TASK]` for it (which will only happen after the plan was actually approved).
 3. **Overseer**: since I'm the one who actually sees `outbox/` answers, once a gated plan gets an `## Answer`, I file the approved direction as a normal ticket into `inbox/` (same as any other finding) so Team Lead's regular loop picks it up and dispatches a real, approved `[TASK]`. I do not reassign work directly — that stays Team Lead's job.
 
+## Git & Commits (the human owns commits)
+
+The human owns commits. Agents change files and **leave them in the working tree** for the human to review and commit — making an edit is not the same as committing it.
+
+- **Do not `git add`/`git commit`/`git push`** as part of finishing a task. Default to leaving your edits uncommitted. Only stage/commit when the human explicitly asks in the current request, and even then keep it surgical (`git add <specific paths>`, never `-A`/`.`).
+- **Never** stage or commit binary assets (e.g. PNG sprite sheets) or tracking-/history-altering operations (retiring tracked directories, large migrations/renames, `.gitignore` policy changes) on your own — these always wait for the human.
+- If a change only becomes durable once committed (e.g. a migration a fresh clone depends on), **escalate via `outbox/`**: state exactly what would be staged/removed and let the human commit it. Do not silently delegate the commit to another agent.
+- Read-only git (`git status`, `git diff`, `git log`, `git ls-files`) is always fine for gathering evidence. Full rules live in the `git-safety` skill.
+
 ## Scope Boundaries
 
 - The Overseer edits *process* files: `prompts/*.prompt.md` (with the notify rule above), this file, `slack/general/team-guidelines.md`.
 - The Overseer also edits *product specs*: `goal.md`, `code-standards.md`, `aesthetics.md`, `clip-schema.md`.
 - The Overseer does **not** edit product source code, `tasks/*`, or `slack/general/team-dashboard.md` — those belong to the Team Lead, developers, and QA Reviewer.
+- The **Nitpicker** is a proactive, timer-driven role (like the Overseer) but scoped to *how the code reads*: naming conventions, semantics, terminology consistency, and small code-quality/readability nits. It **files `[NIT]` tickets into `inbox/`** and never edits product source, `tasks/*`, the dashboard, prompts, or the specs. Bugs/perf/architecture stay with the Overseer; task verification stays with QA. The Nitpicker is not on the auto-generated dashboard (same as the Overseer).
+- The **Test Marshal** (Coverage Hawk) and the **Quartermaster** are **optional**, timer-driven, report-only specialists that may not always be running. Both **file tickets into `inbox/`** and never edit product source, tests, config, `tasks/*`, the dashboard, prompts, or specs; neither is on the auto-generated dashboard.
+  - **Test Marshal** owns systemic test health: coverage gaps, untested modules, flaky/stale tests, test duplication (`[TEST]` tickets). This is distinct from QA, which verifies specific assigned `[TASK]-review-*` work — the Test Marshal is proactive and systemic, QA is per-task and event-driven.
+  - **Quartermaster** owns the supply lines: outdated deps, `npm audit`, version skew, lockfile hygiene, and config/script/`engines` health (`[DEPS]` tickets). It runs only **read-only** diagnostics (`npm outdated`, `npm audit`, `npm ls`) and never runs `npm install`/`audit fix` or edits `package.json`/the lockfile — those changes go through a Team-Lead-sequenced task (via `[NPM-REQUEST]` / `[LOCK]`). Config overlaps with the Overseer; deps/lockfile are the Quartermaster's.
 - Disagreements about process (e.g. "should old `[REPORT]` files in `slack/general/` be deleted or kept as an archive?") are a good candidate for an `outbox/` question rather than a unilateral rewrite.
 
 ## Changelog
 
+- 2026-07-18 — Sleep Step recovery rule now explicitly covers harness **`aborted`** results (not only error/kill/timeout): Cursor can abort a correctly backgrounded sleep after a few seconds with no message; agents must re-invoke + end turn and must not abandon the await loop. Prompted by human report that agents "do not go to the sleep / await state."
+- 2026-07-18 — Added **Agent restart hygiene (duplicate pollers)** under The Sleep Step: restarting a chat does not kill the old `await-messages*.js`; humans should clear orphaned pollers so each mailbox has exactly one watcher. Prompted by live duplicates on team-lead / akvj-developer / mainframe-developer the same day as the sleep-step fix.
+- 2026-07-18 — Added **The Sleep Step** section: the sleep command must be run as a background task and the turn must end immediately after, never in the foreground and never followed by more work in the same turn. Prompted by the human flagging the Nitpicker staying "awake" instead of sleeping, and matches the likely root cause of the earlier ~11.5-hour QA Reviewer stall (a foreground-run, self-timeout-free `await-messages.js` silently killed by the harness's own tool-call timeout).
+- 2026-07-18 — Documented the `drafts/` folder (human-only staging area for in-progress feature specs, not ready for Team Lead triage until promoted to `inbox/`) and clarified that the Overseer, not just the human, writes into `inbox/` (bug/architecture tickets from sweeps — already true in practice, just undocumented).
+- 2026-07-18 — Added the **Git & Commits** section: the human owns commits. Agents leave edits in the working tree and do not `git add`/`commit`/`push` unless the human explicitly asks; binary assets and tracking-/history-altering operations always wait for the human; durable-only-if-committed changes are escalated via `outbox/`. Mirrors the updated `git-safety` skill.
+- 2026-07-18 — Added two **optional** timer-driven specialists: the **Test Marshal** (Coverage Hawk; `[TEST]` tickets — systemic test coverage/flaky/stale, distinct from QA's per-task reviews) and the **Quartermaster** (`[DEPS]` tickets — deps/lockfile/version-skew/config, read-only diagnostics only, never installs/edits). Both report-only, both file into `inbox/`, neither on the dashboard; added to the shared-file notify list.
+- 2026-07-18 — Added the **Nitpicker** role (naming/semantics/readability steward). Team is now six agents. Proactive/timer-driven like the Overseer but scoped to how code reads; files `[NIT]` tickets into `inbox/`, never edits product source/tasks/dashboard/specs. Added to the shared-file `[PROMPT-UPDATED]` notify list.
 - 2026-07-17 — Added the Plan-Approval Gate (`[AWAITING-APPROVAL]`) after a task shipped without the human's requested approval — human confirmed the team must actually wait, not proceed after a timeout.
 - 2026-07-17 — Added workflow retention / idle cleanup (Overseer promote-then-purge; see `routine-maintenance.md`).
 - 2026-07-17 — Time Study Man role merged into Overseer; team is five agents; Overseer owns both process protocol and product specs.

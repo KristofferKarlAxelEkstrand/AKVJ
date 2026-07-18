@@ -79,7 +79,7 @@ npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/
 | `akvj/src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)                    |
 | `akvj/src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)                         |
 | `akvj/src/js/utils/velocitySelection.js`      | Velocity-based clip selection utilities                     |
-| `akvj/src/js/ui/LoadingOverlay.js`            | Loading overlay custom element for project switching        |
+| `akvj/src/js/ui/AkvjLoadingOverlay.js`        | Loading overlay custom element for project switching        |
 
 ## Common Commands
 

@@ -1,28 +1,37 @@
 import { UserMessage } from './UserMessage.js';
-import appState, { EVENT_USER_MESSAGE } from '../core/AppState.js';
+import { EVENT_USER_MESSAGE } from '../core/AppState.js';
 
 /**
- * UserMessages — stacked centered modal host for user-message items.
+ * UserMessages — stacked centered modal host for akvj-user-message items.
  *
  * Newest messages appear on top. Show-all stacking (not a one-at-a-time queue).
  * Esc dismisses the top message. Subscribes to AppState EVENT_USER_MESSAGE.
  *
- * @element user-messages
+ * Resolves AppState from `globalThis.__AKVJ_APP_STATE__` at connect time (not a
+ * closed-over module binding) so Vitest `vmThreads` + shared customElements
+ * registry still hit the same singleton the tests dispatch on.
+ *
+ * @element akvj-user-messages
  */
 class UserMessages extends HTMLElement {
 	/** @type {Array<{ id: string, type: string, text: string }>} */
-	#items = [];
-	#stack = null;
+	#messages = [];
+	#messageStackElement = null;
 	#unsubscribe = null;
 	#boundKeydown = this.#handleKeydown.bind(this);
 	#boundFocusIn = this.#handleFocusIn.bind(this);
-	#idSeq = 0;
+	#nextMessageId = 0;
 
 	connectedCallback() {
 		this.#renderShell();
 		this.hidden = true;
-		this.#unsubscribe = appState.subscribe(EVENT_USER_MESSAGE, event => {
-			this.#enqueue(event.detail);
+		const state = globalThis.__AKVJ_APP_STATE__;
+		if (!state?.subscribe) {
+			console.error('akvj-user-messages: AppState singleton is not initialized');
+			return;
+		}
+		this.#unsubscribe = state.subscribe(EVENT_USER_MESSAGE, event => {
+			this.#pushMessage(event.detail);
 		});
 		document.addEventListener('keydown', this.#boundKeydown, true);
 		document.addEventListener('focusin', this.#boundFocusIn, true);
@@ -34,28 +43,28 @@ class UserMessages extends HTMLElement {
 		document.removeEventListener('keydown', this.#boundKeydown, true);
 		document.removeEventListener('focusin', this.#boundFocusIn, true);
 		this.replaceChildren();
-		this.#stack = null;
-		this.#items = [];
+		this.#messageStackElement = null;
+		this.#messages = [];
 	}
 
 	/**
 	 * @returns {number}
 	 */
 	get messageCount() {
-		return this.#items.length;
+		return this.#messages.length;
 	}
 
 	/**
 	 * @param {{ type?: string, text?: string }} detail
 	 */
-	#enqueue(detail) {
+	#pushMessage(detail) {
 		const text = String(detail?.text ?? '').trim();
 		if (!text) {
 			return;
 		}
-		this.#idSeq += 1;
-		this.#items.unshift({
-			id: `msg-${this.#idSeq}`,
+		this.#nextMessageId += 1;
+		this.#messages.unshift({
+			id: `msg-${this.#nextMessageId}`,
 			type: detail?.type || 'info',
 			text
 		});
@@ -63,7 +72,7 @@ class UserMessages extends HTMLElement {
 	}
 
 	#dismiss(id) {
-		this.#items = this.#items.filter(item => item.id !== id);
+		this.#messages = this.#messages.filter(item => item.id !== id);
 		this.#renderStack();
 	}
 
@@ -72,48 +81,48 @@ class UserMessages extends HTMLElement {
 		const backdrop = document.createElement('div');
 		backdrop.className = 'user-messages-backdrop';
 		backdrop.addEventListener('click', event => {
-			if (event.target === backdrop && this.#items.length > 0) {
-				this.#dismiss(this.#items[0].id);
+			if (event.target === backdrop && this.#messages.length > 0) {
+				this.#dismiss(this.#messages[0].id);
 			}
 		});
-		this.#stack = document.createElement('div');
-		this.#stack.className = 'user-messages-stack';
-		backdrop.append(this.#stack);
+		this.#messageStackElement = document.createElement('div');
+		this.#messageStackElement.className = 'user-messages-stack';
+		backdrop.append(this.#messageStackElement);
 		this.append(backdrop);
 	}
 
 	#renderStack() {
-		if (!this.#stack) {
+		if (!this.#messageStackElement) {
 			this.#renderShell();
 		}
-		this.#stack.replaceChildren();
-		this.hidden = this.#items.length === 0;
-		this.classList.toggle('is-open', this.#items.length > 0);
+		this.#messageStackElement.replaceChildren();
+		this.hidden = this.#messages.length === 0;
+		this.classList.toggle('is-open', this.#messages.length > 0);
 
-		for (const item of this.#items) {
+		for (const item of this.#messages) {
 			const message = new UserMessage();
 			message.dataset.messageId = item.id;
 			message.setMessage({ type: item.type, text: item.text });
 			message.addEventListener('dismiss', () => this.#dismiss(item.id));
-			this.#stack.append(message);
+			this.#messageStackElement.append(message);
 		}
 
-		if (this.#items.length > 0) {
+		if (this.#messages.length > 0) {
 			queueMicrotask(() => {
-				const top = this.#stack?.querySelector('user-message');
+				const top = this.#messageStackElement?.querySelector('akvj-user-message');
 				top?.focusOk?.();
 			});
 		}
 	}
 
 	#handleKeydown(event) {
-		if (this.#items.length === 0) {
+		if (this.#messages.length === 0) {
 			return;
 		}
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
-			this.#dismiss(this.#items[0].id);
+			this.#dismiss(this.#messages[0].id);
 			return;
 		}
 		if (event.key === 'Tab') {
@@ -122,7 +131,7 @@ class UserMessages extends HTMLElement {
 	}
 
 	#trapTab(event) {
-		const top = this.#stack?.querySelector('user-message');
+		const top = this.#messageStackElement?.querySelector('akvj-user-message');
 		if (!top) {
 			return;
 		}
@@ -143,18 +152,18 @@ class UserMessages extends HTMLElement {
 	}
 
 	#handleFocusIn(event) {
-		if (this.#items.length === 0 || this.hidden) {
+		if (this.#messages.length === 0 || this.hidden) {
 			return;
 		}
-		const top = this.#stack?.querySelector('user-message');
+		const top = this.#messageStackElement?.querySelector('akvj-user-message');
 		if (top && !top.contains(event.target)) {
 			top.focusOk?.();
 		}
 	}
 }
 
-if (!customElements.get('user-messages')) {
-	customElements.define('user-messages', UserMessages);
+if (!customElements.get('akvj-user-messages')) {
+	customElements.define('akvj-user-messages', UserMessages);
 }
 
 export { UserMessages };

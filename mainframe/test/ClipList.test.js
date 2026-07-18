@@ -5,7 +5,7 @@ import '../src/js/ClipList.js';
 import '../src/js/ClipCategory.js';
 import '../src/js/ClipInstance.js';
 
-describe('AkvjClipList — grouped category rendering', () => {
+describe('ClipList — grouped category rendering', () => {
 	/** @type {import('../src/js/ClipList.js').default} */
 	let element;
 
@@ -42,6 +42,27 @@ describe('AkvjClipList — grouped category rendering', () => {
 		expect(categories[1].querySelectorAll('clip-instance').length).toBe(1);
 	});
 
+	test('clip-instance entries are draggable with clipId in dataTransfer', () => {
+		element.clips = [
+			{ clipId: 'kick', meta: { category: 'drums', name: 'Kick' }, hasSprite: false, pipelineReady: true }
+		];
+
+		const instance = element.querySelector('clip-instance');
+		expect(instance.draggable).toBe(true);
+
+		const data = new Map();
+		const dragEvent = new Event('dragstart', { bubbles: true, cancelable: true });
+		Object.defineProperty(dragEvent, 'dataTransfer', {
+			value: {
+				setData: (type, value) => data.set(type, value),
+				effectAllowed: 'none'
+			}
+		});
+		instance.dispatchEvent(dragEvent);
+		expect(data.get('application/x-akvj-clip-id')).toBe('kick');
+		expect(data.get('text/plain')).toBe('kick');
+	});
+
 	test('groups clips without category into uncategorized', () => {
 		element.clips = [
 			{ clipId: 'a', meta: { name: 'A' }, hasSprite: false, pipelineReady: true },
@@ -55,7 +76,7 @@ describe('AkvjClipList — grouped category rendering', () => {
 		expect(uncategorized.querySelectorAll('clip-instance').length).toBe(1);
 	});
 
-	test('renders all clips when no category filter is set', () => {
+	test('renders all clips when no filters are set', () => {
 		element.clips = [
 			{ clipId: 'a', meta: { category: 'effects', name: 'A' }, hasSprite: false, pipelineReady: true },
 			{ clipId: 'b', meta: { category: 'transitions', name: 'B' }, hasSprite: false, pipelineReady: true },
@@ -63,20 +84,6 @@ describe('AkvjClipList — grouped category rendering', () => {
 		];
 
 		expect(element.querySelectorAll('clip-instance').length).toBe(3);
-	});
-
-	test('filters to single category when category is set', () => {
-		element.clips = [
-			{ clipId: 'a', meta: { category: 'effects', name: 'A' }, hasSprite: false, pipelineReady: true },
-			{ clipId: 'b', meta: { category: 'transitions', name: 'B' }, hasSprite: false, pipelineReady: true },
-			{ clipId: 'c', meta: { category: 'effects', name: 'C' }, hasSprite: false, pipelineReady: true }
-		];
-		element.category = 'effects';
-
-		const categories = element.querySelectorAll('clip-category');
-		expect(categories.length).toBe(1);
-		expect(categories[0].categoryName).toBe('effects');
-		expect(element.querySelectorAll('clip-instance').length).toBe(2);
 	});
 
 	test('shows empty message when no clips exist', () => {
@@ -142,5 +149,72 @@ describe('AkvjClipList — grouped category rendering', () => {
 		mapButton.click();
 
 		expect(eventDetail.clipId).toBe('a');
+	});
+
+	test('pipelineReady false disables Map and shows incomplete in meta', () => {
+		element.clips = [{ clipId: 'draft', meta: { name: 'Draft' }, hasSprite: false, pipelineReady: false }];
+
+		const instance = element.querySelector('clip-instance');
+		const mapButton = instance.querySelector('.clip-map');
+		expect(mapButton.disabled).toBe(true);
+		expect(instance.querySelector('.clip-meta').textContent).toContain('incomplete');
+	});
+
+	test('dragstart from Edit button is cancelled without clip id in dataTransfer', () => {
+		element.clips = [{ clipId: 'kick', meta: { name: 'Kick' }, hasSprite: false, pipelineReady: true }];
+
+		const instance = element.querySelector('clip-instance');
+		const editButton = instance.querySelector('.clip-edit');
+		const data = new Map();
+		const dragEvent = new Event('dragstart', { bubbles: true, cancelable: true });
+		Object.defineProperty(dragEvent, 'dataTransfer', {
+			value: {
+				setData: (type, value) => data.set(type, value),
+				effectAllowed: 'none'
+			}
+		});
+		editButton.dispatchEvent(dragEvent);
+
+		expect(dragEvent.defaultPrevented).toBe(true);
+		expect(data.size).toBe(0);
+	});
+
+	test('shows clip-id-label when meta.name differs from clipId', () => {
+		element.clips = [{ clipId: 'kick-01', meta: { name: 'Kick' }, hasSprite: false, pipelineReady: true }];
+
+		const label = element.querySelector('.clip-id-label');
+		expect(label).not.toBeNull();
+		expect(label.textContent).toBe(' (kick-01)');
+	});
+
+	test('hasSprite true sets img src to sprite API URL', () => {
+		element.clips = [
+			{ clipId: 'fx/wave', meta: { name: 'Wave' }, hasSprite: true, pipelineReady: true }
+		];
+
+		const img = element.querySelector('.clip-instance-img');
+		expect(img.src).toMatch(/\/api\/clips\/fx%2Fwave\/sprite/);
+	});
+
+	test('disconnectedCallback removes dragstart listener and clears children', () => {
+		element.clips = [{ clipId: 'kick', meta: { name: 'Kick' }, hasSprite: false, pipelineReady: true }];
+
+		const instance = element.querySelector('clip-instance');
+		expect(instance.childElementCount).toBeGreaterThan(0);
+
+		instance.remove();
+
+		expect(instance.childElementCount).toBe(0);
+
+		const data = new Map();
+		const dragEvent = new Event('dragstart', { bubbles: true, cancelable: true });
+		Object.defineProperty(dragEvent, 'dataTransfer', {
+			value: {
+				setData: (type, value) => data.set(type, value),
+				effectAllowed: 'none'
+			}
+		});
+		instance.dispatchEvent(dragEvent);
+		expect(data.size).toBe(0);
 	});
 });

@@ -155,4 +155,103 @@ describe('MIDI', () => {
 
 		midi.destroy();
 	});
+
+	test('Control Change dispatches midiControlChange', async () => {
+		const env = recreateEnv([{ id: 'fake-cc', name: 'Fake MIDI CC' }]);
+
+		vi.resetModules();
+		const { default: appState } = await import('../src/js/core/AppState.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
+
+		const ccSpy = vi.spyOn(appState, 'dispatchMIDIControlChange');
+		const fakeInput = env.getInputById('fake-cc');
+		// 0xB4 = CC on channel 4 (mixer), controller 1, value 64
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0xb4, 1, 64]) });
+
+		expect(ccSpy).toHaveBeenCalledWith(4, 1, 64);
+		ccSpy.mockRestore();
+		midi.destroy();
+	});
+
+	test('System Real-Time messages dispatch clock/start/continue/stop', async () => {
+		const env = recreateEnv([{ id: 'fake-rt', name: 'Fake MIDI RealTime' }]);
+
+		vi.resetModules();
+		const { default: appState } = await import('../src/js/core/AppState.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
+
+		const clockSpy = vi.spyOn(appState, 'dispatchMIDIClock');
+		const startSpy = vi.spyOn(appState, 'dispatchMIDIStart');
+		const continueSpy = vi.spyOn(appState, 'dispatchMIDIContinue');
+		const stopSpy = vi.spyOn(appState, 'dispatchMIDIStop');
+		const fakeInput = env.getInputById('fake-rt');
+
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0xf8]) });
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0xfa]) });
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0xfb]) });
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0xfc]) });
+
+		expect(clockSpy).toHaveBeenCalledTimes(1);
+		expect(typeof clockSpy.mock.calls[0][0]).toBe('number');
+		expect(startSpy).toHaveBeenCalledTimes(1);
+		expect(continueSpy).toHaveBeenCalledTimes(1);
+		expect(stopSpy).toHaveBeenCalledTimes(1);
+
+		clockSpy.mockRestore();
+		startSpy.mockRestore();
+		continueSpy.mockRestore();
+		stopSpy.mockRestore();
+		midi.destroy();
+	});
+
+	test('Note On on projectSelection channel dispatches project selection', async () => {
+		const env = recreateEnv([{ id: 'fake-proj', name: 'Fake MIDI Project' }]);
+
+		vi.resetModules();
+		const { default: appState } = await import('../src/js/core/AppState.js');
+		const { default: settings } = await import('../src/js/core/settings.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const midi = new Midi();
+		await midi.ready;
+
+		const projectSpy = vi.spyOn(appState, 'dispatchProjectSelection');
+		const noteOnSpy = vi.spyOn(appState, 'dispatchMIDINoteOn');
+		const channel = settings.channelMapping.projectSelection;
+		const fakeInput = env.getInputById('fake-proj');
+		// Note On on project selection channel, note 2, velocity 100
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x90 | channel, 2, 100]) });
+
+		expect(projectSpy).toHaveBeenCalledWith(2);
+		expect(noteOnSpy).not.toHaveBeenCalled();
+
+		projectSpy.mockRestore();
+		noteOnSpy.mockRestore();
+		midi.destroy();
+	});
+
+	test('requestMIDIAccess rejection sets midiConnected false and dispatches error', async () => {
+		const env = recreateEnv([]);
+		env.requestMIDIAccessMock.mockRejectedValue(new Error('Permission denied'));
+
+		vi.resetModules();
+		const { default: appState } = await import('../src/js/core/AppState.js');
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+
+		const errorSpy = vi.spyOn(appState, 'error');
+		const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		const midi = new Midi();
+		await midi.ready;
+
+		expect(appState.midiConnected).toBe(false);
+		expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('MIDI access failed: Permission denied'));
+
+		errorSpy.mockRestore();
+		consoleErrorSpy.mockRestore();
+		midi.destroy();
+	});
 });

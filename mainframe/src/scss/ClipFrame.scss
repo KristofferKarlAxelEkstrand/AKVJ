@@ -10,6 +10,7 @@ clip-frame {
 	flex-shrink: 0;
 	gap: 0.25rem;
 	padding: 0.4rem;
+	width: 8.5rem;
 
 	&:active {
 		cursor: grabbing;
@@ -28,10 +29,25 @@ clip-frame {
 		font-size: 0.75rem;
 	}
 
-	.clip-frame-duration {
+	.clip-frame-duration,
+	.clip-frame-scale,
+	.clip-frame-placement-x,
+	.clip-frame-placement-y,
+	.clip-frame-custom-width,
+	.clip-frame-custom-height {
 		font-size: 0.75rem;
 		padding: 0.2rem 0.3rem;
-		width: 4rem;
+		width: 100%;
+	}
+
+	.clip-frame-custom-size {
+		display: flex;
+		gap: 0.25rem;
+		width: 100%;
+	}
+
+	.clip-frame-custom-size[hidden] {
+		display: none;
 	}
 
 	.clip-frame-remove {

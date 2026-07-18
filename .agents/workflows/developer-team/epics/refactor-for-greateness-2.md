@@ -152,6 +152,23 @@ subscriptions, AppState mutations, and child UI construction.
 - **Hot-path allocation:** `glitchEffect.js` can `new Uint8ClampedArray(pixels.length)` per frame if
   the scratch buffer is undersized — guarantee sizing in the pipeline or skip rather than allocate.
 
+### A2-5. Additive findings from Task 150 audit (2025-07-18)
+
+- **Missing `AppState.test.js`:** AGENTS.md lists it but the file does not exist. Clock/BPM/CC/project
+  setters only covered indirectly. Create a focused AppState suite when doing A2-2 / T1.
+- **Layering violation:** `core/AppState.js` imports `MAX_MIDI_VELOCITY` from
+  `visuals/effects/effectConstants.js` — core depends on visuals. Move to `core/` or `utils/`.
+- **`EVENT_VIDEO_JOCKEY_READY` is also dead:** Dispatched from VJ/AppState, no subscribers. Include in
+  the A2-2 dead-event cleanup.
+- **Compositor triple `getImageData` per frame:** `Compositor.js` ~203–205 allocates ImageData for
+  layer A, B, and mask every mix. At 240×135 may be acceptable — document acceptance or reuse buffers.
+  EffectsPipeline also `getImageData`s once per effects pass.
+- **ClipLoader tests use stale `/clips/...` URLs:** `test/ClipLoader.test.js` calls
+  `setupClips('/clips/clips.json', '/clips/key-map.json')` — refresh to `/projects/...` vocabulary.
+- **`MaskManager.handlesChannel` vs `EffectsManager.handlesChannel`:** MaskManager's is test-only
+  (routing inlines the check); EffectsManager's is used in production. Prefer "adopt in LayerManager
+  routing or drop MaskManager's only" for precision.
+
 ---
 
 ## Mainframe (`mainframe/`)

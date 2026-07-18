@@ -103,7 +103,7 @@ button:not(.tab):hover {
 	border-color: var(--accent);
 }
 
-.upload-form,
+.clip-editor-form,
 .mapping-add {
 	display: grid;
 	gap: 0.85rem;
@@ -111,7 +111,7 @@ button:not(.tab):hover {
 	max-width: 28rem;
 }
 
-.upload-form label,
+.clip-editor-form label,
 .mapping-add label {
 	color: var(--muted);
 	display: grid;
@@ -152,32 +152,18 @@ button:not(.tab):hover {
 	margin: 0;
 }
 
-.file-list {
-	display: grid;
-	font-size: 0.85rem;
-	gap: 0.25rem;
-}
-
-.file-list-item {
-	align-items: center;
-	color: var(--muted);
-	display: flex;
-	gap: 0.5rem;
-	justify-content: space-between;
-}
-
-.upload-config-row {
+.clip-editor-config-row {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 0.75rem;
 }
 
-.upload-config-row label {
+.clip-editor-config-row label {
 	flex: 1;
 	min-width: 5rem;
 }
 
-.upload-checkbox {
+.clip-editor-checkbox {
 	align-items: center;
 	display: flex;
 	gap: 0.4rem;

@@ -20,18 +20,24 @@ clip-frames {
 	font-size: 0.875rem;
 }
 
-.clip-frames-toolbar input:disabled {
+.clip-frames-toolbar input:disabled,
+.clip-frames-toolbar select:disabled {
 	opacity: 0.55;
 	cursor: not-allowed;
 }
 
-.upload-sync-beat-fields {
+.clip-frames-global-custom-inputs {
+	display: flex;
+	gap: 0.25rem;
+}
+
+.clip-editor-sync-beat-fields {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: end;
 	gap: 0.75rem;
 }
 
-.upload-sync-beat-fields[hidden] {
+.clip-editor-sync-beat-fields[hidden] {
 	display: none;
 }

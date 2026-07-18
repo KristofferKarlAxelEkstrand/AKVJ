@@ -1,13 +1,13 @@
 import '../scss/MappingTable.scss';
 
 /**
- * AkvjMappingTable — custom element encapsulating the mapping table and summary.
+ * MappingTable — custom element encapsulating the mapping table and summary.
  * Renders mapping entries with remove buttons, and a summary showing
  * mapped slot count and unmapped clips.
  *
- * @fires AkvjMappingTable#mappingremove - CustomEvent with `{ detail: { channel, note, velocity, clipId } }`
+ * @fires MappingTable#mappingremove - CustomEvent with `{ detail: { channel, note, velocity, clipId } }`
  */
-class AkvjMappingTable extends HTMLElement {
+class MappingTable extends HTMLElement {
 	#mappings = [];
 	#clipCatalog = [];
 
@@ -130,6 +130,6 @@ class AkvjMappingTable extends HTMLElement {
 	}
 }
 
-customElements.define('akvj-mapping-table', AkvjMappingTable);
+customElements.define('akvj-mapping-table', MappingTable);
 
-export default AkvjMappingTable;
+export default MappingTable;

@@ -95,6 +95,7 @@ On load, the form must reflect what is on disk — not defaults that silently di
 | Per-frame durations | `frameRatesForFrames` | FPS → ms for `<clip-frames>` (authoring is **ms-first**) |
 | All-frames duration (ms) | UI only → writes every per-frame ms | Uniform apply via “Set all”; greys out (blank) when frames differ; re-apply Set all to restore uniform |
 | FPS preset | UI only → `fpsToMs(fps)` then same as Set all | Convenience setter (6/12/15/24/25/30), not a standing clip property; same mixed-state as Set all. On-disk stays `frameRatesForFrames` (ms-on-disk is a future migration, not in scope). |
+| Per-image bake scale / custom size / bake placement | UI only → spritesheet pixels | Session state on each staged image (`fit`/`cover`/`stretch`/`none`/`custom` + optional W×H + center-origin offset within the **cell**). Baked into `sprite.png` on save; **not** written to `meta.json`. Global “Bake scale (all)” mirrors Set-all timing (disable+blank when mixed). Distinct from clip-level runtime `scaleMode`/`placement` on the 240×135 canvas. |
 
 **Also hydrate when the shared editor gains controls for them** (may be a follow-up slice if not already in the create form): `retrigger`, `triggerType`, `triggerGroup`, `bitDepth` (bitmask), `frameDurationBeats`. Do not invent values on save that the user never saw.
 

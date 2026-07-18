@@ -4,8 +4,8 @@ import os from 'os';
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { migrateFlatClipsToDefaultProject } from '../server/migrateClipsToProjects.js';
 import { FLAT_CLIPS_MIGRATION_MARKER } from '../server/paths.js';
-
-const PNG_1x1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+import { PNG_1x1 } from './utils/pngFixtures.js';
+import { writeClip as writeClipFixture } from './utils/clipFixtures.js';
 
 let legacyDir;
 let projectsDir;
@@ -13,10 +13,7 @@ let previousLegacy;
 let previousProjects;
 
 async function writeClip(clipId, root = legacyDir) {
-	const dir = path.join(root, clipId);
-	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(path.join(dir, 'sprite.png'), PNG_1x1);
-	await fs.writeFile(path.join(dir, 'meta.json'), JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 }));
+	await writeClipFixture(root, clipId);
 }
 
 async function pathExists(filePath) {

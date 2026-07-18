@@ -12,6 +12,24 @@ export const DEFAULT_FRAME_HEIGHT = 135;
 /** Default scale mode for clip frames. */
 export const DEFAULT_SCALE_MODE = 'fit';
 
+/** Default placement offset from screen center (pixels). */
+export const DEFAULT_PLACEMENT = Object.freeze({ x: 0, y: 0 });
+
+/**
+ * Resolve placement from raw metadata, ensuring integer pixel values.
+ * @param {unknown} rawPlacement
+ * @returns {{ x: number, y: number }}
+ */
+export function resolvePlacement(rawPlacement) {
+	if (!rawPlacement || typeof rawPlacement !== 'object' || Array.isArray(rawPlacement)) {
+		return { x: DEFAULT_PLACEMENT.x, y: DEFAULT_PLACEMENT.y };
+	}
+	return {
+		x: Math.floor(Number(rawPlacement.x) || 0),
+		y: Math.floor(Number(rawPlacement.y) || 0)
+	};
+}
+
 /** Canonical playback modes supported by the engine. */
 export const PLAYBACK_MODES = Object.freeze(['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub']);
 

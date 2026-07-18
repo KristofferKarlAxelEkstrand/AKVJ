@@ -29,7 +29,7 @@ describe('DebugOverlay', () => {
 		const appendChildSpy = vi.spyOn(document.body, 'appendChild');
 		const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
 
-		overlay.setup();
+		overlay.mount();
 
 		expect(appendChildSpy).toHaveBeenCalled();
 		expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
@@ -39,7 +39,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('destroy removes element from DOM and removes keydown listener', () => {
-		overlay.setup();
+		overlay.mount();
 
 		const removeEventListenerSpy = vi.spyOn(document, 'removeEventListener');
 		overlay.destroy();
@@ -49,14 +49,14 @@ describe('DebugOverlay', () => {
 	});
 
 	test('destroy is idempotent (calling twice does not throw)', () => {
-		overlay.setup();
+		overlay.mount();
 		overlay.destroy();
 
 		expect(() => overlay.destroy()).not.toThrow();
 	});
 
 	test('keydown "d" toggles visibility', () => {
-		overlay.setup();
+		overlay.mount();
 
 		// Dispatch keydown for 'd'
 		const event = new KeyboardEvent('keydown', { key: 'd' });
@@ -72,7 +72,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('keydown "D" (uppercase) toggles visibility', () => {
-		overlay.setup();
+		overlay.mount();
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'D' }));
 		const el = document.getElementById('debug-overlay');
@@ -80,7 +80,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('keydown "d" does not toggle when typing in input element', () => {
-		overlay.setup();
+		overlay.mount();
 
 		const input = document.createElement('input');
 		document.body.appendChild(input);
@@ -96,7 +96,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('keydown "d" does not toggle when typing in textarea element', () => {
-		overlay.setup();
+		overlay.mount();
 
 		const textarea = document.createElement('textarea');
 		document.body.appendChild(textarea);
@@ -112,7 +112,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('keydown unrelated key does not toggle visibility', () => {
-		overlay.setup();
+		overlay.mount();
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'x' }));
 		const el = document.getElementById('debug-overlay');
@@ -122,7 +122,7 @@ describe('DebugOverlay', () => {
 	test('setup subscribes to bpmChanged, midiConnectionChanged, midiNoteOn, midiNoteOff, midiControlChange', () => {
 		const subscribeSpy = vi.spyOn(appState, 'subscribe');
 
-		overlay.setup();
+		overlay.mount();
 
 		const subscribedEvents = subscribeSpy.mock.calls.map(c => c[0]);
 		expect(subscribedEvents).toContain('bpmChanged');
@@ -135,7 +135,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('destroy unsubscribes all event listeners', () => {
-		overlay.setup();
+		overlay.mount();
 
 		// Get the unsubscribe functions by spying
 		const unsubscribeSpies = [];
@@ -149,7 +149,7 @@ describe('DebugOverlay', () => {
 
 		overlay.destroy();
 		overlay = new DebugOverlay();
-		overlay.setup();
+		overlay.mount();
 
 		// Now destroy and verify all spies were called
 		overlay.destroy();
@@ -161,7 +161,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('bpmChanged event updates BPM display', () => {
-		overlay.setup();
+		overlay.mount();
 
 		appState.bpm = 140;
 
@@ -173,7 +173,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('midiConnectionChanged event updates MIDI status display', () => {
-		overlay.setup();
+		overlay.mount();
 
 		appState.midiConnected = true;
 
@@ -186,7 +186,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('midiNoteOn event adds a log entry', () => {
-		overlay.setup();
+		overlay.mount();
 
 		appState.dispatchMIDINoteOn(0, 60, 100);
 
@@ -200,7 +200,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('midiNoteOff event adds a log entry', () => {
-		overlay.setup();
+		overlay.mount();
 
 		appState.dispatchMIDINoteOff(0, 60);
 
@@ -212,7 +212,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('midiControlChange event adds a log entry', () => {
-		overlay.setup();
+		overlay.mount();
 
 		appState.dispatchMIDIControlChange(0, 7, 64);
 
@@ -225,7 +225,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('log entries are capped at MAX_LOG_ENTRIES (8)', () => {
-		overlay.setup();
+		overlay.mount();
 
 		// Dispatch 12 note-on events
 		for (let i = 0; i < 12; i++) {
@@ -237,7 +237,7 @@ describe('DebugOverlay', () => {
 	});
 
 	test('note formatting produces correct note names', () => {
-		overlay.setup();
+		overlay.mount();
 
 		// Note 60 = C4, Note 69 = A4, Note 0 = C-1
 		appState.dispatchMIDINoteOn(0, 60, 100);

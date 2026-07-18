@@ -2,12 +2,12 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { PNG_1x1 } from './utils/pngFixtures.js';
 
-const PNG_1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
 const PNG_2x2 = 'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAAEUlEQVQImWP4z8DwH4QZYAwAR8oH+Xm0fdIAAAAASUVORK5CYII=';
 
 function makeFrame(buffer) {
-	return Buffer.from(buffer, 'base64');
+	return Buffer.isBuffer(buffer) ? Buffer.from(buffer) : Buffer.from(buffer, 'base64');
 }
 
 describe('createClipFromFrames', () => {

@@ -9,7 +9,7 @@ import path from 'path';
 export async function getSubfolders(dir) {
 	try {
 		const entries = await fs.readdir(dir, { withFileTypes: true });
-		return entries.filter(e => e.isDirectory() && !e.name.startsWith('.')).map(e => e.name);
+		return entries.filter(entry => entry.isDirectory() && !entry.name.startsWith('.')).map(entry => entry.name);
 	} catch {
 		// Directory doesn't exist or can't be read - return empty array
 		return [];
@@ -25,7 +25,7 @@ export async function getSubfolders(dir) {
 export async function getFilesWithExtension(dir, ext) {
 	try {
 		const entries = await fs.readdir(dir);
-		return entries.filter(f => path.extname(f) === ext);
+		return entries.filter(filename => path.extname(filename) === ext);
 	} catch {
 		// Directory doesn't exist or can't be read - return empty array
 		return [];

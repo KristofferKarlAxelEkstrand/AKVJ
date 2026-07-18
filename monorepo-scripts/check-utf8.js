@@ -1,17 +1,32 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { TextDecoder } from 'node:util';
 import { getTrackedTextFiles } from './lib/gitTrackedTextFiles.js';
 import { failWithOffenders } from './lib/report.js';
 
-const shouldFix = process.argv.includes('--fix');
 const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
 
-function hasUtf8Bom(buffer) {
+/**
+ * @param {Buffer} buffer
+ * @returns {boolean}
+ */
+export function hasUtf8Bom(buffer) {
 	return buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf;
 }
 
+/**
+ * Return buffer without a leading UTF-8 BOM when present.
+ * @param {Buffer} buffer
+ * @returns {Buffer}
+ */
+export function withoutUtf8Bom(buffer) {
+	return hasUtf8Bom(buffer) ? buffer.subarray(3) : buffer;
+}
+
 function main() {
+	const shouldFix = process.argv.includes('--fix');
 	let files;
 	try {
 		files = getTrackedTextFiles();
@@ -34,7 +49,7 @@ function main() {
 		if (hasUtf8Bom(buffer)) {
 			bomFiles.push(file);
 			if (shouldFix) {
-				fs.writeFileSync(file, buffer.subarray(3));
+				fs.writeFileSync(file, withoutUtf8Bom(buffer));
 				buffer = fs.readFileSync(file);
 			}
 		}
@@ -81,4 +96,9 @@ function main() {
 	}
 }
 
-main();
+const scriptPath = process.argv[1] ?? '';
+const isCli = scriptPath && path.resolve(scriptPath) === fileURLToPath(import.meta.url);
+
+if (isCli) {
+	main();
+}

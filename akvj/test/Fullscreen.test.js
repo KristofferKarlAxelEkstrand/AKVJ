@@ -18,14 +18,14 @@ describe('Fullscreen', () => {
 	});
 
 	test('setup registers keydown and dblclick listeners', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		expect(addEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
 		expect(addEventListenerSpy).toHaveBeenCalledWith('dblclick', expect.any(Function));
 	});
 
 	test('destroy removes keydown and dblclick listeners', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 		fullscreen.destroy();
 
 		expect(removeEventListenerSpy).toHaveBeenCalledWith('keydown', expect.any(Function));
@@ -33,14 +33,14 @@ describe('Fullscreen', () => {
 	});
 
 	test('destroy is idempotent (calling twice does not throw)', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 		fullscreen.destroy();
 
 		expect(() => fullscreen.destroy()).not.toThrow();
 	});
 
 	test('keydown Enter calls preventDefault and toggles fullscreen', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
 		Object.defineProperty(document, 'fullscreenElement', {
@@ -67,7 +67,7 @@ describe('Fullscreen', () => {
 	});
 
 	test('keydown Space calls preventDefault and toggles fullscreen', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
 		Object.defineProperty(document, 'fullscreenElement', {
@@ -90,7 +90,7 @@ describe('Fullscreen', () => {
 	});
 
 	test('keydown with repeat=true does nothing', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
 		Object.defineProperty(document, 'fullscreenElement', {
@@ -113,7 +113,7 @@ describe('Fullscreen', () => {
 	});
 
 	test('keydown with unrelated key does nothing', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const handler = addEventListenerSpy.mock.calls.find(c => c[0] === 'keydown')[1];
 		const mockEvent = { key: 'a', repeat: false, preventDefault: vi.fn() };
@@ -123,7 +123,7 @@ describe('Fullscreen', () => {
 	});
 
 	test('toggle exits fullscreen when already fullscreen', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const exitFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
 		Object.defineProperty(document, 'fullscreenElement', {
@@ -145,7 +145,7 @@ describe('Fullscreen', () => {
 	});
 
 	test('dblclick triggers toggle', () => {
-		fullscreen.setup();
+		fullscreen.enable();
 
 		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
 		Object.defineProperty(document, 'fullscreenElement', {

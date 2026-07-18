@@ -10,7 +10,7 @@ class ChoiceItem extends HTMLElement {
 
 	#value = '';
 	#selected = false;
-	#abort = null;
+	#abortController = null;
 
 	/**
 	 * @param {string} value
@@ -37,9 +37,9 @@ class ChoiceItem extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.#abort?.abort();
-		this.#abort = new AbortController();
-		const { signal } = this.#abort;
+		this.#abortController?.abort();
+		this.#abortController = new AbortController();
+		const { signal } = this.#abortController;
 
 		this.setAttribute('role', 'option');
 		if (!this.hasAttribute('tabindex')) {
@@ -72,8 +72,8 @@ class ChoiceItem extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		this.#abort?.abort();
-		this.#abort = null;
+		this.#abortController?.abort();
+		this.#abortController = null;
 	}
 }
 

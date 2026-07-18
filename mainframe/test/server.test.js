@@ -702,3 +702,90 @@ describe('404 handling', () => {
 		expect(data.error).toBe('Not found');
 	});
 });
+
+describe('CORS / OPTIONS preflight', () => {
+	test('OPTIONS returns 204 with CORS method/header allowances', async () => {
+		const response = await fetch(`${baseUrl}/api/health`, {
+			method: 'OPTIONS',
+			headers: { Origin: 'http://127.0.0.1:9999' }
+		});
+		expect(response.status).toBe(204);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://127.0.0.1:9999');
+		expect(response.headers.get('Vary')).toBe('Origin');
+		expect(response.headers.get('Access-Control-Allow-Methods')).toContain('OPTIONS');
+		expect(response.headers.get('Access-Control-Allow-Headers')).toBe('Content-Type');
+	});
+
+	test('allowed origin receives ACAO on GET', async () => {
+		const response = await fetch(`${baseUrl}/api/health`, {
+			headers: { Origin: 'http://localhost:8888' }
+		});
+		expect(response.status).toBe(200);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:8888');
+	});
+
+	test('disallowed origin does not receive ACAO', async () => {
+		const response = await fetch(`${baseUrl}/api/health`, {
+			headers: { Origin: 'http://evil.example' }
+		});
+		expect(response.status).toBe(200);
+		expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull();
+	});
+});
+
+describe('POST /api/clips/:clipId/recompile', () => {
+	test('recompiles an existing clip from raw assets', async () => {
+		await fs.rm(path.join(testClipsDir, 'recompile-api-clip'), { recursive: true, force: true });
+		await fs.rm(path.join(testRawAssetsDir, 'recompile-api-clip'), { recursive: true, force: true });
+
+		const created = await fetchJson('POST', '/api/clips', {
+			clipId: 'recompile-api-clip',
+			frames: [`data:image/png;base64,${PNG_4x4}`, `data:image/png;base64,${PNG_4x4}`],
+			targetWidth: 240,
+			targetHeight: 135
+		});
+		expect(created.status).toBe(201);
+
+		const { status, data } = await fetchJson('POST', '/api/clips/recompile-api-clip/recompile', {
+			targetWidth: 120,
+			targetHeight: 68,
+			name: 'Recompiled'
+		});
+		expect(status).toBe(200);
+		expect(data.ok).toBe(true);
+		expect(data.clipId).toBe('recompile-api-clip');
+		expect(data.frames).toBe(2);
+
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'recompile-api-clip', 'meta.json'), 'utf8'));
+		expect(meta.frameWidth).toBe(120);
+		expect(meta.frameHeight).toBe(68);
+		expect(meta.name).toBe('Recompiled');
+	});
+
+	test('returns 404 for a non-existent clip', async () => {
+		const { status, data } = await fetchJson('POST', '/api/clips/no-such-recompile/recompile', {});
+		expect(status).toBe(404);
+		expect(data.error).toMatch(/not found/i);
+	});
+
+	test('returns 400 for an invalid clipId', async () => {
+		const { status, data } = await fetchJson('POST', '/api/clips/123/recompile', {});
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/Invalid clipId/i);
+	});
+
+	test('returns 400 when raw assets are missing', async () => {
+		const clipId = 'recompile-no-raw';
+		await fs.mkdir(path.join(testClipsDir, clipId), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, clipId, 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+		await fs.writeFile(
+			path.join(testClipsDir, clipId, 'meta.json'),
+			JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 })
+		);
+		await fs.rm(path.join(testRawAssetsDir, clipId), { recursive: true, force: true });
+
+		const { status, data } = await fetchJson('POST', `/api/clips/${clipId}/recompile`, {});
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/raw assets/i);
+	});
+});

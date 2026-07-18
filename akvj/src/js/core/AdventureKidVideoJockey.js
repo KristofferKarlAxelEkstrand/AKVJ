@@ -3,7 +3,7 @@ import settings from './settings.js';
 import ClipLoader from '../visuals/ClipLoader.js';
 import LayerManager from '../visuals/LayerManager.js';
 import Renderer from '../visuals/Renderer.js';
-import LoadingOverlay from '../ui/LoadingOverlay.js';
+import AkvjLoadingOverlay from '../ui/AkvjLoadingOverlay.js';
 import UserMessages from '../ui/UserMessages.js';
 
 /**
@@ -17,12 +17,11 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#clipLoader;
 	#layerManager;
 	#renderer;
-	#clips = {};
+	#loadedClips = {};
 	#unsubscribers = [];
 	#loadingOverlay = null;
 	#userMessages = null;
 	#activeProjectId = null;
-	#projectIndex = [];
 	#isSwitchingProject = false;
 
 	constructor() {
@@ -42,7 +41,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#clipLoader = new ClipLoader(this.#displayContext);
 		this.#layerManager = new LayerManager();
 		this.#renderer = new Renderer(this.#displayContext, this.#layerManager, settings, appState);
-		this.#loadingOverlay = new LoadingOverlay();
+		this.#loadingOverlay = new AkvjLoadingOverlay();
 		this.#userMessages = new UserMessages();
 	}
 
@@ -52,7 +51,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#setupMIDIEventListeners() {
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_NOTE_ON, event => {
-				if (!this.#layerManager) {
+				if (!this.#layerManager || this.#isSwitchingProject) {
 					return;
 				}
 				const { channel, note, velocity } = event.detail;
@@ -62,7 +61,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_NOTE_OFF, event => {
-				if (!this.#layerManager) {
+				if (!this.#layerManager || this.#isSwitchingProject) {
 					return;
 				}
 				const { channel, note } = event.detail;
@@ -72,7 +71,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, event => {
-				if (!this.#layerManager) {
+				if (!this.#layerManager || this.#isSwitchingProject) {
 					return;
 				}
 				this.#layerManager.handleControlChange(event);
@@ -118,21 +117,19 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	/**
 	 * Resolve a MIDI note number to a project ID using the projects index.
+	 * Refetches on every resolve so Mainframe create/rename/reorder/delete
+	 * is reflected without a full page reload (index JSON is tiny).
 	 * @param {number} note - MIDI note number (0-127)
 	 * @returns {Promise<string|null>}
 	 */
 	async #resolveProjectIdFromNote(note) {
-		if (this.#projectIndex.length === 0) {
-			try {
-				this.#projectIndex = await this.#clipLoader.fetchProjectsIndex();
-			} catch (error) {
-				console.error('Failed to fetch projects index:', error);
-				return null;
-			}
+		try {
+			const projectIndex = await this.#clipLoader.fetchProjectsIndex();
+			return projectIndex[note]?.id ?? null;
+		} catch (error) {
+			console.error('Failed to fetch projects index:', error);
+			return null;
 		}
-
-		const projectEntry = this.#projectIndex[note];
-		return projectEntry?.id ?? null;
 	}
 
 	/**
@@ -149,10 +146,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 		try {
 			const newClips = await this.#clipLoader.setupClipsFromProject(projectId);
 
-			// Destroy old clips and swap in new ones
-			this.#clipLoader.destroy(this.#clips);
-			this.#clips = newClips;
-			this.#layerManager.setClips(this.#clips);
+			// Stop active clips/mask/effects before destroying the old catalog —
+			// setClips alone leaves runtime activation pointing at destroyed clips.
+			this.#layerManager.clearClips();
+			this.#clipLoader.destroy(this.#loadedClips);
+			this.#loadedClips = newClips;
+			this.#layerManager.setClips(this.#loadedClips);
 			this.#activeProjectId = projectId;
 			appState.activeProjectId = projectId;
 
@@ -175,7 +174,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	/**
 	 * Clean up event listeners
 	 */
-	#teardownMIDIEventListeners() {
+	#teardownEventListeners() {
 		for (const unsubscribe of this.#unsubscribers) {
 			unsubscribe();
 		}
@@ -200,18 +199,36 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#setupMIDIEventListeners();
 		this.#setupProjectEventListeners();
 
-		this.#setup();
+		this.#initializeVisuals();
 	}
 
 	disconnectedCallback() {
 		try {
-			this.#teardownMIDIEventListeners();
+			this.#teardownEventListeners();
 		} catch (error) {
-			console.error('Error tearing down MIDI event listeners:', error);
+			console.error('Error tearing down event listeners:', error);
 		}
 		this.#destroyRenderer();
 		this.#destroyLayerManager();
 		this.#destroyClipLoader();
+		this.#destroyUserMessages();
+		this.#destroyLoadingOverlay();
+	}
+
+	#destroyUserMessages() {
+		try {
+			this.#userMessages?.remove();
+		} catch (error) {
+			console.error('Error removing user messages host:', error);
+		}
+	}
+
+	#destroyLoadingOverlay() {
+		try {
+			this.#loadingOverlay?.remove();
+		} catch (error) {
+			console.error('Error removing loading overlay:', error);
+		}
 	}
 
 	#destroyRenderer() {
@@ -234,19 +251,19 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	#destroyClipLoader() {
 		try {
-			this.#clipLoader?.destroy(this.#clips);
-			this.#clips = {};
+			this.#clipLoader?.destroy(this.#loadedClips);
+			this.#loadedClips = {};
 		} catch (error) {
 			console.error('Error destroying clip loader:', error);
 		}
 	}
 
-	async #setupClips(jsonUrl) {
+	async #loadClipsFromUrl(jsonUrl) {
 		try {
-			this.#clips = await this.#clipLoader.setupClips(jsonUrl);
-			this.#layerManager.setClips(this.#clips);
+			this.#loadedClips = await this.#clipLoader.setupClips(jsonUrl);
+			this.#layerManager.setClips(this.#loadedClips);
 			appState.clipsLoaded = true;
-			return this.#clips;
+			return this.#loadedClips;
 		} catch (error) {
 			console.error(`Failed to set up clips from ${jsonUrl}:`, error);
 			appState.clipsLoaded = false;
@@ -260,18 +277,18 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 	}
 
-	async #setup() {
+	async #initializeVisuals() {
 		// If we do not have a context, skip loading visuals but still notify readiness
 		if (!this.#clipLoader) {
 			// If we do not have a clip loader (no 2D context available),
 			// notify that the Video Jockey is ready and bail out early. No value
-			// is returned because callers do not use the result of `#setup()`.
+			// is returned because callers do not use the result of `#initializeVisuals()`.
 			appState.clipsLoaded = false;
 			appState.dispatchVideoJockeyReady();
 			return;
 		}
 
-		await this.#setupClips(settings.performance.clipsJsonUrl);
+		await this.#loadClipsFromUrl(settings.performance.clipsJsonUrl);
 		if (appState.clipsLoaded) {
 			// Set the active project ID from active-project.json (if available)
 			try {

@@ -237,4 +237,4 @@ async function copyClipJsonFiles(clipDir, cacheDir, clipId) {
 }
 
 // Export for testing
-export { getTargetBitDepth };
+export { getTargetBitDepth, optimizeFile, finalizeOptimizedFile, handleOptimizeError, copyClipJsonFiles };

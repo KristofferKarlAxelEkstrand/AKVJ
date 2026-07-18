@@ -9,6 +9,7 @@ In order to maintain a pristine, easily readable, and highly maintainable vanill
 
 ### 2. Modern Vanilla JS & Custom Elements
 - **Web Components First**: The frontend UI should be built extensively using Custom Elements and extended HTML elements. Wrap all UI components in native Web Components (`<custom-element>`) with proper lifecycle management (`connectedCallback`, `disconnectedCallback`, `attributeChangedCallback`). This ensures modularity without a framework.
+- **Light DOM only**: Do **not** use Shadow DOM (`attachShadow`). Style and compose through the light DOM so shared CSS and host-page theming work. (See the `custom-elements-frontend` skill.)
 - **Tag naming (mainframe)**: Use `akvj-*` only for top-level app shells that appear once in the page shell (today: `akvj-staging-preview`, `akvj-clip-list`, `akvj-mapping-table`). Use unprefixed tags for reusable leaf widgets (`clip-frames`, `clip-name-input`, `user-message`, `piano-roll`, …). Do **not** mass-rename existing tags for consistency; follow this rule for new elements so the mix does not grow.
 - **Custom Event Communication**: Custom elements should communicate upwards exclusively via bubbling custom events (`this.dispatchEvent(new CustomEvent('action', { bubbles: true, composed: true, detail: {...} }))`). Do not tightly couple children to parents by passing down callback functions or manager references. Let the events bubble up to a controller.
 - **Strict Encapsulation**: Use native `#privateFields` and `#privateMethods()` for all internal class state.
@@ -16,7 +17,7 @@ In order to maintain a pristine, easily readable, and highly maintainable vanill
 - **Immutability First**: Prefer `const` over `let` in all scenarios. Never mutate function arguments.
 
 ### 3. Readability & Documentation
-- **Descriptive Naming**: Use explicit, domain-specific names (`layerGroup`, `effectsManager`) instead of vague terms (`data`, `state`, `thing`). 
+- **Descriptive Naming**: Use explicit, domain-specific names (`layerGroup`, `effectsManager`) instead of vague terms (`data`, `state`, `thing`).
 - **Magic Numbers**: Extract all magic numbers and string literals into clearly named `const` variables at the top of the file or in a shared `constants.js` file.
 - **JSDoc Types**: Use standard JSDoc (`@param`, `@returns`, `@typedef`) for all public-facing API methods to provide rich IDE intellisense without needing TypeScript.
 - **Comment the "Why"**: Code tells you *what* it does; comments should explain *why* complex decisions were made.

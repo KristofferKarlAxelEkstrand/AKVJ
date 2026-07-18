@@ -33,6 +33,7 @@ describe('editorMeta', () => {
 			frameWidth: 16,
 			frameHeight: 9,
 			scaleMode: 'cover',
+			placement: { x: 0, y: 0 },
 			frameRate: 8,
 			retrigger: false,
 			triggerType: 'latch',
@@ -54,6 +55,7 @@ describe('editorMeta', () => {
 			frameWidth: DEFAULT_FRAME_WIDTH,
 			frameHeight: DEFAULT_FRAME_HEIGHT,
 			scaleMode: DEFAULT_SCALE_MODE,
+			placement: { x: 0, y: 0 },
 			frameRate: 12,
 			retrigger: true,
 			triggerType: 'momentary',
@@ -83,6 +85,14 @@ describe('editorMeta', () => {
 		});
 	});
 
+	test('hydrates placement and floors fractional pixels', () => {
+		expect(
+			editorValuesFromMeta({
+				placement: { x: 10.7, y: -3.2 }
+			}).placement
+		).toEqual({ x: 10, y: -4 });
+	});
+
 	test('metaPatchFromEditor stamps dimensions and clears unused optionals with null', () => {
 		expect(
 			metaPatchFromEditor({
@@ -92,6 +102,7 @@ describe('editorMeta', () => {
 				scaleMode: 'fit',
 				frameWidth: 240,
 				frameHeight: 135,
+				placement: { x: 12, y: -4 },
 				frameRatesForFrames: { 0: 12 },
 				retrigger: true,
 				triggerType: 'momentary',
@@ -107,6 +118,7 @@ describe('editorMeta', () => {
 			scaleMode: 'fit',
 			frameWidth: 240,
 			frameHeight: 135,
+			placement: { x: 12, y: -4 },
 			frameRatesForFrames: { 0: 12 },
 			retrigger: true,
 			triggerType: 'momentary',
@@ -171,6 +183,7 @@ describe('editorMeta', () => {
 			triggerGroup: 'g1',
 			role: 'bitmask',
 			bitDepth: 8,
+			placement: { x: 0, y: 0 },
 			frameDurationBeats: [0.5],
 			sync: 'free',
 			syncLength: null,

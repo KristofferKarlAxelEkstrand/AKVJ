@@ -17,7 +17,7 @@ Check your personal slack folder at **`../slack/akvj-developer/`**.
 ### 2. Execute the Work
 - Implement the requested changes in the `akvj/` directory. Keep changes strictly bounded to the visualizer architecture.
 - Follow the rules in `AGENTS.md` regarding performance and Vanilla JS.
-- **DO NOT commit or push code**. Your job is exclusively to write and test the code. The human user handles all version control.
+- **Git & Commits — the human owns commits.** Write and test only; leave changes in the working tree. Do **not** `git add`/`git commit`/`git push` unless the human explicitly asks in the current request. Never stage binary assets (e.g. PNG sprites) or tracking-/history-altering migrations on your own — escalate via `../outbox/` if something is only durable once committed. Read-only git (`status`, `diff`, `log`) is fine. Full rule: `../spec/collaboration-protocol.md` § Git & Commits.
 - **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/` and go to sleep (Step 6). Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
 
 ### 3. Shared Environment & Concurrency (CRITICAL)
@@ -49,3 +49,5 @@ node .agents/workflows/developer-team/scripts/await-messages.js .agents/workflow
 ```
 
 This command will hang and block your execution until a new task arrives. Once it completes, restart from Step 1.
+
+**Run it as a background task, then end your turn immediately** — no further tool calls. This script has no self-imposed timeout, so if you run it in the foreground it can sit past your tool's own timeout and get silently killed before a real task ever arrives, leaving you stuck without knowing it. Do not exit/terminate your session after starting it — ending your turn (not your session) is what puts you in the correct idle state; the background command's own completion brings you back to Step 1 automatically. See `../spec/collaboration-protocol.md` § The Sleep Step.

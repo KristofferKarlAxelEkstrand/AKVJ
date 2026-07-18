@@ -7,9 +7,10 @@ const API = '/api';
  * @returns {Promise<object>}
  */
 export async function api(path, options = {}) {
+	const { headers, ...rest } = options;
 	const response = await fetch(`${API}${path}`, {
-		headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-		...options
+		...rest,
+		headers: { 'Content-Type': 'application/json', ...(headers || {}) }
 	});
 	const responseBody = await response.json().catch(() => ({}));
 	if (!response.ok) {

@@ -1,5 +1,6 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
-import Clip from '../src/js/visuals/Clip.js';
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import Clip, { MAX_PATTERN_TILES_PER_FRAME } from '../src/js/visuals/Clip.js';
+import appState from '../src/js/core/AppState.js';
 
 /**
  * Create a minimal mock canvas 2D context (drawImage only).
@@ -38,6 +39,10 @@ function defaultOptions(overrides = {}) {
 describe('Clip', () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
+	});
+
+	afterEach(() => {
+		appState.reset();
 	});
 
 	test('dispose() unsubscribes from MIDI clock (no further advances)', async () => {
@@ -366,7 +371,7 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.renderToContext(ctx); // Initialize lastTime, draw frame 0
+			clip.renderToContext(ctx); // Initialize lastTimestamp, draw frame 0
 
 			mockNow.mockReturnValue(10);
 			clip.renderToContext(ctx); // Advances to frame 1, draws frame 1
@@ -798,7 +803,7 @@ describe('Clip', () => {
 			appState.reset();
 			appState.bpm = 120; // Restore BPM after reset
 
-			// Now play at t=4000 — should NOT burst-advance due to stale #lastTime
+			// Now play at t=4000 — should NOT burst-advance due to stale #lastTimestamp
 			clip.renderToContext(ctx, 4000);
 			// Should be on frame 0 or 1 at most, not frame 3 (which would indicate catch-up)
 			const sx = ctx.drawImage.mock.calls.at(-1)[1];
@@ -946,6 +951,51 @@ describe('Clip — scaleMode + placement', () => {
 		// With offset x=30, the first tile column starts at 30 - 60 = -30
 		const firstDx = drawCalls[0][5];
 		expect(firstDx).toBe(-30); // offsetX - tileWidth = 30 - 60 = -30
+	});
+
+	test('pattern mode with tiny tiles caps draw calls and still paints', () => {
+		const ctx = createMockDrawContext();
+		// 1×1 frame on 240×135 would otherwise issue ~32k+ drawImage calls
+		const image = createMockImage(1, 1);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'pattern'
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const drawCalls = ctx.drawImage.mock.calls;
+		expect(drawCalls.length).toBe(MAX_PATTERN_TILES_PER_FRAME);
+		expect(drawCalls.length).toBeGreaterThan(0);
+		for (const call of drawCalls) {
+			expect(call[7]).toBe(1);
+			expect(call[8]).toBe(1);
+		}
+	});
+
+	test('pattern mode with 8×8 tiles stays under the draw-call cap (full coverage)', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(8, 8);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'pattern'
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const drawCalls = ctx.drawImage.mock.calls;
+		expect(drawCalls.length).toBeGreaterThan(0);
+		expect(drawCalls.length).toBeLessThanOrEqual(MAX_PATTERN_TILES_PER_FRAME);
+		// Uncapped 8×8 with edge overdraw is well under the cap — expect full grid, not a truncated run
+		expect(drawCalls.length).toBeLessThan(MAX_PATTERN_TILES_PER_FRAME);
 	});
 
 	test('whole-pixel snapping: fractional placement produces integer draw coords', () => {

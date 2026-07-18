@@ -7,11 +7,9 @@
 import settings from '../core/settings.js';
 import ClipTiming from './ClipTiming.js';
 import PlaybackController from './PlaybackController.js';
+import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawScaled, drawStretch } from './clipDrawRect.js';
 
-/** @param {number} value */
-function snapToPixel(value) {
-	return Math.floor(value);
-}
+export { MAX_PATTERN_TILES_PER_FRAME };
 
 class Clip {
 	// Configuration (immutable after construction)
@@ -164,106 +162,17 @@ class Clip {
 		}
 
 		const drawFrame = Math.min(this.#playback.frame, this.#numberOfFrames - 1);
-		const posY = Math.floor(drawFrame / this.#framesPerRow);
-		const posX = drawFrame - posY * this.#framesPerRow;
-		const sourceX = this.#frameWidth * posX;
-		const sourceY = this.#frameHeight * posY;
+		const frameRow = Math.floor(drawFrame / this.#framesPerRow);
+		const frameColumn = drawFrame - frameRow * this.#framesPerRow;
+		const sourceX = this.#frameWidth * frameColumn;
+		const sourceY = this.#frameHeight * frameRow;
 
 		if (this.#scaleMode === 'pattern') {
-			this.#drawPattern(ctx, sourceX, sourceY);
+			drawPattern(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#placement);
 		} else if (this.#scaleMode === 'stretch') {
-			ctx.drawImage(this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+			drawStretch(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight);
 		} else {
-			this.#drawScaled(ctx, sourceX, sourceY);
-		}
-	}
-
-	/**
-	 * Draw clip with fit/cover/none scaling and placement offset.
-	 * @param {CanvasRenderingContext2D} ctx
-	 * @param {number} sourceX
-	 * @param {number} sourceY
-	 */
-	#drawScaled(ctx, sourceX, sourceY) {
-		const { dx, dy, dWidth, dHeight, sx, sy, sWidth, sHeight } = this.#computeDrawRect();
-		const placedX = snapToPixel(dx + this.#placement.x);
-		const placedY = snapToPixel(dy + this.#placement.y);
-		ctx.drawImage(this.#image, sourceX + sx, sourceY + sy, sWidth, sHeight, placedX, placedY, dWidth, dHeight);
-	}
-
-	/**
-	 * Compute the draw rectangle for the current scaleMode (fit/cover/none).
-	 * @returns {{ dx: number, dy: number, dWidth: number, dHeight: number, sx: number, sy: number, sWidth: number, sHeight: number }}
-	 */
-	#computeDrawRect() {
-		const sourceWidth = this.#frameWidth;
-		const sourceHeight = this.#frameHeight;
-		const targetWidth = this.#canvasWidth;
-		const targetHeight = this.#canvasHeight;
-
-		if (this.#scaleMode === 'fit') {
-			const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
-			const dWidth = snapToPixel(sourceWidth * scale);
-			const dHeight = snapToPixel(sourceHeight * scale);
-			return {
-				sx: 0,
-				sy: 0,
-				sWidth: sourceWidth,
-				sHeight: sourceHeight,
-				dx: snapToPixel((targetWidth - dWidth) / 2),
-				dy: snapToPixel((targetHeight - dHeight) / 2),
-				dWidth,
-				dHeight
-			};
-		}
-
-		if (this.#scaleMode === 'cover') {
-			const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
-			const sWidth = sourceWidth / scale;
-			const sHeight = sourceHeight / scale;
-			return {
-				sx: snapToPixel((sourceWidth - sWidth) / 2),
-				sy: snapToPixel((sourceHeight - sHeight) / 2),
-				sWidth: snapToPixel(sWidth),
-				sHeight: snapToPixel(sHeight),
-				dx: 0,
-				dy: 0,
-				dWidth: targetWidth,
-				dHeight: targetHeight
-			};
-		}
-
-		// none — no scale; center with pad and/or centered crop
-		const sWidth = Math.min(sourceWidth, targetWidth);
-		const sHeight = Math.min(sourceHeight, targetHeight);
-		return {
-			sx: Math.max(0, snapToPixel((sourceWidth - targetWidth) / 2)),
-			sy: Math.max(0, snapToPixel((sourceHeight - targetHeight) / 2)),
-			sWidth,
-			sHeight,
-			dx: Math.max(0, snapToPixel((targetWidth - sourceWidth) / 2)),
-			dy: Math.max(0, snapToPixel((targetHeight - sourceHeight) / 2)),
-			dWidth: sWidth,
-			dHeight: sHeight
-		};
-	}
-
-	/**
-	 * Draw clip as a tiled pattern to fill the canvas.
-	 * @param {CanvasRenderingContext2D} ctx
-	 * @param {number} sourceX
-	 * @param {number} sourceY
-	 */
-	#drawPattern(ctx, sourceX, sourceY) {
-		const tileWidth = this.#frameWidth;
-		const tileHeight = this.#frameHeight;
-		const offsetX = snapToPixel(this.#placement.x % tileWidth);
-		const offsetY = snapToPixel(this.#placement.y % tileHeight);
-
-		for (let y = offsetY - tileHeight; y < this.#canvasHeight; y += tileHeight) {
-			for (let x = offsetX - tileWidth; x < this.#canvasWidth; x += tileWidth) {
-				ctx.drawImage(this.#image, sourceX, sourceY, tileWidth, tileHeight, x, y, tileWidth, tileHeight);
-			}
+			drawScaled(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#scaleMode, this.#placement);
 		}
 	}
 

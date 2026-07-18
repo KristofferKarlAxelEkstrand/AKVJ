@@ -2,6 +2,7 @@
  * Metadata validation rules for clip meta.json.
  */
 import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, SYNC_MODES, SYNC_LENGTH_PRESETS } from '../../../../shared/clipSchema.js';
+import { SCALE_MODES } from '../../../../shared/frameFit.js';
 
 /**
  * Validate fields in a parsed meta.json object.
@@ -67,16 +68,35 @@ function validateBasicFields(meta, errors) {
 		errors.push('triggerGroup must be a string, number, or null');
 	}
 	if (meta.scaleMode !== undefined) {
-		const validScaleModes = ['fit', 'cover', 'stretch', 'none'];
-		if (!validScaleModes.includes(meta.scaleMode)) {
-			errors.push(`scaleMode must be one of: ${validScaleModes.join(', ')}`);
+		if (!SCALE_MODES.includes(meta.scaleMode)) {
+			errors.push(`scaleMode must be one of: ${SCALE_MODES.join(', ')}`);
 		}
+	}
+	if (meta.placement !== undefined) {
+		validatePlacement(meta.placement, errors);
 	}
 	if (meta.frameWidth !== undefined && (typeof meta.frameWidth !== 'number' || meta.frameWidth <= 0)) {
 		errors.push('frameWidth must be a positive number');
 	}
 	if (meta.frameHeight !== undefined && (typeof meta.frameHeight !== 'number' || meta.frameHeight <= 0)) {
 		errors.push('frameHeight must be a positive number');
+	}
+}
+
+/**
+ * @param {unknown} placement
+ * @param {string[]} errors
+ */
+function validatePlacement(placement, errors) {
+	if (!placement || typeof placement !== 'object' || Array.isArray(placement)) {
+		errors.push('placement must be an object with numeric x and y');
+		return;
+	}
+	if (typeof placement.x !== 'number' || !Number.isFinite(placement.x)) {
+		errors.push('placement.x must be a finite number');
+	}
+	if (typeof placement.y !== 'number' || !Number.isFinite(placement.y)) {
+		errors.push('placement.y must be a finite number');
 	}
 }
 
@@ -120,12 +140,12 @@ function validateFrameRatesForFrames(meta, errors) {
 		return;
 	}
 	for (const key of Object.keys(meta.frameRatesForFrames)) {
-		const frameNum = parseInt(key, 10);
-		if (isNaN(frameNum) || frameNum < 0) {
+		const frameIndex = parseInt(key, 10);
+		if (isNaN(frameIndex) || frameIndex < 0) {
 			errors.push(`frameRatesForFrames key "${key}" is not a valid frame number`);
 		}
 		const frameCount = meta.frames ?? meta.numberOfFrames;
-		if (frameCount && frameNum >= frameCount) {
+		if (frameCount && frameIndex >= frameCount) {
 			errors.push(`frameRatesForFrames key "${key}" exceeds frames (${frameCount})`);
 		}
 		const rate = meta.frameRatesForFrames[key];

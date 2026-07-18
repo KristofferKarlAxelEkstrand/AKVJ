@@ -1,18 +1,18 @@
 import '../scss/ClipFrames.scss';
 import { ClipFrame } from './ClipFrame.js';
+import { resolveFrameBakeConfig, areFrameBakeConfigsUniform } from './frameBake.js';
 
 /**
  * ClipFrames — horizontally scrollable container of ClipFrame elements.
  *
- * Supports drag-and-drop reordering, per-frame remove, and clear-all.
- *
- * @fires ClipFrames#framesreordered - CustomEvent with `{ detail: { indices: number[] } }`
- * @fires ClipFrames#frameremove - CustomEvent with `{ detail: { frameIndex } }` (after removal)
- * @fires ClipFrames#framescleared - CustomEvent when all frames cleared
- * @fires ClipFrames#durationchange - Relayed from ClipFrame
+ * @fires ClipFrames#framesreordered
+ * @fires ClipFrames#frameremove
+ * @fires ClipFrames#framescleared
+ * @fires ClipFrames#durationchange
+ * @fires ClipFrames#bakeconfigchange
  */
 class ClipFrames extends HTMLElement {
-	#frameData = [];
+	#frameEntries = [];
 	#draggedIndex = null;
 
 	connectedCallback() {
@@ -24,85 +24,100 @@ class ClipFrames extends HTMLElement {
 	}
 
 	/**
-	 * Load frames from an array of image source URLs.
-	 * @param {Array<{src: string, duration: number}>} frames - Frame data
+	 * @param {Array<{src: string, durationMs?: number, bakeConfig?: object}>} frames
 	 */
 	loadFrames(frames) {
-		this.#frameData = (frames || []).map((frame, index) => ({
+		this.#frameEntries = (frames || []).map((frame, index) => ({
 			src: frame.src,
-			duration: frame.duration ?? 1000,
+			durationMs: frame.durationMs ?? 1000,
+			bakeConfig: resolveFrameBakeConfig(frame.bakeConfig),
 			originalIndex: index
 		}));
 		this.#render();
 	}
 
-	/**
-	 * Get the current frame order as an array of original indices.
-	 * @returns {number[]}
-	 */
 	getFrameOrder() {
-		return this.#frameData.map(frame => frame.originalIndex);
+		return this.#frameEntries.map(frame => frame.originalIndex);
+	}
+
+	getDurationsMs() {
+		return this.#frameEntries.map(frame => frame.durationMs);
 	}
 
 	/**
-	 * Get durations in current order.
-	 * @returns {number[]}
+	 * @returns {ReturnType<typeof resolveFrameBakeConfig>[]}
 	 */
-	getDurations() {
-		return this.#frameData.map(frame => frame.duration);
+	getBakeConfigs() {
+		return this.#frameEntries.map(frame => ({
+			...frame.bakeConfig,
+			placement: { ...frame.bakeConfig.placement }
+		}));
 	}
 
-	/**
-	 * Whether every frame shares the same duration (empty list counts as uniform).
-	 * @returns {boolean}
-	 */
-	areDurationsUniform() {
-		const durations = this.getDurations();
-		if (durations.length === 0) {
+	areDurationsMsUniform() {
+		const durationsMs = this.getDurationsMs();
+		if (durationsMs.length === 0) {
 			return true;
 		}
-		const first = durations[0];
-		return durations.every(duration => duration === first);
+		const first = durationsMs[0];
+		return durationsMs.every(durationMs => durationMs === first);
+	}
+
+	areBakeConfigsUniform() {
+		return areFrameBakeConfigsUniform(this.getBakeConfigs());
 	}
 
 	/**
-	 * Set every frame's duration to the same millisecond value.
 	 * @param {number} ms
-	 * @returns {number} Applied duration in ms
+	 * @returns {number}
 	 */
-	setAllDurations(ms) {
-		const duration = Math.max(1, Math.round(Number(ms)) || 1);
-		for (const frame of this.#frameData) {
-			frame.duration = duration;
+	setAllDurationsMs(ms) {
+		const durationMs = Math.max(1, Math.round(Number(ms)) || 1);
+		for (const frame of this.#frameEntries) {
+			frame.durationMs = durationMs;
 		}
 		for (const child of this.querySelectorAll('clip-frame')) {
-			child.setDuration(duration);
+			child.setDurationMs(durationMs);
 		}
 		this.dispatchEvent(
 			new CustomEvent('durationchange', {
 				bubbles: true,
-				detail: { all: true, duration }
+				detail: { all: true, durationMs }
 			})
 		);
-		return duration;
+		return durationMs;
 	}
 
 	/**
-	 * @returns {number}
+	 * @param {object} bakeConfig
+	 * @returns {ReturnType<typeof resolveFrameBakeConfig>}
 	 */
+	setAllBakeConfigs(bakeConfig) {
+		const resolved = resolveFrameBakeConfig(bakeConfig);
+		for (const frame of this.#frameEntries) {
+			frame.bakeConfig = { ...resolved, placement: { ...resolved.placement } };
+		}
+		for (const child of this.querySelectorAll('clip-frame')) {
+			child.setBakeConfig(resolved);
+		}
+		this.dispatchEvent(
+			new CustomEvent('bakeconfigchange', {
+				bubbles: true,
+				detail: { all: true, bakeConfig: resolved }
+			})
+		);
+		return resolved;
+	}
+
 	get frameCount() {
-		return this.#frameData.length;
+		return this.#frameEntries.length;
 	}
 
-	/**
-	 * Remove a frame by current visual index.
-	 * @param {number} index
-	 */
 	removeFrameAt(index) {
-		if (index < 0 || index >= this.#frameData.length) {
+		if (index < 0 || index >= this.#frameEntries.length) {
 			return;
 		}
-		this.#frameData.splice(index, 1);
+		this.#frameEntries.splice(index, 1);
 		this.#render();
 		this.dispatchEvent(
 			new CustomEvent('frameremove', {
@@ -112,14 +127,11 @@ class ClipFrames extends HTMLElement {
 		);
 	}
 
-	/**
-	 * Clear all frames.
-	 */
 	clearAll() {
-		if (this.#frameData.length === 0) {
+		if (this.#frameEntries.length === 0) {
 			return;
 		}
-		this.#frameData = [];
+		this.#frameEntries = [];
 		this.#render();
 		this.dispatchEvent(new CustomEvent('framescleared', { bubbles: true }));
 	}
@@ -127,10 +139,10 @@ class ClipFrames extends HTMLElement {
 	#render() {
 		this.replaceChildren();
 
-		for (let i = 0; i < this.#frameData.length; i++) {
-			const frame = this.#frameData[i];
+		for (let i = 0; i < this.#frameEntries.length; i++) {
+			const frame = this.#frameEntries[i];
 			const clipFrame = new ClipFrame();
-			clipFrame.setFrame(i, frame.src, frame.duration);
+			clipFrame.setFrame(i, frame.src, frame.durationMs, frame.bakeConfig);
 			clipFrame.dataset.position = String(i);
 			clipFrame.draggable = true;
 
@@ -157,7 +169,11 @@ class ClipFrames extends HTMLElement {
 			});
 
 			clipFrame.addEventListener('durationchange', event => {
-				this.#frameData[i].duration = event.detail.duration;
+				this.#frameEntries[i].durationMs = event.detail.durationMs;
+			});
+
+			clipFrame.addEventListener('bakeconfigchange', event => {
+				this.#frameEntries[i].bakeConfig = resolveFrameBakeConfig(event.detail.bakeConfig);
 			});
 
 			clipFrame.addEventListener('frameremove', event => {
@@ -170,8 +186,8 @@ class ClipFrames extends HTMLElement {
 	}
 
 	#reorderFrames(fromIndex, toIndex) {
-		const [moved] = this.#frameData.splice(fromIndex, 1);
-		this.#frameData.splice(toIndex, 0, moved);
+		const [moved] = this.#frameEntries.splice(fromIndex, 1);
+		this.#frameEntries.splice(toIndex, 0, moved);
 		this.#render();
 		this.dispatchEvent(
 			new CustomEvent('framesreordered', {

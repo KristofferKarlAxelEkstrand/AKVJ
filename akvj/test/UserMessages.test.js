@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import appState, { createAppState, EVENT_USER_MESSAGE } from '../src/js/core/AppState.js';
-import '../src/js/ui/UserMessage.js';
+import appState, { createAppState, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES } from '../src/js/core/AppState.js';
+// Side-effect import registers <akvj-user-messages> for createElement.
 import '../src/js/ui/UserMessages.js';
 
 describe('AppState user message API', () => {
@@ -39,24 +39,34 @@ describe('AppState user message API', () => {
 		state.showUserMessage({ type: 'bogus', text: 'hello' });
 		expect(detail).toEqual({ type: 'info', text: 'hello' });
 	});
+
+	test('exports USER_MESSAGE_TYPES for consumers', () => {
+		expect(USER_MESSAGE_TYPES.has('error')).toBe(true);
+		expect(USER_MESSAGE_TYPES.has('warning')).toBe(true);
+		expect(USER_MESSAGE_TYPES.has('info')).toBe(true);
+		expect(USER_MESSAGE_TYPES.has('bogus')).toBe(false);
+	});
 });
 
-describe('user-messages / user-message', () => {
-	/** @type {HTMLElement} */
+describe('akvj-user-messages / akvj-user-message', () => {
+	/** @type {HTMLElement & { messageCount?: number }} */
 	let host;
 
 	beforeEach(() => {
 		appState.reset();
-		// Remove any stale <user-messages> elements left by prior test files
-		for (const stale of document.querySelectorAll('user-messages')) {
+		// Use createElement against the shared customElements registry. Vitest
+		// vmThreads can leave a first-defined CE class from another realm; `new
+		// UserMessages()` then throws Invalid constructor. AppState is resolved
+		// via globalThis.__AKVJ_APP_STATE__, so cross-realm instances still work.
+		for (const stale of document.querySelectorAll('akvj-user-messages')) {
 			stale.remove();
 		}
-		host = document.createElement('user-messages');
+		host = document.createElement('akvj-user-messages');
 		document.body.append(host);
 	});
 
 	afterEach(() => {
-		host.remove();
+		host?.remove();
 		appState.reset();
 	});
 
@@ -66,7 +76,7 @@ describe('user-messages / user-message', () => {
 
 		expect(host.hidden).toBe(false);
 		expect(host.messageCount).toBe(1);
-		const message = host.querySelector('user-message');
+		const message = host.querySelector('akvj-user-message');
 		expect(message).not.toBeNull();
 		expect(message.getAttribute('role')).toBe('alertdialog');
 		expect(message.textContent).toContain('MIDI access failed');
@@ -84,7 +94,7 @@ describe('user-messages / user-message', () => {
 
 		document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		expect(host.messageCount).toBe(1);
-		expect(host.querySelector('user-message').textContent).toContain('first');
+		expect(host.querySelector('akvj-user-message').textContent).toContain('first');
 	});
 
 	test('stacks newest on top and dismisses independently', async () => {
@@ -93,7 +103,7 @@ describe('user-messages / user-message', () => {
 		await Promise.resolve();
 
 		expect(host.messageCount).toBe(2);
-		const nodes = [...host.querySelectorAll('user-message')];
+		const nodes = [...host.querySelectorAll('akvj-user-message')];
 		expect(nodes[0].textContent).toContain('newer');
 		expect(nodes[1].textContent).toContain('older');
 		expect(nodes[0].getAttribute('role')).toBe('alertdialog');
@@ -101,17 +111,17 @@ describe('user-messages / user-message', () => {
 
 		nodes[1].querySelector('.user-message-ok').click();
 		expect(host.messageCount).toBe(1);
-		expect(host.querySelector('user-message').textContent).toContain('newer');
+		expect(host.querySelector('akvj-user-message').textContent).toContain('newer');
 	});
 
 	test('info uses dialog role; warning uses alertdialog', async () => {
 		appState.info('notice');
 		await Promise.resolve();
-		expect(host.querySelector('user-message').getAttribute('role')).toBe('dialog');
+		expect(host.querySelector('akvj-user-message').getAttribute('role')).toBe('dialog');
 
 		host.querySelector('.user-message-ok').click();
 		appState.warn('heads up');
 		await Promise.resolve();
-		expect(host.querySelector('user-message').getAttribute('role')).toBe('alertdialog');
+		expect(host.querySelector('akvj-user-message').getAttribute('role')).toBe('alertdialog');
 	});
 });

@@ -13,12 +13,12 @@ const DEFAULT_CLIP_BASE_PATH = '/projects/default/clips';
 const DEFAULT_CLIPS_JSON_PATH = '/projects/default/clips/clips.json';
 
 class ClipPreview {
-	#clips = {};
+	#loadedClips = {};
 	#currentClipMeta = null;
 	#spriteImage = null;
 	#currentFrame = 0;
 	#isPlaying = true;
-	#lastFrameTime = 0;
+	#lastFrameTimestamp = 0;
 	#clipFrameId = null;
 
 	/** @type {{frameWidth: number, frameHeight: number}|null} Cached frame dimensions for current clip */
@@ -74,7 +74,7 @@ class ClipPreview {
 		this.#boundStepToNextFrame = this.#stepToNextFrame.bind(this);
 	}
 
-	setup() {
+	initialize() {
 		this.#registerEventListeners();
 		this.#loadClips();
 	}
@@ -96,7 +96,7 @@ class ClipPreview {
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
-			this.#clips = await response.json();
+			this.#loadedClips = await response.json();
 			this.#populateClipIds();
 		} catch (error) {
 			this.#metaDisplay.textContent = `Error loading clips.json: ${error.message}`;
@@ -104,7 +104,7 @@ class ClipPreview {
 	}
 
 	#populateClipIds() {
-		const clipIds = Object.keys(this.#clips).sort((a, b) => a.localeCompare(b));
+		const clipIds = Object.keys(this.#loadedClips).sort((a, b) => a.localeCompare(b));
 		this.#clipSelect.innerHTML = clipIds.map(clipId => `<option value="${clipId}">${clipId}</option>`).join('');
 		if (clipIds.length > 0) {
 			this.#loadClip();
@@ -119,7 +119,7 @@ class ClipPreview {
 			return;
 		}
 
-		this.#currentClipMeta = normalizeClipMetadata(this.#clips[clipId]);
+		this.#currentClipMeta = normalizeClipMetadata(this.#loadedClips[clipId]);
 		if (!this.#currentClipMeta) {
 			this.#metaDisplay.textContent = 'Clip not found';
 			return;
@@ -150,7 +150,7 @@ class ClipPreview {
 		this.#cacheFrameMetadata();
 		this.#setupCanvas();
 		this.#currentFrame = 0;
-		this.#lastFrameTime = performance.now();
+		this.#lastFrameTimestamp = performance.now();
 		if (!this.#clipFrameId) {
 			this.#animate();
 		}
@@ -224,9 +224,9 @@ class ClipPreview {
 	#animate() {
 		const now = performance.now();
 		const frameDuration = MS_PER_SECOND / this.#getFrameRate();
-		if (this.#isPlaying && now - this.#lastFrameTime >= frameDuration) {
+		if (this.#isPlaying && now - this.#lastFrameTimestamp >= frameDuration) {
 			this.#currentFrame = (this.#currentFrame + 1) % (this.#currentClipMeta?.frames || 1);
-			this.#lastFrameTime = now;
+			this.#lastFrameTimestamp = now;
 		}
 		this.#drawFrame();
 		this.#clipFrameId = requestAnimationFrame(this.#boundAnimate);
@@ -243,7 +243,7 @@ class ClipPreview {
 		if (document.hidden) {
 			this.#stopClip();
 		} else if (this.#currentClipMeta && !this.#clipFrameId) {
-			this.#lastFrameTime = performance.now();
+			this.#lastFrameTimestamp = performance.now();
 			this.#animate();
 		}
 	}
@@ -279,7 +279,7 @@ class ClipPreview {
 		this.#removeWindowListeners();
 		this.#spriteImage = null;
 		this.#currentClipMeta = null;
-		this.#clips = {};
+		this.#loadedClips = {};
 		this.#cachedFrameDimensions = null;
 		this.#cachedFrameRateEntries = null;
 	}
@@ -311,4 +311,4 @@ class ClipPreview {
 }
 
 const clipPreview = new ClipPreview();
-clipPreview.setup();
+clipPreview.initialize();

@@ -1,7 +1,7 @@
 import '../scss/PianoRoll.scss';
-import { PianoKey, buildVelocityBands, noteLabel } from './PianoKey.js';
+import './KeyBed.js';
 
-const MODES = new Set(['edit', 'category', 'play']);
+const MODES = new Set(['edit', 'select', 'play']);
 
 const CHANNEL_LABELS = {
 	1: 'Layer Group A',
@@ -23,10 +23,10 @@ const CHANNEL_LABELS = {
 };
 
 /**
- * PianoRoll — unified 128-key piano roll with edit / category / play modes.
+ * PianoRoll — unified 128-key piano roll with edit / select / play modes.
  *
- * - edit: velocity-band clip display; empty-key click assigns, band click selects
- * - category: single-key selection with read-only clip list below the roll
+ * - edit: velocity regions with breakpoint handles; empty-key click assigns, region click selects
+ * - select: click a note → dispatch `keyclick` with the note (pure note selector)
  * - play: multi-select sticky keys for trying the mapping
  *
  * Optional `channel-select` attribute renders a per-instance MIDI channel selector.
@@ -35,6 +35,9 @@ const CHANNEL_LABELS = {
  * @fires PianoRoll#channelchange - CustomEvent with `{ detail: { channel } }`
  * @fires PianoRoll#noteon - play mode
  * @fires PianoRoll#noteoff - play mode
+ * @fires PianoRoll#mappingchange - edit mode breakpoint drag `{ channel, note, oldVelocity, newVelocity, clipId }`
+ * @fires PianoRoll#mappingremove - edit mode region right-click `{ channel, note, clipId, velocity, mappings }`
+ * @fires PianoRoll#mappingadd - edit mode clip drop `{ channel, note, clipId, velocity, mappings }`
  */
 class PianoRoll extends HTMLElement {
 	/** @type {Array<{channel: number, note: number, velocity: number, clipId: string}>} */
@@ -46,11 +49,13 @@ class PianoRoll extends HTMLElement {
 	/** @type {Set<number>} */
 	#activeNotes = new Set();
 	#hasRenderedKeys = false;
-	#keysContainer = null;
-	#clipView = null;
+	#keyBed = null;
 	#channelBar = null;
 	#channelSelect = null;
 	#boundHandleKeyClick = this.#handleKeyClick.bind(this);
+	#boundHandleMappingChange = this.#handleMappingChange.bind(this);
+	#boundHandleMappingRemove = this.#handleMappingRemove.bind(this);
+	#boundHandleMappingAdd = this.#handleMappingAdd.bind(this);
 
 	static get observedAttributes() {
 		return ['channel', 'mode', 'channel-select'];
@@ -66,7 +71,6 @@ class PianoRoll extends HTMLElement {
 				this.#channelSelect.value = String(this.#channel);
 			}
 			this.#updateMappedKeys();
-			this.#updateClipView();
 		}
 		if (name === 'mode') {
 			this.#mode = MODES.has(value) ? value : 'edit';
@@ -75,7 +79,6 @@ class PianoRoll extends HTMLElement {
 			this.#syncModeClasses();
 			this.#updateMappedKeys();
 			this.#updateActiveKeys();
-			this.#updateClipView();
 		}
 		if (name === 'channel-select' && this.isConnected) {
 			this.#render();
@@ -83,7 +86,7 @@ class PianoRoll extends HTMLElement {
 	}
 
 	/**
-	 * @param {'edit'|'category'|'play'} mode
+	 * @param {'edit'|'select'|'play'} mode
 	 */
 	set mode(mode) {
 		this.setAttribute('mode', mode);
@@ -126,7 +129,6 @@ class PianoRoll extends HTMLElement {
 		this.#mappings = mappings;
 		if (this.#hasRenderedKeys) {
 			this.#updateMappedKeys();
-			this.#updateClipView();
 		} else {
 			this.#render();
 		}
@@ -152,14 +154,19 @@ class PianoRoll extends HTMLElement {
 		}
 		this.#syncModeClasses();
 		this.addEventListener('keyclickrequest', this.#boundHandleKeyClick);
+		this.addEventListener('mappingchangerequest', this.#boundHandleMappingChange);
+		this.addEventListener('mappingremoverequest', this.#boundHandleMappingRemove);
+		this.addEventListener('mappingaddrequest', this.#boundHandleMappingAdd);
 		this.#render();
 	}
 
 	disconnectedCallback() {
 		this.removeEventListener('keyclickrequest', this.#boundHandleKeyClick);
+		this.removeEventListener('mappingchangerequest', this.#boundHandleMappingChange);
+		this.removeEventListener('mappingremoverequest', this.#boundHandleMappingRemove);
+		this.removeEventListener('mappingaddrequest', this.#boundHandleMappingAdd);
 		this.replaceChildren();
-		this.#keysContainer = null;
-		this.#clipView = null;
+		this.#keyBed = null;
 		this.#channelBar = null;
 		this.#channelSelect = null;
 		this.#hasRenderedKeys = false;
@@ -168,7 +175,7 @@ class PianoRoll extends HTMLElement {
 	}
 
 	/**
-	 * Clear category/play selection highlights and clip view.
+	 * Clear select/play selection highlights.
 	 */
 	clearSelection() {
 		const notesTurningOff = this.#mode === 'play' ? [...this.#activeNotes] : [];
@@ -176,26 +183,26 @@ class PianoRoll extends HTMLElement {
 		this.#activeNotes.clear();
 		if (this.#hasRenderedKeys) {
 			this.#updateActiveKeys();
-			this.#updateClipView();
 		}
 		for (const note of notesTurningOff) {
 			const noteMappings = this.#mappingsForNote(note);
-			this.dispatchEvent(new CustomEvent('noteoff', {
-				bubbles: true,
-				detail: {
-					note,
-					clipId: noteMappings[0]?.clipId ?? null,
-					velocity: 0,
-					mappings: noteMappings
-				}
-			}));
+			this.dispatchEvent(
+				new CustomEvent('noteoff', {
+					bubbles: true,
+					detail: {
+						note,
+						clipId: noteMappings[0]?.clipId ?? null,
+						velocity: 0,
+						mappings: noteMappings
+					}
+				})
+			);
 		}
 	}
 
 	#syncModeClasses() {
-		this.classList.toggle('is-compact', this.#mode === 'category');
 		this.classList.toggle('is-edit', this.#mode === 'edit');
-		this.classList.toggle('is-category', this.#mode === 'category');
+		this.classList.toggle('is-select', this.#mode === 'select');
 		this.classList.toggle('is-play', this.#mode === 'play');
 		this.classList.toggle('has-selection', this.#selectedNote !== null);
 	}
@@ -223,38 +230,28 @@ class PianoRoll extends HTMLElement {
 			this.#channelSelect.addEventListener('change', () => {
 				const channel = Number(this.#channelSelect.value) || 1;
 				this.channel = channel;
-				this.dispatchEvent(new CustomEvent('channelchange', {
-					bubbles: true,
-					detail: { channel }
-				}));
+				this.dispatchEvent(
+					new CustomEvent('channelchange', {
+						bubbles: true,
+						detail: { channel }
+					})
+				);
 			});
 			label.append(this.#channelSelect);
 			this.#channelBar.append(label);
 			this.append(this.#channelBar);
 		}
 
-		this.#keysContainer = document.createElement('div');
-		this.#keysContainer.className = 'piano-roll-keys';
-		for (let note = 0; note < 128; note++) {
-			const key = new PianoKey();
-			key.note = note;
-			this.#keysContainer.append(key);
-		}
-		this.append(this.#keysContainer);
-
-		this.#clipView = document.createElement('div');
-		this.#clipView.className = 'piano-roll-clip-view';
-		this.#clipView.hidden = true;
-		this.append(this.#clipView);
+		this.#keyBed = document.createElement('key-bed');
+		this.append(this.#keyBed);
 
 		this.#hasRenderedKeys = true;
 		this.#updateMappedKeys();
 		this.#updateActiveKeys();
-		this.#updateClipView();
 	}
 
 	#keys() {
-		return this.#keysContainer ? [...this.#keysContainer.children].filter(child => child instanceof PianoKey) : [];
+		return this.#keyBed ? this.#keyBed.keys : [];
 	}
 
 	#handleKeyClick(event) {
@@ -263,7 +260,7 @@ class PianoRoll extends HTMLElement {
 		const clipId = eventClipId ?? noteMappings[0]?.clipId ?? null;
 		let isActive = true;
 
-		if (this.#mode === 'category') {
+		if (this.#mode === 'select') {
 			if (this.#selectedNote === note) {
 				this.#selectedNote = null;
 				isActive = false;
@@ -272,7 +269,6 @@ class PianoRoll extends HTMLElement {
 				isActive = true;
 			}
 			this.#updateActiveKeys();
-			this.#updateClipView();
 		} else if (this.#mode === 'play') {
 			if (this.#activeNotes.has(note)) {
 				this.#activeNotes.delete(note);
@@ -282,68 +278,127 @@ class PianoRoll extends HTMLElement {
 				isActive = true;
 			}
 			this.#updateActiveKeys();
-			this.dispatchEvent(new CustomEvent(isActive ? 'noteon' : 'noteoff', {
+			this.dispatchEvent(
+				new CustomEvent(isActive ? 'noteon' : 'noteoff', {
+					bubbles: true,
+					detail: {
+						note,
+						clipId,
+						velocity: 100,
+						mappings: noteMappings
+					}
+				})
+			);
+		}
+
+		this.dispatchEvent(
+			new CustomEvent('keyclick', {
 				bubbles: true,
 				detail: {
 					note,
 					clipId,
-					velocity: 100,
+					velocity,
+					isActive,
+					mode: this.#mode,
+					action: this.#mode === 'edit' ? action : 'select',
 					mappings: noteMappings
 				}
-			}));
-		}
+			})
+		);
+	}
 
-		this.dispatchEvent(new CustomEvent('keyclick', {
-			bubbles: true,
-			detail: {
-				note,
-				clipId,
-				velocity,
-				isActive,
-				mode: this.#mode,
-				action: this.#mode === 'edit' ? action : 'select',
-				mappings: noteMappings
-			}
-		}));
+	/**
+	 * @param {CustomEvent} event
+	 */
+	#handleMappingChange(event) {
+		if (this.#mode !== 'edit') {
+			return;
+		}
+		event.stopPropagation();
+		const { note, oldVelocity, newVelocity, clipId } = event.detail;
+		this.dispatchEvent(
+			new CustomEvent('mappingchange', {
+				bubbles: true,
+				detail: {
+					channel: this.#channel,
+					note,
+					oldVelocity,
+					newVelocity,
+					clipId
+				}
+			})
+		);
+	}
+
+	/**
+	 * @param {CustomEvent} event
+	 */
+	#handleMappingRemove(event) {
+		if (this.#mode !== 'edit') {
+			return;
+		}
+		event.stopPropagation();
+		const { note, clipId, velocity, mappings } = event.detail;
+		this.dispatchEvent(
+			new CustomEvent('mappingremove', {
+				bubbles: true,
+				detail: {
+					channel: this.#channel,
+					note,
+					clipId,
+					velocity,
+					mappings
+				}
+			})
+		);
+	}
+
+	/**
+	 * @param {CustomEvent} event
+	 */
+	#handleMappingAdd(event) {
+		if (this.#mode !== 'edit') {
+			return;
+		}
+		event.stopPropagation();
+		const { note, clipId, velocity, mappings } = event.detail;
+		this.dispatchEvent(
+			new CustomEvent('mappingadd', {
+				bubbles: true,
+				detail: {
+					channel: this.#channel,
+					note,
+					clipId,
+					velocity,
+					mappings
+				}
+			})
+		);
 	}
 
 	#mappingsForNote(note) {
-		return this.#mappings
-			.filter(mapping => mapping.channel === this.#channel && mapping.note === note)
-			.sort((a, b) => a.velocity - b.velocity);
+		return this.#mappings.filter(mapping => mapping.channel === this.#channel && mapping.note === note).sort((a, b) => a.velocity - b.velocity);
 	}
 
 	#updateMappedKeys() {
-		if (!this.#hasRenderedKeys) {
+		if (!this.#hasRenderedKeys || !this.#keyBed) {
 			return;
 		}
-		for (const key of this.#keys()) {
-			const noteMappings = this.#mappingsForNote(key.note);
-			if (this.#mode === 'edit') {
-				const bands = buildVelocityBands(noteMappings);
-				key.velocityBands = bands;
-				key.mapped = bands.length > 0;
-				key.clipId = bands[0]?.clipId ?? null;
-			} else {
-				key.velocityBands = [];
-				const first = noteMappings[0] ?? null;
-				key.mapped = Boolean(first);
-				key.clipId = first?.clipId ?? null;
-			}
-		}
+		const channelMappings = this.#mappings.filter(mapping => mapping.channel === this.#channel);
+		this.#keyBed.setMappedKeys(channelMappings, this.#mode);
 	}
 
 	#updateActiveKeys() {
 		if (!this.#hasRenderedKeys) {
 			return;
 		}
-		const hasCategorySelection = this.#mode === 'category' && this.#selectedNote !== null;
-		this.classList.toggle('has-selection', hasCategorySelection);
+		const hasSelectSelection = this.#mode === 'select' && this.#selectedNote !== null;
+		this.classList.toggle('has-selection', hasSelectSelection);
 
 		for (const key of this.#keys()) {
-			if (this.#mode === 'category') {
+			if (this.#mode === 'select') {
 				key.active = key.note === this.#selectedNote;
-				key.dimmed = hasCategorySelection && key.note !== this.#selectedNote;
+				key.dimmed = false;
 			} else if (this.#mode === 'play') {
 				key.active = this.#activeNotes.has(key.note);
 				key.dimmed = false;
@@ -352,47 +407,6 @@ class PianoRoll extends HTMLElement {
 				key.dimmed = false;
 			}
 		}
-	}
-
-	#updateClipView() {
-		if (!this.#clipView) {
-			return;
-		}
-
-		const show = this.#mode === 'category' && this.#selectedNote !== null;
-		this.#clipView.hidden = !show;
-		if (!show) {
-			this.#clipView.replaceChildren();
-			return;
-		}
-
-		const note = this.#selectedNote;
-		const noteMappings = this.#mappingsForNote(note);
-		const heading = document.createElement('p');
-		heading.className = 'piano-roll-clip-view-heading';
-		heading.textContent = `${noteLabel(note)} (MIDI ${note})`;
-
-		if (noteMappings.length === 0) {
-			const empty = document.createElement('p');
-			empty.className = 'piano-roll-clip-view-empty';
-			empty.textContent = 'No clips mapped';
-			this.#clipView.replaceChildren(heading, empty);
-			return;
-		}
-
-		const list = document.createElement('ul');
-		list.className = 'piano-roll-clip-list';
-		for (const mapping of noteMappings) {
-			const item = document.createElement('li');
-			item.className = 'piano-roll-clip-item';
-			const clip = document.createElement('strong');
-			clip.textContent = mapping.clipId;
-			const meta = document.createElement('span');
-			meta.textContent = `vel ${mapping.velocity}`;
-			item.append(clip, meta);
-			list.append(item);
-		}
-		this.#clipView.replaceChildren(heading, list);
 	}
 }
 

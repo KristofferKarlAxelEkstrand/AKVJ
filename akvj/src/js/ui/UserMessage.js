@@ -1,22 +1,22 @@
-const MESSAGE_TYPES = new Set(['error', 'warning', 'info']);
+import { USER_MESSAGE_TYPES } from '../core/AppState.js';
 
 /**
  * UserMessage — one dismissible modal message (light DOM).
  *
  * @fires UserMessage#dismiss - CustomEvent when OK is pressed or dismiss() is called
- * @element user-message
+ * @element akvj-user-message
  */
 class UserMessage extends HTMLElement {
 	#type = 'info';
 	#text = '';
 	#okButton = null;
-	#abort = null;
+	#abortController = null;
 
 	/**
 	 * @param {{ type?: string, text?: string }} options
 	 */
 	setMessage({ type = 'info', text = '' } = {}) {
-		this.#type = MESSAGE_TYPES.has(type) ? type : 'info';
+		this.#type = USER_MESSAGE_TYPES.has(type) ? type : 'info';
 		this.#text = String(text ?? '');
 		this.dataset.type = this.#type;
 		if (this.isConnected) {
@@ -33,13 +33,13 @@ class UserMessage extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.#abort = new AbortController();
+		this.#abortController = new AbortController();
 		this.#render();
 	}
 
 	disconnectedCallback() {
-		this.#abort?.abort();
-		this.#abort = null;
+		this.#abortController?.abort();
+		this.#abortController = null;
 		this.replaceChildren();
 	}
 
@@ -79,15 +79,15 @@ class UserMessage extends HTMLElement {
 		this.#okButton.type = 'button';
 		this.#okButton.className = 'user-message-ok';
 		this.#okButton.textContent = 'OK';
-		this.#okButton.addEventListener('click', () => this.dismiss(), { signal: this.#abort.signal });
+		this.#okButton.addEventListener('click', () => this.dismiss(), { signal: this.#abortController.signal });
 
 		this.append(title, body, this.#okButton);
 	}
 }
 
-if (!customElements.get('user-message')) {
-	customElements.define('user-message', UserMessage);
+if (!customElements.get('akvj-user-message')) {
+	customElements.define('akvj-user-message', UserMessage);
 }
 
-export { UserMessage, MESSAGE_TYPES };
+export { UserMessage };
 export default UserMessage;

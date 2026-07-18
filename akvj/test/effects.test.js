@@ -231,15 +231,30 @@ describe('splitEffect', () => {
 		);
 
 		expect(result).toBe(true);
-		// The effect should modify pixels (split into sections)
-		// Just verify it runs and returns true; exact pixel values depend on split count
+		// note=0 → splits=2, sectionWidth=2: sourceX = (x % 2) * 2
+		// pixel(0,0) stays from pixel(0,0); pixel(2,0) samples pixel(0,0)
+		expect(img.data[0]).toBe(0);
+		expect(img.data[(0 * WIDTH + 2) * 4]).toBe(0);
+		expect(img.data[(0 * WIDTH + 1) * 4]).toBe(2);
+		expect(img.data[(0 * WIDTH + 3) * 4]).toBe(2);
 	});
 
 	test('vertical split creates repeating sections', () => {
-		const img = createImageData();
-		for (let i = 0; i < WIDTH * HEIGHT; i++) {
-			img.data[i * 4] = i;
+		// Variant B (note >= threshold) yields splits=6; need height >= 6 so sectionHeight >= 1
+		const width = 4;
+		const height = 6;
+		const data = new Uint8ClampedArray(width * height * RGBA_CHANNEL_COUNT);
+		for (let i = 0; i < width * height; i++) {
+			data[i * 4] = i;
+			data[i * 4 + 3] = 255;
 		}
+		const img = { data, width, height };
+		const effectContext = {
+			...EFFECT_CONTEXT,
+			width,
+			height,
+			scratchBuffer: null
+		};
 
 		const result = splitEffect.apply(
 			img,
@@ -248,10 +263,14 @@ describe('splitEffect', () => {
 				velocity: 127
 			},
 			0,
-			EFFECT_CONTEXT
+			effectContext
 		);
 
 		expect(result).toBe(true);
+		// sectionHeight=1 → every row samples y=0
+		expect(data[(1 * width + 0) * 4]).toBe(0);
+		expect(data[(1 * width + 1) * 4]).toBe(1);
+		expect(data[(5 * width + 3) * 4]).toBe(3);
 	});
 
 	test('has type "split" and requiresNote true', () => {
@@ -302,8 +321,16 @@ describe('transformCopy (pixelUtils)', () => {
 
 	test('allocates scratch buffer when not provided', () => {
 		const pixels = new Uint8ClampedArray(BYTE_COUNT);
+		for (let i = 0; i < WIDTH * HEIGHT; i++) {
+			pixels[i * 4] = i;
+		}
+
 		const swapFn = (x, y) => (y * WIDTH + (WIDTH - 1 - x)) * RGBA_CHANNEL_COUNT;
-		expect(() => transformCopy(pixels, WIDTH, HEIGHT, null, swapFn)).not.toThrow();
+		const result = transformCopy(pixels, WIDTH, HEIGHT, null, swapFn);
+
+		expect(result).toBe(true);
+		// After horizontal flip, pixel(0,0) should have original pixel(3,0)
+		expect(pixels[0]).toBe(3);
 	});
 
 	test('uses provided scratch buffer when large enough', () => {
@@ -323,9 +350,16 @@ describe('transformCopy (pixelUtils)', () => {
 	test('allocates new buffer when scratch is too small', () => {
 		const pixels = new Uint8ClampedArray(BYTE_COUNT);
 		const smallScratch = new Uint8ClampedArray(4); // too small
+		for (let i = 0; i < WIDTH * HEIGHT; i++) {
+			pixels[i * 4] = i;
+		}
 
-		const identityFn = (x, y) => (y * WIDTH + x) * RGBA_CHANNEL_COUNT;
-		expect(() => transformCopy(pixels, WIDTH, HEIGHT, smallScratch, identityFn)).not.toThrow();
+		const swapFn = (x, y) => (y * WIDTH + (WIDTH - 1 - x)) * RGBA_CHANNEL_COUNT;
+		const result = transformCopy(pixels, WIDTH, HEIGHT, smallScratch, swapFn);
+
+		expect(result).toBe(true);
+		// After horizontal flip, pixel(0,0) should have original pixel(3,0)
+		expect(pixels[0]).toBe(3);
 	});
 });
 
@@ -381,10 +415,14 @@ describe('glitchEffect', () => {
 	test('uses scratch buffer when provided and large enough', () => {
 		const img = createImageData();
 		const scratch = new Uint8ClampedArray(BYTE_COUNT);
+		const originalPixels = new Uint8ClampedArray(img.data);
 		const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05);
 
-		// Should not throw and should use the provided scratch buffer
-		expect(() => glitchEffect.apply(img, { velocity: 127 }, 0, { ...EFFECT_CONTEXT, scratchBuffer: scratch })).not.toThrow();
+		const result = glitchEffect.apply(img, { velocity: 127 }, 0, { ...EFFECT_CONTEXT, scratchBuffer: scratch });
+
+		expect(result).toBe(true);
+		expect(scratch).toEqual(originalPixels);
+		expect(img.data).not.toEqual(originalPixels);
 
 		mathRandomSpy.mockRestore();
 	});

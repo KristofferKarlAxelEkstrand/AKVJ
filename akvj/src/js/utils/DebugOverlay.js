@@ -34,7 +34,7 @@ class DebugOverlay {
 	#bpmSourceElement = null;
 	#midiStatusElement = null;
 	#midiLogElement = null;
-	#midiLog = [];
+	#midiLogEntries = [];
 	#unsubscribers = [];
 	#boundHandleKeydown;
 	#isVisible = false;
@@ -88,9 +88,9 @@ class DebugOverlay {
 	}
 
 	#addLogEntry(type, message) {
-		this.#midiLog.unshift({ type, message, time: performance.now() });
-		if (this.#midiLog.length > MAX_LOG_ENTRIES) {
-			this.#midiLog.pop();
+		this.#midiLogEntries.unshift({ type, message, time: performance.now() });
+		if (this.#midiLogEntries.length > MAX_LOG_ENTRIES) {
+			this.#midiLogEntries.pop();
 		}
 		this.#renderLog();
 	}
@@ -101,7 +101,7 @@ class DebugOverlay {
 		}
 		this.#midiLogElement.textContent = '';
 		// Build DOM safely (avoid innerHTML with dynamic content)
-		for (const entry of this.#midiLog) {
+		for (const entry of this.#midiLogEntries) {
 			const div = document.createElement('div');
 			div.className = `debug-log-entry ${entry.type}`;
 			div.textContent = entry.message;
@@ -114,7 +114,7 @@ class DebugOverlay {
 		return `${NOTE_NAMES[note % NOTES_PER_OCTAVE]}${octave}`;
 	}
 
-	setup() {
+	mount() {
 		document.body.appendChild(this.#element);
 		document.addEventListener('keydown', this.#boundHandleKeydown);
 		this.#subscribeToEvents();
@@ -169,7 +169,7 @@ class DebugOverlay {
 		this.#removeKeydownListener();
 		this.#unsubscribeAll();
 		this.#removeDOMElements();
-		this.#midiLog = [];
+		this.#midiLogEntries = [];
 	}
 
 	#removeKeydownListener() {

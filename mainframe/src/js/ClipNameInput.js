@@ -27,20 +27,20 @@ export function cleanDisplayName(raw, { trimTrailing = false } = {}) {
  */
 class ClipNameInput extends HTMLElement {
 	#input = null;
-	#abort = null;
+	#abortController = null;
 
 	static get observedAttributes() {
 		return ['placeholder', 'disabled'];
 	}
 
 	connectedCallback() {
-		this.#abort = new AbortController();
+		this.#abortController = new AbortController();
 		this.#render();
 	}
 
 	disconnectedCallback() {
-		this.#abort?.abort();
-		this.#abort = null;
+		this.#abortController?.abort();
+		this.#abortController = null;
 		this.replaceChildren();
 		this.#input = null;
 	}
@@ -87,7 +87,7 @@ class ClipNameInput extends HTMLElement {
 		this.#input.value = previous;
 		this.#input.setAttribute('aria-label', this.getAttribute('aria-label') || 'Clip name');
 
-		const { signal } = this.#abort;
+		const { signal } = this.#abortController;
 		this.#input.addEventListener('input', () => this.#onInput(), { signal });
 		this.#input.addEventListener('blur', () => this.#onBlur(), { signal });
 

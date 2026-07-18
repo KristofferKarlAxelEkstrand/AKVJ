@@ -12,7 +12,7 @@ class PlaybackController {
 	#frame = 0;
 	#isFinished = false;
 	#pingpongDirection = 1;
-	#lastRandomFrame = -1;
+	#lastShuffleFrame = -1;
 	#unplayedShuffleFrames = [];
 
 	/**
@@ -144,7 +144,7 @@ class PlaybackController {
 		this.#frame = this.#playbackMode === 'reverse' ? this.#numberOfFrames - 1 : 0;
 		this.#isFinished = false;
 		this.#pingpongDirection = 1;
-		this.#lastRandomFrame = -1;
+		this.#lastShuffleFrame = -1;
 		this.#unplayedShuffleFrames = [];
 	}
 
@@ -161,7 +161,7 @@ class PlaybackController {
 			this.#unplayedShuffleFrames = this.#buildShuffledFramePool();
 		}
 		const nextFrame = this.#unplayedShuffleFrames.pop();
-		this.#lastRandomFrame = nextFrame;
+		this.#lastShuffleFrame = nextFrame;
 		return nextFrame;
 	}
 
@@ -176,7 +176,7 @@ class PlaybackController {
 			const j = Math.floor(Math.random() * (i + 1));
 			[pool[i], pool[j]] = [pool[j], pool[i]];
 		}
-		if (pool[pool.length - 1] === this.#lastRandomFrame && pool.length > 1) {
+		if (pool[pool.length - 1] === this.#lastShuffleFrame && pool.length > 1) {
 			const swapIndex = Math.floor(Math.random() * (pool.length - 1));
 			[pool[pool.length - 1], pool[swapIndex]] = [pool[swapIndex], pool[pool.length - 1]];
 		}

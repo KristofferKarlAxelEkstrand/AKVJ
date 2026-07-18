@@ -15,12 +15,12 @@ piano-key {
 		border: 1px solid #333;
 	}
 
-	&.is-white.is-mapped:not(.has-bands) {
+	&.is-white.is-mapped:not(.has-regions) {
 		background: #6c5ce7;
 		border-color: #5a4bd1;
 	}
 
-	&.is-black.is-mapped:not(.has-bands) {
+	&.is-black.is-mapped:not(.has-regions) {
 		background: #4834d4;
 		border-color: #402dba;
 	}
@@ -47,38 +47,94 @@ piano-key {
 		z-index: 2;
 	}
 
-	.velocity-bands {
+	.velocity-regions {
 		inset: 0;
 		pointer-events: none;
 		position: absolute;
 		z-index: 1;
 	}
 
-	.velocity-band {
-		border: none;
+	.velocity-region {
+		--region-hue: 200;
+		background: hsl(var(--region-hue) 55% 42%);
 		border-top: 1px solid color-mix(in srgb, #fff 25%, transparent);
+		box-sizing: border-box;
 		color: #fff;
 		cursor: pointer;
-		font-size: 0.45rem;
 		left: 0;
-		line-height: 1.1;
 		overflow: hidden;
 		padding: 0.1rem 0.05rem;
 		pointer-events: auto;
 		position: absolute;
 		right: 0;
+	}
+
+	&.is-black .velocity-region {
+		background: hsl(var(--region-hue) 50% 32%);
+	}
+
+	.velocity-region:hover {
+		filter: brightness(1.15);
+	}
+
+	.velocity-region-label {
+		display: block;
+		font-size: 0.45rem;
+		line-height: 1.1;
+		overflow: hidden;
+		pointer-events: none;
 		text-overflow: ellipsis;
 		text-shadow: 0 0 2px #000;
 		white-space: nowrap;
-		writing-mode: horizontal-tb;
-		background: hsl(var(--key-hue) 55% 42%);
 	}
 
-	&.is-black .velocity-band {
-		background: hsl(var(--key-hue) 50% 32%);
+	.velocity-handle {
+		background: color-mix(in srgb, #fff 85%, #000);
+		border: 1px solid color-mix(in srgb, #000 45%, transparent);
+		box-sizing: border-box;
+		cursor: ns-resize;
+		height: 8px;
+		left: 0;
+		pointer-events: auto;
+		position: absolute;
+		right: 0;
+		transform: translateY(50%);
+		z-index: 3;
 	}
 
-	.velocity-band:hover {
-		filter: brightness(1.15);
+	.velocity-handle::after {
+		background: color-mix(in srgb, #000 55%, transparent);
+		content: '';
+		height: 2px;
+		left: 10%;
+		position: absolute;
+		right: 10%;
+		top: 50%;
+		transform: translateY(-50%);
+	}
+
+	.velocity-handle.is-dragging,
+	.velocity-handle:hover {
+		background: var(--accent, #d9773a);
+	}
+
+	.velocity-handle-readout {
+		background: #111;
+		border-radius: 2px;
+		color: #fff;
+		font-size: 0.55rem;
+		left: 50%;
+		line-height: 1;
+		padding: 0.15rem 0.25rem;
+		pointer-events: none;
+		position: absolute;
+		top: -1.1rem;
+		transform: translateX(-50%);
+		white-space: nowrap;
+		z-index: 4;
+	}
+
+	&.is-dragging-handle {
+		cursor: ns-resize;
 	}
 }

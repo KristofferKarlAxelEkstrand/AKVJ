@@ -12,6 +12,16 @@ description: >-
 
 You must strictly adhere to the following safety constraints whenever performing any Git operations.
 
+## Commit Ownership (read first)
+
+**The human owns commits. Default to letting the human commit — do not `git add`/`git commit` on their behalf unless they explicitly ask you to in the current request.**
+
+- Your normal job is to **edit files and leave them in the working tree** for the human to review and commit. Making changes ≠ committing them.
+- **Never `git add`/`git commit`** as a reflex after finishing a task, and never `git push`, unless the human explicitly said "commit"/"push" this session.
+- **Especially never** stage/commit binary assets (e.g. PNG sprite sheets), or history-altering / tracking-changing operations (retiring tracked directories, large renames/migrations, `.gitignore` policy changes) on your own. These always wait for the human.
+- If a change *needs* to be committed to be durable (e.g. a migration a fresh clone depends on), **escalate**: describe exactly what would be staged/committed and ask the human to do it (or to explicitly authorize you). Do not silently delegate the commit to another agent.
+- Even when the human authorizes a commit, keep it **surgical**: stage only the specific files in scope (`git add <paths>`), never `git add -A`/`.` blindly.
+
 ## Critical Rules
 
 1. **NEVER use `git reset --hard`**: This is destructive and can wipe out the user's uncommitted work permanently. If you need to revert changes, use `git checkout -- <file>` for specific files after confirming with the user, or `git stash` to safely set aside changes.
@@ -22,11 +32,21 @@ You must strictly adhere to the following safety constraints whenever performing
 6. **Stop on Merge Conflicts**: If a `git pull` or `git merge` results in a conflict, DO NOT attempt to blindly abort the merge (`git merge --abort`) if it risks losing user changes. Present the conflict to the user and resolve the files carefully.
 
 ## Approved Commands
+
+Freely usable (read-only / non-destructive inspection):
+
 - `git status` (always check this before doing anything)
 - `git diff`
-- `git add <specific files>`
+- `git log`, `git ls-files`, `git show`
+
+Only when the human explicitly asks you to commit/push this session (see **Commit Ownership**):
+
+- `git add <specific files>` (never `-A` / `.` blindly)
 - `git commit -m "..."`
 - `git push` (normal, non-forced)
+
+Other:
+
 - `git pull`
 - `git stash`
 

@@ -2,29 +2,13 @@
  * Integration tests for the AKVJ multi-layer-group architecture
  * Tests the full pipeline: MIDI → LayerManager → Renderer → Effects
  */
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from 'vitest';
 import LayerManager from '../src/js/visuals/LayerManager.js';
 import LayerGroup from '../src/js/visuals/LayerGroup.js';
 import MaskManager from '../src/js/visuals/MaskManager.js';
 import EffectsManager from '../src/js/visuals/EffectsManager.js';
 import settings from '../src/js/core/settings.js';
-
-/**
- * Create a mock clip with spied methods
- * @param {string} id - Unique identifier for the clip
- * @returns {Object} Mock clip with vi.fn() spies for all methods
- */
-function createMockClip(id = 'mock') {
-	return {
-		id,
-		play: vi.fn(),
-		renderToContext: vi.fn(),
-		stop: vi.fn(),
-		reset: vi.fn(),
-		dispose: vi.fn(),
-		isFinished: false
-	};
-}
+import { createMockClip } from './utils/createMockClip.js';
 
 describe('LayerGroup', () => {
 	test('manages clip slots correctly', () => {

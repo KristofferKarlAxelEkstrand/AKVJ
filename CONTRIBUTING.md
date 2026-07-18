@@ -10,7 +10,7 @@ Be respectful and constructive. We welcome contributors of all skill levels.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - Chrome or Chromium browser (Web MIDI API requirement)
 - MIDI device (optional, for testing)
 

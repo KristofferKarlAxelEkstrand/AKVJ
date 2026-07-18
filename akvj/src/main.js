@@ -12,11 +12,11 @@ import DebugOverlay from './js/utils/DebugOverlay.js';
 const midi = new Midi();
 
 const fullscreenManager = new Fullscreen();
-fullscreenManager.setup();
+fullscreenManager.enable();
 
 // Press 'D' to toggle
 const debugOverlay = new DebugOverlay();
-debugOverlay.setup();
+debugOverlay.mount();
 
 // Cleanup on hot module replacement (HMR)
 if (import.meta.hot) {

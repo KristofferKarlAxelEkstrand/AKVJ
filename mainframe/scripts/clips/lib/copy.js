@@ -97,7 +97,7 @@ async function removeOrphanedFiles(publicFiles, cacheFiles, publicDir, stats) {
  * Recursively remove empty directories.
  * @param {string} dir - Directory to clean
  */
-async function removeEmptyDirs(dir) {
+export async function removeEmptyDirs(dir) {
 	try {
 		const entries = await fs.readdir(dir, { withFileTypes: true });
 

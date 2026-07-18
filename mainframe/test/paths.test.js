@@ -8,6 +8,7 @@ describe('paths', () => {
 			expect(isValidClipId('c1-n0-v0')).toBe(true);
 			expect(isValidClipId('my_clip')).toBe(true);
 			expect(isValidClipId('clipA')).toBe(true);
+			expect(isValidClipId('neon-skull')).toBe(true);
 		});
 
 		it('rejects empty strings', () => {
@@ -24,6 +25,8 @@ describe('paths', () => {
 		it('rejects pure numeric IDs', () => {
 			expect(isValidClipId('123')).toBe(false);
 			expect(isValidClipId('0')).toBe(false);
+			expect(isValidClipId('5')).toBe(false);
+			expect(isValidClipId('12')).toBe(false);
 		});
 
 		it('rejects IDs with path separators', () => {
@@ -80,6 +83,11 @@ describe('paths', () => {
 		it('strips path components from pngName using basename', () => {
 			const result = resolveSafeSpritePath('c1-n0-v0', '../../etc/passwd.png');
 			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0', 'passwd.png'));
+		});
+
+		it('throws for dotted or traversal filenames', () => {
+			expect(() => resolveSafeSpritePath('neon-skull', '../secret')).toThrow('Invalid sprite filename');
+			expect(() => resolveSafeSpritePath('neon-skull', '....png')).toThrow('Invalid sprite filename');
 		});
 
 		it('throws for non-PNG filenames', () => {

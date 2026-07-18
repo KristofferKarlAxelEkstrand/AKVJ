@@ -18,14 +18,14 @@ class Midi {
 	#destroyed = false;
 
 	constructor() {
-		this.#setup();
+		this.#initializeMIDIAccess();
 	}
 
 	get ready() {
 		return this.#setupPromise;
 	}
 
-	#setup() {
+	#initializeMIDIAccess() {
 		if (this.#isSupported()) {
 			this.#setupPromise = this.#requestAccess();
 		} else {

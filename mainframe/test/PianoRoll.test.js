@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import '../src/js/PianoKey.js';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+import { redistributeVelocities, insertionIndexForDropVelocity, clipHue } from '../src/js/PianoKey.js';
 import '../src/js/PianoRoll.js';
 
 /**
@@ -72,7 +72,7 @@ describe('PianoRoll', () => {
 		expect(detail.isActive).toBe(true);
 	});
 
-	test('edit mode renders velocity bands proportional to ranges', () => {
+	test('edit mode renders velocity regions proportional to ranges', () => {
 		element.mode = 'edit';
 		element.channel = 1;
 		element.mappings = [
@@ -81,18 +81,19 @@ describe('PianoRoll', () => {
 		];
 
 		const key = element.querySelectorAll('piano-key')[60];
-		const bands = key.querySelectorAll('.velocity-band');
-		expect(bands.length).toBe(2);
-		expect(bands[0].dataset.clipId).toBe('soft');
-		expect(bands[0].style.bottom).toBe('0%');
-		expect(bands[0].style.height).toBe('39.0625%');
-		expect(bands[1].dataset.clipId).toBe('hard');
-		expect(bands[1].style.bottom).toBe('39.0625%');
-		expect(bands[1].style.height).toBe('60.9375%');
-		expect(key.classList.contains('has-bands')).toBe(true);
+		const regions = key.querySelectorAll('.velocity-region');
+		expect(regions.length).toBe(2);
+		expect(regions[0].dataset.clipId).toBe('soft');
+		expect(regions[0].style.bottom).toBe('0%');
+		expect(regions[0].style.height).toBe('39.0625%');
+		expect(regions[1].dataset.clipId).toBe('hard');
+		expect(regions[1].style.bottom).toBe('39.0625%');
+		expect(regions[1].style.height).toBe('60.9375%');
+		expect(key.classList.contains('has-regions')).toBe(true);
+		expect(key.querySelectorAll('.velocity-handle').length).toBe(1);
 	});
 
-	test('edit mode band click selects mapping', () => {
+	test('edit mode region click selects mapping', () => {
 		element.mode = 'edit';
 		element.channel = 1;
 		element.mappings = [
@@ -115,54 +116,51 @@ describe('PianoRoll', () => {
 	test('edit mode single mapping fills the full key', () => {
 		element.mode = 'edit';
 		element.channel = 1;
-		element.mappings = [
-			{ channel: 1, note: 60, velocity: 0, clipId: 'only' }
-		];
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'only' }];
 
-		const band = element.querySelectorAll('piano-key')[60].querySelector('.velocity-band');
-		expect(band.style.bottom).toBe('0%');
-		expect(band.style.height).toBe('100%');
+		const region = element.querySelectorAll('piano-key')[60].querySelector('.velocity-region');
+		expect(region.style.bottom).toBe('0%');
+		expect(region.style.height).toBe('100%');
+		expect(element.querySelectorAll('piano-key')[60].querySelectorAll('.velocity-handle').length).toBe(0);
 	});
 
-	test('category mode selects key and shows clip list', () => {
-		element.mode = 'category';
+	test('select mode dispatches keyclick with note and highlights key', () => {
+		element.mode = 'select';
 		element.channel = 1;
 		element.mappings = [
 			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
 			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
 		];
 
+		let detail = null;
+		element.addEventListener('keyclick', event => {
+			detail = event.detail;
+		});
+
 		const key = element.querySelectorAll('piano-key')[60];
 		press(key);
 
 		expect(key.classList.contains('is-active')).toBe(true);
 		expect(element.selectedNote).toBe(60);
-		const items = element.querySelectorAll('.piano-roll-clip-item');
-		expect(items.length).toBe(2);
-		expect(items[0].textContent).toContain('soft');
-		expect(items[1].textContent).toContain('hard');
+		expect(detail.note).toBe(60);
+		expect(detail.mode).toBe('select');
+		expect(detail.action).toBe('select');
+		expect(detail.isActive).toBe(true);
+		expect(detail.mappings).toHaveLength(2);
+		expect(element.querySelector('.piano-roll-clip-view')).toBeNull();
 	});
 
-	test('category mode shows empty state for unmapped key', () => {
-		element.mode = 'category';
-		element.channel = 1;
-		element.mappings = [];
-
-		press(element.querySelectorAll('piano-key')[60]);
-		expect(element.querySelector('.piano-roll-clip-view-empty').textContent).toBe('No clips mapped');
-	});
-
-	test('category mode dims non-selected keys', () => {
-		element.mode = 'category';
+	test('select mode does not dim non-selected keys', () => {
+		element.mode = 'select';
 		const keys = element.querySelectorAll('piano-key');
 		press(keys[60]);
 
 		expect(keys[60].classList.contains('is-dimmed')).toBe(false);
-		expect(keys[61].classList.contains('is-dimmed')).toBe(true);
+		expect(keys[61].classList.contains('is-dimmed')).toBe(false);
 	});
 
-	test('category mode toggles off on re-click and switches keys', () => {
-		element.mode = 'category';
+	test('select mode toggles off on re-click and switches keys', () => {
+		element.mode = 'select';
 		element.channel = 1;
 		element.mappings = [
 			{ channel: 1, note: 60, velocity: 0, clipId: 'c1-n60-v0' },
@@ -184,8 +182,8 @@ describe('PianoRoll', () => {
 		expect(keys[64].classList.contains('is-active')).toBe(true);
 	});
 
-	test('category mode does not render velocity bands', () => {
-		element.mode = 'category';
+	test('select mode does not render velocity regions', () => {
+		element.mode = 'select';
 		element.channel = 1;
 		element.mappings = [
 			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
@@ -193,12 +191,12 @@ describe('PianoRoll', () => {
 		];
 
 		const key = element.querySelectorAll('piano-key')[60];
-		expect(key.querySelectorAll('.velocity-band').length).toBe(0);
+		expect(key.querySelectorAll('.velocity-region').length).toBe(0);
 		expect(key.classList.contains('is-mapped')).toBe(true);
 	});
 
 	test('highlights mapped notes for current channel', () => {
-		element.mode = 'category';
+		element.mode = 'select';
 		element.channel = 1;
 		element.mappings = [
 			{ channel: 1, note: 60, velocity: 0, clipId: 'c1-n60-v0' },
@@ -227,9 +225,7 @@ describe('PianoRoll', () => {
 	test('play mode dispatches noteon and noteoff', () => {
 		element.mode = 'play';
 		element.channel = 1;
-		element.mappings = [
-			{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }
-		];
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
 
 		const events = [];
 		element.addEventListener('noteon', event => events.push(['on', event.detail]));
@@ -270,36 +266,33 @@ describe('PianoRoll', () => {
 		expect(offs).toEqual([60, 64]);
 	});
 
-	test('clearSelection removes active highlights and clip view', () => {
-		element.mode = 'category';
+	test('clearSelection removes active highlights in select mode', () => {
+		element.mode = 'select';
 		element.channel = 1;
-		element.mappings = [
-			{ channel: 1, note: 60, velocity: 0, clipId: 'c1-n60-v0' }
-		];
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'c1-n60-v0' }];
 		const key = element.querySelectorAll('piano-key')[60];
 		press(key);
 		expect(key.classList.contains('is-active')).toBe(true);
-		expect(element.querySelector('.piano-roll-clip-view').hidden).toBe(false);
 
 		element.clearSelection();
 		expect(key.classList.contains('is-active')).toBe(false);
-		expect(element.querySelector('.piano-roll-clip-view').hidden).toBe(true);
+		expect(element.selectedNote).toBeNull();
 	});
 
 	test('incremental mapping update does not recreate keys', () => {
 		element.mappings = [];
 		const firstKey = element.querySelector('piano-key');
-		element.mappings = [
-			{ channel: 1, note: 0, velocity: 0, clipId: 'c1-n0-v0' }
-		];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'c1-n0-v0' }];
 		expect(element.querySelector('piano-key')).toBe(firstKey);
 		expect(firstKey.classList.contains('is-mapped')).toBe(true);
 	});
 
-	test('compact class applied in category mode', () => {
-		element.mode = 'category';
-		expect(element.classList.contains('is-compact')).toBe(true);
+	test('select mode class applied without is-compact', () => {
+		element.mode = 'select';
+		expect(element.classList.contains('is-select')).toBe(true);
+		expect(element.classList.contains('is-compact')).toBe(false);
 		element.mode = 'edit';
+		expect(element.classList.contains('is-select')).toBe(false);
 		expect(element.classList.contains('is-compact')).toBe(false);
 	});
 
@@ -362,5 +355,325 @@ describe('PianoRoll', () => {
 		expect(second.querySelectorAll('piano-key')[64].classList.contains('is-mapped')).toBe(false);
 
 		second.remove();
+	});
+
+	test('redistributeVelocities places even breakpoints', () => {
+		expect(redistributeVelocities(['a'])).toEqual([{ clipId: 'a', velocity: 0 }]);
+		expect(redistributeVelocities(['a', 'b'])).toEqual([
+			{ clipId: 'a', velocity: 0 },
+			{ clipId: 'b', velocity: 64 }
+		]);
+		expect(redistributeVelocities(['a', 'b', 'c'])).toEqual([
+			{ clipId: 'a', velocity: 0 },
+			{ clipId: 'b', velocity: 43 },
+			{ clipId: 'c', velocity: 85 }
+		]);
+	});
+
+	test('edit mode handle drag dispatches mappingchange with channel', () => {
+		element.mode = 'edit';
+		element.channel = 3;
+		element.mappings = [
+			{ channel: 3, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 3, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		vi.spyOn(key, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			bottom: 128,
+			right: 20,
+			width: 20,
+			height: 128,
+			toJSON() {
+				return {};
+			}
+		});
+
+		let detail = null;
+		element.addEventListener('mappingchange', event => {
+			detail = event.detail;
+		});
+
+		const handle = key.querySelector('.velocity-handle');
+		handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 64 }));
+		handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientY: 48 }));
+		handle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 48 }));
+
+		expect(detail).toEqual({
+			channel: 3,
+			note: 60,
+			oldVelocity: 64,
+			newVelocity: 80,
+			clipId: 'hard'
+		});
+	});
+
+	test('pointercancel commits the drag just like pointerup', () => {
+		element.mode = 'edit';
+		element.channel = 3;
+		element.mappings = [
+			{ channel: 3, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 3, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		vi.spyOn(key, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			bottom: 128,
+			right: 20,
+			width: 20,
+			height: 128,
+			toJSON() {
+				return {};
+			}
+		});
+
+		let detail = null;
+		element.addEventListener('mappingchange', event => {
+			detail = event.detail;
+		});
+
+		const handle = key.querySelector('.velocity-handle');
+		handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 64 }));
+		handle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientY: 48 }));
+		handle.dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1, pointerType: 'mouse' }));
+
+		expect(detail).toEqual({
+			channel: 3,
+			note: 60,
+			oldVelocity: 64,
+			newVelocity: 80,
+			clipId: 'hard'
+		});
+	});
+
+	test('disconnectedCallback mid-drag tears down drag listeners and clears drag classes', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		vi.spyOn(key, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			bottom: 128,
+			right: 20,
+			width: 20,
+			height: 128,
+			toJSON() {
+				return {};
+			}
+		});
+
+		const handle = key.querySelector('.velocity-handle');
+		const removeSpy = vi.spyOn(handle, 'removeEventListener');
+
+		handle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 64 }));
+		expect(key.classList.contains('is-dragging-handle')).toBe(true);
+		expect(handle.querySelector('.velocity-handle-readout')).toBeTruthy();
+
+		key.remove();
+
+		expect(removeSpy).toHaveBeenCalledWith('pointermove', expect.any(Function));
+		expect(removeSpy).toHaveBeenCalledWith('pointerup', expect.any(Function));
+		expect(removeSpy).toHaveBeenCalledWith('pointercancel', expect.any(Function));
+		expect(key.classList.contains('is-dragging-handle')).toBe(false);
+	});
+
+	test('dragover accepts a clip-id payload: preventDefault + dropEffect copy', () => {
+		const key = element.querySelectorAll('piano-key')[60];
+		const dataTransfer = { types: ['application/x-akvj-clip-id', 'text/plain'], dropEffect: 'none' };
+		const event = new Event('dragover', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+		key.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(dataTransfer.dropEffect).toBe('copy');
+	});
+
+	test('dragover accepts a text/plain-only payload as a clip-id fallback', () => {
+		const key = element.querySelectorAll('piano-key')[60];
+		const dataTransfer = { types: ['text/plain'], dropEffect: 'none' };
+		const event = new Event('dragover', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+		key.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(true);
+		expect(dataTransfer.dropEffect).toBe('copy');
+	});
+
+	test('dragover ignores a payload without a clip-id type', () => {
+		const key = element.querySelectorAll('piano-key')[60];
+		const dataTransfer = { types: ['text/html'], dropEffect: 'none' };
+		const event = new Event('dragover', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+		key.dispatchEvent(event);
+
+		expect(event.defaultPrevented).toBe(false);
+		expect(dataTransfer.dropEffect).toBe('none');
+	});
+
+	test('clipHue derives a deterministic hue in [0, 360) from a clip id', () => {
+		expect(clipHue('a')).toBe(97);
+		expect(clipHue('ab')).toBe(225);
+		expect(clipHue('soft')).toBe(354);
+		expect(clipHue('hard')).toBe(115);
+		expect(clipHue('')).toBe(0);
+		expect(clipHue('some-clip-id')).toBe(clipHue('some-clip-id'));
+	});
+
+	test('edit mode handle drag is a no-op when neighboring breakpoints leave no valid gap', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		// Dense key: lower and next bands are 1 velocity unit apart, so the handle between
+		// them (index 1) has minVelocity=31 > maxVelocity=30 — no legal value to drag to.
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 30, clipId: 'a' },
+			{ channel: 1, note: 60, velocity: 31, clipId: 'b' },
+			{ channel: 1, note: 60, velocity: 31, clipId: 'c' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		vi.spyOn(key, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			bottom: 128,
+			right: 20,
+			width: 20,
+			height: 128,
+			toJSON() {
+				return {};
+			}
+		});
+
+		let changeFired = false;
+		element.addEventListener('mappingchange', () => {
+			changeFired = true;
+		});
+
+		const handles = key.querySelectorAll('.velocity-handle');
+		const brokenHandle = [...handles].find(handle => handle.dataset.handleIndex === '1');
+		expect(brokenHandle).toBeTruthy();
+
+		brokenHandle.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 64 }));
+		brokenHandle.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerId: 1, pointerType: 'mouse', clientY: 48 }));
+		brokenHandle.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1, pointerType: 'mouse', button: 0, clientY: 48 }));
+
+		expect(changeFired).toBe(false);
+		expect(key.classList.contains('is-dragging-handle')).toBe(false);
+		expect(brokenHandle.classList.contains('is-dragging')).toBe(false);
+		expect(brokenHandle.querySelector('.velocity-handle-readout')).toBeNull();
+	});
+
+	test('edit mode right-click region dispatches mappingremove with redistributed mappings', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		let detail = null;
+		element.addEventListener('mappingremove', event => {
+			detail = event.detail;
+		});
+
+		const region = element.querySelectorAll('piano-key')[60].querySelector('[data-clip-id="soft"]');
+		region.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+		expect(detail.channel).toBe(1);
+		expect(detail.note).toBe(60);
+		expect(detail.clipId).toBe('soft');
+		expect(detail.velocity).toBe(0);
+		expect(detail.mappings).toEqual([{ clipId: 'hard', velocity: 0 }]);
+	});
+
+	test('insertionIndexForDropVelocity inserts by region midpoint', () => {
+		const bands = [
+			{ start: 0, end: 64 },
+			{ start: 64, end: 128 }
+		];
+		expect(insertionIndexForDropVelocity(10, bands)).toBe(0);
+		expect(insertionIndexForDropVelocity(70, bands)).toBe(1);
+		expect(insertionIndexForDropVelocity(120, bands)).toBe(2);
+	});
+
+	test('edit mode drop inserts clip and dispatches mappingadd with redistributed mappings', () => {
+		element.mode = 'edit';
+		element.channel = 2;
+		element.mappings = [{ channel: 2, note: 60, velocity: 0, clipId: 'soft' }];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		vi.spyOn(key, 'getBoundingClientRect').mockReturnValue({
+			x: 0,
+			y: 0,
+			top: 0,
+			left: 0,
+			bottom: 128,
+			right: 20,
+			width: 20,
+			height: 128,
+			toJSON() {
+				return {};
+			}
+		});
+
+		let detail = null;
+		element.addEventListener('mappingadd', event => {
+			detail = event.detail;
+		});
+
+		const dataTransfer = {
+			types: ['application/x-akvj-clip-id', 'text/plain'],
+			getData: type => (type === 'application/x-akvj-clip-id' || type === 'text/plain' ? 'hard' : ''),
+			dropEffect: 'none'
+		};
+		const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
+		Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+		Object.defineProperty(dropEvent, 'clientY', { value: 16 }); // near top → high-velocity end
+		key.dispatchEvent(dropEvent);
+
+		expect(detail.channel).toBe(2);
+		expect(detail.note).toBe(60);
+		expect(detail.clipId).toBe('hard');
+		expect(detail.mappings).toEqual([
+			{ clipId: 'soft', velocity: 0 },
+			{ clipId: 'hard', velocity: 64 }
+		]);
+		expect(detail.velocity).toBe(64);
+	});
+
+	test('keydown Enter/Space dispatches keyclickrequest and disconnecting removes the listener', () => {
+		const key = element.querySelectorAll('piano-key')[60];
+		const handler = vi.fn();
+		key.addEventListener('keyclickrequest', handler);
+
+		key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		expect(handler).toHaveBeenCalledTimes(1);
+
+		key.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }));
+		expect(handler).toHaveBeenCalledTimes(2);
+
+		key.remove();
+
+		key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		expect(handler).toHaveBeenCalledTimes(2);
 	});
 });

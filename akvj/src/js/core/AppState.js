@@ -1,6 +1,6 @@
 import defaultSettings from './settings.js';
 import { MS_PER_MINUTE } from '../utils/timing.js';
-import { MAX_MIDI_VELOCITY } from '../visuals/effects/effectConstants.js';
+import { MAX_MIDI_DATA_BYTE } from '../visuals/effects/effectConstants.js';
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
 const EVENT_CLIPS_LOADED_CHANGED = 'clipsLoadedChanged';
@@ -15,6 +15,7 @@ const EVENT_MIDI_CONTINUE = 'midiContinue';
 const EVENT_MIDI_STOP = 'midiStop';
 const EVENT_VIDEO_JOCKEY_READY = 'videoJockeyReady';
 const EVENT_PROJECT_SWITCH = 'projectSwitch';
+const EVENT_ACTIVE_PROJECT_CHANGED = 'activeProjectChanged';
 const EVENT_PROJECT_LOAD_START = 'projectLoadStart';
 const EVENT_PROJECT_LOAD_COMPLETE = 'projectLoadComplete';
 const EVENT_PROJECT_LOAD_ERROR = 'projectLoadError';
@@ -49,7 +50,7 @@ class AppState extends EventTarget {
 	#bpmSource = BPM_SOURCE_DEFAULT; // 'default', 'clock', 'cc', or 'manual'
 
 	// MIDI Clock timing state
-	#lastClockTime = null;
+	#lastClockTimestamp = null;
 	#clockTimeoutId = null;
 	#recentPulseIntervals = []; // Last few pulse intervals for BPM calculation
 	#resetGeneration = 0; // Increments on each reset() to invalidate pending callbacks
@@ -71,7 +72,7 @@ class AppState extends EventTarget {
 	#convertCCToBPM(ccValue) {
 		const { min, max } = this.#settings.bpm;
 		const range = max - min;
-		return min + (ccValue / MAX_MIDI_VELOCITY) * range;
+		return min + (ccValue / MAX_MIDI_DATA_BYTE) * range;
 	}
 
 	#dispatchStateEvent(eventName, detail) {
@@ -114,13 +115,15 @@ class AppState extends EventTarget {
 	}
 
 	/**
-	 * Set the active project ID and dispatch switch event.
+	 * Set the active project ID and dispatch an active-project-changed event.
+	 * This is distinct from EVENT_PROJECT_SWITCH (a request) so that
+	 * success-path updates do not re-fire the request event.
 	 * @param {string} projectId
 	 */
 	set activeProjectId(projectId) {
 		if (this.#activeProjectId !== projectId) {
 			this.#activeProjectId = projectId;
-			this.#dispatchStateEvent(EVENT_PROJECT_SWITCH, { projectId });
+			this.#dispatchStateEvent(EVENT_ACTIVE_PROJECT_CHANGED, { projectId });
 		}
 	}
 
@@ -279,12 +282,12 @@ class AppState extends EventTarget {
 	}
 
 	#processClockPulse(timestamp) {
-		if (this.#lastClockTime === null) {
-			this.#lastClockTime = timestamp;
+		if (this.#lastClockTimestamp === null) {
+			this.#lastClockTimestamp = timestamp;
 			return;
 		}
 
-		const interval = timestamp - this.#lastClockTime;
+		const interval = timestamp - this.#lastClockTimestamp;
 		if (interval < 1) {
 			return;
 		}
@@ -297,7 +300,7 @@ class AppState extends EventTarget {
 		if (this.#recentPulseIntervals.length >= MIN_CLOCK_INTERVALS_FOR_BPM) {
 			this.#calculateBPMFromClock();
 		}
-		this.#lastClockTime = timestamp;
+		this.#lastClockTimestamp = timestamp;
 	}
 
 	#calculateBPMFromClock() {
@@ -316,7 +319,7 @@ class AppState extends EventTarget {
 	 * Resets clock state for fresh sync
 	 */
 	dispatchMIDIStart() {
-		this.#lastClockTime = null;
+		this.#lastClockTimestamp = null;
 		this.#recentPulseIntervals = [];
 
 		this.#dispatchStateEvent(EVENT_MIDI_START, {});
@@ -335,7 +338,7 @@ class AppState extends EventTarget {
 	 * Pauses BPM sync (keeps last BPM value)
 	 */
 	dispatchMIDIStop() {
-		this.#lastClockTime = null;
+		this.#lastClockTimestamp = null;
 		// Keep intervals for faster re-lock on continue
 
 		this.#dispatchStateEvent(EVENT_MIDI_STOP, {});
@@ -395,7 +398,7 @@ class AppState extends EventTarget {
 
 		this.#currentBPM = this.#settings.bpm.default;
 		this.#bpmSource = BPM_SOURCE_DEFAULT;
-		this.#lastClockTime = null;
+		this.#lastClockTimestamp = null;
 		this.#recentPulseIntervals = [];
 
 		if (this.#clockTimeoutId !== null) {
@@ -406,7 +409,7 @@ class AppState extends EventTarget {
 	}
 
 	/**
-	 * Raise a user-facing modal message (consumed by `<user-messages>`).
+	 * Raise a user-facing modal message (consumed by `<akvj-user-messages>`).
 	 * @param {{ type?: 'error'|'warning'|'info', text: string }} options
 	 */
 	showUserMessage({ type = 'info', text } = {}) {
@@ -443,7 +446,7 @@ class AppState extends EventTarget {
 	}
 }
 
-const appState = new AppState();
+const appState = globalThis.__AKVJ_APP_STATE__ ?? (globalThis.__AKVJ_APP_STATE__ = new AppState());
 
 /**
  * Create a fresh AppState instance for testing isolation.
@@ -454,5 +457,5 @@ export function createAppState(settings) {
 	return new AppState(settings);
 }
 
-export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, BPM_SOURCE_CLOCK };
+export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH, EVENT_ACTIVE_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES, BPM_SOURCE_CLOCK };
 export default appState;

@@ -20,7 +20,7 @@ To use a workflow, you simply drop a `.md` file into its `inbox/` directory and 
 To trigger any of these systems, copy the provided trigger text and paste it directly into your AI chat window.
 
 ### 👥 Developer Team
-Autonomous, multi-agent development workflow (Team Lead, AKVJ Developer, Mainframe Developer, QA Reviewer, Overseer). See `developer-team/README.md` for how to start the team and assign work.
+Autonomous, multi-agent development workflow — **six core** agents (Team Lead, AKVJ Developer, Mainframe Developer, QA Reviewer, Overseer, Nitpicker) plus **two optional** specialists (Test Marshal, Quartermaster). See [`developer-team/README.md`](developer-team/README.md) for how to start the team and assign work.
 
 ---
 

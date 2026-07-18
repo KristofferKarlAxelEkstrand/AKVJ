@@ -15,7 +15,7 @@ import settings from '../core/settings.js';
 import LayerGroup from './LayerGroup.js';
 import MaskManager from './MaskManager.js';
 import EffectsManager from './EffectsManager.js';
-import { MAX_MIDI_VELOCITY } from './effects/effectConstants.js';
+import { MAX_MIDI_DATA_BYTE } from './effects/effectConstants.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip
@@ -40,7 +40,7 @@ class LayerManager {
 	#reservedChannels;
 
 	/** @type {Array<{name: string, noteOn: Function, noteOff: Function}>} */
-	#handlers;
+	#channelRouteHandlers;
 
 	constructor() {
 		const { channelMapping } = settings;
@@ -56,7 +56,7 @@ class LayerManager {
 
 		// Handlers are checked in order for every MIDI note on/off event.
 		// This makes the routing logic explicit, easy to reorder, and simple to extend.
-		this.#handlers = this.#buildHandlers();
+		this.#channelRouteHandlers = this.#buildChannelRouteHandlers();
 	}
 
 	/**
@@ -71,7 +71,7 @@ class LayerManager {
 			return;
 		}
 
-		const normalizedValue = value / MAX_MIDI_VELOCITY;
+		const normalizedValue = value / MAX_MIDI_DATA_BYTE;
 
 		if (controller === scrub.layerGroupA_CC) {
 			this.#layerGroupA.setScrubPosition(normalizedValue);
@@ -84,7 +84,7 @@ class LayerManager {
 		}
 	}
 
-	#buildHandlers() {
+	#buildChannelRouteHandlers() {
 		return [
 			{
 				name: 'layerGroupA',
@@ -139,7 +139,7 @@ class LayerManager {
 			return;
 		}
 
-		for (const handler of this.#handlers) {
+		for (const handler of this.#channelRouteHandlers) {
 			if (handler.noteOn(channel, note, velocity)) {
 				return;
 			}
@@ -156,7 +156,7 @@ class LayerManager {
 			return;
 		}
 
-		for (const handler of this.#handlers) {
+		for (const handler of this.#channelRouteHandlers) {
 			if (handler.noteOff(channel, note)) {
 				return;
 			}

@@ -4,7 +4,8 @@ import { partitionImageFiles, formatSkippedFilesMessage, shouldAttemptGifExpand 
 import { durationsMsToFrameRates, fpsToMs, DEFAULT_FALLBACK_FPS } from './frameTiming.js';
 import { editClipPath, resolveClipEditRoute } from './clipEditorRoute.js';
 import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor, parseFrameDurationBeats } from './editorMeta.js';
-import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS } from './clipSchema.js';
+import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement } from './clipSchema.js';
+import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
 import { expandSyncToFrameDurationBeats, frameDurationBeatsToPreviewMs } from './syncTiming.js';
 import mainframeState, { messages } from './mainframeState.js';
 
@@ -14,13 +15,15 @@ const DEFAULT_SYNC_LENGTH = '1 bar';
 
 /**
  * Owns shared clip editor staging state, hydrate, and create/update submit branching.
- * DOM ids match the upload panel in `index.html`.
+ * DOM ids match the clip editor panel in `index.html`.
  */
 export class ClipEditorController {
 	/** @type {File[]} */
 	#stagedFiles = [];
 	/** @type {number[]} */
 	#stagedDurationsMs = [];
+	/** @type {ReturnType<typeof resolveFrameBakeConfig>[]} */
+	#stagedBakeConfigs = [];
 	/** @type {string[]} */
 	#stagedFrameUrls = [];
 	/** @type {string|null} */
@@ -34,10 +37,19 @@ export class ClipEditorController {
 	#lastUniformDurationMs = 1000;
 	/** Last FPS preset used for Apply FPS. */
 	#lastFpsPreset = DEFAULT_FALLBACK_FPS;
+	/** Last uniform bake scale (for re-apply after mixed). */
+	#lastUniformBakeScale = 'fit';
+	#lastUniformBakeWidth = 240;
+	#lastUniformBakeHeight = 135;
 	#globalDurationInput;
 	#globalDurationApply;
 	#fpsPresetSelect;
 	#fpsPresetApply;
+	#globalBakeScaleSelect;
+	#globalBakeCustomSize;
+	#globalBakeCustomWidth;
+	#globalBakeCustomHeight;
+	#globalBakeScaleApply;
 
 	/**
 	 * @param {object} options
@@ -50,46 +62,49 @@ export class ClipEditorController {
 		this.#onLibraryChanged = onLibraryChanged;
 		this.#router = router;
 
-		this.#uploadForm = document.getElementById('upload-form');
-		this.#dropZone = document.getElementById('drop-zone');
-		this.#fileInput = document.getElementById('upload-files');
-		this.#fileListContainer = document.getElementById('file-list');
-		this.#uploadClipIdInput = document.getElementById('upload-clip-id');
-		this.#uploadClipIdHint = document.getElementById('upload-clip-id-hint');
+		this.#clipEditorForm = document.getElementById('clip-editor-form');
+		this.#dropZone = document.getElementById('clip-editor-drop-zone');
+		this.#fileInput = document.getElementById('clip-editor-files');
+		this.#clipIdInput = document.getElementById('clip-editor-clip-id');
+		this.#clipIdHint = document.getElementById('clip-editor-clip-id-hint');
 		this.#clipEditorHeading = document.getElementById('clip-editor-heading');
-		this.#uploadSubmitButton = document.getElementById('upload-submit');
+		this.#submitButton = document.getElementById('clip-editor-submit');
 		this.#clipFramesElement = document.getElementById('clip-frames');
-		this.#stagingPreview = document.getElementById('staging-preview');
-		this.#statusElement = document.getElementById('upload-status');
+		this.#stagingPreview = document.getElementById('clip-editor-staging-preview');
+		this.#statusElement = document.getElementById('clip-editor-status');
 		this.#globalDurationInput = document.getElementById('clip-frames-global-duration');
 		this.#globalDurationApply = document.getElementById('clip-frames-set-all-duration');
 		this.#fpsPresetSelect = document.getElementById('clip-frames-fps-preset');
 		this.#fpsPresetApply = document.getElementById('clip-frames-apply-fps-preset');
+		this.#globalBakeScaleSelect = document.getElementById('clip-frames-global-bake-scale');
+		this.#globalBakeCustomSize = document.getElementById('clip-frames-global-custom-size');
+		this.#globalBakeCustomWidth = document.getElementById('clip-frames-global-custom-width');
+		this.#globalBakeCustomHeight = document.getElementById('clip-frames-global-custom-height');
+		this.#globalBakeScaleApply = document.getElementById('clip-frames-set-all-bake-scale');
 	}
 
 	#setStatus;
 	#onLibraryChanged;
 	#router;
-	#uploadForm;
+	#clipEditorForm;
 	#dropZone;
 	#fileInput;
-	#fileListContainer;
-	#uploadClipIdInput;
-	#uploadClipIdHint;
+	#clipIdInput;
+	#clipIdHint;
 	#clipEditorHeading;
-	#uploadSubmitButton;
+	#submitButton;
 	#clipFramesElement;
 	#stagingPreview;
 	#statusElement;
 
 	/** Wire DOM listeners once after construction. */
-	bind() {
+	bindEventListeners() {
 		this.reset();
 		this.updateBitDepthVisibility();
 		this.#populateSyncLengthOptions();
 		this.updateSyncFieldVisibility();
 
-		document.getElementById('upload-role').addEventListener('change', () => this.updateBitDepthVisibility());
+		document.getElementById('clip-editor-role').addEventListener('change', () => this.updateBitDepthVisibility());
 		document.getElementById('clip-editor-new').addEventListener('click', () => {
 			this.#router.navigate('/clip/edit');
 		});
@@ -122,11 +137,14 @@ export class ClipEditorController {
 			this.stageSelectedFiles(this.#fileInput.files);
 		});
 
-		for (const id of ['upload-target-width', 'upload-target-height', 'upload-playback', 'upload-scale-mode']) {
+		for (const id of ['clip-editor-target-width', 'clip-editor-target-height', 'clip-editor-playback', 'clip-editor-scale-mode', 'clip-editor-placement-x', 'clip-editor-placement-y']) {
 			document.getElementById(id).addEventListener('change', () => this.updateStagingPreview());
 		}
+		for (const id of ['clip-editor-placement-x', 'clip-editor-placement-y']) {
+			document.getElementById(id).addEventListener('input', () => this.updateStagingPreview());
+		}
 
-		for (const id of ['upload-sync', 'upload-sync-length', 'upload-sync-beats', 'upload-beats-per-bar']) {
+		for (const id of ['clip-editor-sync', 'clip-editor-sync-length', 'clip-editor-sync-beats', 'clip-editor-beats-per-bar']) {
 			const element = document.getElementById(id);
 			if (!element) {
 				continue;
@@ -135,12 +153,12 @@ export class ClipEditorController {
 				this.updateSyncFieldVisibility();
 				this.updateStagingPreview();
 			});
-			if (id === 'upload-sync-beats' || id === 'upload-beats-per-bar') {
+			if (id === 'clip-editor-sync-beats' || id === 'clip-editor-beats-per-bar') {
 				element.addEventListener('input', () => this.updateStagingPreview());
 			}
 		}
 
-		document.getElementById('upload-name').addEventListener('namechange', () => {
+		document.getElementById('clip-editor-name').addEventListener('namechange', () => {
 			this.refreshGeneratedClipId();
 		});
 
@@ -149,26 +167,35 @@ export class ClipEditorController {
 			this.#stagedFiles = order.map(originalIndex => this.#stagedFiles[originalIndex]);
 			this.#stagedFrameUrls = order.map(originalIndex => this.#stagedFrameUrls[originalIndex]);
 			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? 1000);
+			this.#stagedBakeConfigs = order.map(originalIndex => this.#stagedBakeConfigs[originalIndex] ?? resolveFrameBakeConfig({}));
+			this.#framesDirty = true;
+			this.syncGlobalDurationControl();
+			this.syncGlobalBakeScaleControl();
+			this.updateStagingPreview();
+		});
+		this.#clipFramesElement.addEventListener('durationchange', () => {
+			this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
 			this.#framesDirty = true;
 			this.syncGlobalDurationControl();
 			this.updateStagingPreview();
 		});
-		this.#clipFramesElement.addEventListener('durationchange', () => {
-			this.#stagedDurationsMs = this.#clipFramesElement.getDurations();
+		this.#clipFramesElement.addEventListener('bakeconfigchange', () => {
+			this.#stagedBakeConfigs = this.#clipFramesElement.getBakeConfigs();
 			this.#framesDirty = true;
-			this.syncGlobalDurationControl();
+			this.syncGlobalBakeScaleControl();
 			this.updateStagingPreview();
 		});
 		this.#clipFramesElement.addEventListener('frameremove', event => {
 			const index = event.detail.frameIndex;
 			this.#stagedFiles.splice(index, 1);
 			this.#stagedDurationsMs.splice(index, 1);
+			this.#stagedBakeConfigs.splice(index, 1);
 			if (this.#stagedFrameUrls[index]) {
 				URL.revokeObjectURL(this.#stagedFrameUrls[index]);
 				this.#stagedFrameUrls.splice(index, 1);
 			}
 			this.#framesDirty = true;
-			this.renderFileList();
+			this.syncStagedFramesUi();
 		});
 		this.#clipFramesElement.addEventListener('framescleared', () => {
 			this.clearStagedFrames();
@@ -180,8 +207,14 @@ export class ClipEditorController {
 		this.#fpsPresetApply?.addEventListener('click', () => {
 			this.applyFpsPresetToAllFrames();
 		});
+		this.#globalBakeScaleSelect?.addEventListener('change', () => {
+			this.#updateGlobalBakeCustomVisibility();
+		});
+		this.#globalBakeScaleApply?.addEventListener('click', () => {
+			this.applyGlobalBakeScaleToAllFrames();
+		});
 
-		this.#uploadForm.addEventListener('submit', event => {
+		this.#clipEditorForm.addEventListener('submit', event => {
 			event.preventDefault();
 			this.submit().catch(error => {
 				this.#reportOutcome('error', error.message);
@@ -190,7 +223,7 @@ export class ClipEditorController {
 	}
 
 	/**
-	 * Clear progressive panel status (`#upload-status`). Outcomes use `messages.*` instead.
+	 * Clear progressive panel status (`#clip-editor-status`). Outcomes use `messages.*` instead.
 	 */
 	#clearProgressStatus() {
 		this.#setStatus(this.#statusElement, '');
@@ -198,14 +231,14 @@ export class ClipEditorController {
 
 	/**
 	 * End in-progress status and show a modal outcome via `<user-messages>`.
-	 * @param {'error'|'warn'|'info'} kind
+	 * @param {'error'|'warn'|'info'} severity
 	 * @param {string} text
 	 */
-	#reportOutcome(kind, text) {
+	#reportOutcome(severity, text) {
 		this.#clearProgressStatus();
-		if (kind === 'error') {
+		if (severity === 'error') {
 			messages.error(text);
-		} else if (kind === 'warn') {
+		} else if (severity === 'warn') {
 			messages.warn(text);
 		} else {
 			messages.info(text);
@@ -226,12 +259,12 @@ export class ClipEditorController {
 		this.#loadedFrameWidth = 240;
 		this.#loadedFrameHeight = 135;
 		this.#loadedScaleMode = 'fit';
-		this.#uploadForm.reset();
+		this.#clipEditorForm.reset();
 		this.#setFormDefaults();
 		this.updateBitDepthVisibility();
 		this.clearStagedFrames();
 		this.#framesDirty = false;
-		this.resetUploadClipId();
+		this.resetClipId();
 		this.updateEditorChrome();
 		this.#clearProgressStatus();
 	}
@@ -253,16 +286,20 @@ export class ClipEditorController {
 
 		this.#setStatus(this.#statusElement, 'Loading clip…');
 		try {
-			const data = await api(`/clips/${encodeURIComponent(resolved.clipId)}/frames`);
+			const framesResponse = await api(`/clips/${encodeURIComponent(resolved.clipId)}/frames`);
 			if (generation !== this.#hydrateGeneration) {
 				return;
 			}
-			if (!Array.isArray(data.frames) || data.frames.length === 0) {
+			if (!Array.isArray(framesResponse.frames) || framesResponse.frames.length === 0) {
 				throw new Error(`Clip "${resolved.clipId}" has no editable frames`);
 			}
-			this.#applyHydratedClip(resolved.clipId, data);
+			this.#applyHydratedClip(resolved.clipId, framesResponse);
 
-			const files = await Promise.all(data.frames.map((frameDataUrl, index) => dataUrlToFile(frameDataUrl, `frame-${String(index).padStart(4, '0')}.png`)));
+			const files = await Promise.all(
+				framesResponse.frames.map((frameDataUrl, index) =>
+					dataUrlToFile(frameDataUrl, `frame-${String(index).padStart(4, '0')}.png`)
+				)
+			);
 			if (generation !== this.#hydrateGeneration) {
 				return;
 			}
@@ -270,17 +307,19 @@ export class ClipEditorController {
 				URL.revokeObjectURL(url);
 			}
 			this.#stagedFiles = files;
-			this.#stagedDurationsMs = (data.durationsMs || []).map(ms => Number(ms) || 1000);
+			this.#stagedDurationsMs = (framesResponse.durationsMs || []).map(ms => Number(ms) || 1000);
 			while (this.#stagedDurationsMs.length < this.#stagedFiles.length) {
 				this.#stagedDurationsMs.push(1000);
 			}
+			// Bake-time composition is session-only — reopen defaults to fit (already-composited pixels).
+			this.#stagedBakeConfigs = this.#stagedFiles.map(() => resolveFrameBakeConfig({ scaleMode: 'fit' }));
 			this.#framesDirty = false;
 			this.updateEditorChrome();
-			this.renderFileList();
+			this.syncStagedFramesUi();
 			this.#framesDirty = false;
 			this.#reportOutcome(
 				'info',
-				`Loaded ${this.#stagedFiles.length} frame${this.#stagedFiles.length === 1 ? '' : 's'} from ${data.source === 'raw' ? 'raw' : 'sprite'}`
+				`Loaded ${this.#stagedFiles.length} frame${this.#stagedFiles.length === 1 ? '' : 's'} from ${framesResponse.source === 'raw' ? 'raw' : 'sprite'}`
 			);
 		} catch (error) {
 			if (generation !== this.#hydrateGeneration) {
@@ -305,18 +344,19 @@ export class ClipEditorController {
 		}
 		this.#setStatus(this.#statusElement, this.#editingClipId ? 'Saving…' : 'Uploading…');
 		try {
-			const name = document.getElementById('upload-name').value || undefined;
-			const clipId = this.#uploadClipIdInput.value.trim();
+			const name = document.getElementById('clip-editor-name').value || undefined;
+			const clipId = this.#clipIdInput.value.trim();
 			if (!clipId) {
 				this.#reportOutcome('error', 'Clip ID is required');
 				return;
 			}
-			const role = document.getElementById('upload-role').value || undefined;
-			const targetWidth = Number(document.getElementById('upload-target-width').value) || undefined;
-			const targetHeight = Number(document.getElementById('upload-target-height').value) || undefined;
-			const playback = document.getElementById('upload-playback').value;
-			const scaleMode = document.getElementById('upload-scale-mode').value;
-			const frameDurations = this.#clipFramesElement.getDurations();
+			const role = document.getElementById('clip-editor-role').value || undefined;
+			const targetWidth = Number(document.getElementById('clip-editor-target-width').value) || undefined;
+			const targetHeight = Number(document.getElementById('clip-editor-target-height').value) || undefined;
+			const playback = document.getElementById('clip-editor-playback').value;
+			const scaleMode = document.getElementById('clip-editor-scale-mode').value;
+			const placement = this.#readPlacementFromDom();
+			const frameDurations = this.#clipFramesElement.getDurationsMs();
 			const extended = this.#readExtendedEditorFields();
 			if (extended.error) {
 				this.#reportOutcome('error', extended.error);
@@ -339,6 +379,8 @@ export class ClipEditorController {
 							targetHeight,
 							playback,
 							scaleMode,
+							placement,
+							frameBakeConfigs: this.#clipFramesElement.getBakeConfigs(),
 							...extended.optional
 						})
 					});
@@ -353,6 +395,7 @@ export class ClipEditorController {
 								scaleMode,
 								frameWidth: targetWidth,
 								frameHeight: targetHeight,
+								placement,
 								frameRatesForFrames: durationsMsToFrameRates(frameDurations),
 								retrigger: extended.values.retrigger,
 								triggerType: extended.values.triggerType,
@@ -386,6 +429,8 @@ export class ClipEditorController {
 						targetHeight,
 						playback,
 						scaleMode,
+						placement,
+						frameBakeConfigs: this.#clipFramesElement.getBakeConfigs(),
 						...extended.optional
 					})
 				});
@@ -433,8 +478,12 @@ export class ClipEditorController {
 					const expandedDurations = result.durationsMs.map(ms => Number(ms) || fpsToMs(12));
 					this.#stagedFiles = [...this.#stagedFiles, ...expandedFiles];
 					this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...expandedDurations];
+					this.#stagedBakeConfigs = [
+						...this.#stagedBakeConfigs,
+						...expandedFiles.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))
+					];
 					this.#framesDirty = true;
-					this.renderFileList();
+					this.syncStagedFramesUi();
 					this.#reportOutcome('info', `Expanded animated GIF into ${expandedFiles.length} frames`);
 					return;
 				}
@@ -446,8 +495,12 @@ export class ClipEditorController {
 
 		this.#stagedFiles = [...this.#stagedFiles, ...accepted];
 		this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...accepted.map(() => 1000)];
+		this.#stagedBakeConfigs = [
+			...this.#stagedBakeConfigs,
+			...accepted.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))
+		];
 		this.#framesDirty = true;
-		this.renderFileList();
+		this.syncStagedFramesUi();
 		if (rejected.length === 0) {
 			this.#clearProgressStatus();
 		}
@@ -460,8 +513,9 @@ export class ClipEditorController {
 		this.#stagedFrameUrls = [];
 		this.#stagedFiles = [];
 		this.#stagedDurationsMs = [];
+		this.#stagedBakeConfigs = [];
 		this.#framesDirty = true;
-		this.renderFileList();
+		this.syncStagedFramesUi();
 	}
 
 	/**
@@ -472,66 +526,60 @@ export class ClipEditorController {
 		if (this.#editingClipId) {
 			return;
 		}
-		const name = document.getElementById('upload-name')?.value ?? '';
-		this.#uploadClipIdInput.value = generateClipId({
+		const name = document.getElementById('clip-editor-name')?.value ?? '';
+		this.#clipIdInput.value = generateClipId({
 			name,
 			existingIds: mainframeState.clips
 		});
 	}
 
-	resetUploadClipId() {
+	resetClipId() {
 		this.refreshGeneratedClipId();
-		this.#uploadClipIdInput.readOnly = false;
+		this.#clipIdInput.readOnly = false;
 	}
 
 	updateEditorChrome() {
 		if (this.#editingClipId) {
 			this.#clipEditorHeading.textContent = `Edit clip: ${this.#editingClipId}`;
 			this.#clipEditorHeading.hidden = false;
-			this.#uploadClipIdHint.textContent = '(read-only)';
-			this.#uploadClipIdInput.readOnly = true;
-			this.#uploadSubmitButton.textContent = 'Save clip';
+			this.#clipIdHint.textContent = '(read-only)';
+			this.#clipIdInput.readOnly = true;
+			this.#submitButton.textContent = 'Save clip';
 		} else {
 			this.#clipEditorHeading.textContent = '';
 			this.#clipEditorHeading.hidden = true;
-			this.#uploadClipIdHint.textContent = '(editable until first save)';
-			this.#uploadClipIdInput.readOnly = false;
-			this.#uploadSubmitButton.textContent = 'Create sprite & save';
+			this.#clipIdHint.textContent = '(editable until first save)';
+			this.#clipIdInput.readOnly = false;
+			this.#submitButton.textContent = 'Create sprite & save';
 		}
 	}
 
 	updateBitDepthVisibility() {
-		const bitDepthField = document.getElementById('upload-bit-depth-field');
-		const roleSelect = document.getElementById('upload-role');
+		const bitDepthField = document.getElementById('clip-editor-bit-depth-field');
+		const roleSelect = document.getElementById('clip-editor-role');
 		if (!bitDepthField || !roleSelect) {
 			return;
 		}
 		bitDepthField.hidden = roleSelect.value !== 'bitmask';
 	}
 
-	renderFileList() {
-		this.#fileListContainer.replaceChildren();
+	/**
+	 * Refresh clip-frames + staging preview after staged-file changes.
+	 */
+	syncStagedFramesUi() {
 		if (this.#stagedFiles.length === 0) {
 			this.#stagedDurationsMs = [];
+			this.#stagedBakeConfigs = [];
+			for (const url of this.#stagedFrameUrls) {
+				URL.revokeObjectURL(url);
+			}
+			this.#stagedFrameUrls = [];
 			this.#stagingPreview.loadFrames([]);
 			this.#clipFramesElement.loadFrames([]);
+			this.syncGlobalDurationControl();
+			this.syncGlobalBakeScaleControl();
 			return;
 		}
-		for (const file of this.#stagedFiles) {
-			const item = document.createElement('div');
-			item.className = 'file-list-item';
-			const name = document.createElement('span');
-			name.textContent = file.name;
-			const size = document.createElement('span');
-			size.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-			item.append(name, size);
-			this.#fileListContainer.append(item);
-		}
-		const count = document.createElement('p');
-		count.className = 'file-list-item';
-		count.style.fontWeight = 'bold';
-		count.textContent = `${this.#stagedFiles.length} frame${this.#stagedFiles.length === 1 ? '' : 's'} staged`;
-		this.#fileListContainer.append(count);
 		this.updateClipFrames();
 		this.updateStagingPreview();
 	}
@@ -541,12 +589,98 @@ export class ClipEditorController {
 			URL.revokeObjectURL(url);
 		}
 		this.#stagedFrameUrls = this.#stagedFiles.map(file => URL.createObjectURL(file));
+		while (this.#stagedBakeConfigs.length < this.#stagedFiles.length) {
+			this.#stagedBakeConfigs.push(resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }));
+		}
+		this.#stagedBakeConfigs = this.#stagedBakeConfigs.slice(0, this.#stagedFiles.length);
 		const frames = this.#stagedFrameUrls.map((src, index) => ({
 			src,
-			duration: this.#stagedDurationsMs[index] ?? 1000
+			durationMs: this.#stagedDurationsMs[index] ?? 1000,
+			bakeConfig: this.#stagedBakeConfigs[index]
 		}));
 		this.#clipFramesElement.loadFrames(frames);
 		this.syncGlobalDurationControl();
+		this.syncGlobalBakeScaleControl();
+	}
+
+	/**
+	 * Apply the global bake scale to every staged frame (reset path back to uniform).
+	 */
+	applyGlobalBakeScaleToAllFrames() {
+		if (!this.#clipFramesElement || this.#clipFramesElement.frameCount === 0) {
+			return;
+		}
+		const scaleMode = FRAME_BAKE_SCALE_MODES.includes(this.#globalBakeScaleSelect?.value)
+			? this.#globalBakeScaleSelect.value
+			: this.#lastUniformBakeScale;
+		const width = Number(this.#globalBakeCustomWidth?.value);
+		const height = Number(this.#globalBakeCustomHeight?.value);
+		const bakeConfig = resolveFrameBakeConfig({
+			scaleMode,
+			width: Number.isFinite(width) && width > 0 ? width : this.#lastUniformBakeWidth,
+			height: Number.isFinite(height) && height > 0 ? height : this.#lastUniformBakeHeight,
+			placement: { x: 0, y: 0 }
+		});
+		this.#clipFramesElement.setAllBakeConfigs(bakeConfig);
+		this.#stagedBakeConfigs = this.#clipFramesElement.getBakeConfigs();
+		this.#framesDirty = true;
+		this.syncGlobalBakeScaleControl();
+		this.updateStagingPreview();
+	}
+
+	/**
+	 * Enable bake-scale controls when all frames match; disable + blank when mixed.
+	 */
+	syncGlobalBakeScaleControl() {
+		const configs = this.#clipFramesElement?.getBakeConfigs?.() ?? [];
+		const hasFrames = configs.length > 0;
+		const uniform = this.#clipFramesElement?.areBakeConfigsUniform?.() ?? true;
+
+		if (this.#globalBakeScaleSelect) {
+			if (!hasFrames) {
+				this.#globalBakeScaleSelect.disabled = true;
+				this.#globalBakeScaleSelect.value = this.#lastUniformBakeScale;
+			} else if (uniform) {
+				this.#lastUniformBakeScale = configs[0].scaleMode;
+				this.#lastUniformBakeWidth = configs[0].width;
+				this.#lastUniformBakeHeight = configs[0].height;
+				this.#globalBakeScaleSelect.disabled = false;
+				this.#globalBakeScaleSelect.value = configs[0].scaleMode;
+				if (this.#globalBakeCustomWidth) {
+					this.#globalBakeCustomWidth.value = String(configs[0].width);
+				}
+				if (this.#globalBakeCustomHeight) {
+					this.#globalBakeCustomHeight.value = String(configs[0].height);
+				}
+			} else {
+				this.#globalBakeScaleSelect.disabled = true;
+				this.#globalBakeScaleSelect.value = '';
+				if (this.#globalBakeCustomWidth) {
+					this.#globalBakeCustomWidth.value = '';
+				}
+				if (this.#globalBakeCustomHeight) {
+					this.#globalBakeCustomHeight.value = '';
+				}
+			}
+		}
+		if (this.#globalBakeCustomWidth) {
+			this.#globalBakeCustomWidth.disabled = !hasFrames || !uniform;
+		}
+		if (this.#globalBakeCustomHeight) {
+			this.#globalBakeCustomHeight.disabled = !hasFrames || !uniform;
+		}
+		if (this.#globalBakeScaleApply) {
+			this.#globalBakeScaleApply.disabled = !hasFrames;
+		}
+		this.#updateGlobalBakeCustomVisibility();
+	}
+
+	#updateGlobalBakeCustomVisibility() {
+		if (!this.#globalBakeCustomSize) {
+			return;
+		}
+		const mode = this.#globalBakeScaleSelect?.disabled ? '' : this.#globalBakeScaleSelect?.value;
+		this.#globalBakeCustomSize.hidden = mode !== 'custom';
 	}
 
 	/**
@@ -559,15 +693,15 @@ export class ClipEditorController {
 		}
 		const raw = Number(this.#globalDurationInput?.value);
 		const ms = Number.isFinite(raw) && raw > 0 ? raw : this.#lastUniformDurationMs;
-		this.#clipFramesElement.setAllDurations(ms);
-		this.#stagedDurationsMs = this.#clipFramesElement.getDurations();
+		this.#clipFramesElement.setAllDurationsMs(ms);
+		this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
 		this.#framesDirty = true;
 		this.syncGlobalDurationControl();
 		this.updateStagingPreview();
 	}
 
 	/**
-	 * Apply an FPS preset as uniform per-frame ms (same path as Set all / setAllDurations).
+	 * Apply an FPS preset as uniform per-frame ms (same path as Set all / setAllDurationsMs).
 	 */
 	applyFpsPresetToAllFrames() {
 		if (!this.#clipFramesElement || this.#clipFramesElement.frameCount === 0) {
@@ -577,8 +711,8 @@ export class ClipEditorController {
 		const fps = Number.isFinite(raw) && raw > 0 ? raw : this.#lastFpsPreset;
 		const ms = fpsToMs(fps);
 		this.#lastFpsPreset = fps;
-		this.#clipFramesElement.setAllDurations(ms);
-		this.#stagedDurationsMs = this.#clipFramesElement.getDurations();
+		this.#clipFramesElement.setAllDurationsMs(ms);
+		this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
 		this.#framesDirty = true;
 		this.syncGlobalDurationControl();
 		this.updateStagingPreview();
@@ -589,7 +723,7 @@ export class ClipEditorController {
 	 * Mixed display choice: blank (not the last uniform value).
 	 */
 	syncGlobalDurationControl() {
-		const durations = this.#clipFramesElement?.getDurations?.() ?? [];
+		const durations = this.#clipFramesElement?.getDurationsMs?.() ?? [];
 		const hasFrames = durations.length > 0;
 		const first = hasFrames ? durations[0] : null;
 		const uniform = hasFrames && durations.every(duration => duration === first);
@@ -632,10 +766,12 @@ export class ClipEditorController {
 	}
 
 	updateStagingPreview() {
-		const targetWidth = Number(document.getElementById('upload-target-width').value) || 240;
-		const targetHeight = Number(document.getElementById('upload-target-height').value) || 135;
-		const playback = document.getElementById('upload-playback').value;
-		const scaleMode = document.getElementById('upload-scale-mode').value;
+		const targetWidth = Number(document.getElementById('clip-editor-target-width').value) || 240;
+		const targetHeight = Number(document.getElementById('clip-editor-target-height').value) || 135;
+		const playback = document.getElementById('clip-editor-playback').value;
+		const scaleMode = document.getElementById('clip-editor-scale-mode').value;
+		const placement = this.#readPlacementFromDom();
+		const bakeConfigs = this.#clipFramesElement?.getBakeConfigs?.() ?? this.#stagedBakeConfigs;
 		this.#stagingPreview.loadFrames(
 			this.#stagedFiles,
 			targetWidth,
@@ -643,7 +779,9 @@ export class ClipEditorController {
 			DEFAULT_FALLBACK_FPS,
 			playback,
 			scaleMode,
-			this.#previewDurationsMs()
+			this.#previewDurationsMs(),
+			placement,
+			bakeConfigs
 		);
 	}
 
@@ -651,10 +789,10 @@ export class ClipEditorController {
 	 * Show beat-sync controls when mode is beat; custom beats only for syncLength=custom.
 	 */
 	updateSyncFieldVisibility() {
-		const sync = document.getElementById('upload-sync')?.value ?? DEFAULT_SYNC_MODE;
-		const beatFields = document.getElementById('upload-sync-beat-fields');
-		const customField = document.getElementById('upload-sync-beats-field');
-		const syncLength = document.getElementById('upload-sync-length')?.value;
+		const sync = document.getElementById('clip-editor-sync')?.value ?? DEFAULT_SYNC_MODE;
+		const beatFields = document.getElementById('clip-editor-sync-beat-fields');
+		const customField = document.getElementById('clip-editor-sync-beats-field');
+		const syncLength = document.getElementById('clip-editor-sync-length')?.value;
 		if (beatFields) {
 			beatFields.hidden = sync !== 'beat';
 		}
@@ -664,10 +802,10 @@ export class ClipEditorController {
 	}
 
 	/**
-	 * Fill `#upload-sync-length` from shared `SYNC_LENGTH_PRESETS` (single source with validation).
+	 * Fill `#clip-editor-sync-length` from shared `SYNC_LENGTH_PRESETS` (single source with validation).
 	 */
 	#populateSyncLengthOptions() {
-		const select = document.getElementById('upload-sync-length');
+		const select = document.getElementById('clip-editor-sync-length');
 		if (!select) {
 			return;
 		}
@@ -724,10 +862,10 @@ export class ClipEditorController {
 	 * @returns {{ sync: string, syncLength: string, syncBeats: number|null, beatsPerBar: number }}
 	 */
 	#readSyncFieldsFromDom() {
-		const sync = document.getElementById('upload-sync')?.value === 'beat' ? 'beat' : 'free';
-		const syncLength = document.getElementById('upload-sync-length')?.value || '1 bar';
-		const syncBeatsRaw = Number(document.getElementById('upload-sync-beats')?.value);
-		const beatsPerBarRaw = Number(document.getElementById('upload-beats-per-bar')?.value);
+		const sync = document.getElementById('clip-editor-sync')?.value === 'beat' ? 'beat' : 'free';
+		const syncLength = document.getElementById('clip-editor-sync-length')?.value || '1 bar';
+		const syncBeatsRaw = Number(document.getElementById('clip-editor-sync-beats')?.value);
+		const beatsPerBarRaw = Number(document.getElementById('clip-editor-beats-per-bar')?.value);
 		return {
 			sync,
 			syncLength,
@@ -744,74 +882,78 @@ export class ClipEditorController {
 				element.value = value;
 			}
 		};
-		setValue('upload-target-width', '240');
-		setValue('upload-target-height', '135');
-		setValue('upload-scale-mode', 'fit');
-		setValue('upload-playback', 'loop');
+		setValue('clip-editor-target-width', '240');
+		setValue('clip-editor-target-height', '135');
+		setValue('clip-editor-scale-mode', 'fit');
+		setValue('clip-editor-placement-x', '0');
+		setValue('clip-editor-placement-y', '0');
+		setValue('clip-editor-playback', 'loop');
 		setValue('clip-frames-fps-preset', String(DEFAULT_FALLBACK_FPS));
-		const retrigger = document.getElementById('upload-retrigger');
+		const retrigger = document.getElementById('clip-editor-retrigger');
 		if (retrigger) {
 			retrigger.checked = true;
 		}
-		setValue('upload-trigger-type', 'momentary');
-		setValue('upload-trigger-group', '');
-		setValue('upload-bit-depth', '1');
-		setValue('upload-frame-duration-beats', '');
-		setValue('upload-sync', DEFAULT_SYNC_MODE);
+		setValue('clip-editor-trigger-type', 'momentary');
+		setValue('clip-editor-trigger-group', '');
+		setValue('clip-editor-bit-depth', '1');
+		setValue('clip-editor-frame-duration-beats', '');
+		setValue('clip-editor-sync', DEFAULT_SYNC_MODE);
 		this.#populateSyncLengthOptions();
-		setValue('upload-sync-length', DEFAULT_SYNC_LENGTH);
-		setValue('upload-sync-beats', '');
-		setValue('upload-beats-per-bar', String(DEFAULT_BEATS_PER_BAR));
+		setValue('clip-editor-sync-length', DEFAULT_SYNC_LENGTH);
+		setValue('clip-editor-sync-beats', '');
+		setValue('clip-editor-beats-per-bar', String(DEFAULT_BEATS_PER_BAR));
 		this.updateSyncFieldVisibility();
 	}
 
-	#applyHydratedClip(clipId, data) {
-		const editorValues = editorValuesFromMeta(data.meta);
+	#applyHydratedClip(clipId, framesResponse) {
+		const editorValues = editorValuesFromMeta(framesResponse.meta);
 		this.#editingClipId = clipId;
 		this.#framesDirty = false;
-		this.#uploadClipIdInput.value = clipId;
-		document.getElementById('upload-name').value = editorValues.name;
-		document.getElementById('upload-role').value = editorValues.role;
+		this.#clipIdInput.value = clipId;
+		document.getElementById('clip-editor-name').value = editorValues.name;
+		document.getElementById('clip-editor-role').value = editorValues.role;
 		this.#loadedFrameWidth = editorValues.frameWidth;
 		this.#loadedFrameHeight = editorValues.frameHeight;
 		this.#loadedScaleMode = editorValues.scaleMode;
-		document.getElementById('upload-target-width').value = String(this.#loadedFrameWidth);
-		document.getElementById('upload-target-height').value = String(this.#loadedFrameHeight);
-		document.getElementById('upload-scale-mode').value = this.#loadedScaleMode;
-		document.getElementById('upload-playback').value = editorValues.playback;
-		const retrigger = document.getElementById('upload-retrigger');
+		document.getElementById('clip-editor-target-width').value = String(this.#loadedFrameWidth);
+		document.getElementById('clip-editor-target-height').value = String(this.#loadedFrameHeight);
+		document.getElementById('clip-editor-scale-mode').value = this.#loadedScaleMode;
+		document.getElementById('clip-editor-placement-x').value = String(editorValues.placement.x);
+		document.getElementById('clip-editor-placement-y').value = String(editorValues.placement.y);
+		document.getElementById('clip-editor-playback').value = editorValues.playback;
+		const retrigger = document.getElementById('clip-editor-retrigger');
 		if (retrigger) {
 			retrigger.checked = editorValues.retrigger;
 		}
-		const triggerType = document.getElementById('upload-trigger-type');
+		const triggerType = document.getElementById('clip-editor-trigger-type');
 		if (triggerType) {
 			triggerType.value = editorValues.triggerType;
 		}
-		const triggerGroup = document.getElementById('upload-trigger-group');
+		const triggerGroup = document.getElementById('clip-editor-trigger-group');
 		if (triggerGroup) {
 			triggerGroup.value = editorValues.triggerGroup;
 		}
-		const bitDepth = document.getElementById('upload-bit-depth');
+		const bitDepth = document.getElementById('clip-editor-bit-depth');
 		if (bitDepth) {
 			bitDepth.value = String(editorValues.bitDepth);
 		}
-		const beats = document.getElementById('upload-frame-duration-beats');
+		const beats = document.getElementById('clip-editor-frame-duration-beats');
 		if (beats) {
 			beats.value = editorValues.frameDurationBeatsText;
 		}
-		const sync = document.getElementById('upload-sync');
+		const sync = document.getElementById('clip-editor-sync');
 		if (sync) {
 			sync.value = editorValues.sync;
 		}
-		const syncLength = document.getElementById('upload-sync-length');
+		const syncLength = document.getElementById('clip-editor-sync-length');
 		if (syncLength) {
 			syncLength.value = editorValues.syncLength;
 		}
-		const syncBeats = document.getElementById('upload-sync-beats');
+		const syncBeats = document.getElementById('clip-editor-sync-beats');
 		if (syncBeats) {
 			syncBeats.value = editorValues.syncBeats !== null && editorValues.syncBeats !== undefined ? String(editorValues.syncBeats) : '';
 		}
-		const beatsPerBar = document.getElementById('upload-beats-per-bar');
+		const beatsPerBar = document.getElementById('clip-editor-beats-per-bar');
 		if (beatsPerBar) {
 			beatsPerBar.value = String(editorValues.beatsPerBar);
 		}
@@ -819,8 +961,18 @@ export class ClipEditorController {
 		this.updateSyncFieldVisibility();
 	}
 
+	/**
+	 * @returns {{ x: number, y: number }}
+	 */
+	#readPlacementFromDom() {
+		return resolvePlacement({
+			x: Number(document.getElementById('clip-editor-placement-x')?.value),
+			y: Number(document.getElementById('clip-editor-placement-y')?.value)
+		});
+	}
+
 	#readExtendedEditorFields() {
-		const beatsParsed = parseFrameDurationBeats(document.getElementById('upload-frame-duration-beats').value);
+		const beatsParsed = parseFrameDurationBeats(document.getElementById('clip-editor-frame-duration-beats').value);
 		if (!beatsParsed.ok) {
 			return { error: beatsParsed.error };
 		}
@@ -829,11 +981,11 @@ export class ClipEditorController {
 			return { error: 'Custom beats is required when sync length is custom' };
 		}
 		const values = {
-			retrigger: document.getElementById('upload-retrigger').checked,
-			triggerType: document.getElementById('upload-trigger-type').value,
-			triggerGroup: document.getElementById('upload-trigger-group').value.trim(),
-			role: document.getElementById('upload-role').value || undefined,
-			bitDepth: Number(document.getElementById('upload-bit-depth').value),
+			retrigger: document.getElementById('clip-editor-retrigger').checked,
+			triggerType: document.getElementById('clip-editor-trigger-type').value,
+			triggerGroup: document.getElementById('clip-editor-trigger-group').value.trim(),
+			role: document.getElementById('clip-editor-role').value || undefined,
+			bitDepth: Number(document.getElementById('clip-editor-bit-depth').value),
 			frameDurationBeats: beatsParsed.value,
 			sync: syncFields.sync,
 			syncLength: syncFields.syncLength,

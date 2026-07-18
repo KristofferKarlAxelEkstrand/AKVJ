@@ -165,4 +165,35 @@ describe('EffectsPipeline', () => {
 		// The effect should still work (color effect uses effectParams)
 		expect(mockCtx.getImageData).toHaveBeenCalled();
 	});
+
+	test('destroy nulls scratch buffer so next apply reallocates', () => {
+		pipeline.apply(mockCtx, [{ type: 'color', note: 48, velocity: 127 }], 1000, {
+			width: 4,
+			height: 2,
+			bpm: 120
+		});
+		pipeline.destroy();
+
+		mockCtx.getImageData.mockClear();
+		mockCtx.putImageData.mockClear();
+		pipeline.apply(mockCtx, [{ type: 'color', note: 48, velocity: 127 }], 1000, {
+			width: 4,
+			height: 2,
+			bpm: 120
+		});
+		// Destroyed pipeline is a no-op (effectContext cleared)
+		expect(mockCtx.getImageData).not.toHaveBeenCalled();
+		expect(mockCtx.putImageData).not.toHaveBeenCalled();
+	});
+
+	test('destroy leaves subsequent apply safe (does not throw)', () => {
+		pipeline.destroy();
+		expect(() =>
+			pipeline.apply(mockCtx, [{ type: 'color', note: 48, velocity: 127 }], 1000, {
+				width: 4,
+				height: 2,
+				bpm: 120
+			})
+		).not.toThrow();
+	});
 });

@@ -10,6 +10,7 @@ import '../scss/ClipInstance.scss';
  */
 class ClipInstance extends HTMLElement {
 	#clip = null;
+	#boundDragStart = this.#handleDragStart.bind(this);
 
 	/**
 	 * @param {{clipId: string, meta: object, hasSprite: boolean, pipelineReady: boolean}} clip
@@ -24,10 +25,12 @@ class ClipInstance extends HTMLElement {
 	}
 
 	connectedCallback() {
+		this.addEventListener('dragstart', this.#boundDragStart);
 		this.#render();
 	}
 
 	disconnectedCallback() {
+		this.removeEventListener('dragstart', this.#boundDragStart);
 		this.replaceChildren();
 	}
 
@@ -87,6 +90,27 @@ class ClipInstance extends HTMLElement {
 
 		actions.append(editButton, mapButton, deleteButton);
 		this.append(img, clipInfo, actions);
+
+		this.draggable = true;
+		this.dataset.clipId = clip.clipId;
+	}
+
+	/**
+	 * @param {DragEvent} event
+	 */
+	#handleDragStart(event) {
+		if (event.target.closest('button')) {
+			event.preventDefault();
+			return;
+		}
+		const clipId = this.#clip?.clipId;
+		if (!clipId || !event.dataTransfer) {
+			event.preventDefault();
+			return;
+		}
+		event.dataTransfer.setData('application/x-akvj-clip-id', clipId);
+		event.dataTransfer.setData('text/plain', clipId);
+		event.dataTransfer.effectAllowed = 'copy';
 	}
 }
 

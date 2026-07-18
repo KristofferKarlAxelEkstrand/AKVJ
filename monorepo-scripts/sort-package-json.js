@@ -10,6 +10,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 /** Keys pinned to the top of each package.json (everything else A–Z). */
 const STANDARD_ORDER = ['name', 'version', 'description'];
@@ -100,4 +101,9 @@ function main() {
 	console.log(`\n${changedCount} file(s) changed, ${files.length - changedCount} already sorted.`);
 }
 
-main();
+const scriptPath = process.argv[1] ?? '';
+const isCli = scriptPath && path.resolve(scriptPath) === fileURLToPath(import.meta.url);
+
+if (isCli) {
+	main();
+}

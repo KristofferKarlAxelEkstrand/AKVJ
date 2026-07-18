@@ -1,0 +1,12 @@
+key-bed {
+	bottom: 0;
+	display: flex;
+	gap: 2px;
+	overflow-x: auto;
+	width: 100%;
+
+	piano-key {
+		height: 8rem;
+		width: 1.5rem;
+	}
+}

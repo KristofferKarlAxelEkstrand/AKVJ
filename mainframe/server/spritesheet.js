@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import { clipDir, rawAssetsDir, isValidClipId, DEFAULT_PROJECT_ID } from './paths.js';
 import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveTargetDimensions, resolveFrameRate, resolvePlayback, resolveFramesPerRow } from '../scripts/clips/lib/spritesheet-core.js';
 import { resolveScaleMode } from '../shared/frameFit.js';
+import { resolvePlacement } from '../shared/clipSchema.js';
 
 /**
  * Build a horizontal/grid spritesheet from image frame buffers and write clip folder.
@@ -15,14 +16,14 @@ import { resolveScaleMode } from '../shared/frameFit.js';
  * @param {string} [options.role]
  * @param {number} [options.targetWidth=240] - Resize frames to this width before compositing
  * @param {number} [options.targetHeight=135] - Resize frames to this height before compositing
- * @param {string} [options.scaleMode='fit'] - fit | cover | stretch | none
+ * @param {string} [options.scaleMode='fit'] - fit | cover | stretch | none | pattern
  * @param {string} [options.name] - Human-readable clip name
  * @param {string} [options.playback='loop'] - Playback mode
  * @param {number} [options.frameRate=12] - Default frame rate (FPS)
  * @param {Record<string, number>} [options.frameRatesForFrames] - Per-frame FPS (from ms durations)
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, projectId = DEFAULT_PROJECT_ID }) {
+export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -34,12 +35,13 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 	const resolvedScaleMode = resolveScaleMode(scaleMode);
 	const resolvedFrameRate = resolveFrameRate(frameRate);
 	const resolvedPlayback = resolvePlayback(playback);
+	const bakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
 
 	const normalizedFrames = await normalizeFrameBuffers(sharp, frameBuffers);
 	await assertReadableFrames(sharp, normalizedFrames);
 	await storeRawAssets(clipId, normalizedFrames, projectId);
 
-	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, resolvedScaleMode);
+	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, bakeConfigs);
 	const composites = buildComposites(resizedBuffers, resolvedTargetWidth, resolvedTargetHeight);
 	const sheet = await renderSpriteSheet(sharp, composites, resolvedTargetWidth, resolvedTargetHeight, resizedBuffers.length);
 	const framesPerRow = resolveFramesPerRow(resizedBuffers.length);
@@ -54,6 +56,7 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 			scaleMode: resolvedScaleMode,
 			frameWidth: resolvedTargetWidth,
 			frameHeight: resolvedTargetHeight,
+			placement,
 			retrigger,
 			triggerType,
 			triggerGroup,
@@ -152,7 +155,7 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
  * @param {string} [options.role]
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, projectId = DEFAULT_PROJECT_ID }) {
+export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -171,12 +174,13 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 	const resolvedScaleMode = resolveScaleMode(scaleMode);
 	const resolvedFrameRate = resolveFrameRate(frameRate);
 	const resolvedPlayback = resolvePlayback(playback);
+	const bakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
 
 	const normalizedFrames = await normalizeFrameBuffers(sharp, frameBuffers);
 	await assertReadableFrames(sharp, normalizedFrames);
 	await replaceRawAssets(clipId, normalizedFrames, projectId);
 
-	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, resolvedScaleMode);
+	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, bakeConfigs);
 	const composites = buildComposites(resizedBuffers, resolvedTargetWidth, resolvedTargetHeight);
 	const sheet = await renderSpriteSheet(sharp, composites, resolvedTargetWidth, resolvedTargetHeight, resizedBuffers.length);
 	const framesPerRow = resolveFramesPerRow(resizedBuffers.length);
@@ -191,6 +195,7 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 			scaleMode: resolvedScaleMode,
 			frameWidth: resolvedTargetWidth,
 			frameHeight: resolvedTargetHeight,
+			placement,
 			retrigger,
 			triggerType,
 			triggerGroup,
@@ -235,7 +240,7 @@ async function replaceRawAssets(clipId, frameBuffers, projectId = DEFAULT_PROJEC
 	await storeRawAssets(clipId, frameBuffers, projectId);
 }
 
-async function writeClipFiles(clipId, clipOptions, sheet, frames, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
+async function writeClipFiles(clipId, clipOptions, sheet, frameCount, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
 	const dir = clipDir(clipId, projectId);
 	try {
 		await fs.access(dir);
@@ -248,7 +253,7 @@ async function writeClipFiles(clipId, clipOptions, sheet, frames, framesPerRow, 
 	await fs.mkdir(dir, { recursive: true });
 	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
 
-	const meta = buildClipMeta(clipOptions, frames, framesPerRow);
+	const meta = buildClipMeta(clipOptions, frameCount, framesPerRow);
 	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(meta, null, '\t')}\n`);
 }
 
@@ -256,7 +261,7 @@ async function writeClipFiles(clipId, clipOptions, sheet, frames, framesPerRow, 
  * Overwrite existing clip files (sprite.png + meta.json) during recompilation.
  * Preserves existing meta fields not managed by the recompile config.
  */
-async function overwriteClipFiles(clipId, clipOptions, sheet, frames, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
+async function overwriteClipFiles(clipId, clipOptions, sheet, frameCount, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
 	const dir = clipDir(clipId, projectId);
 	await fs.mkdir(dir, { recursive: true });
 	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
@@ -267,23 +272,24 @@ async function overwriteClipFiles(clipId, clipOptions, sheet, frames, framesPerR
 	} catch {
 		// No existing meta — start fresh
 	}
-	const newMeta = buildClipMeta(clipOptions, frames, framesPerRow);
+	const newMeta = buildClipMeta(clipOptions, frameCount, framesPerRow);
 	const mergedMeta = syncOptionalMetaFields({ ...existingMeta, ...newMeta }, newMeta, clipOptions);
 	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(mergedMeta, null, '\t')}\n`);
 }
 
-function buildClipMeta(clipOptions, frames, framesPerRow) {
+function buildClipMeta(clipOptions, frameCount, framesPerRow) {
 	const frameRatesForFrames = clipOptions.frameRatesForFrames && typeof clipOptions.frameRatesForFrames === 'object' && !Array.isArray(clipOptions.frameRatesForFrames) ? clipOptions.frameRatesForFrames : { 0: clipOptions.frameRate || DEFAULT_FRAME_RATE };
 	const meta = {
 		png: 'sprite.png',
-		frames,
+		frames: frameCount,
 		framesPerRow,
 		playback: clipOptions.playback || 'loop',
 		retrigger: typeof clipOptions.retrigger === 'boolean' ? clipOptions.retrigger : true,
 		frameRatesForFrames,
 		scaleMode: resolveScaleMode(clipOptions.scaleMode),
 		frameWidth: clipOptions.frameWidth || DEFAULT_TARGET_WIDTH,
-		frameHeight: clipOptions.frameHeight || DEFAULT_TARGET_HEIGHT
+		frameHeight: clipOptions.frameHeight || DEFAULT_TARGET_HEIGHT,
+		placement: resolvePlacement(clipOptions.placement)
 	};
 	if (clipOptions.name) {
 		meta.name = clipOptions.name;
@@ -350,6 +356,9 @@ function syncOptionalMetaFields(mergedMeta, newMeta, clipOptions) {
 	} else {
 		delete mergedMeta.role;
 		delete mergedMeta.bitDepth;
+	}
+	if (newMeta.placement) {
+		mergedMeta.placement = newMeta.placement;
 	}
 	return mergedMeta;
 }

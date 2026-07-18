@@ -1,0 +1,134 @@
+import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import ProjectCatalog from '../src/js/visuals/ProjectCatalog.js';
+import settings from '../src/js/core/settings.js';
+
+describe('ProjectCatalog', () => {
+	/** @type {ProjectCatalog} */
+	let catalog;
+	/** @type {import('vitest').Mock} */
+	let fetchMock;
+
+	beforeEach(() => {
+		catalog = new ProjectCatalog();
+		fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+	});
+
+	afterEach(() => {
+		vi.unstubAllGlobals();
+		vi.restoreAllMocks();
+	});
+
+	describe('fetchActiveProjectId', () => {
+		test('returns project ID for valid active-project.json', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: 'my-project' })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBe('my-project');
+			expect(fetchMock).toHaveBeenCalled();
+			const url = fetchMock.mock.calls[0][0];
+			expect(String(url)).toContain(settings.performance.activeProjectUrl);
+		});
+
+		test('returns null when project field is non-string', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: 42 })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+
+		test('returns null when project fails PROJECT_ID_PATTERN', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: '../etc' })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+
+		test('returns null on fetch error', async () => {
+			fetchMock.mockRejectedValue(new Error('network'));
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+
+		test('returns null on non-ok HTTP response', async () => {
+			fetchMock.mockResolvedValue({ ok: false, status: 404 });
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+	});
+
+	describe('fetchProjectsIndex', () => {
+		test('returns filtered valid entries', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => [
+					{ id: 'good', name: 'Good' },
+					{ id: '../bad', name: 'Bad' },
+					{ id: 99, name: 'Nope' },
+					null,
+					{ id: 'also-good', name: 'Also' }
+				]
+			});
+			await expect(catalog.fetchProjectsIndex()).resolves.toEqual([
+				{ id: 'good', name: 'Good' },
+				{ id: 'also-good', name: 'Also' }
+			]);
+		});
+
+		test('returns empty array when fetch fails', async () => {
+			fetchMock.mockRejectedValue(new Error('fail'));
+			await expect(catalog.fetchProjectsIndex()).resolves.toEqual([]);
+		});
+
+		test('returns empty array when response is not an array', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ projects: [] })
+			});
+			await expect(catalog.fetchProjectsIndex()).resolves.toEqual([]);
+		});
+	});
+
+	describe('URL builders', () => {
+		test('buildProjectKeyMapUrl replaces projectId', () => {
+			expect(catalog.buildProjectKeyMapUrl('demo')).toBe(settings.performance.projectKeyMapUrlTemplate.replace('{projectId}', 'demo'));
+		});
+
+		test('buildProjectKeyMapUrl throws on invalid id', () => {
+			expect(() => catalog.buildProjectKeyMapUrl('../etc')).toThrow(/Invalid project ID/);
+		});
+
+		test('buildProjectClipsJsonUrl replaces projectId', () => {
+			expect(catalog.buildProjectClipsJsonUrl('demo')).toBe(settings.performance.projectClipsJsonUrlTemplate.replace('{projectId}', 'demo'));
+		});
+
+		test('buildProjectClipsJsonUrl throws on invalid id', () => {
+			expect(() => catalog.buildProjectClipsJsonUrl('')).toThrow(/Invalid project ID/);
+		});
+	});
+
+	describe('activeProjectId', () => {
+		test('setActiveProjectId / getter round-trip', () => {
+			expect(catalog.activeProjectId).toBeNull();
+			catalog.setActiveProjectId('live-set');
+			expect(catalog.activeProjectId).toBe('live-set');
+		});
+	});
+
+	describe('loadJson cache-busting', () => {
+		test('appends ?t= cache buster when DEV is true', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: 'x' })
+			});
+			await catalog.fetchActiveProjectId();
+			const url = String(fetchMock.mock.calls[0][0]);
+			if (import.meta.env.DEV) {
+				expect(url).toMatch(/\?t=\d/);
+			} else {
+				expect(url).toBe(settings.performance.activeProjectUrl);
+			}
+		});
+	});
+});

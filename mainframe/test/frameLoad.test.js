@@ -4,8 +4,7 @@ import os from 'os';
 import sharp from 'sharp';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { fpsToMs } from '../src/js/frameTiming.js';
-
-const PNG_1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACXBIWXMAAAPoAAAD6AG1e1JrAAAADUlEQVQImWNgYGD4DwABBAEAfbLI3wAAAABJRU5ErkJggg==';
+import { PNG_1x1 } from './utils/pngFixtures.js';
 
 describe('loadClipFrameBuffers', () => {
 	let clipsDir;
@@ -30,7 +29,7 @@ describe('loadClipFrameBuffers', () => {
 	test('prefers raw assets when present', async () => {
 		await createClipFromFrames({
 			clipId: 'raw-clip',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1, PNG_1x1],
 			frameRatesForFrames: { 0: 10, 1: 20 }
 		});
 		const result = await loadClipFrameBuffers('raw-clip');
@@ -43,7 +42,7 @@ describe('loadClipFrameBuffers', () => {
 	test('extracts sprite cells when raw assets are missing', async () => {
 		await createClipFromFrames({
 			clipId: 'sprite-only',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1, PNG_1x1],
 			targetWidth: 4,
 			targetHeight: 4,
 			frameRatesForFrames: { 0: 5, 1: 10 }
@@ -59,7 +58,7 @@ describe('loadClipFrameBuffers', () => {
 	test('hydrates durations from frameRatesForFrames on sprite-only clips', async () => {
 		await createClipFromFrames({
 			clipId: 'sprite-durations',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1, PNG_1x1, PNG_1x1],
 			targetWidth: 8,
 			targetHeight: 8,
 			frameRatesForFrames: { 0: 8, 1: 16, 2: 4 }
@@ -73,7 +72,7 @@ describe('loadClipFrameBuffers', () => {
 	test('extracted sprite cells are PNG with alpha', async () => {
 		await createClipFromFrames({
 			clipId: 'alpha-sprite',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1],
 			targetWidth: 4,
 			targetHeight: 4
 		});
@@ -87,7 +86,7 @@ describe('loadClipFrameBuffers', () => {
 	test('uses frameWidth/frameHeight from meta when set', async () => {
 		await createClipFromFrames({
 			clipId: 'sized-sprite',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1, PNG_1x1],
 			targetWidth: 16,
 			targetHeight: 9
 		});
@@ -103,7 +102,7 @@ describe('loadClipFrameBuffers', () => {
 	test('loads sprite-only clip with frameDurationBeats and no frameWidth (legacy shape)', async () => {
 		await createClipFromFrames({
 			clipId: 'legacy-beats',
-			frameBuffers: [Buffer.from(PNG_1x1, 'base64'), Buffer.from(PNG_1x1, 'base64')],
+			frameBuffers: [PNG_1x1, PNG_1x1],
 			targetWidth: 8,
 			targetHeight: 8
 		});

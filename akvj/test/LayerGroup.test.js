@@ -1,21 +1,6 @@
-/**
- * Unit tests for LayerGroup - cache behavior, finished clip cleanup, sorting, lifecycle.
- * Complements integration.test.js with direct unit tests for edge cases.
- */
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach } from 'vitest';
 import LayerGroup from '../src/js/visuals/LayerGroup.js';
-
-function createMockClip(id = 'clip') {
-	return {
-		id,
-		play: vi.fn(),
-		renderToContext: vi.fn(),
-		stop: vi.fn(),
-		reset: vi.fn(),
-		dispose: vi.fn(),
-		isFinished: false
-	};
-}
+import { createMockClip } from './utils/createMockClip.js';
 
 describe('LayerGroup', () => {
 	let group;

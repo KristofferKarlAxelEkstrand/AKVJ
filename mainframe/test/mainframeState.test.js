@@ -7,7 +7,6 @@ import {
 	EVENT_SEARCH_CHANGED,
 	EVENT_ROLE_FILTER_CHANGED,
 	EVENT_SORT_MODE_CHANGED,
-	EVENT_CATEGORY_CHANGED,
 	EVENT_PROJECTS_CHANGED,
 	EVENT_ACTIVE_PROJECT_CHANGED
 } from '../src/js/mainframeState.js';
@@ -33,7 +32,6 @@ describe('MainframeState', () => {
 		expect(state.searchQuery).toBe('');
 		expect(state.roleFilter).toBe('');
 		expect(state.sortMode).toBe('name');
-		expect(state.category).toBe('');
 	});
 
 	test('set clips dispatches clipsChanged event', () => {
@@ -118,20 +116,6 @@ describe('MainframeState', () => {
 		expect(callCount).toBe(1);
 	});
 
-	test('set category dispatches categoryChanged event only on change', () => {
-		let callCount = 0;
-		state.subscribe(EVENT_CATEGORY_CHANGED, () => {
-			callCount++;
-		});
-
-		state.category = 'effects';
-		expect(callCount).toBe(1);
-		expect(state.category).toBe('effects');
-
-		state.category = 'effects';
-		expect(callCount).toBe(1);
-	});
-
 	test('subscribe returns unsubscribe function', () => {
 		let callCount = 0;
 		const unsubscribe = state.subscribe(EVENT_CLIPS_CHANGED, () => {
@@ -158,7 +142,6 @@ describe('MainframeState', () => {
 		state.searchQuery = 'test';
 		state.roleFilter = 'bitmask';
 		state.sortMode = 'clipId';
-		state.category = 'effects';
 		state.projects = [{ id: 'gig', name: 'Gig' }];
 		state.activeProjectId = 'gig';
 
@@ -171,7 +154,6 @@ describe('MainframeState', () => {
 		expect(state.searchQuery).toBe('');
 		expect(state.roleFilter).toBe('');
 		expect(state.sortMode).toBe('name');
-		expect(state.category).toBe('');
 		expect(callCount).toBe(1);
 	});
 

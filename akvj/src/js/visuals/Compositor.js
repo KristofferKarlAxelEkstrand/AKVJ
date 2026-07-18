@@ -262,8 +262,8 @@ class Compositor {
 	}
 
 	#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel) {
-		const alpha = Math.floor(maskValue / divisor) / maxLevel;
-		this.#blendPixel(buffers, idx, alpha);
+		const blendFactor = Math.floor(maskValue / divisor) / maxLevel;
+		this.#blendPixel(buffers, idx, blendFactor);
 	}
 
 	#getBitDepthParams(bitDepth) {
@@ -276,9 +276,9 @@ class Compositor {
 		return { divisor: 1, maxLevel: BIT_DEPTH_MIXING.MAX_VALUE_8BIT };
 	}
 
-	#blendPixel(buffers, idx, alpha) {
+	#blendPixel(buffers, idx, blendFactor) {
 		for (let channel = 0; channel < RGB_CHANNEL_COUNT; channel++) {
-			buffers.output[idx + channel] = buffers.layerGroupA[idx + channel] + (buffers.layerGroupB[idx + channel] - buffers.layerGroupA[idx + channel]) * alpha;
+			buffers.output[idx + channel] = buffers.layerGroupA[idx + channel] + (buffers.layerGroupB[idx + channel] - buffers.layerGroupA[idx + channel]) * blendFactor;
 		}
 		buffers.output[idx + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[idx + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[idx + RGBA_CHANNEL_COUNT - 1]);
 	}
@@ -287,42 +287,14 @@ class Compositor {
 	 * Release references for garbage collection.
 	 */
 	destroy() {
-		this.#releaseCanvasA();
-		this.#releaseCanvasB();
-		this.#releaseMaskAndMixed();
-	}
-
-	#releaseCanvasA() {
-		try {
-			this.#canvasA = null;
-			this.#ctxA = null;
-		} catch (error) {
-			console.error('Error releasing canvasA references in Compositor:', error);
-		}
-	}
-
-	#releaseCanvasB() {
-		try {
-			this.#canvasB = null;
-			this.#ctxB = null;
-		} catch (error) {
-			console.error('Error releasing canvasB references in Compositor:', error);
-		}
-	}
-
-	#releaseMaskAndMixed() {
-		try {
-			this.#ctxMask = null;
-		} catch (error) {
-			console.error('Error releasing ctxMask reference in Compositor:', error);
-		}
-		try {
-			this.#canvasMixed = null;
-			this.#ctxMixed = null;
-			this.#mixedImageData = null;
-		} catch (error) {
-			console.error('Error releasing mixed canvas references in Compositor:', error);
-		}
+		this.#canvasA = null;
+		this.#ctxA = null;
+		this.#canvasB = null;
+		this.#ctxB = null;
+		this.#ctxMask = null;
+		this.#canvasMixed = null;
+		this.#ctxMixed = null;
+		this.#mixedImageData = null;
 	}
 }
 

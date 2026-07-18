@@ -155,6 +155,8 @@ export async function handlePutClipFrames(req, res, url) {
 			syncLength: parsed.syncLength,
 			syncBeats: parsed.syncBeats,
 			beatsPerBar: parsed.beatsPerBar,
+			placement: parsed.placement,
+			frameBakeConfigs: parsed.frameBakeConfigs,
 			syncOptionalMeta: true,
 			projectId
 		});
@@ -203,6 +205,8 @@ export async function handlePostClips(req, res) {
 			syncLength: parsed.syncLength,
 			syncBeats: parsed.syncBeats,
 			beatsPerBar: parsed.beatsPerBar,
+			placement: parsed.placement,
+			frameBakeConfigs: parsed.frameBakeConfigs,
 			syncOptionalMeta: true,
 			projectId
 		});
@@ -282,6 +286,7 @@ const EDITABLE_META_FIELDS = new Set([
 	'scaleMode',
 	'frameWidth',
 	'frameHeight',
+	'placement',
 	'sync',
 	'syncLength',
 	'syncBeats',

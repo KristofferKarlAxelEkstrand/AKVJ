@@ -4,7 +4,6 @@ const EVENT_CHANNEL_CHANGED = 'channelChanged';
 const EVENT_SEARCH_CHANGED = 'searchChanged';
 const EVENT_ROLE_FILTER_CHANGED = 'roleFilterChanged';
 const EVENT_SORT_MODE_CHANGED = 'sortModeChanged';
-const EVENT_CATEGORY_CHANGED = 'categoryChanged';
 const EVENT_PROJECTS_CHANGED = 'projectsChanged';
 const EVENT_ACTIVE_PROJECT_CHANGED = 'activeProjectChanged';
 const EVENT_USER_MESSAGE = 'userMessage';
@@ -22,7 +21,7 @@ const USER_MESSAGE_TYPES = new Set(['error', 'warning', 'info']);
  */
 class MainframeState extends EventTarget {
 	/** @type {Array<{clipId: string, meta: object, hasSprite: boolean}>} */
-	#clips = [];
+	#loadedClips = [];
 	/** @type {Array<{channel: number, note: number, velocity: number, clipId: string}>} */
 	#mappings = [];
 	/** @type {Array<{id: string, name: string}>} */
@@ -32,7 +31,6 @@ class MainframeState extends EventTarget {
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
-	#category = '';
 
 	#dispatchStateEvent(eventName, detail) {
 		this.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -42,7 +40,7 @@ class MainframeState extends EventTarget {
 	 * @param {Array<{clipId: string, meta: object, hasSprite: boolean}>} clips
 	 */
 	set clips(clips) {
-		this.#clips = clips;
+		this.#loadedClips = clips;
 		this.#dispatchStateEvent(EVENT_CLIPS_CHANGED, { clips });
 	}
 
@@ -50,7 +48,7 @@ class MainframeState extends EventTarget {
 	 * @returns {Array<{clipId: string, meta: object, hasSprite: boolean}>}
 	 */
 	get clips() {
-		return this.#clips;
+		return this.#loadedClips;
 	}
 
 	/**
@@ -137,23 +135,6 @@ class MainframeState extends EventTarget {
 	}
 
 	/**
-	 * @param {string} category - Selected category (empty string = folder view)
-	 */
-	set category(category) {
-		if (this.#category !== category) {
-			this.#category = category;
-			this.#dispatchStateEvent(EVENT_CATEGORY_CHANGED, { category });
-		}
-	}
-
-	/**
-	 * @returns {string}
-	 */
-	get category() {
-		return this.#category;
-	}
-
-	/**
 	 * @param {Array<{id: string, name: string}>} projects
 	 */
 	set projects(projects) {
@@ -236,7 +217,7 @@ class MainframeState extends EventTarget {
 	 * Intended for test isolation and teardown.
 	 */
 	reset() {
-		this.#clips = [];
+		this.#loadedClips = [];
 		this.#mappings = [];
 		this.#projects = [];
 		this.#activeProjectId = 'default';
@@ -244,7 +225,6 @@ class MainframeState extends EventTarget {
 		this.#searchQuery = '';
 		this.#roleFilter = '';
 		this.#sortMode = 'name';
-		this.#category = '';
 	}
 }
 
@@ -298,7 +278,6 @@ export {
 	EVENT_SEARCH_CHANGED,
 	EVENT_ROLE_FILTER_CHANGED,
 	EVENT_SORT_MODE_CHANGED,
-	EVENT_CATEGORY_CHANGED,
 	EVENT_PROJECTS_CHANGED,
 	EVENT_ACTIVE_PROJECT_CHANGED,
 	EVENT_USER_MESSAGE

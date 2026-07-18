@@ -20,10 +20,10 @@ export async function validateKeyMap(sourceDir, validClips, keyMapPath) {
 	return { errors: collectNestedKeyMapErrors(keyMap.data, validIds) };
 }
 
-async function loadKeyMap(layoutPath) {
+async function loadKeyMap(keyMapPath) {
 	let raw;
 	try {
-		raw = await fs.readFile(layoutPath, 'utf8');
+		raw = await fs.readFile(keyMapPath, 'utf8');
 	} catch (error) {
 		if (error.code === 'ENOENT') {
 			return { errors: [{ path: 'key-map.json', errors: ['Missing key-map.json (required for runtime ClipLoader)'] }] };

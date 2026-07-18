@@ -14,7 +14,7 @@ class ChoiceList extends HTMLElement {
 	static defaultValue = '';
 
 	#value;
-	#abort = null;
+	#abortController = null;
 
 	constructor() {
 		super();
@@ -52,9 +52,9 @@ class ChoiceList extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.#abort?.abort();
-		this.#abort = new AbortController();
-		const { signal } = this.#abort;
+		this.#abortController?.abort();
+		this.#abortController = new AbortController();
+		const { signal } = this.#abortController;
 
 		this.setAttribute('role', 'listbox');
 		this.setAttribute('aria-label', this.constructor.ariaLabel);
@@ -80,8 +80,8 @@ class ChoiceList extends HTMLElement {
 	}
 
 	disconnectedCallback() {
-		this.#abort?.abort();
-		this.#abort = null;
+		this.#abortController?.abort();
+		this.#abortController = null;
 		this.replaceChildren();
 	}
 

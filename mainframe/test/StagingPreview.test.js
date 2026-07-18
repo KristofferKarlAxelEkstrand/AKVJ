@@ -128,7 +128,7 @@ describe('ShuffleState', () => {
 	});
 });
 
-describe('AkvjStagingPreview', () => {
+describe('StagingPreview', () => {
 	/** @type {import('../src/js/StagingPreview.js').default} */
 	let element;
 
@@ -204,6 +204,15 @@ describe('AkvjStagingPreview', () => {
 		expect(canvas.height).toBe(300);
 		expect(canvas.style.width).toBe('960px');
 		expect(canvas.style.height).toBe('480px');
+	});
+
+	test('pattern mode previews on the 240×135 output canvas', async () => {
+		await element.loadFrames([], 16, 16, 12, 'loop', 'pattern');
+		const canvas = element.querySelector('canvas');
+		expect(canvas.width).toBe(240);
+		expect(canvas.height).toBe(135);
+		expect(canvas.style.width).toBe('480px');
+		expect(canvas.style.height).toBe('270px');
 	});
 
 	test('shows "No frames staged" when loadFrames called with no files', async () => {
@@ -398,5 +407,312 @@ describe('AkvjStagingPreview', () => {
 	test('cleans up on disconnect', () => {
 		element.remove();
 		expect(element.children.length).toBe(0);
+	});
+});
+
+/**
+ * Minimal software 2d context for asserting bake/placement draw results in jsdom.
+ * @param {HTMLCanvasElement} canvas
+ */
+function createRecording2dContext(canvas) {
+	/** @type {Uint8ClampedArray} */
+	let buffer = new Uint8ClampedArray(0);
+
+	const syncBuffer = () => {
+		const size = Math.max(0, canvas.width) * Math.max(0, canvas.height) * 4;
+		if (buffer.length !== size) {
+			buffer = new Uint8ClampedArray(size);
+		}
+		canvas._recordingBuffer = buffer;
+	};
+
+	/**
+	 * @param {CanvasImageSource & { _fill?: number[], _recordingBuffer?: Uint8ClampedArray, width: number, height: number }} source
+	 * @param {number} sx
+	 * @param {number} sy
+	 * @returns {[number, number, number, number]}
+	 */
+	const sampleSource = (source, sx, sy) => {
+		if (Array.isArray(source._fill)) {
+			return source._fill;
+		}
+		const srcBuf = source._recordingBuffer;
+		const srcW = source.width || 0;
+		const srcH = source.height || 0;
+		if (!srcBuf || srcW <= 0 || srcH <= 0) {
+			return [0, 0, 0, 0];
+		}
+		const x = Math.min(srcW - 1, Math.max(0, Math.floor(sx)));
+		const y = Math.min(srcH - 1, Math.max(0, Math.floor(sy)));
+		const i = (y * srcW + x) * 4;
+		return [srcBuf[i], srcBuf[i + 1], srcBuf[i + 2], srcBuf[i + 3]];
+	};
+
+	return {
+		imageSmoothingEnabled: false,
+		/** @type {{ sourceWidth: number, sourceHeight: number, dx: number, dy: number }[]} */
+		drawCalls: [],
+		clearRect(x, y, width, height) {
+			syncBuffer();
+			const canvasWidth = canvas.width;
+			const canvasHeight = canvas.height;
+			const x0 = Math.max(0, Math.floor(x));
+			const y0 = Math.max(0, Math.floor(y));
+			const x1 = Math.min(canvasWidth, Math.ceil(x + width));
+			const y1 = Math.min(canvasHeight, Math.ceil(y + height));
+			for (let row = y0; row < y1; row++) {
+				for (let col = x0; col < x1; col++) {
+					const i = (row * canvasWidth + col) * 4;
+					buffer[i] = 0;
+					buffer[i + 1] = 0;
+					buffer[i + 2] = 0;
+					buffer[i + 3] = 0;
+				}
+			}
+		},
+		drawImage(source, ...args) {
+			syncBuffer();
+			let sx = 0;
+			let sy = 0;
+			let sWidth = source.width || 0;
+			let sHeight = source.height || 0;
+			let dx;
+			let dy;
+			let dWidth;
+			let dHeight;
+			if (args.length === 2) {
+				[dx, dy] = args;
+				dWidth = sWidth;
+				dHeight = sHeight;
+			} else if (args.length === 4) {
+				[dx, dy, dWidth, dHeight] = args;
+			} else {
+				[sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight] = args;
+			}
+			dx = Math.floor(dx);
+			dy = Math.floor(dy);
+			dWidth = Math.floor(dWidth);
+			dHeight = Math.floor(dHeight);
+			this.drawCalls.push({
+				sourceWidth: source.width || 0,
+				sourceHeight: source.height || 0,
+				dx,
+				dy
+			});
+
+			const canvasWidth = canvas.width;
+			const canvasHeight = canvas.height;
+			for (let row = 0; row < dHeight; row++) {
+				const destY = dy + row;
+				if (destY < 0 || destY >= canvasHeight) {
+					continue;
+				}
+				const srcY = sy + (dHeight === 0 ? 0 : (row * sHeight) / dHeight);
+				for (let col = 0; col < dWidth; col++) {
+					const destX = dx + col;
+					if (destX < 0 || destX >= canvasWidth) {
+						continue;
+					}
+					const srcX = sx + (dWidth === 0 ? 0 : (col * sWidth) / dWidth);
+					const [r, g, b, a] = sampleSource(source, srcX, srcY);
+					if (a === 0) {
+						continue;
+					}
+					const i = (destY * canvasWidth + destX) * 4;
+					buffer[i] = r;
+					buffer[i + 1] = g;
+					buffer[i + 2] = b;
+					buffer[i + 3] = a;
+				}
+			}
+		},
+		getImageData(x, y, width, height) {
+			syncBuffer();
+			const data = new Uint8ClampedArray(width * height * 4);
+			const canvasWidth = canvas.width;
+			const canvasHeight = canvas.height;
+			for (let row = 0; row < height; row++) {
+				for (let col = 0; col < width; col++) {
+					const srcX = x + col;
+					const srcY = y + row;
+					const di = (row * width + col) * 4;
+					if (srcX < 0 || srcY < 0 || srcX >= canvasWidth || srcY >= canvasHeight) {
+						continue;
+					}
+					const si = (srcY * canvasWidth + srcX) * 4;
+					data[di] = buffer[si];
+					data[di + 1] = buffer[si + 1];
+					data[di + 2] = buffer[si + 2];
+					data[di + 3] = buffer[si + 3];
+				}
+			}
+			return { width, height, data };
+		}
+	};
+}
+
+/**
+ * @param {{ width?: number, height?: number, fill?: number[] }} [options]
+ */
+function installSolidImageMock(options = {}) {
+	const { width = 8, height = 8, fill = [255, 0, 0, 255] } = options;
+	const originalImage = global.Image;
+	global.Image = class {
+		width = width;
+		height = height;
+		naturalWidth = width;
+		naturalHeight = height;
+		_fill = fill;
+		onload = null;
+		onerror = null;
+		set src(value) {
+			this._src = value;
+			queueMicrotask(() => this.onload?.());
+		}
+		get src() {
+			return this._src;
+		}
+	};
+	global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+	global.URL.revokeObjectURL = vi.fn();
+	return () => {
+		global.Image = originalImage;
+	};
+}
+
+/**
+ * @param {ImageData | { data: Uint8ClampedArray }} imageData
+ * @returns {{ x: number, y: number } | null}
+ */
+function firstOpaquePixel(imageData) {
+	const { data, width } = imageData;
+	for (let i = 0; i < data.length; i += 4) {
+		if (data[i + 3] > 0) {
+			const pixelIndex = i / 4;
+			return { x: pixelIndex % width, y: Math.floor(pixelIndex / width) };
+		}
+	}
+	return null;
+}
+
+describe('StagingPreview bake/placement drawing', () => {
+	/** @type {import('../src/js/StagingPreview.js').default} */
+	let element;
+	/** @type {ReturnType<typeof createRecording2dContext> | null} */
+	let previewCtx = null;
+
+	beforeEach(() => {
+		previewCtx = null;
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function getRecordingContext(type) {
+			if (type !== '2d') {
+				return null;
+			}
+			if (!this._recordingCtx || this._recordingWidth !== this.width || this._recordingHeight !== this.height) {
+				this._recordingCtx = createRecording2dContext(this);
+				this._recordingWidth = this.width;
+				this._recordingHeight = this.height;
+			}
+			if (this.classList?.contains('staging-preview-canvas')) {
+				previewCtx = this._recordingCtx;
+			}
+			return this._recordingCtx;
+		});
+		vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+		element = document.createElement('akvj-staging-preview');
+		document.body.append(element);
+	});
+
+	afterEach(() => {
+		element.remove();
+		vi.restoreAllMocks();
+	});
+
+	test('runtime placement offsets shift the drawn frame on the preview canvas', async () => {
+		const restoreImage = installSolidImageMock({ width: 8, height: 8, fill: [255, 0, 0, 255] });
+		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
+
+		await element.loadFrames([file], 32, 32, 12, 'loop', 'none', [1000], { x: 0, y: 0 }, [
+			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+
+		const canvas = element.querySelector('canvas');
+		const baseline = firstOpaquePixel(previewCtx.getImageData(0, 0, canvas.width, canvas.height));
+		expect(baseline).not.toBeNull();
+
+		await element.loadFrames([file], 32, 32, 12, 'loop', 'none', [1000], { x: 10, y: 6 }, [
+			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+
+		const shifted = previewCtx.getImageData(0, 0, canvas.width, canvas.height);
+		const atBaseline = shifted.data[((baseline.y * canvas.width + baseline.x) * 4) + 3];
+		const atOffset = shifted.data[(((baseline.y + 6) * canvas.width + (baseline.x + 10)) * 4) + 3];
+		expect(atBaseline).toBe(0);
+		expect(atOffset).toBe(255);
+
+		restoreImage();
+	});
+
+	test('per-frame bakeConfigs are honored when scrubbing frames', async () => {
+		const restoreImage = installSolidImageMock({ width: 4, height: 4, fill: [0, 255, 0, 255] });
+		const files = [
+			new File(['a'], 'frame0.png', { type: 'image/png' }),
+			new File(['b'], 'frame1.png', { type: 'image/png' })
+		];
+
+		await element.loadFrames(files, 40, 40, 12, 'loop', 'none', [1000, 1000], { x: 0, y: 0 }, [
+			{ scaleMode: 'none', placement: { x: 0, y: 0 } },
+			{ scaleMode: 'none', placement: { x: 12, y: 0 } }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+
+		const canvas = element.querySelector('canvas');
+		const frame0Origin = firstOpaquePixel(previewCtx.getImageData(0, 0, canvas.width, canvas.height));
+		expect(frame0Origin).not.toBeNull();
+
+		const scrub = element.querySelector('.clip-preview-scrub');
+		scrub.value = '1';
+		scrub.dispatchEvent(new Event('input', { bubbles: true }));
+
+		const frame1Data = previewCtx.getImageData(0, 0, canvas.width, canvas.height);
+		const frame1Origin = firstOpaquePixel(frame1Data);
+		expect(frame1Origin).not.toBeNull();
+		expect(frame1Origin.x).toBe(frame0Origin.x + 12);
+		expect(frame1Origin.y).toBe(frame0Origin.y);
+
+		restoreImage();
+	});
+
+	test('ensureTileCanvas matches target cell size for small and large tiles', async () => {
+		const restoreImage = installSolidImageMock({ width: 4, height: 4, fill: [0, 0, 255, 255] });
+		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
+
+		await element.loadFrames([file], 16, 16, 12, 'loop', 'fit', [1000], { x: 0, y: 0 }, [
+			{ scaleMode: 'fit' }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 16 && call.sourceHeight === 16)).toBe(true);
+
+		previewCtx.drawCalls.length = 0;
+		await element.loadFrames([file], 300, 200, 12, 'loop', 'fit', [1000], { x: 0, y: 0 }, [
+			{ scaleMode: 'fit' }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 300 && call.sourceHeight === 200)).toBe(true);
+
+		previewCtx.drawCalls.length = 0;
+		await element.loadFrames([file], 16, 16, 12, 'loop', 'pattern', [1000], { x: 3, y: 5 }, [
+			{ scaleMode: 'none' }
+		]);
+		element.querySelector('button.clip-preview-play').click();
+		const canvas = element.querySelector('canvas');
+		expect(canvas.width).toBe(240);
+		expect(canvas.height).toBe(135);
+		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 16 && call.sourceHeight === 16)).toBe(true);
+		expect(previewCtx.drawCalls.length).toBeGreaterThan(1);
+
+		restoreImage();
 	});
 });

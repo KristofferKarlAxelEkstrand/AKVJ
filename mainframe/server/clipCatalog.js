@@ -30,8 +30,8 @@ export function isPipelineReadyClip(meta, hasSprite) {
 	if (!hasSprite || !meta) {
 		return false;
 	}
-	const pngName = meta.png ? path.basename(meta.png) : '';
-	if (meta.png && !SAFE_PNG_NAME.test(pngName)) {
+	// Reject path segments — basename alone would accept "../evil.png" as "evil.png".
+	if (meta.png && !SAFE_PNG_NAME.test(String(meta.png))) {
 		return false;
 	}
 	const frameCount = meta.frames ?? meta.numberOfFrames;

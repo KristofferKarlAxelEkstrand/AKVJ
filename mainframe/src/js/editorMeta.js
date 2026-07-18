@@ -3,16 +3,36 @@
  * Keep FPS on disk; the UI uses milliseconds via frameTiming helpers.
  */
 
-import { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, SYNC_MODES } from './clipSchema.js';
+import {
+	DEFAULT_SYNC_MODE,
+	DEFAULT_BEATS_PER_BAR,
+	SYNC_LENGTH_PRESETS,
+	SYNC_MODES,
+	DEFAULT_PLACEMENT,
+	resolvePlacement,
+	DEFAULT_FRAME_WIDTH,
+	DEFAULT_FRAME_HEIGHT,
+	DEFAULT_SCALE_MODE,
+	DEFAULT_PLAYBACK,
+	DEFAULT_FRAME_RATE,
+	DEFAULT_TRIGGER_TYPE,
+	VALID_BIT_DEPTHS
+} from './clipSchema.js';
 
-export const DEFAULT_FRAME_WIDTH = 240;
-export const DEFAULT_FRAME_HEIGHT = 135;
-export const DEFAULT_SCALE_MODE = 'fit';
-export const DEFAULT_PLAYBACK = 'loop';
-export const DEFAULT_FRAME_RATE = 12;
-export const DEFAULT_TRIGGER_TYPE = 'momentary';
-export const BIT_DEPTHS = [1, 2, 4, 8];
-export { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS };
+export {
+	DEFAULT_SYNC_MODE,
+	DEFAULT_BEATS_PER_BAR,
+	SYNC_LENGTH_PRESETS,
+	DEFAULT_PLACEMENT,
+	resolvePlacement,
+	DEFAULT_FRAME_WIDTH,
+	DEFAULT_FRAME_HEIGHT,
+	DEFAULT_SCALE_MODE,
+	DEFAULT_PLAYBACK,
+	DEFAULT_FRAME_RATE,
+	DEFAULT_TRIGGER_TYPE,
+	VALID_BIT_DEPTHS
+};
 
 /**
  * @param {unknown} raw
@@ -67,11 +87,12 @@ export function editorValuesFromMeta(meta = {}) {
 		frameWidth: Number(meta.frameWidth) > 0 ? Number(meta.frameWidth) : DEFAULT_FRAME_WIDTH,
 		frameHeight: Number(meta.frameHeight) > 0 ? Number(meta.frameHeight) : DEFAULT_FRAME_HEIGHT,
 		scaleMode: typeof meta.scaleMode === 'string' && meta.scaleMode ? meta.scaleMode : DEFAULT_SCALE_MODE,
+		placement: resolvePlacement(meta.placement),
 		frameRate: Number(firstRate) > 0 ? Number(firstRate) : DEFAULT_FRAME_RATE,
 		retrigger: meta.retrigger !== false,
 		triggerType: typeof meta.triggerType === 'string' && meta.triggerType ? meta.triggerType : DEFAULT_TRIGGER_TYPE,
 		triggerGroup: meta.triggerGroup !== null && meta.triggerGroup !== undefined ? String(meta.triggerGroup) : '',
-		bitDepth: BIT_DEPTHS.includes(bitDepth) ? bitDepth : 1,
+		bitDepth: VALID_BIT_DEPTHS.includes(bitDepth) ? bitDepth : 1,
 		frameDurationBeatsText:
 			meta.frameDurationBeats !== null && meta.frameDurationBeats !== undefined ? JSON.stringify(meta.frameDurationBeats) : '',
 		sync,
@@ -93,6 +114,7 @@ export function metaPatchFromEditor(values) {
 		scaleMode: values.scaleMode,
 		frameWidth: values.frameWidth,
 		frameHeight: values.frameHeight,
+		placement: resolvePlacement(values.placement),
 		retrigger: values.retrigger === true,
 		triggerType: values.triggerType || DEFAULT_TRIGGER_TYPE
 	};
@@ -106,7 +128,7 @@ export function metaPatchFromEditor(values) {
 	if (values.role === 'bitmask') {
 		patch.role = 'bitmask';
 		const depth = Number(values.bitDepth);
-		patch.bitDepth = BIT_DEPTHS.includes(depth) ? depth : 1;
+		patch.bitDepth = VALID_BIT_DEPTHS.includes(depth) ? depth : 1;
 	} else {
 		patch.role = null;
 		patch.bitDepth = null;
@@ -136,7 +158,8 @@ export function optionalMetaFromEditor(values) {
 	const optional = {
 		syncOptionalMeta: true,
 		retrigger: values.retrigger === true,
-		triggerType: values.triggerType || DEFAULT_TRIGGER_TYPE
+		triggerType: values.triggerType || DEFAULT_TRIGGER_TYPE,
+		placement: resolvePlacement(values.placement)
 	};
 	if (values.triggerGroup) {
 		optional.triggerGroup = values.triggerGroup;
@@ -144,7 +167,7 @@ export function optionalMetaFromEditor(values) {
 	if (values.role === 'bitmask') {
 		optional.role = 'bitmask';
 		const depth = Number(values.bitDepth);
-		optional.bitDepth = BIT_DEPTHS.includes(depth) ? depth : 1;
+		optional.bitDepth = VALID_BIT_DEPTHS.includes(depth) ? depth : 1;
 	}
 	Object.assign(optional, syncFieldsPatch(values));
 	return optional;

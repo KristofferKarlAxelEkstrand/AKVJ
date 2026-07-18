@@ -10,9 +10,9 @@ function reloadOnClipChange() {
 	return {
 		name: 'reload-on-clip-change',
 		handleHotUpdate({ file, server }) {
-			// Match generated public clips (forward or backslash; Windows-safe)
+			// Match generated public projects output (forward or backslash; Windows-safe)
 			const normalized = file.replace(/\\/g, '/');
-			if (normalized.includes('/public/clips/')) {
+			if (normalized.includes('/public/projects/') || normalized.includes('/public/clips/')) {
 				console.log('[vite] clip change detected, reloading...');
 				server.ws.send({ type: 'full-reload' });
 				return [];

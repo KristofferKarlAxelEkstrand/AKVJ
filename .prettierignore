@@ -10,6 +10,9 @@
 # Ignore generated clip pipeline output
 /.cache
 /akvj/src/public/clips
+/akvj/src/public/projects
+/akvj/src/public/active-project.json
+/active-project.json
 
 # Ignore lock files (auto-generated, not worth formatting)
 /package-lock.json

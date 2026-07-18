@@ -107,6 +107,15 @@ Decide behavior from the **accepted file list after filtering** for that add/dro
 - Changing frame size or scale mode updates the live staging preview.
 - Frame size + scale mode are create/recompile config. **Persist scale mode** (meta or alongside raw assets) so edit/recompile can reproduce the same fit.
 
+#### Per-image bake composition (import session only)
+
+Distinct from clip-level runtime `scaleMode` / `placement` (§10–§11):
+
+- Each staged source image can have its own **bake** scale (`fit` / `cover` / `stretch` / `none` / **custom**), optional custom absolute pixel W×H, and bake placement within the **frame cell** (`0,0` = cell center).
+- Choices are editing-session state (like per-frame ms). On save they are **burned into** the spritesheet cell pixels. They are **not** stored in `meta.json`.
+- Global “Bake scale (all)” applies one bake scale to every staged image; disables + blanks when any image diverges (same UX as ms Set all / FPS Apply).
+- Re-opening a clip starts from already-composited frames (or raw assets) with default bake `fit` — prior session bake choices are not recoverable.
+
 ### 8. Unsupported files
 
 - Show a clear **status message** listing skipped files / types (do not fail silently).

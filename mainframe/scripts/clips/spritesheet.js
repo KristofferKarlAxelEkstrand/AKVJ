@@ -18,13 +18,14 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { renderSpriteSheet, DEFAULT_FRAME_RATE } from './lib/spritesheet-core.js';
 
 /**
  * Parse command line arguments.
+ * @param {string[]} [argv=process.argv.slice(2)]
  */
-function parseArgs() {
-	const args = process.argv.slice(2);
+export function parseArgs(argv = process.argv.slice(2)) {
 	const options = {
 		inputDir: null,
 		outputDir: null,
@@ -32,12 +33,12 @@ function parseArgs() {
 		frameRate: 12
 	};
 
-	for (let i = 0; i < args.length; i++) {
-		const arg = args[i];
-		if (arg === '--frames-per-row' && args[i + 1]) {
-			options.framesPerRow = parseInt(args[++i], 10);
-		} else if (arg === '--frame-rate' && args[i + 1]) {
-			options.frameRate = parseInt(args[++i], 10);
+	for (let i = 0; i < argv.length; i++) {
+		const arg = argv[i];
+		if (arg === '--frames-per-row' && argv[i + 1]) {
+			options.framesPerRow = parseInt(argv[++i], 10);
+		} else if (arg === '--frame-rate' && argv[i + 1]) {
+			options.frameRate = parseInt(argv[++i], 10);
 		} else if (!arg.startsWith('--')) {
 			if (!options.inputDir) {
 				options.inputDir = arg;
@@ -50,7 +51,7 @@ function parseArgs() {
 	return options;
 }
 
-async function createSpriteSheet(inputDir, outputDir, options = {}) {
+export async function createSpriteSheet(inputDir, outputDir, options = {}) {
 	const { framesPerRow = 8, frameRate = DEFAULT_FRAME_RATE } = options;
 	const sharp = await importSharp();
 
@@ -70,7 +71,7 @@ async function importSharp() {
 	}
 }
 
-async function loadFrameFiles(inputDir) {
+export async function loadFrameFiles(inputDir) {
 	const allFiles = await fs.readdir(inputDir);
 	const files = allFiles
 		.filter(f => /\.(png|jpg|jpeg)$/i.test(f))
@@ -83,8 +84,7 @@ async function loadFrameFiles(inputDir) {
 			return numA - numB;
 		});
 	if (files.length === 0) {
-		console.error('Error: No image files found in', inputDir);
-		process.exit(1);
+		throw new Error(`No image files found in ${inputDir}`);
 	}
 	console.log(`Found ${files.length} frames`);
 	return files;
@@ -116,10 +116,10 @@ async function writeSpriteSheet(sharp, outputDir, composites, framesPerRow, fram
 	await fs.writeFile(path.join(outputDir, 'sprite.png'), sheet);
 }
 
-async function writeMetaFile(outputDir, frames, framesPerRow, frameRate) {
+export async function writeMetaFile(outputDir, frameCount, framesPerRow, frameRate) {
 	const meta = {
 		png: 'sprite.png',
-		frames,
+		frames: frameCount,
 		framesPerRow,
 		playback: 'loop',
 		retrigger: true,
@@ -131,9 +131,7 @@ async function writeMetaFile(outputDir, frames, framesPerRow, frameRate) {
 	console.log(`  ${path.join(outputDir, 'meta.json')}`);
 }
 
-const options = parseArgs();
-
-if (!options.inputDir || !options.outputDir) {
+function printUsageAndExit() {
 	console.log('Sprite Sheet Generator');
 	console.log('');
 	console.log('Usage: node scripts/clips/spritesheet.js <input-folder> <output-folder> [options]');
@@ -151,7 +149,16 @@ if (!options.inputDir || !options.outputDir) {
 	process.exit(1);
 }
 
-createSpriteSheet(options.inputDir, options.outputDir, options).catch(error => {
-	console.error('Error creating sprite sheet:', error.message);
-	process.exit(1);
-});
+const scriptPath = process.argv[1] ?? '';
+const isCli = scriptPath && path.resolve(scriptPath) === fileURLToPath(import.meta.url);
+
+if (isCli) {
+	const options = parseArgs();
+	if (!options.inputDir || !options.outputDir) {
+		printUsageAndExit();
+	}
+	createSpriteSheet(options.inputDir, options.outputDir, options).catch(error => {
+		console.error('Error creating sprite sheet:', error.message);
+		process.exit(1);
+	});
+}

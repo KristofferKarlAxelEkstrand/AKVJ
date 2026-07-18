@@ -13,7 +13,7 @@ This is a **technical** refactor pass (naming, structure, duplication, coupling)
 
 Grounded in `spec/` so we refactor toward the stated vision, not away from it:
 
-- **`goal.md`** — Keep `akvj` and `mainframe` strictly decoupled. The only bridge is the `clips/` directory + JSON. **They must never share JS module imports.** Also: the **clip format is the backbone** and matters more right now than Projects; get it solid and testable first, and start testing what exists rather than adding scope.
+- **`goal.md`** — Keep `akvj` and `mainframe` strictly decoupled. The only bridge is shared JSON under `projects/` (per-project clips + key-maps; formerly a top-level `clips/` tree — see Wave 2 / Task 128). **They must never share JS module imports.** Also: the **clip format is the backbone** and matters more right now than Projects; get it solid and testable first, and start testing what exists rather than adding scope.
 - **`clip-schema.md`** — Human-first (KISS). Any change that makes `meta.json` harder to hand-write is a bad change. Same format read/written by human, `mainframe`, and `akvj`.
 - **`code-standards.md`** — SRP + SLAP (not arbitrary line limits), event-driven decoupling via `EventTarget`, custom-events-up, `#private` fields, magic numbers → named constants, descriptive domain naming.
 - **`aesthetics.md`** — `akvj` = zero UI, pixel-perfect, hot path stays lean. `mainframe` = minimal, functional.

@@ -12,7 +12,7 @@ class UserMessage extends HTMLElement {
 	#type = 'info';
 	#text = '';
 	#okButton = null;
-	#abort = null;
+	#abortController = null;
 
 	/**
 	 * @param {{ type?: string, text?: string }} options
@@ -35,13 +35,13 @@ class UserMessage extends HTMLElement {
 	}
 
 	connectedCallback() {
-		this.#abort = new AbortController();
+		this.#abortController = new AbortController();
 		this.#render();
 	}
 
 	disconnectedCallback() {
-		this.#abort?.abort();
-		this.#abort = null;
+		this.#abortController?.abort();
+		this.#abortController = null;
 		this.replaceChildren();
 	}
 
@@ -81,7 +81,7 @@ class UserMessage extends HTMLElement {
 		this.#okButton.type = 'button';
 		this.#okButton.className = 'user-message-ok';
 		this.#okButton.textContent = 'OK';
-		this.#okButton.addEventListener('click', () => this.dismiss(), { signal: this.#abort.signal });
+		this.#okButton.addEventListener('click', () => this.dismiss(), { signal: this.#abortController.signal });
 
 		this.append(title, body, this.#okButton);
 	}
