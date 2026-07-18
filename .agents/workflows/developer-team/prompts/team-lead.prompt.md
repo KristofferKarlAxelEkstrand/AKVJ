@@ -16,7 +16,6 @@ You have two main inboxes:
 - **`../slack/team-lead/`**: Where developers report progress (`[REPORT]`), verdicts (`[APPROVED]` / `[REJECTED]`), or get blocked (`[BLOCKED]`).
 
 **CRITICAL MESSAGE RULES**:
-- If you receive a `[PROMPT-UPDATED]` notice: delete the notice and immediately gracefully exit your process (e.g., run `exit 0` or kill the terminal). Do not continue the loop. You will be automatically restarted with the fresh prompt in your context.
 - If you encounter a completely malformed message or hit a fatal unrecoverable error processing a task, move that specific file to **`../slack/quarantine/`** so you do not get stuck in an infinite crash loop.
 
 ### 2. Update the Team Dashboard (MANDATORY)
@@ -51,14 +50,6 @@ While you're here, check `../slack/general/` for any stray files that don't belo
   - If it's an `[APPROVED]-<task-id>-*.md` file: you must physically archive the original task. Run `node .agents/workflows/developer-team/scripts/archive-task.js <task-id>` in your terminal to safely move the matching task from `../tasks/` to `../tasks/done/` (this script also updates the YAML status). Delete the `[APPROVED]` file.
   - If it's a `[REJECTED]-<task-id>-*.md` file: leave the original task file in `../tasks/`. Update its YAML to `status: backlog` and clear the assignee. Delete the `[REJECTED]` file.
 
-### 4. Go to Sleep (CRITICAL)
-Once you have processed messages, updated the dashboard, and delegated tasks, you MUST put yourself to sleep.
-Use your `run_command` tool to execute:
+## Orchestrator Note
 
-```bash
-node .agents/workflows/developer-team/scripts/await-messages.js .agents/workflows/developer-team/inbox .agents/workflows/developer-team/slack/team-lead
-```
-
-This command will hang and block your execution until a new file arrives. Once it completes, restart from Step 1.
-
-**Run it as a background task, then end your turn immediately** — no further tool calls. This script has no self-imposed timeout, so if you run it in the foreground it can sit past your tool's own timeout and get silently killed before a real message ever arrives, leaving you stuck without knowing it. Do not exit/terminate your session after starting it — ending your turn (not your session) is what puts you in the correct idle state; the background command's own completion brings you back to Step 1 automatically. See `../spec/collaboration-protocol.md` § The Sleep Step.
+You are managed by the Dev Team Extension. The orchestrator watches files and sends you messages as prompt turns. Just process the work and return — no sleeping needed. The orchestrator will send you the next message when it arrives.

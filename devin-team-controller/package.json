@@ -1,0 +1,19 @@
+{
+	"name": "devin-team-controller",
+	"description": "Standalone Node.js server for centralized control and monitoring of the AKVJ developer team",
+	"version": "1.0.0",
+	"main": "dist/server/server.js",
+	"type": "module",
+	"scripts": {
+		"compile": "tsc -p ./",
+		"watch": "tsc -watch -p ./",
+		"start": "node dist/server/server.js",
+		"dev": "tsc -p ./ && node dist/server/server.js",
+		"test": "vitest"
+	},
+	"devDependencies": {
+		"@types/node": "^20.0.0",
+		"typescript": "^5.4.0",
+		"vitest": "^1.0.0"
+	}
+}

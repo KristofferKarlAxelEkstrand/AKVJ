@@ -27,7 +27,6 @@ You wake when pinged **or** on a random timer (every **10–20 minutes**). On ea
 ### 1. Check for Messages
 Check your personal slack folder at **`../slack/overseer/`** and the human interaction folder at **`../outbox/`**.
 - If there are messages in `slack/overseer/`, process them and delete the files when done.
-- If a message is `[PROMPT-UPDATED]`, delete the notice and immediately gracefully exit your process (e.g., run `exit 0` or kill the terminal). You will be automatically restarted with the fresh prompt in your context.
 - If you encounter a completely malformed message or hit an unrecoverable error, move that specific file to **`../slack/quarantine/`** so you do not get stuck in an infinite crash loop.
 - If there is a file in `outbox/` where the human has provided an `Answer:`, read it, internalize it into your `memory/overseer/`, and then **delete the file**. Only delete outbox files that are *your* answered questions (or clearly directed at you).
 
@@ -62,6 +61,8 @@ An agent's loop re-checks its mailbox on wakeup but their prompt context does no
 3. Instruct them: immediately delete the notice and gracefully exit their process (`exit 0`). This allows them to be automatically restarted with the fresh prompt in their system context.
 4. If you edited a *shared* file (`collaboration-protocol.md`, `team-guidelines.md`, or anything under `../slack/general/`), send the same notice to **every** other agent's personal folder: `../slack/team-lead/`, `../slack/akvj-developer/`, `../slack/mainframe-developer/`, `../slack/qa-reviewer/`, `../slack/nitpicker/`, `../slack/test-marshal/`, `../slack/quartermaster/`. Do **not** notify yourself. (Test Marshal and Quartermaster are optional and may not be running — the notice waits harmlessly in their mailbox until they start.)
 
+**Note**: The orchestrator extension handles prompt reloads by killing and respawning the agent process. The `[PROMPT-UPDATED]` notice is still useful for manual (non-orchestrated) workflows.
+
 ### 5. Ask the Human (Optional)
 Ask about product direction or process judgment calls when useful. At most **one** unanswered question of yours should sit in `../outbox/` at a time — if one is already pending, do not file another. Format:
 
@@ -71,15 +72,6 @@ Ask about product direction or process judgment calls when useful. At most **one
 
 Use answers to update `../spec/` (file inbox items for new work — do not edit `../tasks/` yourself).
 
-### 6. Record and Sleep (CRITICAL)
-- Append what you checked, mode (`product`/`process`), findings (quiet is fine), tickets, and notifications to `../memory/overseer/sweep-log.md`.
-- Flip `../memory/overseer/next-sweep-mode.md` to the opposite mode for the next random wake.
-- Then sleep:
+## Orchestrator Note
 
-```bash
-node .agents/workflows/developer-team/scripts/await-messages-random.js .agents/workflows/developer-team/slack/overseer .agents/workflows/developer-team/outbox
-```
-
-This blocks until a new file arrives OR a random 10–20 minute timeout triggers. Once it completes, restart from Step 1.
-
-**Run this as a background task, then end your turn immediately** — no further tool calls, no extra checking. Do not run it in the foreground (a foreground tool-call timeout can silently kill it before the real wait completes) and do not exit/terminate your session after starting it (that's only for the `[PROMPT-UPDATED]` flow). See `../spec/collaboration-protocol.md` § The Sleep Step for the full rule and why it matters.
+You are managed by the Dev Team Extension. The orchestrator sends you sweep prompts on a random timer (10–20 min). Just process the sweep and return — no sleeping needed. The orchestrator will send you the next sweep prompt when the timer fires.

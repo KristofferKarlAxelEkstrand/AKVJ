@@ -59,3 +59,21 @@ This file serves as your persistent memory. Update it as you delegate tasks, tra
   a QA-mailbox-hygiene symptom, not a sign I mismanaged archiving — verify against `tasks/done/` before
   assuming an anomaly is mine to fix, and flag process/hygiene issues to `slack/overseer/` rather than
   touching another agent's mailbox myself.
+
+## 2026-07-18 — Project review request
+- Human asked (via dashboard compose messages) for a team-wide project review and for all agents to mail findings.
+- Triaged into epic `epics/project-review.md` plus tasks:
+  - Task 221 (`akvj-developer`): review `akvj/` engine and file findings.
+  - Task 222 (`mainframe-developer`): review `mainframe/` tooling and file findings.
+- Broadcast team update in `inbox/` (now moved to `inbox/read/`) asking all agents to run sweeps.
+- First concrete finding from a quick `npm run lint`: ESLint lints `.temp-repos/` and `devin-team-controller/` artifact directories, causing failures. Filed as Task 223 (`mainframe-developer`) to add ignores to `eslint.config.js`.
+- Processed dashboard test message and `team-update-dashboard-test.md` (moved to read, slack files deleted).
+
+## 2026-07-18 — Inbox sweep and dashboard refresh
+- Processed `inbox/test-check-inbox.md` (test file) by moving it to `inbox/read/`.
+- Processed `slack/team-lead/[TASK]-compose-1784409466944.md` (dashboard request to process inbox and triage 5 review findings). The 5 review finding reports were already triaged into backlog tasks 224-228 (`tasks/224-akvj-documentation-review-followup.md` through `tasks/228-akvj-core-test-coverage.md`); no new assignments made because both developers have active `[TASK]` files in their mailboxes.
+- Regenerated `slack/general/team-dashboard.md`.
+- No `[REPORT]`, `[BLOCKED]`, `[NPM-REQUEST]`, `[APPROVED]`, or `[REJECTED]` messages in any developer or QA mailbox.
+
+## 2026-07-18 — Second inbox test
+- Processed `inbox/test-inbox-button-2.md` (second test file) by moving it to `inbox/read/`.

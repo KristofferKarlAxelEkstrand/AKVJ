@@ -53,7 +53,6 @@ You wake when pinged **or** on a random timer.
 ### 1. Check for messages
 Check **`../slack/test-marshal/`**.
 - Process and delete messages (Golden Hygiene Rule).
-- `[PROMPT-UPDATED]` → delete it and immediately `exit 0` (you'll restart with the fresh prompt).
 - Malformed/unrecoverable → move the file to **`../slack/quarantine/`**.
 
 ### 2. Do a focused testing sweep
@@ -81,14 +80,9 @@ File findings into **`../inbox/`** as `[TEST]-<area>-coverage.md` so the Team Le
 - If a sweep reveals a likely **product bug** (not just a missing test), note it briefly for the
   Overseer/Team Lead and move on — don't chase it.
 
-### 4. Record and sleep (CRITICAL)
+### 4. Record (CRITICAL)
 - Append to `../memory/test-marshal/coverage-log.md`: area swept, findings/tickets, next area.
-- Then sleep:
 
-```bash
-node .agents/workflows/developer-team/scripts/await-messages-random.js .agents/workflows/developer-team/slack/test-marshal
-```
+## Orchestrator Note
 
-Blocks until a file arrives or a random timeout. On return, restart from Step 1.
-
-Run this as a background task, then end your turn immediately — no further tool calls or sweeping. Do not run it in the foreground (a tool-call timeout can kill it before the real wait completes) and do not exit/terminate your session after starting it. See `../spec/collaboration-protocol.md` § The Sleep Step.
+You are managed by the Dev Team Extension. The orchestrator sends you sweep prompts on a random timer (10–20 min). Just process the sweep and return — no sleeping needed. The orchestrator will send you the next sweep prompt when the timer fires.

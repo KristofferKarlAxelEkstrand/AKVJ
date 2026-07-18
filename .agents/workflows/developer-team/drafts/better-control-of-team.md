@@ -1,6 +1,6 @@
 # Dev Extension for Developer Team Control
 
-## Status: Draft / Investigation (2025-07-18)
+## Status: Draft / Investigation (2026-07-18)
 
 ## Problem
 
@@ -130,7 +130,7 @@ interface AgentConfig {
   command: string;               // Agent binary (e.g., 'devin')
   args: string[];                // CLI args (e.g., ['acp', '--model', 'claude-sonnet-4'])
   timerDriven?: boolean;         // If true, extension wakes on interval
-  timerIntervalMs?: number;      // Random interval range for timer-driven agents
+  timerIntervalMs?: [min: number, max: number];  // Random interval range for timer-driven agents
   permissionMode: 'normal' | 'dangerous' | 'bypass';  // ACP permission handling
   enabled: boolean;              // User can toggle agents on/off
 }

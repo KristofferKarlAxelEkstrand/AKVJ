@@ -1,0 +1,29 @@
+{
+	"agentStates": [
+		{
+			"role": "team-lead",
+			"sessionId": "glowing-wavelength",
+			"model": "SWE-1.6",
+			"enabled": true
+		},
+		{
+			"role": "akvj-developer",
+			"sessionId": "azure-swallow",
+			"model": "SWE-1.6",
+			"enabled": true
+		},
+		{
+			"role": "mainframe-developer",
+			"sessionId": "intriguing-orbit",
+			"model": "SWE-1.6",
+			"enabled": true
+		},
+		{
+			"role": "qa-reviewer",
+			"sessionId": "silky-apogee",
+			"model": "SWE-1.6",
+			"enabled": true
+		}
+	],
+	"lastSaved": 1784408469006
+}

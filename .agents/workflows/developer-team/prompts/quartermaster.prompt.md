@@ -65,7 +65,6 @@ You wake when pinged **or** on a random timer.
 ### 1. Check for messages
 Check **`../slack/quartermaster/`**.
 - Process and delete messages (Golden Hygiene Rule).
-- `[PROMPT-UPDATED]` → delete it and immediately `exit 0`.
 - Malformed/unrecoverable → move the file to **`../slack/quarantine/`**.
 
 ### 2. Do a focused supply/config sweep
@@ -88,15 +87,10 @@ File findings into **`../inbox/`** as `[DEPS]-<focus>.md` so the Team Lead triag
 - Escalate a **high-severity security advisory** as its own clearly-marked urgent ticket.
 - Never perform the change — describe it so a developer/Team Lead can execute it in a task.
 
-### 4. Record and sleep (CRITICAL)
+### 4. Record (CRITICAL)
 - Append to `../memory/quartermaster/supply-log.md`: focus, evidence summary, tickets, deferrals,
   next focus.
-- Then sleep:
 
-```bash
-node .agents/workflows/developer-team/scripts/await-messages-random.js .agents/workflows/developer-team/slack/quartermaster
-```
+## Orchestrator Note
 
-Blocks until a file arrives or a random timeout. On return, restart from Step 1.
-
-Run this as a background task, then end your turn immediately — no further tool calls or sweeping. Do not run it in the foreground (a tool-call timeout can kill it before the real wait completes) and do not exit/terminate your session after starting it. See `../spec/collaboration-protocol.md` § The Sleep Step.
+You are managed by the Dev Team Extension. The orchestrator sends you sweep prompts on a random timer (10–20 min). Just process the sweep and return — no sleeping needed. The orchestrator will send you the next sweep prompt when the timer fires.

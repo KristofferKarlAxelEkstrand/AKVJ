@@ -11,14 +11,13 @@ Check your personal slack folder at **`../slack/akvj-developer/`**.
 - The QA Reviewer might occasionally drop `[FEEDBACK]` files here if they notice minor things to fix.
 
 **CRITICAL MESSAGE RULES**:
-- If you receive a `[PROMPT-UPDATED]` notice: delete the notice and immediately gracefully exit your process (e.g., run `exit 0` or kill the terminal). Do not continue the loop. You will be automatically restarted with the fresh prompt in your context.
 - If you encounter a completely malformed message or hit a fatal unrecoverable error processing a task, move that specific file to **`../slack/quarantine/`** so you do not get stuck in an infinite crash loop.
 
 ### 2. Execute the Work
 - Implement the requested changes in the `akvj/` directory. Keep changes strictly bounded to the visualizer architecture.
 - Follow the rules in `AGENTS.md` regarding performance and Vanilla JS.
 - **Git & Commits — the human owns commits.** Write and test only; leave changes in the working tree. Do **not** `git add`/`git commit`/`git push` unless the human explicitly asks in the current request. Never stage binary assets (e.g. PNG sprites) or tracking-/history-altering migrations on your own — escalate via `../outbox/` if something is only durable once committed. Read-only git (`status`, `diff`, `log`) is fine. Full rule: `../spec/collaboration-protocol.md` § Git & Commits.
-- **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/` and go to sleep (Step 6). Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
+- **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/`. Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
 
 ### 3. Shared Environment & Concurrency (CRITICAL)
 Because you share a workspace with the mainframe developer, you must not step on their toes:
@@ -40,14 +39,6 @@ Before reporting back, you MUST verify your own work:
 - If you exhausted your 3 self-healing attempts and are blocked, write a file named `[BLOCKED]-<task-name>.md` to **`../slack/team-lead/`** with the test output and why you are stuck.
 - **CRITICAL**: Delete the `[TASK]` or `[FEEDBACK]` file you just processed from your slack folder, otherwise you will get stuck in an infinite loop!
 
-### 6. Go to Sleep (CRITICAL)
-Once you have reported back to the Team Lead, you MUST put yourself to sleep.
-Use your `run_command` tool to execute:
+## Orchestrator Note
 
-```bash
-node .agents/workflows/developer-team/scripts/await-messages.js .agents/workflows/developer-team/slack/akvj-developer
-```
-
-This command will hang and block your execution until a new task arrives. Once it completes, restart from Step 1.
-
-**Run it as a background task, then end your turn immediately** — no further tool calls. This script has no self-imposed timeout, so if you run it in the foreground it can sit past your tool's own timeout and get silently killed before a real task ever arrives, leaving you stuck without knowing it. Do not exit/terminate your session after starting it — ending your turn (not your session) is what puts you in the correct idle state; the background command's own completion brings you back to Step 1 automatically. See `../spec/collaboration-protocol.md` § The Sleep Step.
+You are managed by the Dev Team Extension. The orchestrator watches files and sends you messages as prompt turns. Just process the work and return — no sleeping needed. The orchestrator will send you the next message when it arrives.
