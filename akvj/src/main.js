@@ -1,4 +1,8 @@
 import './css/adventure-kid-video-jockey.css';
+import './css/loading-overlay.css';
+import './css/debug-overlay.css';
+import './css/user-message.css';
+import './css/user-messages.css';
 import './js/core/AdventureKidVideoJockey.js';
 
 import Midi from './js/midi-input/Midi.js';

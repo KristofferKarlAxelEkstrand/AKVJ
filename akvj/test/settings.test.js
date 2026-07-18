@@ -80,12 +80,16 @@ describe('settings', () => {
 			expect(settings.channelMapping.globalEffects).toBe(12);
 		});
 
-		test('reserved channels are 13-15', () => {
-			expect(settings.channelMapping.reserved).toEqual([13, 14, 15]);
+		test('project selection on channel 13', () => {
+			expect(settings.channelMapping.projectSelection).toBe(13);
+		});
+
+		test('reserved channels are 14-15', () => {
+			expect(settings.channelMapping.reserved).toEqual([14, 15]);
 		});
 
 		test('all channels 0-15 are accounted for with no overlaps', () => {
-			const allMapped = [...settings.channelMapping.layerGroupA, settings.channelMapping.mixer, ...settings.channelMapping.layerGroupB, settings.channelMapping.mixedOutputEffects, ...settings.channelMapping.layerGroupC, settings.channelMapping.globalEffects, ...settings.channelMapping.reserved];
+			const allMapped = [...settings.channelMapping.layerGroupA, settings.channelMapping.mixer, ...settings.channelMapping.layerGroupB, settings.channelMapping.mixedOutputEffects, ...settings.channelMapping.layerGroupC, settings.channelMapping.globalEffects, settings.channelMapping.projectSelection, ...settings.channelMapping.reserved];
 			expect(allMapped).toHaveLength(16);
 			expect(new Set(allMapped).size).toBe(16);
 			for (let ch = 0; ch < 16; ch++) {

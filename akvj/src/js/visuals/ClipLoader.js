@@ -1,24 +1,31 @@
 /**
  * ClipLoader - Loads clip assets via key-map.json + flat clips.json catalog,
  * then builds the nested {channel: {note: {velocity: Clip}}} tree used by LayerGroup.
+ * Project resolution is delegated to ProjectCatalog.
  */
 import Clip from './Clip.js';
 import settings from '../core/settings.js';
+import { normalizeClipMetadata } from './clipMetadata.js';
+import ProjectCatalog from './ProjectCatalog.js';
 
 const DEFAULT_MAX_CONCURRENT_LOADS = 8;
 const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 class ClipLoader {
 	#displayContext;
+	#projectCatalog;
 
-	constructor(displayContext) {
+	/**
+	 * @param {CanvasRenderingContext2D} displayContext
+	 * @param {ProjectCatalog} [projectCatalog] - Injected for testing; created internally by default
+	 */
+	constructor(displayContext, projectCatalog) {
 		this.#displayContext = displayContext;
+		this.#projectCatalog = projectCatalog ?? new ProjectCatalog();
 	}
 
 	/**
 	 * Sanitize clip file name - prevents path traversal and ensures a safe filename.
-	 * Only allows alphanumeric names with valid image extensions; prevents edge cases
-	 * like '..png' or '-.png'.
 	 */
 	#sanitizeFileName(filename) {
 		if (!filename || typeof filename !== 'string') {
@@ -52,11 +59,9 @@ class ClipLoader {
 	async #loadJson(jsonUrl) {
 		const fetchUrl = import.meta.env.DEV ? `${jsonUrl}?t=${performance.now()}` : jsonUrl;
 		const response = await fetch(fetchUrl);
-
 		if (!response.ok) {
 			throw new Error(`HTTP error! status: ${response.status} for ${jsonUrl}`);
 		}
-
 		return response.json();
 	}
 
@@ -77,22 +82,25 @@ class ClipLoader {
 	}
 
 	/**
-	 * Create an Clip from clip metadata and loaded image
+	 * Create a Clip from clip metadata and loaded image
 	 */
 	#createClip(image, clipMetadata) {
 		try {
+			const normalized = normalizeClipMetadata(clipMetadata);
 			return new Clip({
 				displayContext: this.#displayContext,
 				image,
-				frames: clipMetadata.frames ?? clipMetadata.numberOfFrames,
-				framesPerRow: clipMetadata.framesPerRow,
-				playback: clipMetadata.playback ?? (clipMetadata.loop === false ? 'once' : 'loop'),
-				frameRatesForFrames: clipMetadata.frameRatesForFrames,
-				frameDurationBeats: clipMetadata.frameDurationBeats ?? null,
-				retrigger: clipMetadata.retrigger,
-				bitDepth: clipMetadata.bitDepth ?? null,
-				triggerType: clipMetadata.triggerType ?? 'momentary',
-				triggerGroup: clipMetadata.triggerGroup ?? null
+				frames: normalized.frames,
+				framesPerRow: normalized.framesPerRow,
+				playback: normalized.playback,
+				frameRatesForFrames: normalized.frameRatesForFrames,
+				frameDurationBeats: normalized.frameDurationBeats,
+				retrigger: normalized.retrigger,
+				bitDepth: normalized.bitDepth,
+				triggerType: normalized.triggerType,
+				triggerGroup: normalized.triggerGroup,
+				scaleMode: normalized.scaleMode,
+				placement: normalized.placement
 			});
 		} catch (error) {
 			console.error(`ClipLoader: invalid clip metadata for image ${clipMetadata.png}:`, error);
@@ -102,11 +110,6 @@ class ClipLoader {
 
 	/**
 	 * Load a single mapped clip into a MIDI slot.
-	 * @param {number} dawChannel - DAW channel 1–16 from key-map.json
-	 * @param {number|string} note
-	 * @param {number|string} velocityThreshold
-	 * @param {string} clipId
-	 * @param {Object} clipMetadata - Flat catalog entry
 	 */
 	async #loadMappedClip(dawChannel, note, velocityThreshold, clipId, clipMetadata, overrides = null) {
 		const validation = this.#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata);
@@ -175,18 +178,86 @@ class ClipLoader {
 
 	#buildMappingResult(safeClipId, sanitizedFilename, dawChannelNum) {
 		const normalizedBasePath = settings.performance.clipsBasePath.replace(/\/$/, '');
-		const imagePath = `${normalizedBasePath}/clips/${safeClipId}/${sanitizedFilename}`;
+		const projectId = this.#projectCatalog.activeProjectId ?? 'default';
+		const clipsPath = settings.performance.projectClipsPathTemplate.replace('{projectId}', projectId);
+		const imagePath = `${normalizedBasePath}${clipsPath}/${safeClipId}/${sanitizedFilename}`;
 		const codeChannel = String(dawChannelNum - 1);
 		return { safeClipId, imagePath, codeChannel };
 	}
 
+	// ── Project resolution (delegated to ProjectCatalog) ──
+
+	/**
+	 * Fetch the active project ID. Delegates to ProjectCatalog.
+	 * @returns {Promise<string|null>}
+	 */
+	async fetchActiveProjectId() {
+		return this.#projectCatalog.fetchActiveProjectId();
+	}
+
+	/**
+	 * Fetch the projects index. Delegates to ProjectCatalog.
+	 * @returns {Promise<Array<{id: string, name: string}>>}
+	 */
+	async fetchProjectsIndex() {
+		return this.#projectCatalog.fetchProjectsIndex();
+	}
+
+	/**
+	 * Build the key-map URL for a specific project. Delegates to ProjectCatalog.
+	 * @param {string} projectId
+	 * @returns {string}
+	 */
+	buildProjectKeyMapUrl(projectId) {
+		return this.#projectCatalog.buildProjectKeyMapUrl(projectId);
+	}
+
+	/**
+	 * Build the clips.json URL for a specific project. Delegates to ProjectCatalog.
+	 * @param {string} projectId
+	 * @returns {string}
+	 */
+	buildProjectClipsJsonUrl(projectId) {
+		return this.#projectCatalog.buildProjectClipsJsonUrl(projectId);
+	}
+
+	// ── Clip setup ──
+
 	/**
 	 * Set up all clips from key map + flat catalog URLs.
-	 * @param {string} [clipsJsonUrl] - Flat catalog URL (defaults to settings)
-	 * @param {string} [keyMapJsonUrl] - Key map URL (defaults to settings)
+	 * Uses the active project's clips.json + key-map when available.
+	 * @param {string} [clipsJsonUrl] - Flat catalog URL (defaults to settings / active project)
+	 * @param {string} [keyMapJsonUrl] - Key map URL (defaults to settings, overridden by active project)
 	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocity
 	 */
 	async setupClips(clipsJsonUrl = settings.performance.clipsJsonUrl, keyMapJsonUrl = settings.performance.keyMapJsonUrl) {
+		const activeProjectId = await this.fetchActiveProjectId();
+		this.#projectCatalog.setActiveProjectId(activeProjectId ?? 'default');
+		const effectiveKeyMapUrl = activeProjectId ? this.buildProjectKeyMapUrl(activeProjectId) : keyMapJsonUrl;
+		const effectiveClipsUrl = activeProjectId ? this.buildProjectClipsJsonUrl(activeProjectId) : clipsJsonUrl;
+		return this.#loadClipsFromKeyMap(effectiveClipsUrl, effectiveKeyMapUrl);
+	}
+
+	/**
+	 * Set up clips from a specific project's key-map and clips catalog.
+	 * Used for live project switching via MIDI.
+	 * @param {string} projectId - Project ID to load
+	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocity
+	 */
+	async setupClipsFromProject(projectId) {
+		this.#projectCatalog.setActiveProjectId(projectId);
+		const keyMapUrl = this.buildProjectKeyMapUrl(projectId);
+		const catalogUrl = this.buildProjectClipsJsonUrl(projectId);
+		return this.#loadClipsFromKeyMap(catalogUrl, keyMapUrl);
+	}
+
+	/**
+	 * Shared clip-loading path: fetch catalog + key-map, validate, build clip tree.
+	 * @param {string} clipsJsonUrl
+	 * @param {string} keyMapJsonUrl
+	 * @returns {Promise<Object>}
+	 */
+	async #loadClipsFromKeyMap(clipsJsonUrl, keyMapJsonUrl) {
 		const [clipsCatalog, keyMap] = await Promise.all([this.#loadJson(clipsJsonUrl), this.#loadJson(keyMapJsonUrl)]);
 
 		if (import.meta.env.DEV) {
@@ -210,7 +281,7 @@ class ClipLoader {
 	 * Build load tasks from the nested key map and the clip catalog.
 	 * Supports two mapping value formats:
 	 * - String: `"clipId"` (backward compatible)
-	 * - Object: `{ clipId, triggerType, triggerGroup }` (with overrides)
+	 * - Object: `{ clipId, triggerType?, triggerGroup?, sync?, syncLength?, syncBeats?, beatsPerBar? }`
 	 * @param {Object} keyMap - Nested {channel: {note: {velocity: clipId|mappingObject}}}
 	 * @param {Object} clipsCatalog - Flat clip metadata catalog
 	 * @returns {Function[]} Array of async load functions
@@ -236,7 +307,7 @@ class ClipLoader {
 	/**
 	 * Parse a mapping value from key-map.json.
 	 * Accepts both string (backward compatible) and object formats.
-	 * @param {string|Object} mappingValue - clipId string or { clipId, triggerType, triggerGroup }
+	 * @param {string|Object} mappingValue - clipId string or { clipId, …overrides }
 	 * @returns {{clipId: string, overrides: Object|null}}
 	 */
 	#parseMappingValue(mappingValue) {
@@ -252,8 +323,8 @@ class ClipLoader {
 
 	/**
 	 * Run load tasks in batches with a concurrency limit.
-	 * @param {Function[]} loadTasks - Array of async load functions
-	 * @returns {Promise<Array>} Flattened array of load results
+	 * @param {Function[]} loadTasks
+	 * @returns {Promise<Array>}
 	 */
 	async #runBatchedLoads(loadTasks) {
 		const maxConcurrentLoads = settings.performance?.maxConcurrentClipLoads ?? DEFAULT_MAX_CONCURRENT_LOADS;

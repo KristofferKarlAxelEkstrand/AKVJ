@@ -1,4 +1,6 @@
 import defaultSettings from './settings.js';
+import { MS_PER_MINUTE } from '../utils/timing.js';
+import { MAX_MIDI_VELOCITY } from '../visuals/effects/effectConstants.js';
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
 const EVENT_CLIPS_LOADED_CHANGED = 'clipsLoadedChanged';
@@ -12,14 +14,19 @@ const EVENT_MIDI_START = 'midiStart';
 const EVENT_MIDI_CONTINUE = 'midiContinue';
 const EVENT_MIDI_STOP = 'midiStop';
 const EVENT_VIDEO_JOCKEY_READY = 'videoJockeyReady';
+const EVENT_PROJECT_SWITCH = 'projectSwitch';
+const EVENT_PROJECT_LOAD_START = 'projectLoadStart';
+const EVENT_PROJECT_LOAD_COMPLETE = 'projectLoadComplete';
+const EVENT_PROJECT_LOAD_ERROR = 'projectLoadError';
+const EVENT_CLIP_LOAD_ERROR = 'clipLoadError';
+const EVENT_USER_MESSAGE = 'userMessage';
+const USER_MESSAGE_TYPES = new Set(['error', 'warning', 'info']);
 const BPM_SOURCE_DEFAULT = 'default';
 const BPM_SOURCE_MANUAL = 'manual';
 const BPM_SOURCE_CLOCK = 'clock';
 const BPM_SOURCE_CC = 'cc';
-const MAX_MIDI_CC_VALUE = 127;
 const MIN_CLOCK_INTERVALS_FOR_BPM = 6;
 const BPM_CHANGE_THRESHOLD = 0.01;
-const MS_PER_MINUTE = 60000;
 
 /**
  * AppState - Event-based state management for AKVJ
@@ -34,6 +41,8 @@ class AppState extends EventTarget {
 	#settings;
 	#isMidiConnected = false;
 	#isClipsLoaded = false;
+	#activeProjectId = null;
+	#projectSwitching = false;
 
 	// BPM state
 	#currentBPM;
@@ -62,7 +71,7 @@ class AppState extends EventTarget {
 	#convertCCToBPM(ccValue) {
 		const { min, max } = this.#settings.bpm;
 		const range = max - min;
-		return min + (ccValue / MAX_MIDI_CC_VALUE) * range;
+		return min + (ccValue / MAX_MIDI_VELOCITY) * range;
 	}
 
 	#dispatchStateEvent(eventName, detail) {
@@ -94,6 +103,63 @@ class AppState extends EventTarget {
 
 	get clipsLoaded() {
 		return this.#isClipsLoaded;
+	}
+
+	/**
+	 * Get the currently active project ID.
+	 * @returns {string|null}
+	 */
+	get activeProjectId() {
+		return this.#activeProjectId;
+	}
+
+	/**
+	 * Set the active project ID and dispatch switch event.
+	 * @param {string} projectId
+	 */
+	set activeProjectId(projectId) {
+		if (this.#activeProjectId !== projectId) {
+			this.#activeProjectId = projectId;
+			this.#dispatchStateEvent(EVENT_PROJECT_SWITCH, { projectId });
+		}
+	}
+
+	/**
+	 * Whether a project switch is currently in progress.
+	 * @returns {boolean}
+	 */
+	get projectSwitching() {
+		return this.#projectSwitching;
+	}
+
+	/**
+	 * Set project switching state and dispatch appropriate event.
+	 * @param {boolean} switching
+	 */
+	set projectSwitching(switching) {
+		this.#projectSwitching = switching;
+		if (switching) {
+			this.#dispatchStateEvent(EVENT_PROJECT_LOAD_START, {});
+		}
+	}
+
+	/**
+	 * Dispatch project load complete event.
+	 * @param {string} projectId
+	 */
+	dispatchProjectLoadComplete(projectId) {
+		this.#projectSwitching = false;
+		this.#dispatchStateEvent(EVENT_PROJECT_LOAD_COMPLETE, { projectId });
+	}
+
+	/**
+	 * Dispatch project load error event.
+	 * @param {string} projectId
+	 * @param {string} errorMessage
+	 */
+	dispatchProjectLoadError(projectId, errorMessage) {
+		this.#projectSwitching = false;
+		this.#dispatchStateEvent(EVENT_PROJECT_LOAD_ERROR, { projectId, errorMessage });
 	}
 
 	/**
@@ -144,6 +210,15 @@ class AppState extends EventTarget {
 	 */
 	dispatchMIDINoteOn(channel, note, velocity) {
 		this.#dispatchStateEvent(EVENT_MIDI_NOTE_ON, { channel, note, velocity });
+	}
+
+	/**
+	 * Dispatch a project selection request from MIDI.
+	 * The note number corresponds to a project index in the projects index array.
+	 * @param {number} note - MIDI note number (0-127), used as project index
+	 */
+	dispatchProjectSelection(note) {
+		this.#dispatchStateEvent(EVENT_PROJECT_SWITCH, { note });
 	}
 
 	/**
@@ -315,6 +390,8 @@ class AppState extends EventTarget {
 	reset() {
 		this.#isMidiConnected = false;
 		this.#isClipsLoaded = false;
+		this.#activeProjectId = null;
+		this.#projectSwitching = false;
 
 		this.#currentBPM = this.#settings.bpm.default;
 		this.#bpmSource = BPM_SOURCE_DEFAULT;
@@ -326,6 +403,43 @@ class AppState extends EventTarget {
 			this.#clockTimeoutId = null;
 		}
 		this.#resetGeneration++;
+	}
+
+	/**
+	 * Raise a user-facing modal message (consumed by `<user-messages>`).
+	 * @param {{ type?: 'error'|'warning'|'info', text: string }} options
+	 */
+	showUserMessage({ type = 'info', text } = {}) {
+		const normalizedType = USER_MESSAGE_TYPES.has(type) ? type : 'info';
+		const messageText = String(text ?? '').trim();
+		if (!messageText) {
+			return;
+		}
+		this.#dispatchStateEvent(EVENT_USER_MESSAGE, { type: normalizedType, text: messageText });
+	}
+
+	/**
+	 * Show an error message.
+	 * @param {string} text
+	 */
+	error(text) {
+		this.showUserMessage({ type: 'error', text });
+	}
+
+	/**
+	 * Show a warning message.
+	 * @param {string} text
+	 */
+	warn(text) {
+		this.showUserMessage({ type: 'warning', text });
+	}
+
+	/**
+	 * Show an info message.
+	 * @param {string} text
+	 */
+	info(text) {
+		this.showUserMessage({ type: 'info', text });
 	}
 }
 
@@ -340,5 +454,5 @@ export function createAppState(settings) {
 	return new AppState(settings);
 }
 
-export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, BPM_SOURCE_CLOCK };
+export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, BPM_SOURCE_CLOCK };
 export default appState;

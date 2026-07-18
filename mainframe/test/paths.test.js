@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidClipId, clipDir, rawAssetsDir, resolveSafeSpritePath, CLIPS_DIR, KEY_MAP_PATH, RAW_ASSETS_DIR } from '../server/paths.js';
+import { isValidClipId, isValidProjectId, deriveProjectId, clipDir, rawAssetsDir, resolveSafeSpritePath, CLIPS_DIR, KEY_MAP_PATH, RAW_ASSETS_DIR, PROJECTS_DIR, PROJECTS_INDEX_PATH, ACTIVE_PROJECT_PATH } from '../server/paths.js';
 import path from 'path';
 
 describe('paths', () => {
@@ -40,9 +40,10 @@ describe('paths', () => {
 	});
 
 	describe('clipDir', () => {
-		it('returns a path under CLIPS_DIR for valid clip IDs', () => {
+		it('returns a path under the project clips dir for valid clip IDs', () => {
 			const result = clipDir('c1-n0-v0');
 			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0'));
+			expect(result).toContain(path.join('projects', 'default', 'clips'));
 		});
 
 		it('throws for invalid clip IDs', () => {
@@ -112,6 +113,15 @@ describe('paths', () => {
 
 		it('exports KEY_MAP_PATH ending with key-map.json', () => {
 			expect(KEY_MAP_PATH.endsWith('key-map.json')).toBe(true);
+		});
+
+		it('exports project path helpers', () => {
+			expect(typeof PROJECTS_DIR).toBe('string');
+			expect(PROJECTS_INDEX_PATH.endsWith('index.json')).toBe(true);
+			expect(typeof ACTIVE_PROJECT_PATH).toBe('string');
+			expect(isValidProjectId('default')).toBe(true);
+			expect(isValidProjectId('123')).toBe(false);
+			expect(deriveProjectId('Gig Show')).toBe('gig-show');
 		});
 	});
 });

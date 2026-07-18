@@ -338,4 +338,117 @@ describe('validate.js extended validation', () => {
 			expect(result.errors).toHaveLength(0);
 		});
 	});
+
+	describe('sync field validation', () => {
+		test('accepts valid sync: "free"', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'free'
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toHaveLength(0);
+		});
+
+		test('accepts valid sync: "beat" with preset syncLength', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: '1 bar',
+				beatsPerBar: 4
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toHaveLength(0);
+		});
+
+		test('accepts custom syncLength with syncBeats', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: 'custom',
+				syncBeats: 6
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toHaveLength(0);
+		});
+
+		test('rejects invalid sync mode', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'bogus'
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('sync must be one of')]) }));
+		});
+
+		test('rejects invalid syncLength preset', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: '3 beats'
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('syncLength must be one of')]) }));
+		});
+
+		test('rejects custom syncLength without syncBeats', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: 'custom'
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('syncBeats is required')]) }));
+		});
+
+		test('rejects non-positive syncBeats', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: 'custom',
+				syncBeats: -1
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('syncBeats must be a positive number')]) }));
+		});
+
+		test('rejects non-integer beatsPerBar', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: '1 bar',
+				beatsPerBar: 3.5
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('beatsPerBar must be a positive integer')]) }));
+		});
+
+		test('rejects non-positive beatsPerBar', async () => {
+			await createTestClip('test-clip', {
+				png: 'sprite.png',
+				frames: 1,
+				framesPerRow: 1,
+				sync: 'beat',
+				syncLength: '1 bar',
+				beatsPerBar: 0
+			});
+			const result = await validate(testClipsDir);
+			expect(result.errors).toContainEqual(expect.objectContaining({ errors: expect.arrayContaining([expect.stringContaining('beatsPerBar must be a positive integer')]) }));
+		});
+	});
 });

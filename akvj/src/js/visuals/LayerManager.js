@@ -15,7 +15,7 @@ import settings from '../core/settings.js';
 import LayerGroup from './LayerGroup.js';
 import MaskManager from './MaskManager.js';
 import EffectsManager from './EffectsManager.js';
-import appState, { EVENT_MIDI_CONTROL_CHANGE } from '../core/AppState.js';
+import { MAX_MIDI_VELOCITY } from './effects/effectConstants.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip
@@ -42,11 +42,6 @@ class LayerManager {
 	/** @type {Array<{name: string, noteOn: Function, noteOff: Function}>} */
 	#handlers;
 
-	/** @type {Function|null} */
-	#unsubscribeCC = null;
-
-	#boundHandleControlChange = this.#handleControlChange.bind(this);
-
 	constructor() {
 		const { channelMapping } = settings;
 
@@ -62,19 +57,21 @@ class LayerManager {
 		// Handlers are checked in order for every MIDI note on/off event.
 		// This makes the routing logic explicit, easy to reorder, and simple to extend.
 		this.#handlers = this.#buildHandlers();
-
-		this.#unsubscribeCC = appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, this.#boundHandleControlChange);
 	}
 
-	#handleControlChange({ detail }) {
-		const { controller, value } = detail;
+	/**
+	 * Apply MIDI CC scrub (same entry path as noteOn/noteOff from AdventureKidVideoJockey).
+	 * @param {{detail: {controller: number, value: number}}} event
+	 */
+	handleControlChange(event) {
+		const { controller, value } = event.detail;
 		const { scrub } = settings;
 
 		if (!scrub) {
 			return;
 		}
 
-		const normalizedValue = value / 127;
+		const normalizedValue = value / MAX_MIDI_VELOCITY;
 
 		if (controller === scrub.layerGroupA_CC) {
 			this.#layerGroupA.setScrubPosition(normalizedValue);
@@ -221,15 +218,6 @@ class LayerManager {
 	 * Destroy LayerManager and release references
 	 */
 	destroy() {
-		if (this.#unsubscribeCC) {
-			try {
-				this.#unsubscribeCC();
-			} catch (error) {
-				console.error('Error unsubscribing CC in LayerManager:', error);
-			}
-			this.#unsubscribeCC = null;
-		}
-
 		try {
 			this.clearClips();
 		} catch (error) {

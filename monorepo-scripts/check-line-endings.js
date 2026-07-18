@@ -1,22 +1,23 @@
-import { execSync } from 'node:child_process';
+#!/usr/bin/env node
 import fs from 'node:fs';
+import { getTrackedTextFiles } from './lib/gitTrackedTextFiles.js';
+import { failWithOffenders } from './lib/report.js';
 
 const shouldFix = process.argv.includes('--fix');
-
-function getTrackedTextFiles() {
-	const output = execSync('git grep -Il ""', { encoding: 'utf8' });
-	return output
-		.split('\n')
-		.map(line => line.trim())
-		.filter(Boolean);
-}
 
 function normalizeToLF(content) {
 	return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
 function main() {
-	const files = getTrackedTextFiles();
+	let files;
+	try {
+		files = getTrackedTextFiles();
+	} catch (error) {
+		console.error(error.message);
+		process.exit(1);
+	}
+
 	const offenders = [];
 
 	for (const file of files) {
@@ -47,12 +48,7 @@ function main() {
 		return;
 	}
 
-	console.error(`Line ending check failed: found CRLF in ${offenders.length} file(s).`);
-	for (const file of offenders) {
-		console.error(`- ${file}`);
-	}
-	console.error('Run: npm run fix:eol');
-	process.exit(1);
+	failWithOffenders(`Line ending check failed: found CRLF in ${offenders.length} file(s).`, offenders, 'Run: npm run fix:eol');
 }
 
 main();

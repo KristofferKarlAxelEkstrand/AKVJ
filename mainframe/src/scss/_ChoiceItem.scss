@@ -1,0 +1,23 @@
+@mixin choice-item {
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	color: var(--muted);
+	cursor: pointer;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.6rem;
+
+	&:hover {
+		border-color: var(--accent);
+	}
+
+	&.is-selected {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--accent);
+		outline-offset: 1px;
+	}
+}

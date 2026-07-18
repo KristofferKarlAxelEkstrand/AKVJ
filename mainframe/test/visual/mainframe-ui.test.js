@@ -1,7 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import '../src/js/ClipList.js';
-import '../src/js/MappingTable.js';
-import '../src/js/ClipEditor.js';
+import '../../src/js/ClipList.js';
+import '../../src/js/MappingTable.js';
 
 /**
  * Visual regression tests for the Mainframe UI custom elements.
@@ -115,34 +114,5 @@ describe('MappingTable visual tests', () => {
 		mappingTable.clipCatalog = mockClipCatalog;
 
 		await expect(mappingTable).toMatchScreenshot('mainframe-mapping-table-empty');
-	});
-});
-
-describe('ClipEditor visual tests', () => {
-	test('clip editor form with metadata fields', async () => {
-		const editor = document.createElement('akvj-clip-editor');
-		editor.style.display = 'block';
-		editor.style.minHeight = '300px';
-		container.appendChild(editor);
-		editor.clip = {
-			clipId: 'c1-n0-v0',
-			meta: {
-				name: 'Test Clip Alpha',
-				frames: 12,
-				numberOfFrames: 12,
-				framesPerRow: 4,
-				playback: 'loop',
-				retrigger: true,
-				role: '',
-				bitDepth: 0,
-				png: 'sprite.png',
-				triggerType: 'momentary',
-				triggerGroup: '',
-				frameRatesForFrames: { 0: 12 },
-				frameDurationBeats: null
-			}
-		};
-
-		await expect(editor).toMatchScreenshot('mainframe-clip-editor');
 	});
 });

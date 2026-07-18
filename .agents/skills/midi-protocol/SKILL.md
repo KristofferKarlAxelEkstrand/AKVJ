@@ -1,4 +1,4 @@
-﻿---
+---
 name: midi-protocol
 description: >
   Deep MIDI protocol and Web MIDI API expertise for the AKVJ project.

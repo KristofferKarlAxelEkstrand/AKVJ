@@ -61,7 +61,7 @@ describe('Clip', () => {
 		clip.reset();
 
 		// Initial draw frame 0
-		clip.play(0);
+		clip.renderToContext(ctx, 0);
 		expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
@@ -73,7 +73,7 @@ describe('Clip', () => {
 		// Now a single pulse should advance the frame (pulsesPerFrame === 1)
 		appState.dispatchMIDIClock(100);
 		// Drawing after pulse should show frame 1
-		clip.play(100);
+		clip.renderToContext(ctx, 100);
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
 		// Dispose the clip (should unsubscribe from clock)
@@ -81,7 +81,7 @@ describe('Clip', () => {
 
 		// Another pulse should NOT advance the frame further
 		appState.dispatchMIDIClock(200);
-		clip.play(200);
+		clip.renderToContext(ctx, 200);
 		// The frame should remain the same (still frame 1)
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
@@ -182,11 +182,11 @@ describe('Clip', () => {
 
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
 			// Play once at t=0
-			clip.play();
+			clip.renderToContext(ctx);
 			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
 			mockNow.mockReturnValue(1000);
 			// Should not throw due to invalid frame rates
-			expect(() => clip.play()).not.toThrow();
+			expect(() => clip.renderToContext(ctx)).not.toThrow();
 			mockNow.mockRestore();
 		});
 	});
@@ -197,10 +197,10 @@ describe('Clip', () => {
 			// Use string keys to ensure coercion happens (JSON always parses keys as strings)
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 			// t=1ms (exactly interval) -> should advance to next frame
-			clip.play(1);
+			clip.renderToContext(ctx, 1);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
@@ -212,11 +212,11 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 			// t=1ms (exactly interval) -> should advance to next frame
 			mockNow.mockReturnValue(1);
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 			// Verify second draw is for frame 1 (sx = 120 for 240px width / 2 frames per row)
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120);
@@ -228,16 +228,16 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx }));
 
 			clip.destroy();
-			clip.play();
+			clip.renderToContext(ctx);
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
 		});
 
 		test('returns early if displayContext is null', () => {
-			// Creating a clip with a null canvas context should return early
+			// Rendering with a null canvas context should return early
 			// (no errors and no drawing occurs).
 			const clipWithNullCtx = new Clip(defaultOptions({ displayContext: null }));
-			expect(() => clipWithNullCtx.play()).not.toThrow();
+			expect(() => clipWithNullCtx.renderToContext(null)).not.toThrow();
 		});
 
 		test('draws frame 0 on first play call without skipping', () => {
@@ -251,7 +251,7 @@ describe('Clip', () => {
 			);
 
 			// First play call should render the initial frame without requiring time to elapse
-			clip.play();
+			clip.renderToContext(ctx);
 
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 			// First call args: image, sx, sy, sw, sh, dx, dy, dw, dh
@@ -273,7 +273,7 @@ describe('Clip', () => {
 			);
 
 			// First call via play() — should draw frame 0
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
 			// Second call via renderToContext() with same timestamp — should be skipped
@@ -298,11 +298,11 @@ describe('Clip', () => {
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
 
-			clip.play(); // Initialize at t=0
+			clip.renderToContext(ctx); // Initialize at t=0
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
 			// Still at t=0, should not advance or redraw (guarded by #lastRenderTimestamp)
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
 			// Verify still on frame 0 (sx=0)
@@ -316,11 +316,11 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 			// t=350ms -> should advance 3 frames (floor(350/100)=3)
 			mockNow.mockReturnValue(350);
-			clip.play();
+			clip.renderToContext(ctx);
 			// Check last drawn frame (frame index should be 3)
 			const lastCall = ctx.drawImage.mock.calls.at(-1);
 			const frameWidth = 240 / 10;
@@ -329,7 +329,7 @@ describe('Clip', () => {
 			// t=400ms -> the 50ms leftover should be preserved, so elapsed becomes 100ms and
 			// exactly one more frame should be advanced
 			mockNow.mockReturnValue(400);
-			clip.play();
+			clip.renderToContext(ctx);
 			const secondCall = ctx.drawImage.mock.calls.at(-1);
 			expect(secondCall[1]).toBe(frameWidth * 4);
 
@@ -342,9 +342,9 @@ describe('Clip', () => {
 			// frame 0 = 10fps (100ms), frame 1 = 20fps (50ms) so 130ms should advance 1 frame
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 			mockNow.mockReturnValue(130);
-			clip.play();
+			clip.renderToContext(ctx);
 			// After advancing, we should be on frame 1
 			const lastCall = ctx.drawImage.mock.calls.at(-1);
 			const frameWidth = 240 / 4;
@@ -366,13 +366,13 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play(); // Initialize lastTime, draw frame 0
+			clip.renderToContext(ctx); // Initialize lastTime, draw frame 0
 
 			mockNow.mockReturnValue(10);
-			clip.play(); // Advances to frame 1, draws frame 1
+			clip.renderToContext(ctx); // Advances to frame 1, draws frame 1
 
 			mockNow.mockReturnValue(20);
-			clip.play(); // Advances to frame 2 (>= frames), draws clamped frame 1
+			clip.renderToContext(ctx); // Advances to frame 2 (>= frames), draws clamped frame 1
 
 			// Now #frame === 2 which is >= frames, and the clip should be marked finished
 			expect(clip.isFinished).toBe(true);
@@ -380,7 +380,7 @@ describe('Clip', () => {
 			// next play() returns early
 			const callCount = ctx.drawImage.mock.calls.length;
 			mockNow.mockReturnValue(30);
-			clip.play(); // Should return early without drawing
+			clip.renderToContext(ctx); // Should return early without drawing
 
 			// Verify no additional draw after completion
 			expect(ctx.drawImage.mock.calls.length).toBe(callCount);
@@ -403,13 +403,13 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play(); // draw frame 0
+			clip.renderToContext(ctx); // draw frame 0
 
 			mockNow.mockReturnValue(10);
-			clip.play(); // draw frame 1
+			clip.renderToContext(ctx); // draw frame 1
 
 			mockNow.mockReturnValue(20);
-			clip.play(); // should wrap back to frame 0
+			clip.renderToContext(ctx); // should wrap back to frame 0
 
 			// Verify last draw was frame 0
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
@@ -423,16 +423,16 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			mockNow.mockReturnValue(100);
-			clip.play(); // Advance some frames
+			clip.renderToContext(ctx); // Advance some frames
 
 			clip.stop();
 
 			// After stop, next play should start from frame 0
 			mockNow.mockReturnValue(200);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			// Verify drawing frame 0 (sx=0)
 			const lastCall = ctx.drawImage.mock.calls.at(-1);
@@ -447,15 +447,15 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			mockNow.mockReturnValue(100);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			clip.reset();
 
 			mockNow.mockReturnValue(200);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			const lastCall = ctx.drawImage.mock.calls.at(-1);
 			expect(lastCall[1]).toBe(0);
@@ -476,11 +476,11 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play(); // frame 0
+			clip.renderToContext(ctx); // frame 0
 			mockNow.mockReturnValue(10);
-			clip.play(); // frame 1
+			clip.renderToContext(ctx); // frame 1
 			mockNow.mockReturnValue(20);
-			clip.play(); // past last frame -> finished
+			clip.renderToContext(ctx); // past last frame -> finished
 			expect(clip.isFinished).toBe(true);
 
 			// A new note-on resets a finished one-shot
@@ -488,7 +488,7 @@ describe('Clip', () => {
 			expect(clip.isFinished).toBe(false);
 
 			mockNow.mockReturnValue(30);
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 		});
 
@@ -508,15 +508,15 @@ describe('Clip', () => {
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
-			clip.play(); // frame 0
+			clip.renderToContext(ctx); // frame 0
 			mockNow.mockReturnValue(10);
-			clip.play(); // frame 1
+			clip.renderToContext(ctx); // frame 1
 			expect(clip.isFinished).toBe(false);
 
 			clip.reset(); // mid-playback with retrigger disabled: no restart
 
 			mockNow.mockReturnValue(12);
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(frameWidth); // still frame 1
 		});
 	});
@@ -543,12 +543,12 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			mockNow.mockReturnValue(0);
-			clip.play(); // initial draw (frame 0, not yet shuffled)
+			clip.renderToContext(ctx); // initial draw (frame 0, not yet shuffled)
 
 			const seenFrames = [];
 			for (let t = 1; t <= frames; t++) {
 				mockNow.mockReturnValue(t);
-				clip.play();
+				clip.renderToContext(ctx);
 				seenFrames.push(frameIndexFromDrawCall(ctx.drawImage.mock.calls.at(-1), frameWidth, frameHeight, framesPerRow));
 			}
 
@@ -569,13 +569,13 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			const seenFrames = [];
 			// Advance through two full cycles (8 advances)
 			for (let t = 1; t <= frames * 2; t++) {
 				mockNow.mockReturnValue(t);
-				clip.play();
+				clip.renderToContext(ctx);
 				seenFrames.push(frameIndexFromDrawCall(ctx.drawImage.mock.calls.at(-1), frameWidth, frameHeight, framesPerRow));
 			}
 
@@ -592,9 +592,9 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 1, framesPerRow: 1, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			expect(() => {
-				clip.play(0);
-				clip.play(1);
-				clip.play(2);
+				clip.renderToContext(ctx, 0);
+				clip.renderToContext(ctx, 1);
+				clip.renderToContext(ctx, 2);
 			}).not.toThrow();
 		});
 
@@ -604,15 +604,15 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 4, framesPerRow: 4, playback: 'shuffle', retrigger: true, frameRatesForFrames: { 0: 1000 } }));
 
 			mockNow.mockReturnValue(0);
-			clip.play();
+			clip.renderToContext(ctx);
 			mockNow.mockReturnValue(1);
-			clip.play();
+			clip.renderToContext(ctx);
 
 			// Reset should not throw and should allow shuffle to continue working
 			clip.reset();
 			expect(() => {
 				mockNow.mockReturnValue(2);
-				clip.play();
+				clip.renderToContext(ctx);
 			}).not.toThrow();
 
 			mockNow.mockRestore();
@@ -624,12 +624,12 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(defaultOptions({ displayContext: ctx }));
 
-			clip.play();
+			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalled();
 
 			ctx.drawImage.mockClear();
 			clip.destroy();
-			clip.play();
+			clip.renderToContext(ctx);
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
 		});
@@ -652,15 +652,15 @@ describe('Clip', () => {
 			);
 
 			// t=0 -> initial draw (frame 0)
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
 
 			// t=249ms -> should still be on frame 0
-			clip.play(249);
+			clip.renderToContext(ctx, 249);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // sx=0 for frame 0
 
 			// t=250ms -> should advance to frame 1
-			clip.play(250);
+			clip.renderToContext(ctx, 250);
 			// Frame 1: sx = 60 (240px width / 4 frames)
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60);
 		});
@@ -681,15 +681,15 @@ describe('Clip', () => {
 			);
 
 			// t=0 -> initial draw (frame 0)
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
 			// t=125ms -> should advance to frame 1
-			clip.play(125);
+			clip.renderToContext(ctx, 125);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60); // Frame 1
 
 			// t=375ms -> should advance to frame 2 (125 + 250 = 375)
-			clip.play(375);
+			clip.renderToContext(ctx, 375);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 2
 		});
 
@@ -708,11 +708,11 @@ describe('Clip', () => {
 			);
 
 			// t=0 -> frame 0
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
 			// t=499ms at 60 BPM -> still frame 0 (need 500ms)
-			clip.play(499);
+			clip.renderToContext(ctx, 499);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
 			// Reset appState to 120 BPM for other tests
@@ -752,14 +752,14 @@ describe('Clip', () => {
 			);
 
 			// t=0 -> frame 0
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 
 			// t=10ms -> if FPS were used, would advance. With BPM sync, stays on frame 0
-			clip.play(10);
+			clip.renderToContext(ctx, 10);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // Still frame 0
 
 			// t=250ms -> BPM sync advances
-			clip.play(250);
+			clip.renderToContext(ctx, 250);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 1
 		});
 
@@ -779,7 +779,7 @@ describe('Clip', () => {
 
 			// Activate clip and draw initial frame
 			clip.reset();
-			clip.play(0);
+			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
 			// Simulate clock sync mode: send enough pulses to set bpmSource to clock
@@ -789,8 +789,8 @@ describe('Clip', () => {
 			expect(appState.bpmSource).toBe('clock');
 
 			// While in clock mode, play() should not advance frames via time
-			clip.play(2000);
-			clip.play(3000);
+			clip.renderToContext(ctx, 2000);
+			clip.renderToContext(ctx, 3000);
 			// Frame should still be 0 (clock pulses drive advancement, not time)
 			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
 
@@ -799,10 +799,243 @@ describe('Clip', () => {
 			appState.bpm = 120; // Restore BPM after reset
 
 			// Now play at t=4000 — should NOT burst-advance due to stale #lastTime
-			clip.play(4000);
+			clip.renderToContext(ctx, 4000);
 			// Should be on frame 0 or 1 at most, not frame 3 (which would indicate catch-up)
 			const sx = ctx.drawImage.mock.calls.at(-1)[1];
 			expect(sx).toBeLessThan(120); // Less than frame 2's sx
 		});
+	});
+});
+
+describe('Clip — scaleMode + placement', () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	test('stretch mode draws to full canvas (legacy behavior)', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(240, 135);
+		const clip = new Clip(defaultOptions({ image, frames: 1, framesPerRow: 1, scaleMode: 'stretch' }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// drawImage(img, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight)
+		expect(call[5]).toBe(0); // dx
+		expect(call[6]).toBe(0); // dy
+		expect(call[7]).toBe(240); // dWidth = canvasWidth
+		expect(call[8]).toBe(135); // dHeight = canvasHeight
+	});
+
+	test('fit mode with default-size clip produces same result as stretch', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(240, 135);
+		const clip = new Clip(defaultOptions({ image, frames: 1, framesPerRow: 1, scaleMode: 'fit' }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		expect(call[5]).toBe(0); // dx = 0 (centered, no offset)
+		expect(call[6]).toBe(0); // dy = 0
+		expect(call[7]).toBe(240); // dWidth = full canvas
+		expect(call[8]).toBe(135); // dHeight = full canvas
+	});
+
+	test('fit mode with smaller clip letterboxes centered', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(120, 68);
+		const clip = new Clip(defaultOptions({ image, frames: 1, framesPerRow: 1, scaleMode: 'fit' }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// scale = min(240/120, 135/68) = 135/68 ≈ 1.9853
+		// dWidth = floor(120 * 1.9853) = 238
+		// dHeight = floor(68 * 1.9853) = floor(135.0) = 135
+		// dx = floor((240 - 238) / 2) = 1
+		// dy = floor((135 - 135) / 2) = 0
+		expect(call[7]).toBe(238); // dWidth
+		expect(call[8]).toBe(135); // dHeight
+		expect(call[5]).toBe(1); // dx centered
+		expect(call[6]).toBe(0); // dy centered
+	});
+
+	test('fit mode with placement offsets the draw position', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(120, 68);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'fit',
+				placement: { x: 10, y: 5 }
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// Without placement: dx=1, dy=0. With placement x=10, y=5: dx=11, dy=5
+		expect(call[5]).toBe(11); // dx = snapToPixel(1 + 10)
+		expect(call[6]).toBe(5); // dy = snapToPixel(0 + 5)
+	});
+
+	test('stretch mode ignores placement', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(240, 135);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'stretch',
+				placement: { x: 50, y: 30 }
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		expect(call[5]).toBe(0); // dx = 0 (placement ignored)
+		expect(call[6]).toBe(0); // dy = 0
+	});
+
+	test('pattern mode tiles to fill canvas', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(60, 45);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'pattern'
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		// 60×45 tiles on 240×135 canvas: 4 columns × 3 rows = 12 tiles
+		// But tiling starts from negative offset to cover edges, so may be more
+		const drawCalls = ctx.drawImage.mock.calls;
+		expect(drawCalls.length).toBeGreaterThanOrEqual(12);
+
+		// Each tile should be drawn at native size (60×45)
+		for (const call of drawCalls) {
+			expect(call[7]).toBe(60); // dWidth = tileWidth
+			expect(call[8]).toBe(45); // dHeight = tileHeight
+		}
+	});
+
+	test('pattern mode with placement shifts tile grid', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(60, 45);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'pattern',
+				placement: { x: 30, y: 0 }
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const drawCalls = ctx.drawImage.mock.calls;
+		// With offset x=30, the first tile column starts at 30 - 60 = -30
+		const firstDx = drawCalls[0][5];
+		expect(firstDx).toBe(-30); // offsetX - tileWidth = 30 - 60 = -30
+	});
+
+	test('whole-pixel snapping: fractional placement produces integer draw coords', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(100, 100);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'none',
+				placement: { x: 10.7, y: 20.3 }
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// none mode: 100×100 clip on 240×135 canvas
+		// dx = max(0, floor((240-100)/2)) = 70, dy = max(0, floor((135-100)/2)) = 17
+		// placedX = floor(70 + 10.7) = 80, placedY = floor(17 + 20.3) = 37
+		expect(Number.isInteger(call[5])).toBe(true);
+		expect(Number.isInteger(call[6])).toBe(true);
+		expect(call[5]).toBe(80);
+		expect(call[6]).toBe(37);
+	});
+
+	test('legacy clip (no scaleMode/placement) defaults to fit + centered', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(240, 135);
+		const clip = new Clip(defaultOptions({ image, frames: 1, framesPerRow: 1 }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// Default scaleMode is 'fit', default placement is {0,0}
+		// 240×135 clip on 240×135 canvas with fit = full canvas, centered at 0,0
+		expect(call[5]).toBe(0);
+		expect(call[6]).toBe(0);
+		expect(call[7]).toBe(240);
+		expect(call[8]).toBe(135);
+	});
+
+	test('cover mode scales to cover canvas', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(120, 100);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'cover'
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// scale = max(240/120, 135/100) = max(2, 1.35) = 2
+		// sWidth = 120/2 = 60, sHeight = 100/2 = 50
+		// dWidth = 240, dHeight = 135
+		expect(call[7]).toBe(240); // dWidth = canvasWidth
+		expect(call[8]).toBe(135); // dHeight = canvasHeight
+		expect(call[3]).toBe(60); // sWidth (cropped source)
+		expect(call[4]).toBe(50); // sHeight
+	});
+
+	test('none mode with larger clip does centered crop', () => {
+		const ctx = createMockDrawContext();
+		const image = createMockImage(300, 200);
+		const clip = new Clip(
+			defaultOptions({
+				image,
+				frames: 1,
+				framesPerRow: 1,
+				scaleMode: 'none'
+			})
+		);
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+
+		const call = ctx.drawImage.mock.calls[0];
+		// none: sWidth = min(300, 240) = 240, sHeight = min(200, 135) = 135
+		// sx = max(0, floor((300-240)/2)) = 30, sy = max(0, floor((200-135)/2)) = 32
+		// dx = 0, dy = 0 (source larger than target)
+		expect(call[1]).toBe(30); // sx
+		expect(call[2]).toBe(32); // sy
+		expect(call[5]).toBe(0); // dx
+		expect(call[6]).toBe(0); // dy
+		expect(call[7]).toBe(240); // dWidth
+		expect(call[8]).toBe(135); // dHeight
 	});
 });

@@ -34,11 +34,11 @@ describe('createClipFromFrames', () => {
 	});
 
 	test('rejects empty frame array', async () => {
-		await expect(createClipFromFrames({ clipId: 'test-clip', frameBuffers: [] })).rejects.toThrow('At least one frame PNG is required');
+		await expect(createClipFromFrames({ clipId: 'test-clip', frameBuffers: [] })).rejects.toThrow('At least one frame image is required');
 	});
 
 	test('rejects non-array frameBuffers', async () => {
-		await expect(createClipFromFrames({ clipId: 'test-clip', frameBuffers: null })).rejects.toThrow('At least one frame PNG is required');
+		await expect(createClipFromFrames({ clipId: 'test-clip', frameBuffers: null })).rejects.toThrow('At least one frame image is required');
 	});
 
 	test('creates a clip with a single frame', async () => {
@@ -54,6 +54,32 @@ describe('createClipFromFrames', () => {
 		const metaPath = path.join(clipsDir, 'single-frame', 'meta.json');
 		expect(await fs.access(spritePath).then(() => true)).toBe(true);
 		expect(await fs.access(metaPath).then(() => true)).toBe(true);
+	});
+
+	test('creates a clip from JPEG and GIF stills', async () => {
+		const { default: sharp } = await import('sharp');
+		const jpegBuf = await sharp({
+			create: { width: 1, height: 1, channels: 3, background: { r: 255, g: 0, b: 0 } }
+		})
+			.jpeg()
+			.toBuffer();
+		const gifBuf = await sharp({
+			create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 255, b: 0 } }
+		})
+			.gif()
+			.toBuffer();
+
+		const jpegResult = await createClipFromFrames({
+			clipId: 'jpeg-still',
+			frameBuffers: [jpegBuf]
+		});
+		expect(jpegResult.frames).toBe(1);
+
+		const gifResult = await createClipFromFrames({
+			clipId: 'gif-still',
+			frameBuffers: [gifBuf]
+		});
+		expect(gifResult.frames).toBe(1);
 	});
 
 	test('creates a clip with multiple frames', async () => {
@@ -101,13 +127,52 @@ describe('createClipFromFrames', () => {
 		expect(meta.frameRatesForFrames[0]).toBe(24);
 	});
 
-	test('rejects frames with mismatched dimensions', async () => {
-		await expect(
-			createClipFromFrames({
-				clipId: 'mismatch',
-				frameBuffers: [makeFrame(PNG_1x1), makeFrame(PNG_2x2)]
-			})
-		).rejects.toThrow('All frames must share the same dimensions');
+	test('accepts frames with mismatched dimensions using fit scale mode', async () => {
+		const result = await createClipFromFrames({
+			clipId: 'mismatch',
+			frameBuffers: [makeFrame(PNG_1x1), makeFrame(PNG_2x2)],
+			targetWidth: 8,
+			targetHeight: 8,
+			scaleMode: 'fit'
+		});
+		expect(result.frames).toBe(2);
+		const meta = JSON.parse(await fs.readFile(path.join(clipsDir, 'mismatch', 'meta.json'), 'utf-8'));
+		expect(meta.scaleMode).toBe('fit');
+		expect(meta.frameWidth).toBe(8);
+		expect(meta.frameHeight).toBe(8);
+	});
+
+	test('preserves alpha channel in fitted spritesheet', async () => {
+		const { default: sharp } = await import('sharp');
+		const transparentPng = await sharp({
+			create: { width: 2, height: 2, channels: 4, background: { r: 255, g: 0, b: 0, alpha: 0 } }
+		})
+			.png()
+			.toBuffer();
+		await createClipFromFrames({
+			clipId: 'alpha-clip',
+			frameBuffers: [transparentPng],
+			targetWidth: 4,
+			targetHeight: 4,
+			scaleMode: 'fit'
+		});
+		const sprite = await sharp(path.join(clipsDir, 'alpha-clip', 'sprite.png')).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+		expect(sprite.info.channels).toBe(4);
+		// Corner pixel of letterboxed fit should be transparent
+		expect(sprite.data[3]).toBe(0);
+	});
+
+	test('none scale mode centers without stretching', async () => {
+		const result = await createClipFromFrames({
+			clipId: 'none-scale',
+			frameBuffers: [makeFrame(PNG_1x1)],
+			targetWidth: 4,
+			targetHeight: 4,
+			scaleMode: 'none'
+		});
+		expect(result.frames).toBe(1);
+		const meta = JSON.parse(await fs.readFile(path.join(clipsDir, 'none-scale', 'meta.json'), 'utf-8'));
+		expect(meta.scaleMode).toBe('none');
 	});
 
 	test('rejects when clip already exists', async () => {

@@ -1,0 +1,50 @@
+user-message {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: min(28rem, calc(100vw - 2rem));
+	padding: 1.25rem 1.5rem;
+	border-radius: 4px;
+	border: 2px solid var(--user-message-border, #444);
+	background: var(--user-message-bg, #1a1a1a);
+	color: var(--user-message-fg, #f2f2f2);
+	box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+user-message[data-type='error'] {
+	--user-message-border: #c62828;
+	--user-message-bg: #2a1212;
+}
+
+user-message[data-type='warning'] {
+	--user-message-border: #ef6c00;
+	--user-message-bg: #2a1c0c;
+}
+
+user-message[data-type='info'] {
+	--user-message-border: #1565c0;
+	--user-message-bg: #0f1a2a;
+}
+
+.user-message-title {
+	margin: 0;
+	font-size: 1rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.user-message-body {
+	margin: 0;
+	font-size: 0.95rem;
+	line-height: 1.4;
+	white-space: pre-wrap;
+}
+
+.user-message-ok {
+	align-self: flex-end;
+	min-width: 4.5rem;
+	padding: 0.4rem 1rem;
+	font: inherit;
+	cursor: pointer;
+}

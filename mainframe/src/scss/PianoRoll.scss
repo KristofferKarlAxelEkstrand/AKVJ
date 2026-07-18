@@ -1,0 +1,122 @@
+piano-roll {
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	left: 0;
+	position: sticky;
+	width: 100%;
+	z-index: 10;
+
+	.piano-roll-channel-bar {
+		align-items: center;
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.piano-roll-channel-bar label {
+		align-items: center;
+		color: var(--muted, #9a968c);
+		display: flex;
+		font-size: 0.85rem;
+		gap: 0.5rem;
+	}
+
+	.piano-roll-channel {
+		background: var(--surface, #1c2030);
+		border: 1px solid var(--line, #2f3548);
+		color: var(--ink, #e8e6e1);
+		font: inherit;
+		font-size: 0.85rem;
+		padding: 0.3rem 0.4rem;
+	}
+
+	.piano-roll-keys {
+		bottom: 0;
+		display: flex;
+		gap: 2px;
+		overflow-x: auto;
+		width: 100%;
+	}
+
+	piano-key {
+		height: 8rem;
+		width: 1.5rem;
+	}
+
+	&.is-edit piano-key {
+		height: 10rem;
+		width: 1.75rem;
+	}
+
+	&.is-compact {
+		background: #1e1e2e;
+		border-bottom: 2px solid #444;
+		padding: 0.2rem 0;
+		top: 0;
+
+		piano-key {
+			height: 3.5rem;
+			width: 1rem;
+		}
+
+		.piano-key-label {
+			bottom: 0.1rem;
+			font-size: 0.45rem;
+		}
+	}
+
+	&.is-play {
+		.piano-roll-keys {
+			user-select: none;
+		}
+
+		piano-key.is-active {
+			outline: 2px solid var(--accent, #d9773a);
+			outline-offset: -2px;
+		}
+	}
+
+	.piano-roll-clip-view {
+		background: color-mix(in srgb, var(--surface, #1c2030) 92%, transparent);
+		border-top: 1px solid var(--line, #2f3548);
+		color: var(--ink, #e8e6e1);
+		font-size: 0.85rem;
+		padding: 0.5rem 0.75rem;
+	}
+
+	.piano-roll-clip-view[hidden] {
+		display: none;
+	}
+
+	.piano-roll-clip-view-heading {
+		color: var(--muted, #9a968c);
+		font-size: 0.8rem;
+		margin: 0 0 0.35rem;
+	}
+
+	.piano-roll-clip-view-empty {
+		color: var(--muted, #9a968c);
+		font-style: italic;
+		margin: 0;
+	}
+
+	.piano-roll-clip-list {
+		display: grid;
+		gap: 0.25rem;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.piano-roll-clip-item {
+		align-items: baseline;
+		display: flex;
+		gap: 0.75rem;
+		justify-content: space-between;
+	}
+
+	.piano-roll-clip-item span {
+		color: var(--muted, #9a968c);
+		font-size: 0.8rem;
+	}
+}

@@ -17,7 +17,6 @@ describe('DebugOverlay', () => {
 		}
 		// Clean up any leftover DOM
 		document.getElementById('debug-overlay')?.remove();
-		document.getElementById('debug-overlay-styles')?.remove();
 	});
 
 	test('constructor creates overlay element with correct id', () => {

@@ -16,21 +16,24 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isValidClipId } from '../../shared/clipId.js';
+import { DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE } from '../../shared/clipSchema.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MAINFRAME_ROOT = path.resolve(__dirname, '../..'); // mainframe/
 const REPO_ROOT = path.resolve(MAINFRAME_ROOT, '..');
-
-const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 const template = {
 	name: '',
 	png: 'sprite.png',
 	frames: 1,
 	framesPerRow: 1,
-	playback: 'loop',
+	playback: DEFAULT_PLAYBACK,
 	retrigger: true,
-	frameRatesForFrames: { 0: 12 }
+	frameRatesForFrames: { 0: DEFAULT_FRAME_RATE },
+	scaleMode: DEFAULT_SCALE_MODE,
+	frameWidth: DEFAULT_FRAME_WIDTH,
+	frameHeight: DEFAULT_FRAME_HEIGHT
 };
 
 /**
@@ -38,11 +41,11 @@ const template = {
  * @param {{role?: string, clipsRoot?: string}} [options]
  */
 export async function createClip(clipId, options = {}) {
-	if (!CLIP_ID_PATTERN.test(clipId) || /^\d+$/.test(clipId)) {
+	if (!isValidClipId(clipId)) {
 		throw new Error(`Invalid clipId "${clipId}" (use alphanumeric / hyphen / underscore, not a bare number)`);
 	}
 
-	const clipsRoot = options.clipsRoot ?? path.join(REPO_ROOT, 'clips');
+	const clipsRoot = options.clipsRoot ?? path.join(REPO_ROOT, 'projects/default/clips');
 	const dir = path.join(clipsRoot, clipId);
 	await validateClipDirDoesNotExist(dir);
 
@@ -83,7 +86,7 @@ function printCreateInstructions(relativeDir) {
 	console.log('Next steps:');
 	console.log('  1. Add your sprite.png to the same folder');
 	console.log('  2. Update meta.json with correct frames and framesPerRow');
-	console.log('  3. Map the clip in clips/key-map.json (or Mainframe Mapping UI)');
+	console.log('  3. Map the clip in projects/<id>/key-map.json (or Mainframe Mapping UI)');
 	console.log('  4. Run: npm run clips');
 }
 

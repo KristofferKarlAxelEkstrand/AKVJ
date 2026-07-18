@@ -46,16 +46,6 @@ Fixes encoding issues across the codebase.
 **Trigger:**
 > `Read the latest .agents/prompts/enforce-utf8.prompt.md from disk and execute its workflow.`
 
-### MIDI MCP Developer
-Iterative agent that transforms raw MIDI markdown documents into strictly-typed JSON via programmatic transformers, updating its memory across runs.
-**Trigger:**
-> `Read the latest .agents/prompts/midi-mcp-developer.prompt.md from disk and execute exactly one iteration of its workflow.`
-
-### Server Architect
-Iterative agent dedicated to deeply decoupling the lightweight visualizer (`akvj`) from the heavy clip manager (`mainframe`). Manages its own architecture ledger.
-**Trigger:**
-> `Read the latest .agents/workflows/servers/akvj-and-mainframe.prompt.md from disk and execute exactly one iteration of its workflow.`
-
 ### Resume Work
 If the AI stopped before finishing a long task.
 **Trigger:**

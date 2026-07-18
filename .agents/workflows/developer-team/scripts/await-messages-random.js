@@ -93,10 +93,10 @@ function checkDirectories() {
 // 1. Check immediately on startup
 checkDirectories();
 
-// Generate a random timeout between 2 and 5 minutes
-// min 2 mins = 120,000 ms, max 5 mins = 300,000 ms
-const MIN_TIMEOUT_MS = 2 * 60 * 1000;
-const MAX_TIMEOUT_MS = 5 * 60 * 1000;
+// Generate a random timeout between 10 and 20 minutes
+// (Overseer product+process sweeps are expensive; keep idle wakes sparse)
+const MIN_TIMEOUT_MS = 10 * 60 * 1000;
+const MAX_TIMEOUT_MS = 20 * 60 * 1000;
 const randomTimeoutMs = Math.floor(Math.random() * (MAX_TIMEOUT_MS - MIN_TIMEOUT_MS + 1)) + MIN_TIMEOUT_MS;
 
 console.log(`Listening for new messages in: ${dirs.join(', ')}...`);
@@ -110,7 +110,7 @@ setTimeout(() => {
     console.log(`\n========================================`);
     console.log(`RANDOM SWEEP TRIGGERED!`);
     console.log(`========================================\n`);
-    console.log(`Overseer waking up for a random bug-hunting sweep...`);
+    console.log(`Overseer waking up for a random sweep (10–20 min idle)...`);
     saveState();
     process.exit(0);
 }, randomTimeoutMs);

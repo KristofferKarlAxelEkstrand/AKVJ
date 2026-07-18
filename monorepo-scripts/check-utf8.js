@@ -1,24 +1,25 @@
-import { execSync } from 'node:child_process';
+#!/usr/bin/env node
 import fs from 'node:fs';
 import { TextDecoder } from 'node:util';
+import { getTrackedTextFiles } from './lib/gitTrackedTextFiles.js';
+import { failWithOffenders } from './lib/report.js';
 
 const shouldFix = process.argv.includes('--fix');
 const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
-
-function getTrackedTextFiles() {
-	const output = execSync('git grep -Il ""', { encoding: 'utf8' });
-	return output
-		.split('\n')
-		.map(line => line.trim())
-		.filter(Boolean);
-}
 
 function hasUtf8Bom(buffer) {
 	return buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf;
 }
 
 function main() {
-	const files = getTrackedTextFiles();
+	let files;
+	try {
+		files = getTrackedTextFiles();
+	} catch (error) {
+		console.error(error.message);
+		process.exit(1);
+	}
+
 	const bomFiles = [];
 	const invalidFiles = [];
 
@@ -72,20 +73,12 @@ function main() {
 	}
 
 	if (invalidFiles.length > 0) {
-		console.error(`UTF-8 fix could not auto-repair ${invalidFiles.length} invalid file(s):`);
-		for (const file of invalidFiles) {
-			console.error(`- ${file}`);
-		}
-		console.error('Please re-save these files as UTF-8 manually.');
-		process.exit(1);
+		failWithOffenders(`UTF-8 fix could not auto-repair ${invalidFiles.length} invalid file(s):`, invalidFiles, 'Please re-save these files as UTF-8 manually.');
 	}
 
 	if (bomFiles.length > 0) {
 		console.log('UTF-8 fix completed: all tracked text files are valid UTF-8 without BOM.');
-		return;
 	}
-
-	console.log('UTF-8 check passed: all tracked text files are valid UTF-8 without BOM.');
 }
 
 main();

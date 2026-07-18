@@ -188,6 +188,24 @@ describe('AkvjStagingPreview', () => {
 		global.Image = originalImage;
 	});
 
+	test('sets CSS display size to 2× frame size', async () => {
+		await element.loadFrames([], 240, 135, 12, 'loop');
+		const canvas = element.querySelector('canvas');
+		expect(canvas.width).toBe(240);
+		expect(canvas.height).toBe(135);
+		expect(canvas.style.width).toBe('480px');
+		expect(canvas.style.height).toBe('270px');
+	});
+
+	test('caps CSS display width at 960px', async () => {
+		await element.loadFrames([], 600, 300, 12, 'loop');
+		const canvas = element.querySelector('canvas');
+		expect(canvas.width).toBe(600);
+		expect(canvas.height).toBe(300);
+		expect(canvas.style.width).toBe('960px');
+		expect(canvas.style.height).toBe('480px');
+	});
+
 	test('shows "No frames staged" when loadFrames called with no files', async () => {
 		await element.loadFrames([], 240, 135, 12, 'loop');
 		const frameLabel = element.querySelector('.clip-preview-frame-label');
@@ -215,6 +233,164 @@ describe('AkvjStagingPreview', () => {
 
 		const frameLabel = element.querySelector('.clip-preview-frame-label');
 		expect(frameLabel.textContent).toContain('Failed to load');
+
+		global.Image = originalImage;
+	});
+
+	test('scrub slider updates frame label', async () => {
+		const files = [
+			new File(['a'], 'frame0.png', { type: 'image/png' }),
+			new File(['b'], 'frame1.png', { type: 'image/png' }),
+			new File(['c'], 'frame2.png', { type: 'image/png' })
+		];
+
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames(files, 240, 135, 12, 'loop');
+
+		const scrub = element.querySelector('.clip-preview-scrub');
+		expect(scrub.disabled).toBe(false);
+		expect(scrub.max).toBe('2');
+
+		scrub.value = '2';
+		scrub.dispatchEvent(new Event('input', { bubbles: true }));
+
+		const frameLabel = element.querySelector('.clip-preview-frame-label');
+		expect(frameLabel.textContent).toBe('Frame 3 / 3');
+
+		global.Image = originalImage;
+	});
+
+	test('play button toggles between Pause and Play after load', async () => {
+		const mockFile = new File(['pixel-data'], 'frame0.png', { type: 'image/png' });
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+		vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		const playButton = element.querySelector('button.clip-preview-play');
+		expect(playButton.disabled).toBe(false);
+		expect(playButton.textContent).toBe('Pause');
+		playButton.click();
+		expect(playButton.textContent).toBe('Play');
+		playButton.click();
+		expect(playButton.textContent).toBe('Pause');
+
+		global.Image = originalImage;
+	});
+
+	test('holds each frame for its per-frame durationMs (not a global frameRate)', async () => {
+		const files = [
+			new File(['a'], 'frame0.png', { type: 'image/png' }),
+			new File(['b'], 'frame1.png', { type: 'image/png' }),
+			new File(['c'], 'frame2.png', { type: 'image/png' })
+		];
+		const durationsMs = [100, 400, 100];
+
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+
+		/** @type {FrameRequestCallback[]} */
+		const rafQueue = [];
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+			rafQueue.push(cb);
+			return rafQueue.length;
+		});
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames(files, 240, 135, 12, 'once', 'fit', durationsMs);
+
+		const frameLabel = element.querySelector('.clip-preview-frame-label');
+		expect(frameLabel.textContent).toBe('Frame 1 / 3');
+
+		const pump = timestamp => {
+			const cb = rafQueue.shift();
+			expect(cb).toBeTypeOf('function');
+			cb(timestamp);
+		};
+
+		pump(0);
+		expect(frameLabel.textContent).toBe('Frame 1 / 3');
+
+		pump(50);
+		expect(frameLabel.textContent).toBe('Frame 1 / 3');
+
+		pump(100);
+		expect(frameLabel.textContent).toBe('Frame 2 / 3');
+
+		pump(300);
+		expect(frameLabel.textContent).toBe('Frame 2 / 3');
+
+		pump(500);
+		expect(frameLabel.textContent).toBe('Frame 3 / 3');
+
+		element.querySelector('button.clip-preview-play').click();
+		global.Image = originalImage;
+	});
+
+	test('loadFrames resets playback speed to 1×', async () => {
+		const mockFile = new File(['pixel-data'], 'frame0.png', { type: 'image/png' });
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+		vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		const speedSelect = element.querySelector('.clip-preview-speed');
+		speedSelect.value = '2';
+		speedSelect.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(element.playbackSpeed).toBe(2);
+		expect(speedSelect.value).toBe('2');
+
+		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		expect(element.playbackSpeed).toBe(1);
+		expect(element.querySelector('.clip-preview-speed').value).toBe('1');
 
 		global.Image = originalImage;
 	});

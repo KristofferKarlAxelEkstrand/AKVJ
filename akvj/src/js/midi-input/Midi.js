@@ -1,4 +1,4 @@
-﻿import appState from '../core/AppState.js';
+import appState from '../core/AppState.js';
 import settings from '../core/settings.js';
 
 const SYSTEM_REAL_TIME_THRESHOLD = 0xf8;
@@ -70,6 +70,7 @@ class Midi {
 		} catch (error) {
 			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', error);
 		}
+		appState.error(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
 	}
 
 	/**
@@ -249,10 +250,23 @@ class Midi {
 
 	#handleNoteOn(channel, note, velocity) {
 		if (velocity > 0) {
-			appState.dispatchMIDINoteOn(channel, note, velocity);
+			if (channel === settings.channelMapping.projectSelection) {
+				this.#handleProjectSelection(note);
+			} else {
+				appState.dispatchMIDINoteOn(channel, note, velocity);
+			}
 		} else {
 			appState.dispatchMIDINoteOff(channel, note);
 		}
+	}
+
+	/**
+	 * Handle project selection via MIDI note on the project selection channel.
+	 * The note number maps to a project index in the projects index array.
+	 * @param {number} note - MIDI note number (0-127), used as project index
+	 */
+	#handleProjectSelection(note) {
+		appState.dispatchProjectSelection(note);
 	}
 
 	/**

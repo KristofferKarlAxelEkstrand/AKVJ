@@ -1,0 +1,51 @@
+@use 'transparencyChecker';
+
+akvj-staging-preview {
+	.clip-preview-player {
+		border-top: 1px solid var(--line);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		grid-column: 1 / -1;
+		padding-top: 0.5rem;
+	}
+
+	.clip-preview-canvas {
+		@include transparencyChecker.transparency-checker(8px);
+		display: block;
+		height: auto;
+		image-rendering: pixelated;
+		// Display size set in JS (2× frame, capped at 960px width)
+		max-width: 960px;
+	}
+
+	.clip-preview-controls {
+		align-items: center;
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.clip-preview-frame-label {
+		color: var(--muted);
+		font-size: 0.85rem;
+	}
+
+	.clip-preview-play {
+		font-size: 0.85rem;
+		padding: 0.35rem 0.7rem;
+	}
+
+	.clip-preview-speed {
+		font-size: 0.85rem;
+		padding: 0.3rem 0.4rem;
+	}
+
+	.clip-preview-scrub {
+		grid-column: 1 / -1;
+		width: 100%;
+	}
+
+	.clip-preview:disabled {
+		opacity: 0.4;
+	}
+}

@@ -1,0 +1,41 @@
+@use 'transparencyChecker';
+
+clip-frame {
+	align-items: center;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	cursor: grab;
+	display: flex;
+	flex-direction: column;
+	flex-shrink: 0;
+	gap: 0.25rem;
+	padding: 0.4rem;
+
+	&:active {
+		cursor: grabbing;
+	}
+
+	.clip-frame-img {
+		@include transparencyChecker.transparency-checker(6px);
+		height: 68px;
+		image-rendering: pixelated;
+		object-fit: contain;
+		width: 120px;
+	}
+
+	.clip-frame-index {
+		color: var(--muted);
+		font-size: 0.75rem;
+	}
+
+	.clip-frame-duration {
+		font-size: 0.75rem;
+		padding: 0.2rem 0.3rem;
+		width: 4rem;
+	}
+
+	.clip-frame-remove {
+		font-size: 0.7rem;
+		padding: 0.15rem 0.4rem;
+	}
+}

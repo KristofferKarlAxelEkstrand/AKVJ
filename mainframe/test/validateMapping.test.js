@@ -33,6 +33,34 @@ describe('validateKeyMap', () => {
 		expect(errors).toHaveLength(0);
 	});
 
+	test('passes for object leaves with sync and trigger overrides', async () => {
+		await fs.writeFile(
+			path.join(dir, 'key-map.json'),
+			JSON.stringify({
+				1: {
+					0: {
+						0: 'clip-a',
+						32: { clipId: 'clip-a', sync: 'beat', syncLength: '1 bar', beatsPerBar: 4 },
+						64: { clipId: 'clip-a', triggerType: 'latch', triggerGroup: 'masks' }
+					}
+				}
+			})
+		);
+		const { errors } = await validateKeyMap(dir, [{ clipId: 'clip-a' }]);
+		expect(errors).toHaveLength(0);
+	});
+
+	test('fails when sync beat override omits syncLength', async () => {
+		await fs.writeFile(
+			path.join(dir, 'key-map.json'),
+			JSON.stringify({
+				1: { 0: { 0: { clipId: 'clip-a', sync: 'beat' } } }
+			})
+		);
+		const { errors } = await validateKeyMap(dir, [{ clipId: 'clip-a' }]);
+		expect(errors.some(entry => entry.errors.some(msg => msg.includes('syncLength is required')))).toBe(true);
+	});
+
 	test('fails on duplicate MIDI slots', async () => {
 		await fs.writeFile(
 			path.join(dir, 'key-map.json'),

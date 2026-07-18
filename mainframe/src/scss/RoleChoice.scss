@@ -1,0 +1,5 @@
+@use 'ChoiceItem';
+
+role-choice {
+	@include ChoiceItem.choice-item;
+}

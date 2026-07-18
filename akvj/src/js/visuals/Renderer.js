@@ -17,6 +17,7 @@ class Renderer {
 	#displayContext;
 	#layerManager;
 	#isRunning = false;
+	#isFrozen = false;
 	#renderFrameId = null;
 	#canvasWidth;
 	#canvasHeight;
@@ -141,11 +142,32 @@ class Renderer {
 	}
 
 	/**
+	 * Freeze the render loop — keep drawing the last composited frame without updating clips.
+	 * Used during project switching to show a frozen frame while loading new clips.
+	 */
+	freeze() {
+		this.#isFrozen = true;
+	}
+
+	/**
+	 * Unfreeze the render loop — resume normal clip rendering.
+	 */
+	unfreeze() {
+		this.#isFrozen = false;
+	}
+
+	/**
 	 * Main rendering loop - renders all layer groups with proper compositing
 	 * @param {number} timestamp - Timestamp provided by requestAnimationFrame
 	 */
 	#renderLoop = timestamp => {
 		if (!this.#isRunning) {
+			return;
+		}
+
+		if (this.#isFrozen) {
+			// Keep drawing the last composited frame — don't update clips or clear
+			this.#renderFrameId = requestAnimationFrame(this.#renderLoop);
 			return;
 		}
 

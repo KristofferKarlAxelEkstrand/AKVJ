@@ -1,71 +1,76 @@
-import './js/PianoKeyboard.js';
-import './js/StickyPianoRoll.js';
+import './scss/main.scss';
+import './js/PianoKey.js';
+import './js/PianoRoll.js';
 import './js/ClipList.js';
-import './js/ClipEditor.js';
+import { ClipEditorController } from './js/ClipEditorController.js';
 import './js/MappingTable.js';
 import './js/StagingPreview.js';
+import './js/ClipFrame.js';
+import './js/ClipFrames.js';
+import './js/UserMessage.js';
+import './js/UserMessages.js';
+import './js/ClipNameInput.js';
+import './js/SortChoice.js';
+import './js/SortChoices.js';
+import './js/RoleChoice.js';
+import './js/RoleChoices.js';
+import './js/ProjectChooser.js';
 import { api } from './js/apiClient.js';
-import mainframeState, { EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED } from './js/mainframeState.js';
+import { SimpleRouter } from './js/SimpleRouter.js';
+import { editClipPath } from './js/clipEditorRoute.js';
+import mainframeState, {
+	EVENT_CLIPS_CHANGED,
+	EVENT_MAPPINGS_CHANGED,
+	EVENT_CHANNEL_CHANGED,
+	EVENT_SEARCH_CHANGED,
+	EVENT_ROLE_FILTER_CHANGED,
+	EVENT_SORT_MODE_CHANGED,
+	EVENT_PROJECTS_CHANGED,
+	EVENT_ACTIVE_PROJECT_CHANGED
+} from './js/mainframeState.js';
+import { reportBootApiError, reportFailedClipDelete, reportFailedClipOpen } from './js/shellUserFeedback.js';
+
+/** @type {import('./js/ClipEditorController.js').ClipEditorController|null} */
+let clipEditor = null;
 
 const panels = {
 	library: document.getElementById('panel-library'),
 	upload: document.getElementById('panel-upload'),
-	mapping: document.getElementById('panel-mapping')
+	mapping: document.getElementById('panel-mapping'),
+	projects: document.getElementById('panel-projects')
 };
-
-const PIANO_CHANNEL_LABELS = {
-	1: 'Layer Group A',
-	2: 'Layer Group A',
-	3: 'Layer Group A',
-	4: 'Layer Group A',
-	5: 'Mixer',
-	6: 'Layer Group B',
-	7: 'Layer Group B',
-	8: 'Layer Group B',
-	9: 'Layer Group B',
-	10: 'Mixed output effects',
-	11: 'Layer Group C',
-	12: 'Layer Group C',
-	13: 'Global effects',
-	14: 'Reserved',
-	15: 'Reserved',
-	16: 'Reserved'
-};
-
-const pianoChannelSelect = document.getElementById('piano-channel');
-pianoChannelSelect.addEventListener('change', () => {
-	mainframeState.channel = Number(pianoChannelSelect.value);
-});
-
-function populatePianoChannelSelect() {
-	pianoChannelSelect.replaceChildren();
-	for (let channel = 1; channel <= 16; channel++) {
-		const option = document.createElement('option');
-		option.value = String(channel);
-		option.textContent = `Ch ${channel} — ${PIANO_CHANNEL_LABELS[channel]}`;
-		pianoChannelSelect.append(option);
-	}
-	pianoChannelSelect.value = String(mainframeState.channel);
-}
 
 const clipListElement = document.getElementById('clip-list');
 const mappingTableElement = document.getElementById('mapping-table');
-const stickyPianoRoll = document.getElementById('sticky-piano-roll');
+const libraryPianoRoll = document.getElementById('library-piano-roll');
+const mappingPianoRoll = document.getElementById('mapping-piano-roll');
+const playPianoRoll = document.getElementById('play-piano-roll');
 
 const clipSearchInput = document.getElementById('clip-search');
 clipSearchInput.addEventListener('input', () => {
-	stickyPianoRoll.clearFilter();
+	libraryPianoRoll.clearSelection();
 	mainframeState.searchQuery = clipSearchInput.value.trim().toLowerCase();
 });
 
-const clipRoleFilterSelect = document.getElementById('clip-role-filter');
-clipRoleFilterSelect.addEventListener('change', () => {
-	mainframeState.roleFilter = clipRoleFilterSelect.value;
+const clipRoleChoices = document.getElementById('clip-role-filter');
+clipRoleChoices.choices = [
+	{ value: '', label: 'All' },
+	{ value: 'clip', label: 'Clip' },
+	{ value: 'bitmask', label: 'Bitmask' }
+];
+clipRoleChoices.addEventListener('rolechange', event => {
+	mainframeState.roleFilter = event.detail.roleFilter;
 });
 
-const clipSortSelect = document.getElementById('clip-sort');
-clipSortSelect.addEventListener('change', () => {
-	mainframeState.sortMode = clipSortSelect.value;
+const clipSortChoices = document.getElementById('clip-sort');
+clipSortChoices.choices = [
+	{ value: 'name', label: 'Name' },
+	{ value: 'clipId', label: 'ID' },
+	{ value: 'role', label: 'Role' },
+	{ value: 'frames', label: 'Frames' }
+];
+clipSortChoices.addEventListener('sortchange', event => {
+	mainframeState.sortMode = event.detail.sortMode;
 });
 
 const clearFiltersButton = document.getElementById('clear-filters');
@@ -74,16 +79,9 @@ clearFiltersButton.addEventListener('click', () => {
 	mainframeState.roleFilter = '';
 	mainframeState.sortMode = 'name';
 	clipSearchInput.value = '';
-	clipRoleFilterSelect.value = '';
-	clipSortSelect.value = 'name';
-	stickyPianoRoll.clearFilter();
-});
-
-clipListElement.addEventListener('clipedit', event => {
-	const { clip, clipId } = event.detail;
-	const editor = document.createElement('akvj-clip-editor');
-	editor.clip = clip;
-	clipListElement.attachEditForm(clipId, editor);
+	clipRoleChoices.roleFilter = '';
+	clipSortChoices.sortMode = 'name';
+	libraryPianoRoll.clearSelection();
 });
 
 clipListElement.addEventListener('clipsaved', _event => {
@@ -111,7 +109,16 @@ function setStatus(statusElement, message, kind = '') {
 	}
 }
 
-function switchTab(tabName) {
+const TAB_TO_ROUTE = {
+	library: '/library',
+	upload: '/clip/edit',
+	mapping: '/key-map',
+	projects: '/projects'
+};
+
+const router = new SimpleRouter();
+
+function showView(tabName) {
 	for (const [name, panel] of Object.entries(panels)) {
 		const active = name === tabName;
 		panel.hidden = !active;
@@ -122,6 +129,31 @@ function switchTab(tabName) {
 		btn.classList.toggle('is-active', active);
 		btn.setAttribute('aria-selected', active ? 'true' : 'false');
 	}
+}
+
+router.add('/library', () => showView('library'));
+router.add('/clip/edit', () => {
+	showView('upload');
+	clipEditor?.reset();
+});
+router.add('/clip/edit/:clipId', (_path, params) => {
+	showView('upload');
+	clipEditor?.hydrate(params.clipId).catch(error => {
+		console.error(error);
+		reportFailedClipOpen(error);
+	});
+});
+router.add('/clip/new', () => router.replace('/clip/edit'));
+router.add('/clip/new/:clipId', (_path, params) => {
+	router.replace(editClipPath(params.clipId));
+});
+router.add('/key-map', () => showView('mapping'));
+router.add('/projects', () => showView('projects'));
+router.setNotFound(() => router.replace('/library'));
+
+function switchTab(tabName) {
+	const route = TAB_TO_ROUTE[tabName] || '/library';
+	router.navigate(route);
 }
 
 function mapClipFromLibrary(clipId) {
@@ -136,27 +168,6 @@ function renderLibrary() {
 	clipListElement.clips = mainframeState.clips;
 	updateClipSummary();
 	updateFilterVisibility();
-}
-
-function populateRoleFilter() {
-	const roles = [...new Set(mainframeState.clips.map(clip => clip.meta.role || '').filter(Boolean))].sort();
-	const currentValue = mainframeState.roleFilter;
-	clipRoleFilterSelect.replaceChildren();
-	const allOption = document.createElement('option');
-	allOption.value = '';
-	allOption.textContent = 'All roles';
-	clipRoleFilterSelect.append(allOption);
-	for (const role of roles) {
-		const option = document.createElement('option');
-		option.value = role;
-		option.textContent = role;
-		clipRoleFilterSelect.append(option);
-	}
-	if (roles.includes(currentValue)) {
-		clipRoleFilterSelect.value = currentValue;
-	} else {
-		mainframeState.roleFilter = '';
-	}
 }
 
 function updateClipSummary() {
@@ -181,7 +192,7 @@ async function deleteClip(clipId) {
 		await api(`/clips/${encodeURIComponent(clipId)}`, { method: 'DELETE' });
 		await loadLibrary();
 	} catch (error) {
-		alert(`Failed to delete clip "${clipId}": ${error.message}`);
+		reportFailedClipDelete(clipId, error);
 		console.error(error);
 	}
 }
@@ -200,7 +211,7 @@ function fillClipSelect() {
 function renderMapping() {
 	mappingTableElement.mappings = mainframeState.mappings;
 	mappingTableElement.clipCatalog = mainframeState.clips;
-	updatePianoKeyboard();
+	updatePianoRolls();
 }
 
 mappingTableElement.addEventListener('mappingremove', event => {
@@ -208,38 +219,83 @@ mappingTableElement.addEventListener('mappingremove', event => {
 	mainframeState.mappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
 });
 
-const pianoKeyboard = document.getElementById('piano-keyboard');
+mappingPianoRoll.addEventListener('keyclick', event => {
+	const { note, velocity, clipId: bandClipId, action } = event.detail;
+	const mapChannel = document.getElementById('map-channel');
+	const mapNote = document.getElementById('map-note');
+	const mapVelocity = document.getElementById('map-velocity');
+	const mapClipId = document.getElementById('map-clip-id');
+	const status = document.getElementById('mapping-status');
 
-pianoKeyboard.addEventListener('pianokeyclick', event => {
-	const { note } = event.detail;
-	const clipId = document.getElementById('map-clip-id').value;
-	if (!clipId) {
-		setStatus(document.getElementById('mapping-status'), 'Select a clip first', 'is-err');
+	if (action === 'select') {
+		mapChannel.value = String(mainframeState.channel);
+		mapNote.value = String(note);
+		mapVelocity.value = String(velocity ?? 0);
+		if (bandClipId && [...mapClipId.options].some(option => option.value === bandClipId)) {
+			mapClipId.value = bandClipId;
+		}
+		setStatus(status, `Selected ${bandClipId} @ note ${note} vel ${velocity}`, 'is-ok');
 		return;
 	}
-	const updatedMappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === mainframeState.channel && existingEntry.note === note && existingEntry.velocity === 0)).concat([{ channel: mainframeState.channel, note, velocity: 0, clipId }]);
+
+	const clipId = mapClipId.value;
+	if (!clipId) {
+		setStatus(status, 'Select a clip first', 'is-err');
+		return;
+	}
+	const assignVelocity = Number(mapVelocity.value) || 0;
+	const updatedMappings = mainframeState.mappings
+		.filter(existingEntry => !(existingEntry.channel === mainframeState.channel && existingEntry.note === note && existingEntry.velocity === assignVelocity))
+		.concat([{ channel: mainframeState.channel, note, velocity: assignVelocity, clipId }]);
 	mainframeState.mappings = updatedMappings;
+	mapNote.value = String(note);
+	mapChannel.value = String(mainframeState.channel);
 });
 
-stickyPianoRoll.addEventListener('stickykeyclick', event => {
-	const { clipId, isActive } = event.detail;
-	if (isActive && clipId) {
-		clipListElement.searchQuery = clipId;
+libraryPianoRoll.addEventListener('keyclick', event => {
+	const { mappings, isActive } = event.detail;
+	if (isActive && mappings?.length === 1) {
+		clipListElement.searchQuery = mappings[0].clipId;
 	} else {
 		clipListElement.searchQuery = mainframeState.searchQuery;
 	}
 });
 
-function updatePianoKeyboard() {
-	pianoKeyboard.channel = mainframeState.channel;
-	pianoKeyboard.mappings = mainframeState.mappings;
-	stickyPianoRoll.channel = mainframeState.channel;
-	stickyPianoRoll.mappings = mainframeState.mappings;
+playPianoRoll.addEventListener('noteon', event => {
+	const { note, clipId } = event.detail;
+	const label = clipId ? ` → ${clipId}` : '';
+	setStatus(document.getElementById('mapping-status'), `Note on ${note}${label}`, 'is-ok');
+	if (import.meta.env.DEV) {
+		console.log('[play] noteon', event.detail);
+	}
+});
+
+playPianoRoll.addEventListener('noteoff', event => {
+	const { note } = event.detail;
+	setStatus(document.getElementById('mapping-status'), `Note off ${note}`, '');
+	if (import.meta.env.DEV) {
+		console.log('[play] noteoff', event.detail);
+	}
+});
+
+document.getElementById('clear-play-notes').addEventListener('click', () => {
+	playPianoRoll.clearSelection();
+});
+
+mappingPianoRoll.addEventListener('channelchange', event => {
+	mainframeState.channel = event.detail.channel;
+	document.getElementById('map-channel').value = String(event.detail.channel);
+});
+
+function updatePianoRolls() {
+	// Mappings are shared; each roll keeps its own channel (independent instances).
+	libraryPianoRoll.mappings = mainframeState.mappings;
+	mappingPianoRoll.mappings = mainframeState.mappings;
+	playPianoRoll.mappings = mainframeState.mappings;
 }
 
 mainframeState.subscribe(EVENT_CLIPS_CHANGED, () => {
 	renderLibrary();
-	populateRoleFilter();
 	fillClipSelect();
 });
 
@@ -248,8 +304,8 @@ mainframeState.subscribe(EVENT_MAPPINGS_CHANGED, () => {
 });
 
 mainframeState.subscribe(EVENT_CHANNEL_CHANGED, event => {
-	pianoChannelSelect.value = String(event.detail.channel);
-	updatePianoKeyboard();
+	mappingPianoRoll.channel = event.detail.channel;
+	document.getElementById('map-channel').value = String(event.detail.channel);
 });
 
 mainframeState.subscribe(EVENT_SEARCH_CHANGED, event => {
@@ -259,6 +315,7 @@ mainframeState.subscribe(EVENT_SEARCH_CHANGED, event => {
 
 mainframeState.subscribe(EVENT_ROLE_FILTER_CHANGED, event => {
 	clipListElement.roleFilter = event.detail.roleFilter;
+	clipRoleChoices.roleFilter = event.detail.roleFilter;
 	updateFilterVisibility();
 });
 
@@ -271,140 +328,139 @@ async function loadLibrary() {
 	mainframeState.clips = libraryResponse.clips;
 }
 
+function projectKeyMapPath(projectId = mainframeState.activeProjectId) {
+	return `/projects/${encodeURIComponent(projectId)}/key-map`;
+}
+
+function updateMappingProjectLabel() {
+	const label = document.getElementById('mapping-project-label');
+	if (!label) {
+		return;
+	}
+	const active = mainframeState.projects.find(project => project.id === mainframeState.activeProjectId);
+	label.textContent = active ? `${active.name} (${active.id})` : mainframeState.activeProjectId;
+}
+
 async function loadMapping() {
-	const mappingResponse = await api('/mapping');
+	const mappingResponse = await api(projectKeyMapPath());
 	mainframeState.mappings = mappingResponse.mapping;
+	updateMappingProjectLabel();
+}
+
+async function loadProjects() {
+	const [listResponse, activeResponse] = await Promise.all([api('/projects'), api('/projects/active')]);
+	mainframeState.projects = listResponse.projects;
+	mainframeState.activeProjectId = activeResponse.project;
+	updateMappingProjectLabel();
+}
+
+const projectChooser = document.getElementById('project-chooser');
+const projectsStatus = document.getElementById('projects-status');
+
+mainframeState.subscribe(EVENT_PROJECTS_CHANGED, event => {
+	projectChooser.projects = event.detail.projects;
+});
+
+mainframeState.subscribe(EVENT_ACTIVE_PROJECT_CHANGED, event => {
+	projectChooser.activeProjectId = event.detail.activeProjectId;
+	updateMappingProjectLabel();
+});
+
+projectChooser.addEventListener('projectactivate', event => {
+	activateProject(event.detail.projectId).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+});
+
+projectChooser.addEventListener('projectcreate', event => {
+	createProjectFromUi(event.detail).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+});
+
+projectChooser.addEventListener('projectrename', event => {
+	renameProject(event.detail.projectId, event.detail.name).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+});
+
+projectChooser.addEventListener('projectdelete', event => {
+	deleteProjectFromUi(event.detail.projectId).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+});
+
+async function activateProject(projectId) {
+	setStatus(projectsStatus, 'Switching project…');
+	try {
+		const result = await api(`/projects/${encodeURIComponent(projectId)}/activate`, {
+			method: 'POST',
+			body: '{}'
+		});
+		mainframeState.activeProjectId = result.project;
+		await loadMapping();
+		setStatus(projectsStatus, `Active project: ${result.project}`, 'is-ok');
+	} catch (error) {
+		projectChooser.activeProjectId = mainframeState.activeProjectId;
+		throw error;
+	}
+}
+
+async function createProjectFromUi({ name, copyFrom }) {
+	setStatus(projectsStatus, 'Creating project…');
+	const body = { name };
+	if (copyFrom === null) {
+		body.copyFrom = null;
+	} else if (copyFrom) {
+		body.copyFrom = copyFrom;
+	}
+	const result = await api('/projects', {
+		method: 'POST',
+		body: JSON.stringify(body)
+	});
+	await loadProjects();
+	await activateProject(result.project.id);
+	setStatus(projectsStatus, `Created project ${result.project.id}`, 'is-ok');
+}
+
+async function renameProject(projectId, name) {
+	setStatus(projectsStatus, 'Renaming…');
+	await api(`/projects/${encodeURIComponent(projectId)}`, {
+		method: 'PUT',
+		body: JSON.stringify({ name })
+	});
+	await loadProjects();
+	setStatus(projectsStatus, `Renamed project ${projectId}`, 'is-ok');
+}
+
+async function deleteProjectFromUi(projectId) {
+	if (projectId === 'default') {
+		setStatus(projectsStatus, 'Cannot delete the default project', 'is-err');
+		return;
+	}
+	if (!confirm(`Delete project "${projectId}"? This cannot be undone.`)) {
+		return;
+	}
+	setStatus(projectsStatus, 'Deleting…');
+	await api(`/projects/${encodeURIComponent(projectId)}`, { method: 'DELETE' });
+	await loadProjects();
+	await loadMapping();
+	setStatus(projectsStatus, `Deleted project ${projectId}`, 'is-ok');
 }
 
 document.querySelectorAll('.tab').forEach(btn => {
-	btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+	btn.addEventListener('click', event => {
+		event.preventDefault();
+		switchTab(btn.dataset.tab);
+	});
 });
 
 document.getElementById('refresh-library').addEventListener('click', () => {
 	loadLibrary().catch(error => console.error(error));
 });
 
-const uploadForm = document.getElementById('upload-form');
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('upload-files');
-const fileListContainer = document.getElementById('file-list');
-let stagedFiles = [];
-
-dropZone.addEventListener('click', () => fileInput.click());
-dropZone.addEventListener('keydown', event => {
-	if (event.key === 'Enter' || event.key === ' ') {
-		event.preventDefault();
-		fileInput.click();
-	}
+clipEditor = new ClipEditorController({
+	setStatus,
+	onLibraryChanged: () => loadLibrary(),
+	router
 });
+clipEditor.bind();
 
-dropZone.addEventListener('dragover', event => {
-	event.preventDefault();
-	dropZone.classList.add('is-dragover');
+clipListElement.addEventListener('clipedit', event => {
+	clipEditor.open(event.detail.clipId);
 });
-
-dropZone.addEventListener('dragleave', () => {
-	dropZone.classList.remove('is-dragover');
-});
-
-dropZone.addEventListener('drop', event => {
-	event.preventDefault();
-	dropZone.classList.remove('is-dragover');
-	const pngFiles = [...event.dataTransfer.files].filter(file => file.type === 'image/png');
-	if (pngFiles.length > 0) {
-		stagedFiles = pngFiles;
-		renderFileList();
-	}
-});
-
-fileInput.addEventListener('change', () => {
-	stagedFiles = [...fileInput.files].filter(file => file.type === 'image/png');
-	renderFileList();
-});
-
-const stagingPreview = document.getElementById('staging-preview');
-
-function renderFileList() {
-	fileListContainer.replaceChildren();
-	if (stagedFiles.length === 0) {
-		stagingPreview.loadFrames([]);
-		return;
-	}
-	for (const file of stagedFiles) {
-		const item = document.createElement('div');
-		item.className = 'file-list-item';
-		const name = document.createElement('span');
-		name.textContent = file.name;
-		const size = document.createElement('span');
-		size.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-		item.append(name, size);
-		fileListContainer.append(item);
-	}
-	const count = document.createElement('p');
-	count.className = 'file-list-item';
-	count.style.fontWeight = 'bold';
-	count.textContent = `${stagedFiles.length} frame${stagedFiles.length === 1 ? '' : 's'} staged`;
-	fileListContainer.append(count);
-	updateStagingPreview();
-}
-
-function updateStagingPreview() {
-	const targetWidth = Number(document.getElementById('upload-target-width').value) || 240;
-	const targetHeight = Number(document.getElementById('upload-target-height').value) || 135;
-	const frameRate = Number(document.getElementById('upload-frame-rate').value) || 12;
-	const playback = document.getElementById('upload-playback').value;
-	stagingPreview.loadFrames(stagedFiles, targetWidth, targetHeight, frameRate, playback);
-}
-
-document.getElementById('upload-target-width').addEventListener('change', updateStagingPreview);
-document.getElementById('upload-target-height').addEventListener('change', updateStagingPreview);
-document.getElementById('upload-frame-rate').addEventListener('change', updateStagingPreview);
-document.getElementById('upload-playback').addEventListener('change', updateStagingPreview);
-
-uploadForm.addEventListener('submit', async event => {
-	event.preventDefault();
-	const status = document.getElementById('upload-status');
-	if (stagedFiles.length === 0) {
-		setStatus(status, 'Select at least one PNG frame', 'is-err');
-		return;
-	}
-	setStatus(status, 'Uploading…');
-	try {
-		const clipId = document.getElementById('upload-clip-id').value.trim();
-		const name = document.getElementById('upload-name').value.trim() || undefined;
-		const role = document.getElementById('upload-role').value || undefined;
-		const targetWidth = Number(document.getElementById('upload-target-width').value) || undefined;
-		const targetHeight = Number(document.getElementById('upload-target-height').value) || undefined;
-		const playback = document.getElementById('upload-playback').value;
-		const frameRate = Number(document.getElementById('upload-frame-rate').value) || undefined;
-		const frames = await readFilesAsDataURLs(stagedFiles);
-		await api('/clips', {
-			method: 'POST',
-			body: JSON.stringify({ clipId, name, role, frames, targetWidth, targetHeight, playback, frameRate })
-		});
-		setStatus(status, `Saved clip ${clipId}`, 'is-ok');
-		uploadForm.reset();
-		stagedFiles = [];
-		renderFileList();
-		await loadLibrary();
-	} catch (error) {
-		setStatus(status, error.message, 'is-err');
-	}
-});
-
-function readFilesAsDataURLs(files) {
-	return Promise.all(
-		files.map(
-			file =>
-				new Promise((resolve, reject) => {
-					const reader = new FileReader();
-					reader.onload = () => resolve(String(reader.result));
-					reader.onerror = () => reject(reader.error);
-					reader.readAsDataURL(file);
-				})
-		)
-	);
-}
 
 document.getElementById('add-mapping').addEventListener('click', () => {
 	const channel = Number(document.getElementById('map-channel').value);
@@ -426,7 +482,7 @@ document.getElementById('save-mapping').addEventListener('click', async () => {
 	const status = document.getElementById('mapping-status');
 	setStatus(status, 'Saving…');
 	try {
-		await api('/mapping', { method: 'PUT', body: JSON.stringify({ mapping: mainframeState.mappings }) });
+		await api(projectKeyMapPath(), { method: 'PUT', body: JSON.stringify({ mapping: mainframeState.mappings }) });
 		setStatus(status, 'Mapping saved', 'is-ok');
 	} catch (error) {
 		setStatus(status, error.message, 'is-err');
@@ -447,8 +503,8 @@ document.getElementById('run-pipeline').addEventListener('click', async () => {
 	}
 });
 
-populatePianoChannelSelect();
-Promise.all([loadLibrary(), loadMapping()]).catch(error => {
+router.start();
+Promise.all([loadLibrary(), loadProjects(), loadMapping()]).catch(error => {
 	console.error(error);
-	setStatus(document.getElementById('upload-status'), `API error: ${error.message}`, 'is-err');
+	reportBootApiError(error);
 });

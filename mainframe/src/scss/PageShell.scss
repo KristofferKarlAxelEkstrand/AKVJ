@@ -1,0 +1,234 @@
+// Page-level chrome that is not yet a custom element (tabs, panels, forms).
+// Keep this thin — new UI chrome should land on custom elements instead.
+
+.tabs {
+	display: flex;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0.5rem 1rem;
+}
+
+.tab {
+	background: transparent;
+	border: 1px solid var(--line);
+	border-radius: 2px;
+	color: var(--ink);
+	cursor: pointer;
+	font: inherit;
+	padding: 0.55rem 1rem;
+}
+
+.tab.is-active {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+
+main {
+	margin: 0;
+	padding: 0;
+}
+
+.panel[hidden] {
+	display: none;
+}
+
+.panel-head {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+}
+
+.panel-head h2,
+.panel h2 {
+	font-size: 1.25rem;
+	margin: 0 0 1rem;
+}
+
+.panel-head h2 {
+	margin-bottom: 0;
+}
+
+.panel-actions {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.clip-summary {
+	color: var(--muted);
+	font-size: 0.85rem;
+}
+
+.clip-summary--all-ready {
+	color: var(--ok, #2a7d2a);
+}
+
+.clip-summary--has-incomplete {
+	color: var(--warn, #b8860b);
+}
+
+.clip-search {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.35rem 0.6rem;
+	width: 10rem;
+}
+
+.clear-filters {
+	font-size: 0.85rem;
+	padding: 0.35rem 0.7rem;
+}
+
+button {
+	border-radius: 2px;
+}
+
+button:not(.tab) {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	cursor: pointer;
+	font: inherit;
+	padding: 0.5rem 0.85rem;
+}
+
+button:not(.tab):hover {
+	border-color: var(--accent);
+}
+
+.upload-form,
+.mapping-add {
+	display: grid;
+	gap: 0.85rem;
+	margin-bottom: 1.25rem;
+	max-width: 28rem;
+}
+
+.upload-form label,
+.mapping-add label {
+	color: var(--muted);
+	display: grid;
+	font-size: 0.9rem;
+	gap: 0.35rem;
+}
+
+.drop-zone {
+	align-items: center;
+	border: 2px dashed var(--line);
+	border-radius: 0.5rem;
+	cursor: pointer;
+	display: grid;
+	gap: 0.5rem;
+	justify-items: center;
+	min-height: 6rem;
+	padding: 1.5rem 1rem;
+	text-align: center;
+	transition:
+		border-color 0.15s,
+		background 0.15s;
+}
+
+.drop-zone:hover,
+.drop-zone:focus-visible {
+	border-color: var(--accent, #646cff);
+	outline: none;
+}
+
+.drop-zone.is-dragover {
+	background: color-mix(in srgb, var(--accent, #646cff) 10%, transparent);
+	border-color: var(--accent, #646cff);
+}
+
+.drop-zone-text {
+	color: var(--muted);
+	font-size: 0.9rem;
+	margin: 0;
+}
+
+.file-list {
+	display: grid;
+	font-size: 0.85rem;
+	gap: 0.25rem;
+}
+
+.file-list-item {
+	align-items: center;
+	color: var(--muted);
+	display: flex;
+	gap: 0.5rem;
+	justify-content: space-between;
+}
+
+.upload-config-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+}
+
+.upload-config-row label {
+	flex: 1;
+	min-width: 5rem;
+}
+
+.upload-checkbox {
+	align-items: center;
+	display: flex;
+	gap: 0.4rem;
+	min-width: auto;
+}
+
+input,
+select {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	font: inherit;
+	padding: 0.45rem 0.6rem;
+}
+
+.mapping-add {
+	align-items: end;
+	grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+	max-width: none;
+}
+
+.hint {
+	color: var(--muted);
+	margin-top: 0;
+}
+
+.status {
+	color: var(--muted);
+	min-height: 1.25rem;
+}
+
+.status.is-ok {
+	color: var(--ok);
+}
+
+.status.is-err {
+	color: var(--err);
+}
+
+.piano-channel-bar {
+	align-items: center;
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.piano-channel {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	color: var(--ink);
+	font: inherit;
+	font-size: 0.85rem;
+	padding: 0.3rem 0.4rem;
+}

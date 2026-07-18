@@ -1,0 +1,70 @@
+project-chooser {
+	display: grid;
+	gap: 1.25rem;
+	max-width: 32rem;
+
+	.project-chooser-active {
+		align-items: baseline;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.project-chooser-active-title {
+		color: var(--muted);
+		font-size: 0.85rem;
+	}
+
+	.project-chooser-active-id {
+		font-size: 1.1rem;
+	}
+
+	.project-chooser-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.project-chooser-select,
+	.project-chooser-name,
+	.project-chooser-rename {
+		font: inherit;
+		padding: 0.4rem 0.5rem;
+	}
+
+	.project-chooser-create,
+	.project-chooser-edit {
+		border-top: 1px solid var(--line);
+		display: grid;
+		gap: 0.5rem;
+		padding-top: 1rem;
+	}
+
+	h3 {
+		font-size: 1rem;
+		margin: 0;
+	}
+
+	.project-chooser-copy {
+		align-items: center;
+		display: flex;
+		gap: 0.4rem;
+		font-size: 0.9rem;
+	}
+
+	button {
+		justify-self: start;
+		padding: 0.4rem 0.75rem;
+	}
+
+	.project-chooser-delete {
+		border-color: var(--danger, #a33);
+		color: var(--danger, #a33);
+	}
+
+	.project-chooser-hint {
+		color: var(--muted);
+		font-size: 0.85rem;
+		margin: 0.25rem 0 0;
+	}
+}

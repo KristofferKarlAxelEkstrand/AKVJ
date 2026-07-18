@@ -1,0 +1,5 @@
+@use 'ChoiceItem';
+
+sort-choice {
+	@include ChoiceItem.choice-item;
+}

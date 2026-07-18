@@ -1,0 +1,7 @@
+// Photoshop-style light grey / white transparency checker (preview chrome only).
+
+@mixin transparency-checker($cell: 8px) {
+	background-color: #fff;
+	background-image: repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%);
+	background-size: ($cell * 2) ($cell * 2);
+}

@@ -1,0 +1,17 @@
+{
+	"png": "sprite.png",
+	"frames": 4,
+	"framesPerRow": 4,
+	"playback": "loop",
+	"retrigger": true,
+	"frameRatesForFrames": {
+		"0": 1,
+		"1": 1,
+		"2": 1,
+		"3": 1
+	},
+	"scaleMode": "fit",
+	"frameWidth": 240,
+	"frameHeight": 135,
+	"triggerType": "momentary"
+}

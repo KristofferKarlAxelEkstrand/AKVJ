@@ -1,6 +1,8 @@
-# Time Study Man Process Log
+# Time Study Man Process Log (ARCHIVE)
 
-This is an append-only log, one entry per sweep, in the same style as the Overseer's `memory/overseer/sweep-log.md`. Read it in full before starting a new sweep so findings aren't re-reported.
+**Role retired 2026-07-17** — Time Study Man was merged into the Overseer. This file is historical only; new process findings go in `../memory/overseer/sweep-log.md`.
+
+This was an append-only log, one entry per sweep, in the same style as the Overseer's `memory/overseer/sweep-log.md`.
 
 ## Role Scope (from spec/collaboration-protocol.md)
 - Own the *process* the team runs on: mailbox conventions, message prefixes, hygiene, and the `prompts/*.prompt.md` files themselves.
@@ -138,3 +140,142 @@ This is an append-only log, one entry per sweep, in the same style as the Overse
 - **QA Reviewer** — slack clean. Good.
 - **Outbox** — Overseer's `question-checkin-testing-hardware.md` still unanswered. Not mine.
 - **All sweep 1 + 5 fixes confirmed in production.** No new drift detected. Process is running cleanly.
+
+### Sweep 8 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- `slack/general/` remains clean (dashboard + guidelines only). Team Lead cleanup habit is holding.
+- Team Lead has `[REPORT]-38b` to process. Both developers between tasks (slacks empty). QA clean.
+- Outbox: Overseer's question still unanswered. Not mine.
+- No drift detected. Process stable.
+
+### Sweep 9 — 2026-07-17 (outbox wake — Team Lead's status update, not mine)
+
+**Results — quiet sweep, no new fixes:**
+- `slack/general/` remains clean. All personal slacks empty. Team Lead filed a status update to human via outbox (all priority work complete, 62 tasks done, asking for direction).
+- Process is stable and running cleanly. All fixes from sweeps 1 and 5 are holding.
+- No drift detected.
+
+### Sweep 10 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- `slack/general/` clean (dashboard + guidelines only). All personal slacks empty. QA has only `memory.md`.
+- Outbox: 2 files for human (Team Lead status update, Overseer check-in question). Neither mine.
+- Team is idle — both developers between assignments, Team Lead waiting for human direction on next priorities.
+- No drift detected. Process stable. All prior fixes holding.
+
+### Sweep 11 — 2026-07-17 (random wake)
+
+**Found and fixed (1 process violation):**
+- **`team-guidelines.md` edited without notification** — A new "Avoid Over-Engineering" section (lines 25-27) was added to `slack/general/team-guidelines.md` by an unknown agent (likely the Overseer based on content style). The editor did not send `[PROMPT-UPDATED]` notices to any agent, violating the collaboration protocol's shared-file notification rule. Time Study Man sent notices to all 5 agents on the editor's behalf, including a reminder note to the Overseer about the protocol requirement.
+
+**Other observations:**
+- `slack/general/` otherwise clean (dashboard + guidelines only). All personal slacks were empty before my notifications.
+- Outbox: 2 files for human, neither mine.
+- Team still idle, waiting for human direction.
+
+**Files changed:** None (only sent notifications).
+
+**Notified:**
+- All 5 agents: `[PROMPT-UPDATED]-team-guidelines-overengineering.md` in each personal slack folder.
+
+### Sweep 12 — 2026-07-17 (outbox wake — Team Lead's status update, not mine)
+
+**Results — quiet sweep, no new fixes:**
+- Mainframe Developer and Team Lead processed their `[PROMPT-UPDATED]-team-guidelines-overengineering.md` notifications (deleted from slack).
+- AKVJ Developer, QA Reviewer, and Overseer haven't processed theirs yet.
+- `slack/general/` clean. No new drift. Team still idle.
+
+### Sweep 13 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- AKVJ Developer and QA Reviewer processed their `[PROMPT-UPDATED]` notifications. Only Overseer hasn't yet.
+- `slack/general/` clean. All slacks empty (except Overseer's pending notification). No drift. Team idle.
+
+### Sweep 14 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Overseer still hasn't processed `[PROMPT-UPDATED]` notification. Will monitor.
+- Mainframe Developer received `[TASK]-83-redesign-keyboard-flat-rectangles.md` — team picking up new work.
+- `slack/general/` clean. No drift.
+
+### Sweep 15 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Overseer still hasn't processed `[PROMPT-UPDATED]` notification (4 sweeps pending). Not a prompt issue — the Overseer wakes randomly and may just not have triggered yet.
+- Mainframe Developer has 2 new `[FEEDBACK]` files from QA (body margin reset, global background). Active QA review cycle on Task 83. Good process flow.
+- `slack/general/` clean. No drift.
+
+### Sweep 16 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Overseer finally processed `[PROMPT-UPDATED]-team-guidelines-overengineering.md` (deleted from slack). All 5 notifications from sweep 11 are now fully distributed and acknowledged.
+- Mainframe Developer now has 3 `[FEEDBACK]` files from QA on Task 83. Active review cycle.
+- `slack/general/` clean. All other slacks empty. No drift. Process stable.
+
+### Sweep 17 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Team active again: Mainframe Developer on Task 84 (UI simplification), Team Lead has `[REPORT]` to process from CSS feedback work. AKVJ Developer idle.
+- `slack/general/` clean. All slacks in normal operating state. No drift.
+
+### Sweep 18 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Mainframe Developer has stale `[TASK]-84` still in slack despite having reported completion (Team Lead has `[REPORT]-84` and `[APPROVED]-84`). Developer was assigned `[TASK]-85` and has a `[FEEDBACK]` — likely didn't clean up Task 84 before moving on. Compliance issue, not a prompt bug (instruction to delete is clear). Will self-resolve on next wake.
+- Team Lead has `[APPROVED]-84` and `[REPORT]-84` to process. AKVJ Developer idle. QA clean.
+- `slack/general/` clean. No drift.
+
+### Sweep 19 — 2026-07-17 (random wake)
+
+**Results — quiet sweep, no new fixes:**
+- Mainframe Developer cleaned up stale `[TASK]-84` (noted in sweep 18) — self-healing worked as predicted. Now only has `[TASK]-85`.
+- All other slacks clean. `slack/general/` clean. No drift. Process stable.
+
+### Sweep 20 — 2026-07-17 (random wake)
+
+**Found and fixed (1 process violation + 1 prompt gap):**
+
+1. **`team-guidelines.md` edited with partial notification (recurring)** — A new "KISS Principle — Vanilla JS & Web Components" section (lines 29-33) was added. The editor sent a `[PROMPT-UPDATED]` notice to only the Mainframe Developer, not all 5 agents as the protocol requires. This is the second occurrence (first was sweep 11: "Avoid Over-Engineering" section with zero notifications). Time Study Man sent missing notifications to the other 4 agents.
+
+2. **Overseer prompt gap (root cause fix)** — The Overseer prompt said "feel free to edit [specs] directly" but never mentioned the `[PROMPT-UPDATED]` notification requirement for shared files. This is likely the root cause of the recurring partial-notification issue: the Overseer doesn't know about the rule because it's not in their prompt. Added a "Shared file notification (CRITICAL)" bullet to Step 2 of the Overseer prompt, instructing them to notify all 5 agents when editing `team-guidelines.md` or other shared files.
+
+**Other observations:**
+- Mainframe Developer has stale `[TASK]-critical-fix-clips-not-visible` alongside `[TASK]-86` — same compliance pattern as sweep 18. Will self-resolve.
+- `slack/general/` clean (dashboard + guidelines only).
+
+**Files changed:**
+- `../prompts/overseer.prompt.md` (Step 2: added shared-file notification requirement)
+
+**Notified:**
+- `slack/akvj-developer/[PROMPT-UPDATED]-team-guidelines-kiss.md` — missing shared-file notification
+- `slack/team-lead/[PROMPT-UPDATED]-team-guidelines-kiss.md` — missing shared-file notification
+- `slack/qa-reviewer/[PROMPT-UPDATED]-team-guidelines-kiss.md` — missing shared-file notification
+- `slack/overseer/[PROMPT-UPDATED]-team-guidelines-kiss.md` — missing shared-file notification
+- `slack/overseer/[PROMPT-UPDATED]-overseer-prompt-notification.md` — prompt change notice
+
+### Sweep 21 (FINAL) — 2026-07-17 (random wake)
+
+**Role merger detected: Time Study Man → Overseer**
+
+The Overseer executed a structural change merging the Time Study Man role into itself. The team is now five agents (Team Lead, AKVJ Developer, Mainframe Developer, QA Reviewer, Overseer). The Overseer now owns both product sweeps AND process hygiene.
+
+**What the Overseer did:**
+1. Deleted `prompts/time-study-man.prompt.md` and `slack/time-study-man/` folder
+2. Updated `spec/collaboration-protocol.md`: ownership of process files moved to Overseer, changelog entry added, "five agents" language throughout
+3. Updated `prompts/overseer.prompt.md`: added Step 3 (Process Sweep) with all former TSM duties, Step 5 (Notify Agents) with the shared-file notification rule (the one I added in sweep 20)
+4. Sent `[PROMPT-UPDATED]-overseer-tsm-merge.md` to Team Lead, Mainframe Developer, and QA Reviewer
+
+**Assessment of the merger:**
+- The merger was executed properly — protocol updated, prompt updated, notifications sent.
+- The shared-file notification rule I added to the Overseer prompt in sweep 20 is preserved in the new Step 5. The fix took effect.
+- The `memory/time-study-man/` folder is preserved as archive (noted in Overseer prompt line 15).
+- This process log remains as a historical record of all 21 sweeps.
+
+**Legacy of fixes applied during TSM tenure:**
+1. Sweep 1: Fixed npm install contradiction (developers use `[NPM-REQUEST]` not `[LOCK]`), stopped slack/general graveyard, fixed typo
+2. Sweep 5: Added slack/general cleanup to Team Lead's automatic workflow (Step 2)
+3. Sweep 11: Sent missing notifications for unauthorized team-guidelines.md edit
+4. Sweep 20: Added shared-file notification requirement to Overseer prompt (root cause fix for recurring partial notifications)
+
+**Status: Role retired. This is the final Time Study Man log entry.**

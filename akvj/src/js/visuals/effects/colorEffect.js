@@ -1,4 +1,5 @@
 import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
+import { getEffectVariant } from './effectVariant.js';
 
 /**
  * Color effect: invert or posterize RGB channels based on note and intensity.
@@ -12,11 +13,11 @@ export default {
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;
-		const noteInRange = effect.note - effectContext.effectRanges.color.min;
 		const { effectVariantThreshold, posterizeBaseLevels, posterizeIntensityScale } = effectContext.effectParams;
+		const { isVariantA } = getEffectVariant(effect.note, effectContext.effectRanges.color, effectVariantThreshold);
 		const intensity = effect.velocity / MAX_MIDI_VELOCITY;
 
-		if (noteInRange < effectVariantThreshold) {
+		if (isVariantA) {
 			invertColors(pixels);
 		} else {
 			posterizeColors(pixels, posterizeBaseLevels, posterizeIntensityScale, intensity);
@@ -25,7 +26,6 @@ export default {
 	},
 
 	type: 'color',
-	// Reads effect.note to pick the variant; the pipeline skips malformed entries
 	requiresNote: true
 };
 

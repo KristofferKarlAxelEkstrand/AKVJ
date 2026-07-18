@@ -1,0 +1,31 @@
+akvj-mapping-table {
+	.mapping-summary {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		font-size: 0.85rem;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.mapping-summary-count {
+		color: var(--muted);
+	}
+
+	.mapping-summary-unmapped {
+		color: var(--warn, #b8860b);
+	}
+
+	.mapping-table {
+		border-collapse: collapse;
+		font-size: 0.95rem;
+		width: 100%;
+	}
+
+	.mapping-table th,
+	.mapping-table td {
+		border-bottom: 1px solid var(--line);
+		padding: 0.55rem 0.4rem;
+		text-align: left;
+	}
+}

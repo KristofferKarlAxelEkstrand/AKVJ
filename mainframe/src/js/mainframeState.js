@@ -4,6 +4,12 @@ const EVENT_CHANNEL_CHANGED = 'channelChanged';
 const EVENT_SEARCH_CHANGED = 'searchChanged';
 const EVENT_ROLE_FILTER_CHANGED = 'roleFilterChanged';
 const EVENT_SORT_MODE_CHANGED = 'sortModeChanged';
+const EVENT_CATEGORY_CHANGED = 'categoryChanged';
+const EVENT_PROJECTS_CHANGED = 'projectsChanged';
+const EVENT_ACTIVE_PROJECT_CHANGED = 'activeProjectChanged';
+const EVENT_USER_MESSAGE = 'userMessage';
+
+const USER_MESSAGE_TYPES = new Set(['error', 'warning', 'info']);
 
 /**
  * MainframeState — centralized UI state for the Mainframe application.
@@ -19,10 +25,14 @@ class MainframeState extends EventTarget {
 	#clips = [];
 	/** @type {Array<{channel: number, note: number, velocity: number, clipId: string}>} */
 	#mappings = [];
+	/** @type {Array<{id: string, name: string}>} */
+	#projects = [];
+	#activeProjectId = 'default';
 	#channel = 1;
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
+	#category = '';
 
 	#dispatchStateEvent(eventName, detail) {
 		this.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -127,6 +137,90 @@ class MainframeState extends EventTarget {
 	}
 
 	/**
+	 * @param {string} category - Selected category (empty string = folder view)
+	 */
+	set category(category) {
+		if (this.#category !== category) {
+			this.#category = category;
+			this.#dispatchStateEvent(EVENT_CATEGORY_CHANGED, { category });
+		}
+	}
+
+	/**
+	 * @returns {string}
+	 */
+	get category() {
+		return this.#category;
+	}
+
+	/**
+	 * @param {Array<{id: string, name: string}>} projects
+	 */
+	set projects(projects) {
+		this.#projects = Array.isArray(projects) ? projects : [];
+		this.#dispatchStateEvent(EVENT_PROJECTS_CHANGED, { projects: this.#projects });
+	}
+
+	/**
+	 * @returns {Array<{id: string, name: string}>}
+	 */
+	get projects() {
+		return this.#projects;
+	}
+
+	/**
+	 * @param {string} projectId
+	 */
+	set activeProjectId(projectId) {
+		const nextId = projectId || 'default';
+		if (this.#activeProjectId !== nextId) {
+			this.#activeProjectId = nextId;
+			this.#dispatchStateEvent(EVENT_ACTIVE_PROJECT_CHANGED, { activeProjectId: nextId });
+		}
+	}
+
+	/**
+	 * @returns {string}
+	 */
+	get activeProjectId() {
+		return this.#activeProjectId;
+	}
+
+	/**
+	 * Raise a user-facing modal message (consumed by `<user-messages>`).
+	 * @param {{ type?: 'error'|'warning'|'info', text: string }} options
+	 */
+	showUserMessage({ type = 'info', text } = {}) {
+		const normalizedType = USER_MESSAGE_TYPES.has(type) ? type : 'info';
+		const messageText = String(text ?? '').trim();
+		if (!messageText) {
+			return;
+		}
+		this.#dispatchStateEvent(EVENT_USER_MESSAGE, { type: normalizedType, text: messageText });
+	}
+
+	/**
+	 * @param {string} text
+	 */
+	error(text) {
+		this.showUserMessage({ type: 'error', text });
+	}
+
+	/**
+	 * @param {string} text
+	 */
+	warn(text) {
+		this.showUserMessage({ type: 'warning', text });
+	}
+
+	/**
+	 * @param {string} text
+	 */
+	info(text) {
+		this.showUserMessage({ type: 'info', text });
+	}
+
+	/**
 	 * Subscribe to state changes.
 	 * @param {string} eventName - The name of the event to subscribe to
 	 * @param {Function} callback - The callback function to invoke when the event is dispatched
@@ -144,14 +238,47 @@ class MainframeState extends EventTarget {
 	reset() {
 		this.#clips = [];
 		this.#mappings = [];
+		this.#projects = [];
+		this.#activeProjectId = 'default';
 		this.#channel = 1;
 		this.#searchQuery = '';
 		this.#roleFilter = '';
 		this.#sortMode = 'name';
+		this.#category = '';
 	}
 }
 
 const mainframeState = new MainframeState();
+
+/**
+ * Programmatic entry point for user messages (routes through MainframeState events).
+ */
+const messages = {
+	/**
+	 * @param {{ type?: 'error'|'warning'|'info', text: string }} options
+	 */
+	show(options) {
+		mainframeState.showUserMessage(options);
+	},
+	/**
+	 * @param {string} text
+	 */
+	error(text) {
+		mainframeState.error(text);
+	},
+	/**
+	 * @param {string} text
+	 */
+	warn(text) {
+		mainframeState.warn(text);
+	},
+	/**
+	 * @param {string} text
+	 */
+	info(text) {
+		mainframeState.info(text);
+	}
+};
 
 /**
  * Create a fresh MainframeState instance for testing isolation.
@@ -164,10 +291,15 @@ export function createMainframeState() {
 export {
 	MainframeState,
 	mainframeState as default,
+	messages,
 	EVENT_CLIPS_CHANGED,
 	EVENT_MAPPINGS_CHANGED,
 	EVENT_CHANNEL_CHANGED,
 	EVENT_SEARCH_CHANGED,
 	EVENT_ROLE_FILTER_CHANGED,
-	EVENT_SORT_MODE_CHANGED
+	EVENT_SORT_MODE_CHANGED,
+	EVENT_CATEGORY_CHANGED,
+	EVENT_PROJECTS_CHANGED,
+	EVENT_ACTIVE_PROJECT_CHANGED,
+	EVENT_USER_MESSAGE
 };

@@ -3,13 +3,14 @@
  *
  * Loads and plays clips from the flat clips.json catalog (keyed by clipId).
  */
+import { normalizeClipMetadata } from '../../js/visuals/clipMetadata.js';
 
 const PREVIEW_MAX_SCALE = 4;
 const PREVIEW_TARGET_WIDTH = 400;
 const DEFAULT_PREVIEW_FRAME_RATE = 12;
 const MS_PER_SECOND = 1000;
-const DEFAULT_CLIP_BASE_PATH = '/clips';
-const DEFAULT_CLIPS_JSON_PATH = '/clips/clips.json';
+const DEFAULT_CLIP_BASE_PATH = '/projects/default/clips';
+const DEFAULT_CLIPS_JSON_PATH = '/projects/default/clips/clips.json';
 
 class ClipPreview {
 	#clips = {};
@@ -118,7 +119,7 @@ class ClipPreview {
 			return;
 		}
 
-		this.#currentClipMeta = this.#clips[clipId];
+		this.#currentClipMeta = normalizeClipMetadata(this.#clips[clipId]);
 		if (!this.#currentClipMeta) {
 			this.#metaDisplay.textContent = 'Clip not found';
 			return;
@@ -162,7 +163,7 @@ class ClipPreview {
 
 	#computeFrameDimensions() {
 		const frameWidth = this.#spriteImage.width / this.#currentClipMeta.framesPerRow;
-		const rows = Math.ceil((this.#currentClipMeta.frames ?? this.#currentClipMeta.numberOfFrames) / this.#currentClipMeta.framesPerRow);
+		const rows = Math.ceil(this.#currentClipMeta.frames / this.#currentClipMeta.framesPerRow);
 		const frameHeight = this.#spriteImage.height / rows;
 		return { frameWidth, frameHeight };
 	}
@@ -217,14 +218,14 @@ class ClipPreview {
 		const row = Math.floor(this.#currentFrame / this.#currentClipMeta.framesPerRow);
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
 		this.#ctx.drawImage(this.#spriteImage, col * frameWidth, row * frameHeight, frameWidth, frameHeight, 0, 0, this.#canvas.width, this.#canvas.height);
-		this.#frameInfo.textContent = `Frame: ${this.#currentFrame + 1} / ${this.#currentClipMeta.frames ?? this.#currentClipMeta.numberOfFrames}`;
+		this.#frameInfo.textContent = `Frame: ${this.#currentFrame + 1} / ${this.#currentClipMeta.frames}`;
 	}
 
 	#animate() {
 		const now = performance.now();
 		const frameDuration = MS_PER_SECOND / this.#getFrameRate();
 		if (this.#isPlaying && now - this.#lastFrameTime >= frameDuration) {
-			this.#currentFrame = (this.#currentFrame + 1) % ((this.#currentClipMeta?.frames ?? this.#currentClipMeta?.numberOfFrames) || 1);
+			this.#currentFrame = (this.#currentFrame + 1) % (this.#currentClipMeta?.frames || 1);
 			this.#lastFrameTime = now;
 		}
 		this.#drawFrame();
@@ -255,7 +256,7 @@ class ClipPreview {
 	#stepToPrevFrame() {
 		this.#isPlaying = false;
 		this.#playPauseBtn.textContent = 'Play';
-		const totalFrames = (this.#currentClipMeta?.frames ?? this.#currentClipMeta?.numberOfFrames) || 1;
+		const totalFrames = this.#currentClipMeta?.frames || 1;
 		this.#currentFrame = (this.#currentFrame - 1 + totalFrames) % totalFrames;
 		this.#drawFrame();
 	}
@@ -263,7 +264,7 @@ class ClipPreview {
 	#stepToNextFrame() {
 		this.#isPlaying = false;
 		this.#playPauseBtn.textContent = 'Play';
-		const totalFrames = (this.#currentClipMeta?.frames ?? this.#currentClipMeta?.numberOfFrames) || 1;
+		const totalFrames = this.#currentClipMeta?.frames || 1;
 		this.#currentFrame = (this.#currentFrame + 1) % totalFrames;
 		this.#drawFrame();
 	}

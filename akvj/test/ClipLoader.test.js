@@ -5,6 +5,9 @@ import settings from '../src/js/core/settings.js';
 function mockFetchCatalogAndLayout(catalog, keyMap) {
 	globalThis.fetch = vi.fn(async url => {
 		const href = String(url);
+		if (href.includes('active-project')) {
+			return { ok: false, status: 404, json: async () => ({}) };
+		}
 		if (href.includes('key-map')) {
 			return { ok: true, json: async () => keyMap };
 		}
@@ -245,5 +248,39 @@ describe('ClipLoader - mapping edge cases', () => {
 		const clip2 = clips[0][61][0];
 		expect(clip2.triggerType).toBe('latch');
 		expect(clip2.triggerGroup).toBe('bg');
+	});
+
+	test('sync overrides on two placements expand to different frameDurationBeats', async () => {
+		const { normalizeClipMetadata } = await import('../src/js/visuals/clipMetadata.js');
+		const baseMeta = {
+			png: 'sprite.png',
+			frames: 4,
+			framesPerRow: 4,
+			playback: 'loop',
+			frameRatesForFrames: { 0: 12, 1: 12, 2: 12, 3: 12 },
+			retrigger: true
+		};
+		const catalog = { 'neon-skull': baseMeta };
+		const keyMap = {
+			1: {
+				60: { 0: { clipId: 'neon-skull', sync: 'beat', syncLength: '1 bar', beatsPerBar: 4 } },
+				61: { 0: { clipId: 'neon-skull', sync: 'beat', syncLength: '2 bars', beatsPerBar: 4 } }
+			}
+		};
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage();
+
+		const loader = new ClipLoader({});
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+
+		expect(clips[0][60][0]).toBeTruthy();
+		expect(clips[0][61][0]).toBeTruthy();
+		expect(clips[0][60][0]).not.toBe(clips[0][61][0]);
+
+		// Same shallow-merge + normalize path ClipLoader uses in #loadMappedClip / #createClip
+		const oneBar = normalizeClipMetadata({ ...baseMeta, sync: 'beat', syncLength: '1 bar', beatsPerBar: 4 });
+		const twoBars = normalizeClipMetadata({ ...baseMeta, sync: 'beat', syncLength: '2 bars', beatsPerBar: 4 });
+		expect(oneBar.frameDurationBeats).toEqual([1, 1, 1, 1]);
+		expect(twoBars.frameDurationBeats).toEqual([2, 2, 2, 2]);
 	});
 });

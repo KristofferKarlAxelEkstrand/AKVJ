@@ -1,3 +1,9 @@
+---
+status: backlog
+assignee: none
+priority: low
+---
+
 # Task 82: Grayscale-Driven Displacement / Fade Effects (Feature Idea)
 
 ## Severity: Low (Feature idea — not urgent, user said "test the basics first")

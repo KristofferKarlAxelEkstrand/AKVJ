@@ -1,0 +1,57 @@
+clip-instance {
+	align-items: center;
+	background: color-mix(in srgb, var(--surface) 88%, transparent);
+	border: 1px solid var(--line);
+	display: grid;
+	gap: 1rem;
+	grid-template-columns: 120px 1fr auto;
+	padding: 0.75rem;
+
+	.clip-instance-img {
+		background: #000;
+		height: 68px;
+		image-rendering: pixelated;
+		object-fit: contain;
+		width: 120px;
+	}
+
+	.clip-meta {
+		color: var(--muted);
+		font-size: 0.9rem;
+		margin: 0;
+	}
+
+	.clip-meta strong {
+		color: var(--ink);
+		display: block;
+		font-size: 1.05rem;
+		margin-bottom: 0.2rem;
+	}
+
+	.clip-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.clip-edit,
+	.clip-map {
+		font-size: 0.85rem;
+		padding: 0.35rem 0.7rem;
+	}
+
+	.clip-map:disabled {
+		opacity: 0.4;
+	}
+
+	.clip-delete {
+		border-color: var(--line);
+		color: var(--err);
+		font-size: 0.85rem;
+		padding: 0.35rem 0.7rem;
+	}
+
+	.clip-delete:hover {
+		background: color-mix(in srgb, var(--err) 12%, transparent);
+		border-color: var(--err);
+	}
+}

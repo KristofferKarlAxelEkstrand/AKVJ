@@ -3,8 +3,7 @@ import path from 'path';
 import { getFilesWithExtension, getSubfolders } from './structure.js';
 import { validateMetaFields } from './meta.js';
 import { validateImageDimensions } from './image.js';
-
-const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+import { CLIP_ID_PATTERN } from '../../../../shared/clipId.js';
 
 /**
  * Validation result for a single clip.

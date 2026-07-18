@@ -61,7 +61,7 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 ## Key Files
 
-npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/` (MIDI spec MCP server for agents), shared `clips/` at repo root.
+npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/` (MIDI spec MCP server for agents), per-project clips under `projects/{id}/clips/`.
 
 | File                                          | Purpose                                                     |
 | --------------------------------------------- | ----------------------------------------------------------- |
@@ -79,6 +79,7 @@ npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/
 | `akvj/src/js/utils/Fullscreen.js`             | Fullscreen toggle (enter/space/dblclick)                    |
 | `akvj/src/js/utils/DebugOverlay.js`           | Debug overlay (press 'D' to toggle)                         |
 | `akvj/src/js/utils/velocitySelection.js`      | Velocity-based clip selection utilities                     |
+| `akvj/src/js/ui/LoadingOverlay.js`            | Loading overlay custom element for project switching        |
 
 ## Common Commands
 
@@ -114,12 +115,20 @@ Channels shown as displayed in DAWs (1-16). `key-map.json` uses DAW channels; Cl
 | 10       | Mixed output effects | Effects applied to mixed Layer Group A and Layer Group B output |
 | 11-12    | Layer Group C        | Overlay layer (logos)                                           |
 | 13       | Global effects       | Effects on entire output                                        |
-| 14-16    | Reserved             | Ignored                                                         |
+| 14       | Project selection    | Note → project switch (latched, velocity ignored)               |
+| 15-16    | Reserved             | Ignored                                                         |
 
 ### Note/Velocity
 
 - **Note (0-127)** → Clip selection
 - **Velocity (0-127)** → Velocity variant/intensity
+
+### key-map.json leaf shape
+
+Each velocity slot is either a bare clip id string (`"my-clip"`) or an object
+`{ "clipId": "my-clip", …overrides }` for per-placement overrides. Allowed override keys:
+`triggerType`, `triggerGroup`, `sync`, `syncLength`, `syncBeats`, `beatsPerBar`
+(validated by mainframe; ClipLoader shallow-merges onto clip meta at load).
 
 ## Clip Metadata
 
@@ -132,8 +141,12 @@ Key fields in `meta.json`:
 | `framesPerRow`        | number        | Frames per row in sprite sheet                                                      |
 | `playback`            | string        | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
 | `retrigger`           | boolean       | Restart on re-trigger                                                               |
-| `frameRatesForFrames` | object        | FPS per frame index                                                                 |
-| `frameDurationBeats`  | number/array  | BPM-synced timing (beats per frame)                                                 |
+| `frameRatesForFrames` | object        | FPS per frame index (Free / wall-clock timing)                                      |
+| `frameDurationBeats`  | number/array  | BPM-synced timing (beats per frame); also produced by expanding `sync` fields       |
+| `sync`                | string        | Optional; `"free"` (default) or `"beat"` — author-facing sync mode                  |
+| `syncLength`          | string        | Required when `sync` is `"beat"`; preset (`1/4 beat`…`8 bars`) or `"custom"`      |
+| `syncBeats`           | number        | Required when `syncLength` is `"custom"` — total musical length in beats            |
+| `beatsPerBar`         | number        | Optional; time-signature numerator for bar presets (default `4`)                    |
 | `bitDepth`            | number        | For masks: 1, 2, 4, or 8                                                            |
 | `role`                | string        | Optional; `"bitmask"` for mixer masks                                               |
 | `triggerType`         | string        | Optional; `"momentary"` (default), `"latch"`, or `"one-shot"`                       |
@@ -142,13 +155,13 @@ Key fields in `meta.json`:
 
 ## Clip Structure
 
-Source clips live in repo-root flat `clips/{clipId}/` (build pipeline copies to `akvj/src/public/clips/`). MIDI placement is in `clips/key-map.json` (DAW channels 1–16).
+Source clips live per project under `projects/{projectId}/clips/{clipId}/` (build pipeline copies to `akvj/src/public/projects/{projectId}/clips/`). MIDI placement is in `projects/{projectId}/key-map.json` (DAW channels 1–16). New projects seed clips from `default` (or `copyFrom`).
 
 ```
-clips/{clipId}/
+projects/{projectId}/clips/{clipId}/
   ├── meta.json       # Clip metadata (optional role: "bitmask")
   └── sprite.png      # Sprite sheet
-clips/key-map.json
+projects/{projectId}/key-map.json
 ```
 
 ## Code Conventions
@@ -162,7 +175,7 @@ clips/key-map.json
 - **Bound handlers**: Cache bound methods for event listeners (e.g., `#boundHandleMIDIMessage`)
 - **Named constants**: Extract magic numbers to descriptive constants
 - **Use `const` over `let`** where possible
-- **Keep functions small and focused**
+- **Keep functions focused** — prioritize Single Responsibility and SLAP over arbitrary line limits
 - **Document complex logic** with comments
 - **JSDoc** for public methods with `@param` and `@returns`
 
@@ -170,7 +183,7 @@ clips/key-map.json
 
 - **File naming**: Files whose main export is a class are PascalCase (e.g. `Renderer.js`, `Compositor.js`, `Pipeline.js`); all other modules are lowercase (e.g. `settings.js`, `velocitySelection.js`, `validate.js`). This applies to `src/` and `scripts/` alike.
 - Prefer explicit, domain-based names over vague ones. Use `layerGroup`, `effectsManager`, `compositor`, and `midiAccess` instead of `data`, `state`, or `thing`.
-- Keep each private helper focused on one responsibility. If a method grows beyond roughly 15 lines or mixes concerns, extract a smaller helper rather than adding more conditionals.
+- Keep each private helper focused on one responsibility. Do not enforce arbitrary line limits. Instead, prioritize Single Responsibility and Single Level of Abstraction (SLAP). If a function does multiple things or has deep nesting (if/else inside loops), extract `#private` helpers with descriptive domain names. A linear, highly readable 50-line function is better than ten fragmented 5-line functions.
 - Route cross-module behavior through clear interfaces. Prefer `AppState` events and manager methods over direct property access across unrelated modules.
 - Use constants for repeated string values and event names so the intent remains obvious and names are centralized.
 
@@ -273,12 +286,15 @@ Tests cover all 4 mask bit depths (1/2/4/8-bit), all 6 effect types (color, mirr
 
 Reusable skills live in `.agents/skills/` following the [Agent Skills](https://agentskills.io) open standard. Symlinks bridge to `.claude/skills/` and `.cursor/skills/` for tool compatibility.
 
-| Skill                  | Location                               | Purpose                                           |
-| ---------------------- | -------------------------------------- | ------------------------------------------------- |
-| `agent-agnostic-setup` | `.agents/skills/agent-agnostic-setup/` | Sets up and audits agent-agnostic repo config     |
-| `midi-protocol`        | `.agents/skills/midi-protocol/`        | MIDI protocol and Web MIDI API expertise for AKVJ |
+| Skill                      | Location                                   | Purpose                                                              |
+| -------------------------- | ------------------------------------------ | -------------------------------------------------------------------- |
+| `agent-agnostic-setup`     | `.agents/skills/agent-agnostic-setup/`     | Sets up and audits agent-agnostic repo config                        |
+| `custom-elements-frontend` | `.agents/skills/custom-elements-frontend/` | Light-DOM custom elements, events, lifecycle (no Shadow DOM for CSS) |
+| `git-safety`               | `.agents/skills/git-safety/`               | Safe Git operations; avoid destructive resets                        |
+| `midi-protocol`            | `.agents/skills/midi-protocol/`            | MIDI protocol and Web MIDI API expertise for AKVJ                    |
+| `team-communication`       | `.agents/skills/team-communication/`       | Write developer-team inbox updates                                   |
 
-Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync symlinks.
+Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync symlinks. Edit skills only in `.agents/skills/` — agent-native dirs (`.claude/skills/`, `.cursor/skills/`, `.windsurf/skills/`) are symlinks.
 
 ## MIDI Spec MCP Server (`midi-mcp/`)
 

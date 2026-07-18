@@ -1,0 +1,11 @@
+{
+	"name": "",
+	"png": "sprite.png",
+	"frames": 64,
+	"framesPerRow": 8,
+	"playback": "loop",
+	"retrigger": true,
+	"frameDurationBeats": 0.25,
+	"role": "bitmask",
+	"bitDepth": 1
+}

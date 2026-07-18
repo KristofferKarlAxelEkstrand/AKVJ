@@ -35,6 +35,9 @@ jobs:
             - name: Check formatting (prettier)
               run: npx prettier --check .
 
+            - name: Check package.json key order
+              run: npm run check:package-json
+
             - name: Check line endings (LF only)
               run: npm run check:eol
 

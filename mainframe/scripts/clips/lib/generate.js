@@ -1,8 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { getSubfolders, getFilesWithExtension } from './validate/index.js';
-
-const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+import { isValidClipId } from '../../../shared/clipId.js';
 
 /**
  * Parse a JSON file safely.
@@ -32,7 +31,7 @@ export async function generate(sourceDir, outputPath) {
 	const clipIds = await getSubfolders(sourceDir);
 
 	for (const clipId of clipIds) {
-		if (!CLIP_ID_PATTERN.test(clipId) || /^\d+$/.test(clipId)) {
+		if (!isValidClipId(clipId)) {
 			continue;
 		}
 		const entry = await buildClipCatalogEntry(sourceDir, clipId);

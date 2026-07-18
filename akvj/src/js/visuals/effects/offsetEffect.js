@@ -1,5 +1,6 @@
 import { transformCopy } from './pixelUtils.js';
 import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { getEffectVariant } from './effectVariant.js';
 
 /**
  * Offset effect: shift the image horizontally or vertically with wrap-around.
@@ -20,11 +21,11 @@ export default {
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;
 		const { width, height, scratchBuffer } = effectContext;
-		const noteInRange = effect.note - effectContext.effectRanges.offset.min;
 		const { effectVariantThreshold } = effectContext.effectParams;
+		const { isVariantA } = getEffectVariant(effect.note, effectContext.effectRanges.offset, effectVariantThreshold);
 		const intensity = effect.velocity / MAX_MIDI_VELOCITY;
 
-		if (noteInRange < effectVariantThreshold) {
+		if (isVariantA) {
 			const offsetX = Math.floor(intensity * width);
 			transformCopy(pixels, width, height, scratchBuffer, (x, y) => (y * width + ((x + offsetX) % width)) * RGBA_CHANNEL_COUNT);
 		} else {

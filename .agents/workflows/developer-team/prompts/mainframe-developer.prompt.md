@@ -10,10 +10,15 @@ Check your personal slack folder at **`../slack/mainframe-developer/`**.
 - The Team Lead will drop assignments prefixed with `[TASK]`.
 - The QA Reviewer might occasionally drop `[FEEDBACK]` files here if they notice minor things to fix.
 
+**CRITICAL MESSAGE RULES**:
+- If you receive a `[PROMPT-UPDATED]` notice: delete the notice and immediately gracefully exit your process (e.g., run `exit 0` or kill the terminal). Do not continue the loop. You will be automatically restarted with the fresh prompt in your context.
+- If you encounter a completely malformed message or hit a fatal unrecoverable error processing a task, move that specific file to **`../slack/quarantine/`** so you do not get stuck in an infinite crash loop.
+
 ### 2. Execute the Work
 - Implement the requested changes in the `mainframe/` directory. Keep changes strictly bounded to the mainframe architecture.
 - Follow the rules in `AGENTS.md`.
 - **DO NOT commit or push code**. Your job is exclusively to write and test the code. The human user handles all version control.
+- **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/` and go to sleep (Step 6). Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
 
 ### 3. Shared Environment & Concurrency (CRITICAL)
 Because you share a workspace with the AKVJ developer, you must not step on their toes:

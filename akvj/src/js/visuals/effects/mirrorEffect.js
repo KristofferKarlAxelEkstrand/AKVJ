@@ -1,4 +1,6 @@
+import { transformCopy } from './pixelUtils.js';
 import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { getEffectVariant } from './effectVariant.js';
 
 /**
  * Mirror effect: reflect the left/top half onto the right/bottom half.
@@ -8,49 +10,28 @@ export default {
 	 * @param {ImageData} imageData
 	 * @param {{note: number}} effect
 	 * @param {number} _timestamp
-	 * @param {{width: number, height: number, effectRanges: Object, effectParams: Object}} effectContext
+	 * @param {{width: number, height: number, effectRanges: Object, effectParams: Object, scratchBuffer: Uint8ClampedArray|null}} effectContext
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;
-		const { width, height } = effectContext;
-		const noteInRange = effect.note - effectContext.effectRanges.mirror.min;
+		const { width, height, scratchBuffer } = effectContext;
 		const { effectVariantThreshold } = effectContext.effectParams;
+		const { isVariantA } = getEffectVariant(effect.note, effectContext.effectRanges.mirror, effectVariantThreshold);
 
-		if (noteInRange < effectVariantThreshold) {
-			mirrorHorizontal(pixels, width, height);
+		if (isVariantA) {
+			transformCopy(pixels, width, height, scratchBuffer, (x, y) => {
+				const sourceX = x < width / 2 ? x : width - 1 - x;
+				return (y * width + sourceX) * RGBA_CHANNEL_COUNT;
+			});
 		} else {
-			mirrorVertical(pixels, width, height);
+			transformCopy(pixels, width, height, scratchBuffer, (x, y) => {
+				const sourceY = y < height / 2 ? y : height - 1 - y;
+				return (sourceY * width + x) * RGBA_CHANNEL_COUNT;
+			});
 		}
 		return true;
 	},
 
 	type: 'mirror',
-	// Reads effect.note to pick the variant; the pipeline skips malformed entries
 	requiresNote: true
 };
-
-function mirrorHorizontal(pixels, width, height) {
-	for (let y = 0; y < height; y++) {
-		for (let x = 0; x < width / 2; x++) {
-			const sourcePixelIndex = (y * width + x) * RGBA_CHANNEL_COUNT;
-			const destinationPixelIndex = (y * width + (width - 1 - x)) * RGBA_CHANNEL_COUNT;
-			pixels[destinationPixelIndex] = pixels[sourcePixelIndex];
-			pixels[destinationPixelIndex + 1] = pixels[sourcePixelIndex + 1];
-			pixels[destinationPixelIndex + 2] = pixels[sourcePixelIndex + 2];
-			pixels[destinationPixelIndex + 3] = pixels[sourcePixelIndex + 3];
-		}
-	}
-}
-
-function mirrorVertical(pixels, width, height) {
-	for (let y = 0; y < height / 2; y++) {
-		for (let x = 0; x < width; x++) {
-			const sourcePixelIndex = (y * width + x) * RGBA_CHANNEL_COUNT;
-			const destinationPixelIndex = ((height - 1 - y) * width + x) * RGBA_CHANNEL_COUNT;
-			pixels[destinationPixelIndex] = pixels[sourcePixelIndex];
-			pixels[destinationPixelIndex + 1] = pixels[sourcePixelIndex + 1];
-			pixels[destinationPixelIndex + 2] = pixels[sourcePixelIndex + 2];
-			pixels[destinationPixelIndex + 3] = pixels[sourcePixelIndex + 3];
-		}
-	}
-}

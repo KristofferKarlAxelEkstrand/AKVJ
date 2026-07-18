@@ -2,6 +2,7 @@
  * Strobe effect: flash white at BPM-synced subdivisions based on velocity.
  */
 import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { msPerBeat } from '../../utils/timing.js';
 
 const WHITE_PIXEL_VALUE = 255;
 const STROBE_WHITEOUT_MAX_VELOCITY = 9;
@@ -10,7 +11,6 @@ const STROBE_VELOCITY_BUCKET_SIZE = 10;
 const STROBE_MAX_PULSES_PER_BEAT = 12;
 const STROBE_DUTY_CYCLE_BASE = 0.25;
 const STROBE_DUTY_CYCLE_RANGE = 0.25;
-const MS_PER_MINUTE = 60000;
 
 export default {
 	/**
@@ -55,9 +55,9 @@ function isStrobeActive(velocity, timestamp, effectContext) {
 	const bucketRemainder = (velocity - STROBE_PULSE_MIN_VELOCITY) % STROBE_VELOCITY_BUCKET_SIZE;
 	const duty = STROBE_DUTY_CYCLE_BASE + (bucketRemainder / (STROBE_VELOCITY_BUCKET_SIZE - 1)) * STROBE_DUTY_CYCLE_RANGE;
 	const bpm = Math.max(effectContext.bpmMin, effectContext.bpm ?? effectContext.bpmDefault);
-	const msPerBeat = MS_PER_MINUTE / bpm;
+	const beatMs = msPerBeat(bpm);
 	const effectiveTimestamp = timestamp ?? performance.now();
-	const beatPos = (effectiveTimestamp % msPerBeat) / msPerBeat;
+	const beatPos = (effectiveTimestamp % beatMs) / beatMs;
 	const pulsePhase = (beatPos * pulsesPerBeat) % 1;
 	return pulsePhase < duty;
 }

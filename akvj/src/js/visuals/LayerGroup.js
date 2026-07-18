@@ -7,6 +7,7 @@
  * - Within a channel, lower note number renders first (bottom)
  */
 import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
+import { TRIGGER_TYPES } from './clipMetadata.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip
@@ -85,7 +86,7 @@ class LayerGroup {
 		const existingClip = activeClipsByNote.get(note);
 
 		// Latch: if clip is already active on this note, stop it (toggle behavior)
-		if (clip.triggerType === 'latch' && existingClip === clip && !clip.isFinished) {
+		if (clip.triggerType === TRIGGER_TYPES.LATCH && existingClip === clip && !clip.isFinished) {
 			clip.stop();
 			activeClipsByNote.delete(note);
 			this.#removeFromTriggerGroup(clip, channel, note);
@@ -134,7 +135,7 @@ class LayerGroup {
 		}
 
 		// Latch and one-shot ignore note off
-		if (clip.triggerType === 'latch' || clip.triggerType === 'one-shot') {
+		if (clip.triggerType === TRIGGER_TYPES.LATCH || clip.triggerType === TRIGGER_TYPES.ONE_SHOT) {
 			return false;
 		}
 

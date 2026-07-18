@@ -1,3 +1,5 @@
+import '../scss/MappingTable.scss';
+
 /**
  * AkvjMappingTable — custom element encapsulating the mapping table and summary.
  * Renders mapping entries with remove buttons, and a summary showing

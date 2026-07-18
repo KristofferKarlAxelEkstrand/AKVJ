@@ -15,10 +15,15 @@ The goal of this project is to maintain a strict architectural split between two
 - **Mapping**: Used to define trigger zones for clips and configure how MIDI interacts with the visuals.
 
 ## The Bridge
-The only allowed communication between the two realms is the shared `clips/` directory and its metadata JSON files. They must never share javascript module imports.
+The only allowed communication between the two realms is the shared `projects/{projectId}/clips/` directories (and their metadata JSON files) plus `projects/index.json` / `active-project.json`. They must never share javascript module imports.
 
-## Planned: Projects
-Today the app operates on one global, flat clip bank. Per direct user feedback (2026-07-17, see `memory/overseer/`), the long-term vision is to group clips, MIDI mapping, and raw uploads into **Projects** — the user's mental model is roughly "one Project per gig/show." Within that, the user wants to be able to switch between songs/scenes live via a dedicated MIDI channel, with some acceptable load latency (not instant, not a full reload). Bitmask/mixer clips should belong to a Project (each Project gets its own, seeded from a shared default) rather than being global. Some settings remain global/"General" outside any Project (e.g. canvas size, MIDI channel routing); which settings fall in which tier is still being worked out. See Task 73 (`tasks/73-introduce-projects.md`) for the detailed design and open sub-tasks.
+## Projects
+Per direct user feedback (2026-07-17, see `memory/overseer/`), clips, MIDI mapping, and raw uploads are grouped into **Projects** — the user's mental model is roughly "one Project per gig/show." This has shipped (Tasks 73/92/110/111/128): each project owns `clips/{clipId}/`, bitmasks, and `.raw-assets/` under `projects/{projectId}/`, seeded by deep-copy from `default` (or another project via `copyFrom`) on creation; the legacy flat `clips/` pool was migrated away entirely (no legacy fallback, per explicit user confirmation — "migrate do not keep legacy"). MIDI project-switching uses a fixed global channel (DAW channel 14) — that trigger itself is not per-project, everything else (key-map, clips, bitmasks) is.
+
+Still open / not yet built:
+- **Song/scene sub-tier**: switching is outer-project-only today; the user explicitly deferred any song/scene concept within a project ("not really a song concept for now").
+- **Settings split (General vs. per-Project)**: which settings are global vs. per-project is still being worked out case by case (e.g. `effectParams` is per-project-overridable per `PROJECT-SPECIFICATION.md`, while BPM/MIDI/channelMapping are global) — no single documented rule yet.
+- **Copying clips between projects**: the user wants this later ("I would like us to be able to copy them later on") — not required now, but per-project isolation should not be designed so tight it blocks this.
 
 ## Real-world usage context (from the user, 2026-07-17)
 - The user runs AKVJ for their own live sets, occasionally club nights, driven from **FL Studio** sending MIDI over a single dedicated MIDI-out device, aiming to use the full 16-channel range (untested so far — worth keeping in mind when auditing channel-routing code). Playback is meant to track the music closely (near 1:1), so **MIDI clock reliability and BPM-sync accuracy matter a lot** — this is a real, active use case, not a theoretical one.

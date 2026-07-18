@@ -1,4 +1,4 @@
-﻿# Lint, Test, and Fix
+# Lint, Test, and Fix
 
 Your task is to ensure the codebase is perfectly formatted, highly readable, passes all linting rules, and passes all tests. Actively find errors, fix underlying bugs, and guarantee the code works robustly. 
 

@@ -1,0 +1,37 @@
+clip-frames {
+	display: flex;
+	gap: 0.5rem;
+	overflow-x: auto;
+	padding: 0.5rem 0;
+}
+
+.clip-frames-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 0.75rem;
+	margin-top: 0.5rem;
+}
+
+.clip-frames-toolbar label {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	font-size: 0.875rem;
+}
+
+.clip-frames-toolbar input:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+
+.upload-sync-beat-fields {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: end;
+	gap: 0.75rem;
+}
+
+.upload-sync-beat-fields[hidden] {
+	display: none;
+}

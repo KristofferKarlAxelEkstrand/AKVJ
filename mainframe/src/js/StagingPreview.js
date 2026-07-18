@@ -1,10 +1,13 @@
+import '../scss/StagingPreview.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
-
-const PLAYBACK_MODES = ['loop', 'once', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub'];
+import { computeFrameDrawRect, resolveScaleMode } from './frameFit.js';
+import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
+import { fpsToMs } from './frameTiming.js';
+import { PLAYBACK_MODES } from './clipSchema.js';
 
 /**
  * AkvjStagingPreview — custom element showing a live canvas preview of staged
- * PNG frames at target resolution. Provides play/pause, scrub, and speed controls.
+ * frames at target resolution with scale modes. Provides play/pause, scrub, and speed controls.
  * Reuses the preview player pattern from ClipList.
  *
  * @fires AkvjStagingPreview#framesloaded - CustomEvent when frames finish loading
@@ -12,7 +15,7 @@ const PLAYBACK_MODES = ['loop', 'once', 'pingpong', 'random', 'reverse', 'shuffl
 class AkvjStagingPreview extends HTMLElement {
 	#stagedImages = [];
 	#currentFrame = 0;
-	#lastFrameTime = 0;
+	#lastFrameTime = null;
 	#animationFrameId = null;
 	#isPlaying = false;
 	#playbackSpeed = 1;
@@ -20,7 +23,10 @@ class AkvjStagingPreview extends HTMLElement {
 	#targetWidth = 240;
 	#targetHeight = 135;
 	#frameRate = 12;
+	/** @type {number[]} Per-frame hold times in ms (UI timing); empty → fall back to `#frameRate`. */
+	#frameDurationsMs = [];
 	#playbackMode = 'loop';
+	#scaleMode = 'fit';
 	#shuffleState = null;
 	#pingpongState = null;
 	#canvas = null;
@@ -40,24 +46,41 @@ class AkvjStagingPreview extends HTMLElement {
 	}
 
 	/**
+	 * Current playback speed multiplier (1 = realtime).
+	 * @returns {number}
+	 */
+	get playbackSpeed() {
+		return this.#playbackSpeed;
+	}
+
+	/**
 	 * Load staged File objects as Image elements.
 	 * @param {File[]} files
 	 * @param {number} targetWidth
 	 * @param {number} targetHeight
-	 * @param {number} frameRate
+	 * @param {number} frameRate - Fallback FPS when a frame has no explicit duration
 	 * @param {string} playbackMode
+	 * @param {string} [scaleMode='fit']
+	 * @param {number[]} [frameDurationsMs] - Per-frame hold times in ms (same shape as clip-frames)
 	 */
-	async loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode) {
+	async loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode, scaleMode, frameDurationsMs) {
 		this.#targetWidth = targetWidth || 240;
 		this.#targetHeight = targetHeight || 135;
 		this.#frameRate = frameRate || 12;
+		this.#frameDurationsMs = this.#normalizeDurationsMs(frameDurationsMs, files?.length ?? 0);
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
+		this.#scaleMode = resolveScaleMode(scaleMode);
+		this.#playbackSpeed = 1;
 		this.#shuffleState = null;
 		this.#pingpongState = null;
 		this.#stopPlayback();
 		this.#stagedImages = [];
 		this.#currentFrame = 0;
+		this.#syncCanvasBufferSize();
 
+		if (this.#speedSelect) {
+			this.#speedSelect.value = '1';
+		}
 		if (this.#frameLabel) {
 			this.#frameLabel.textContent = 'Loading…';
 		}
@@ -120,11 +143,10 @@ class AkvjStagingPreview extends HTMLElement {
 		container.className = 'clip-preview-player';
 
 		this.#canvas = document.createElement('canvas');
-		this.#canvas.width = this.#targetWidth;
-		this.#canvas.height = this.#targetHeight;
 		this.#canvas.className = 'clip-preview-canvas staging-preview-canvas';
 		this.#ctx = this.#canvas.getContext('2d');
 		this.#ctx.imageSmoothingEnabled = false;
+		this.#syncCanvasBufferSize();
 
 		const controls = document.createElement('div');
 		controls.className = 'clip-preview-controls';
@@ -195,28 +217,61 @@ class AkvjStagingPreview extends HTMLElement {
 		}
 
 		if (this.#canvas.width !== this.#targetWidth || this.#canvas.height !== this.#targetHeight) {
-			this.#canvas.width = this.#targetWidth;
-			this.#canvas.height = this.#targetHeight;
-			this.#ctx.imageSmoothingEnabled = false;
+			this.#syncCanvasBufferSize();
 		}
 
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-		this.#ctx.drawImage(img, 0, 0, this.#canvas.width, this.#canvas.height);
+		const rect = computeFrameDrawRect(img.naturalWidth || img.width, img.naturalHeight || img.height, this.#canvas.width, this.#canvas.height, this.#scaleMode);
+		this.#ctx.drawImage(img, rect.sx, rect.sy, rect.sWidth, rect.sHeight, rect.dx, rect.dy, rect.dWidth, rect.dHeight);
 		this.#frameLabel.textContent = `Frame ${this.#currentFrame + 1} / ${this.#stagedImages.length}`;
 		if (!this.#isScrubbing) {
 			this.#scrubSlider.value = String(this.#currentFrame);
 		}
 	}
 
+	/**
+	 * Keep the canvas buffer at true frame size; CSS display is 2× (capped at 960px).
+	 */
+	#syncCanvasBufferSize() {
+		if (!this.#canvas) {
+			return;
+		}
+		if (this.#canvas.width !== this.#targetWidth || this.#canvas.height !== this.#targetHeight) {
+			this.#canvas.width = this.#targetWidth;
+			this.#canvas.height = this.#targetHeight;
+			this.#ctx = this.#canvas.getContext('2d');
+			this.#ctx.imageSmoothingEnabled = false;
+		}
+		const { displayWidth, displayHeight } = computeStagingDisplaySize(this.#targetWidth, this.#targetHeight);
+		this.#canvas.style.width = `${displayWidth}px`;
+		this.#canvas.style.height = `${displayHeight}px`;
+	}
+
+	/**
+	 * @param {unknown} frameDurationsMs
+	 * @param {number} frameCount
+	 * @returns {number[]}
+	 */
+	#normalizeDurationsMs(frameDurationsMs, frameCount) {
+		const fallbackMs = fpsToMs(this.#frameRate);
+		const normalized = [];
+		for (let i = 0; i < frameCount; i++) {
+			const raw = Array.isArray(frameDurationsMs) ? Number(frameDurationsMs[i]) : NaN;
+			normalized.push(Number.isFinite(raw) && raw > 0 ? raw : fallbackMs);
+		}
+		return normalized;
+	}
+
 	#getFrameInterval() {
-		return 1000 / this.#frameRate / this.#playbackSpeed;
+		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? fpsToMs(this.#frameRate);
+		return durationMs / this.#playbackSpeed;
 	}
 
 	#setPlaying(playing) {
 		this.#isPlaying = playing;
 		this.#playPauseButton.textContent = playing ? 'Pause' : 'Play';
 		if (playing) {
-			this.#lastFrameTime = 0;
+			this.#lastFrameTime = null;
 			if (this.#animationFrameId === null) {
 				this.#animationFrameId = requestAnimationFrame(timestamp => this.#animate(timestamp));
 			}
@@ -228,7 +283,7 @@ class AkvjStagingPreview extends HTMLElement {
 			this.#animationFrameId = null;
 			return;
 		}
-		if (this.#lastFrameTime === 0) {
+		if (this.#lastFrameTime === null) {
 			this.#lastFrameTime = timestamp;
 		}
 		const elapsed = timestamp - this.#lastFrameTime;

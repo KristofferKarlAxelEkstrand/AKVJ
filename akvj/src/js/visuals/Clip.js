@@ -1,69 +1,75 @@
-﻿/**
- * Clip - Handles individual sprite clip playback and rendering
- * Manages frame-based clips with customizable frame rates and loop behavior
+/**
+ * Clip - Thin render facade for individual sprite clip playback and rendering.
  *
- * Supports two timing modes:
- * 1. frameRatesForFrames (FPS) - Frame timing in frames-per-second (default)
- * 2. frameDurationBeats (BPM sync) - Frame timing in beats, synced to current BPM
- *    When MIDI clock is active, uses real-time clock pulses (24 PPQN)
- *    When no clock, falls back to time-based BPM calculation
+ * Delegates timing to ClipTiming and frame advancement to PlaybackController.
+ * Manages image dimensions, canvas drawing, and clip lifecycle (reset/stop/destroy).
  */
 import settings from '../core/settings.js';
-import appState, { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK } from '../core/AppState.js';
+import ClipTiming from './ClipTiming.js';
+import PlaybackController from './PlaybackController.js';
 
-const MS_PER_MINUTE = 60000;
-const MS_PER_SECOND = 1000;
-const DEFAULT_FRAME_DURATION_BEATS = 0.25;
-const DEFAULT_PULSES_PER_FRAME = 6;
+/** @param {number} value */
+function snapToPixel(value) {
+	return Math.floor(value);
+}
 
 class Clip {
 	// Configuration (immutable after construction)
-	#displayContext;
 	#image;
 	#numberOfFrames;
 	#framesPerRow;
-	#frameRatesForFrames;
-	#frameDurationBeats; // Array or single number for BPM sync
 	#frameWidth;
 	#frameHeight;
 	#shouldRetrigger;
-	#bitDepth; // For mask mixing (1, 2, 4, or 8 bit)
+	#bitDepth;
 	#canvasWidth;
 	#canvasHeight;
+	#scaleMode;
+	#placement;
 
-	// Trigger behavior (set by ClipLoader, read by LayerGroup)
-	triggerType = 'momentary';
-	triggerGroup = null;
+	// Trigger behavior (private, accessed via getters)
+	#triggerType = 'momentary';
+	#triggerGroup = null;
 
-	// Clip state (mutable)
-	#frame = 0;
-	/** @type {number|null} Last timestamp from performance.now(), null if never played */
-	#lastTime = null;
-	#lastRenderTimestamp = null; // Prevent double-rendering within same timestamp
-	#isFinished = false;
-	#playbackMode = 'loop';
-	#pingpongDirection = 1;
-	#lastRandomFrame = -1;
-	#unplayedShuffleFrames = [];
-	#defaultFrameRate; // Cached fallback rate when frame-specific rate is undefined
-	#isUsingBPMSync = false; // Whether to use BPM sync mode
-	#pulsesPerFrame; // Array of pulses per frame for clock sync (derived from frameDurationBeats)
-	#pulseCount = 0; // Accumulated clock pulses since last frame advance
-	#unsubscribeClock = null; // Cleanup for clock subscription
+	// Delegated helpers
+	#timing;
+	#playback;
 
-	constructor({ displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null }) {
+	// Render state
+	#lastRenderTimestamp = null;
+
+	/**
+	 * @param {Object} options
+	 * @param {CanvasRenderingContext2D} options.displayContext - Unused (kept for API compat)
+	 * @param {HTMLImageElement} options.image
+	 * @param {number} options.frames
+	 * @param {number} options.framesPerRow
+	 * @param {string} [options.playback='loop']
+	 * @param {Object} [options.frameRatesForFrames={ 0: 1 }]
+	 * @param {number|number[]|null} [options.frameDurationBeats=null]
+	 * @param {boolean} [options.retrigger=true]
+	 * @param {number|null} [options.bitDepth=null]
+	 * @param {string} [options.triggerType='momentary']
+	 * @param {string|number|null} [options.triggerGroup=null]
+	 * @param {string} [options.scaleMode='fit']
+	 * @param {{ x: number, y: number }} [options.placement={ x: 0, y: 0 }]
+	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
+	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
+	 */
+	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
 		this.#validateConstructorParams(frames, framesPerRow);
-		this.#initCoreFields(displayContext, image, frames, framesPerRow, bitDepth);
-		this.#initTimingMode(frameDurationBeats, frames, frameRatesForFrames);
+		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
 		this.#initDimensions(image, frames, framesPerRow);
-		this.#playbackMode = playback;
 		this.#shouldRetrigger = retrigger;
-		this.triggerType = triggerType;
-		this.triggerGroup = triggerGroup;
+		this.#triggerType = triggerType;
+		this.#triggerGroup = triggerGroup;
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
-		this.#initDefaultFrameRate();
-		this.#resetState();
+		this.#scaleMode = scaleMode;
+		this.#placement = placement;
+
+		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationBeats, frames, bpmProvider, clockSource });
+		this.#playback = new PlaybackController({ frames, playback });
 	}
 
 	#validateConstructorParams(frames, framesPerRow) {
@@ -75,19 +81,11 @@ class Clip {
 		}
 	}
 
-	#initCoreFields(displayContext, image, frames, framesPerRow, bitDepth) {
-		this.#displayContext = displayContext;
+	#initCoreFields(image, frames, framesPerRow, bitDepth) {
 		this.#image = image;
 		this.#numberOfFrames = frames;
 		this.#framesPerRow = framesPerRow;
 		this.#bitDepth = bitDepth;
-	}
-
-	#initTimingMode(frameDurationBeats, frames, frameRatesForFrames) {
-		if (frameDurationBeats !== null && frameDurationBeats !== undefined) {
-			this.#initBPMSync(frameDurationBeats, frames);
-		}
-		this.#initFrameRates(frameRatesForFrames, frames);
 	}
 
 	#initDimensions(image, frames, framesPerRow) {
@@ -100,13 +98,12 @@ class Clip {
 
 	/**
 	 * Internal render step: advance frame and draw to the provided context.
-	 * Guards against double-rendering when called with the same timestamp
-	 * (e.g., both play() and renderToContext() invoked in the same frame).
-	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
-	 * @param {number} timestamp - performance.now() timestamp
+	 * Guards against double-rendering when called with the same timestamp.
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {number} timestamp
 	 */
 	#renderFrame(ctx, timestamp) {
-		if (this.#isFinished || !this.#image) {
+		if (this.#playback.isFinished || !this.#image) {
 			return;
 		}
 		if (this.#lastRenderTimestamp === timestamp) {
@@ -118,375 +115,240 @@ class Clip {
 	}
 
 	/**
-	 * Render the current clip frame and advance to the next frame if enough time has passed.
-	 * Accepts an optional timestamp (from requestClipFrame) to use as timing source, which
-	 * improves determinism during rendering and tests.
-	 * @param {number} [timestamp] - Optional performance.now() timestamp, typically provided by RAF
-	 */
-	play(timestamp = performance.now()) {
-		this.#renderFrame(this.#displayContext, timestamp);
-	}
-
-	/**
 	 * Render the current clip frame to a specific context.
-	 * Useful for off-screen rendering in multi-layer-group compositing.
-	 *
-	 * Note: This method advances the clip frame based on the timestamp.
-	 * Double-rendering with the same timestamp is guarded against internally.
-	 *
-	 * @param {CanvasRenderingContext2D} ctx - Target canvas context
-	 * @param {number} [timestamp] - Optional performance.now() timestamp
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {number} [timestamp]
 	 */
 	renderToContext(ctx, timestamp = performance.now()) {
 		this.#renderFrame(ctx, timestamp);
 	}
 
 	/**
-	 * Advance the clip frame based on elapsed time
-	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames
-	 * Clock sync mode skips time-based advancement (pulses drive frames directly)
-	 * @param {number} timestamp - Current timestamp
+	 * Advance the clip frame based on elapsed time or clock pulses.
+	 * @param {number} timestamp
 	 */
 	#advanceFrame(timestamp) {
-		if (this.#isUsingBPMSync && this.#pulsesPerFrame && appState.bpmSource === BPM_SOURCE_CLOCK) {
-			this.#lastTime = null;
-			return;
-		}
-		if (this.#lastTime === null) {
-			this.#lastTime = timestamp;
-		}
-
-		const elapsed = this.#consumeFrameIntervals(timestamp - this.#lastTime);
-		this.#lastTime = timestamp - Math.max(0, elapsed);
-	}
-
-	#consumeFrameIntervals(elapsed) {
-		while (elapsed > 0) {
-			const interval = this.#getFrameInterval(this.#frame);
-			if (elapsed < interval) {
-				break;
-			}
-			elapsed -= interval;
-			if (!this.#advanceNextFrame()) {
-				break;
-			}
-		}
-		return elapsed;
+		this.#timing.setCurrentFrameIndex(this.#playback.frame);
+		this.#timing.advanceFrame(timestamp, () => this.#advanceNextFrame());
 	}
 
 	/**
-	 * Calculate the interval (ms) for a given frame
-	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames
-	 * @param {number} frameIndex - The frame index
-	 * @returns {number} - Interval in milliseconds
+	 * Advance to the next frame via the playback controller.
+	 * @returns {boolean}
 	 */
-	#getFrameInterval(frameIndex) {
-		if (this.#isUsingBPMSync && this.#frameDurationBeats) {
-			// BPM sync mode: interval = (frameDurationBeats * 60000) / bpm
-			// frameDurationBeats[i] = number of beats this frame should last
-			// e.g., frameDurationBeats=0.25 at 120 BPM = 125ms (16th note)
-			const beats = this.#frameDurationBeats[frameIndex] ?? this.#frameDurationBeats[0] ?? DEFAULT_FRAME_DURATION_BEATS;
-			// Ensure BPM is at least the configured minimum to prevent extremely long intervals.
-			// Fallback to 1 if settings.bpm.min is 0 or invalid to prevent division by zero.
-			const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
-			const bpm = Math.max(minBPM, appState.bpm);
-			return (beats * MS_PER_MINUTE) / bpm;
-		}
-
-		// FPS mode (default when BPM sync is not used)
-		const framesPerSecond = this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate;
-		return MS_PER_SECOND / framesPerSecond;
+	#advanceNextFrame() {
+		const continues = this.#advancePlayback();
+		this.#timing.setCurrentFrameIndex(this.#playback.frame);
+		return continues;
 	}
 
 	/**
-	 * Draw the current frame to a canvas context
-	 * @param {CanvasRenderingContext2D} ctx - Target context
+	 * Advance playback and handle clock unsubscribe on finish.
+	 * @returns {boolean}
+	 */
+	#advancePlayback() {
+		const continues = this.#playback.advance();
+		if (!continues) {
+			this.#timing.unsubscribeFromClock();
+		}
+		return continues;
+	}
+
+	/**
+	 * Draw the current frame to a canvas context using scaleMode + placement.
+	 * @param {CanvasRenderingContext2D} ctx
 	 */
 	#drawToContext(ctx) {
-		if (!this.#image || !ctx || this.#isFinished) {
+		if (!this.#image || !ctx || this.#playback.isFinished) {
 			return;
 		}
 
-		const drawFrame = Math.min(this.#frame, this.#numberOfFrames - 1);
+		const drawFrame = Math.min(this.#playback.frame, this.#numberOfFrames - 1);
 		const posY = Math.floor(drawFrame / this.#framesPerRow);
 		const posX = drawFrame - posY * this.#framesPerRow;
-		ctx.drawImage(this.#image, this.#frameWidth * posX, this.#frameHeight * posY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+		const sourceX = this.#frameWidth * posX;
+		const sourceY = this.#frameHeight * posY;
+
+		if (this.#scaleMode === 'pattern') {
+			this.#drawPattern(ctx, sourceX, sourceY);
+		} else if (this.#scaleMode === 'stretch') {
+			ctx.drawImage(this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, 0, 0, this.#canvasWidth, this.#canvasHeight);
+		} else {
+			this.#drawScaled(ctx, sourceX, sourceY);
+		}
+	}
+
+	/**
+	 * Draw clip with fit/cover/none scaling and placement offset.
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {number} sourceX
+	 * @param {number} sourceY
+	 */
+	#drawScaled(ctx, sourceX, sourceY) {
+		const { dx, dy, dWidth, dHeight, sx, sy, sWidth, sHeight } = this.#computeDrawRect();
+		const placedX = snapToPixel(dx + this.#placement.x);
+		const placedY = snapToPixel(dy + this.#placement.y);
+		ctx.drawImage(this.#image, sourceX + sx, sourceY + sy, sWidth, sHeight, placedX, placedY, dWidth, dHeight);
+	}
+
+	/**
+	 * Compute the draw rectangle for the current scaleMode (fit/cover/none).
+	 * @returns {{ dx: number, dy: number, dWidth: number, dHeight: number, sx: number, sy: number, sWidth: number, sHeight: number }}
+	 */
+	#computeDrawRect() {
+		const sourceWidth = this.#frameWidth;
+		const sourceHeight = this.#frameHeight;
+		const targetWidth = this.#canvasWidth;
+		const targetHeight = this.#canvasHeight;
+
+		if (this.#scaleMode === 'fit') {
+			const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+			const dWidth = snapToPixel(sourceWidth * scale);
+			const dHeight = snapToPixel(sourceHeight * scale);
+			return {
+				sx: 0,
+				sy: 0,
+				sWidth: sourceWidth,
+				sHeight: sourceHeight,
+				dx: snapToPixel((targetWidth - dWidth) / 2),
+				dy: snapToPixel((targetHeight - dHeight) / 2),
+				dWidth,
+				dHeight
+			};
+		}
+
+		if (this.#scaleMode === 'cover') {
+			const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
+			const sWidth = sourceWidth / scale;
+			const sHeight = sourceHeight / scale;
+			return {
+				sx: snapToPixel((sourceWidth - sWidth) / 2),
+				sy: snapToPixel((sourceHeight - sHeight) / 2),
+				sWidth: snapToPixel(sWidth),
+				sHeight: snapToPixel(sHeight),
+				dx: 0,
+				dy: 0,
+				dWidth: targetWidth,
+				dHeight: targetHeight
+			};
+		}
+
+		// none — no scale; center with pad and/or centered crop
+		const sWidth = Math.min(sourceWidth, targetWidth);
+		const sHeight = Math.min(sourceHeight, targetHeight);
+		return {
+			sx: Math.max(0, snapToPixel((sourceWidth - targetWidth) / 2)),
+			sy: Math.max(0, snapToPixel((sourceHeight - targetHeight) / 2)),
+			sWidth,
+			sHeight,
+			dx: Math.max(0, snapToPixel((targetWidth - sourceWidth) / 2)),
+			dy: Math.max(0, snapToPixel((targetHeight - sourceHeight) / 2)),
+			dWidth: sWidth,
+			dHeight: sHeight
+		};
+	}
+
+	/**
+	 * Draw clip as a tiled pattern to fill the canvas.
+	 * @param {CanvasRenderingContext2D} ctx
+	 * @param {number} sourceX
+	 * @param {number} sourceY
+	 */
+	#drawPattern(ctx, sourceX, sourceY) {
+		const tileWidth = this.#frameWidth;
+		const tileHeight = this.#frameHeight;
+		const offsetX = snapToPixel(this.#placement.x % tileWidth);
+		const offsetY = snapToPixel(this.#placement.y % tileHeight);
+
+		for (let y = offsetY - tileHeight; y < this.#canvasHeight; y += tileHeight) {
+			for (let x = offsetX - tileWidth; x < this.#canvasWidth; x += tileWidth) {
+				ctx.drawImage(this.#image, sourceX, sourceY, tileWidth, tileHeight, x, y, tileWidth, tileHeight);
+			}
+		}
 	}
 
 	/**
 	 * Whether this clip is completed and won't draw anymore.
-	 * Useful for external managers or renderers to clear finished clips.
 	 * @returns {boolean}
 	 */
 	get isFinished() {
-		return this.#isFinished;
+		return this.#playback.isFinished;
 	}
 
 	/**
-	 * Get the bit depth for this clip (used for mask mixing)
-	 * @returns {number|null} Bit depth (1, 2, 4, or 8) or null if not specified
+	 * Get the bit depth for this clip (used for mask mixing).
+	 * @returns {number|null}
 	 */
 	get bitDepth() {
 		return this.#bitDepth;
 	}
 
 	/**
+	 * Get the trigger type for this clip.
+	 * @returns {string}
+	 */
+	get triggerType() {
+		return this.#triggerType;
+	}
+
+	/**
+	 * Get the trigger group (choke group) for this clip.
+	 * @returns {string|number|null}
+	 */
+	get triggerGroup() {
+		return this.#triggerGroup;
+	}
+
+	/**
+	 * Get the current playback mode.
+	 * @returns {string}
+	 */
+	get playbackMode() {
+		return this.#playback.playbackMode;
+	}
+
+	/**
 	 * Stop the clip and optionally reset to the first frame.
-	 * Called when a MIDI note off event is received for this clip.
 	 */
 	stop() {
 		if (this.#shouldRetrigger) {
 			this.#resetState();
 		}
-		this.#unsubscribeFromClock();
+		this.#timing.unsubscribeFromClock();
 	}
 
 	/**
 	 * Reset clip to first frame if retrigger is enabled.
-	 * Called when a MIDI note on event activates this clip.
 	 */
 	reset() {
-		if (!this.#shouldRetrigger && !this.#isFinished) {
+		if (!this.#shouldRetrigger && !this.#playback.isFinished) {
 			return;
 		}
 		this.#resetState();
-		this.#subscribeToClock();
+		this.#timing.subscribeToClock(() => this.#advanceNextFrame());
 	}
 
 	#resetState() {
-		this.#frame = this.#playbackMode === 'reverse' ? this.#numberOfFrames - 1 : 0;
-		this.#lastTime = null;
-		this.#isFinished = false;
-		this.#pulseCount = 0;
+		this.#playback.reset();
+		this.#timing.reset();
 		this.#lastRenderTimestamp = null;
-		this.#pingpongDirection = 1;
-		this.#lastRandomFrame = -1;
-		this.#unplayedShuffleFrames = [];
 	}
 
 	/**
-	 * Initialize BPM sync mode from frameDurationBeats metadata.
-	 * Subscribes to MIDI clock events for real-time sync.
-	 * @param {number|number[]} frameDurationBeats - Beats per frame (single or per-frame array)
-	 * @param {number} frames - Total frame count for array validation
-	 */
-	#initBPMSync(frameDurationBeats, frames) {
-		this.#isUsingBPMSync = true;
-		if (Array.isArray(frameDurationBeats)) {
-			if (frameDurationBeats.length !== frames) {
-				throw new Error(`Clip: frameDurationBeats array length (${frameDurationBeats.length}) must equal frames (${frames})`);
-			}
-			this.#frameDurationBeats = frameDurationBeats;
-			this.#pulsesPerFrame = frameDurationBeats.map(b => Math.round(b * settings.midi.ppqn));
-		} else if (typeof frameDurationBeats === 'number' && frameDurationBeats > 0) {
-			this.#frameDurationBeats = Array(frames).fill(frameDurationBeats);
-			this.#pulsesPerFrame = Array(frames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
-		} else {
-			throw new Error('Clip: invalid frameDurationBeats');
-		}
-	}
-
-	/**
-	 * Validate and store frame rates, skipping invalid entries.
-	 * @param {Object} frameRatesForFrames - Frame index → FPS mapping
-	 * @param {number} frames - Total frame count for bounds checking
-	 */
-	#initFrameRates(frameRatesForFrames, frames) {
-		this.#frameRatesForFrames = {};
-		for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
-			const numericFrameIndex = Number(frameIndex);
-			if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
-				console.warn(`Clip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
-				continue;
-			}
-			if (typeof frameRate === 'number' && frameRate > 0) {
-				this.#frameRatesForFrames[numericFrameIndex] = frameRate;
-			} else {
-				console.warn(`Clip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
-			}
-		}
-	}
-
-	/**
-	 * Cache the default frame rate, preferring frame 0 or the first defined value.
-	 */
-	#initDefaultFrameRate() {
-		const keys = Object.keys(this.#frameRatesForFrames);
-		const maybeDefault = this.#frameRatesForFrames[0] ?? (keys.length ? this.#frameRatesForFrames[keys[0]] : undefined) ?? 1;
-		this.#defaultFrameRate = typeof maybeDefault === 'number' && maybeDefault > 0 ? maybeDefault : 1;
-	}
-
-	/**
-	 * Get the current playback mode
-	 * @returns {string}
-	 */
-	get playbackMode() {
-		return this.#playbackMode;
-	}
-
-	/**
-	 * Manually set the scrub position (0.0 to 1.0)
-	 * Only active when playbackMode is 'scrub'
+	 * Manually set the scrub position (0.0 to 1.0).
+	 * Only active when playbackMode is 'scrub'.
 	 * @param {number} normalizedValue
 	 */
 	setScrubPosition(normalizedValue) {
-		if (this.#playbackMode !== 'scrub') {
-			return;
-		}
-		const clamped = Math.max(0, Math.min(1, normalizedValue));
-		this.#frame = Math.floor(clamped * (this.#numberOfFrames - 1));
-		this.#isFinished = false;
-	}
-
-	/**
-	 * Advance frame index based on playback mode.
-	 * @returns {boolean} True if clip continues playing, false if finished
-	 */
-	#advanceNextFrame() {
-		if (this.#playbackMode === 'scrub') {
-			return true; // Keep alive, handled by setScrubPosition
-		}
-
-		if (this.#playbackMode === 'random') {
-			this.#frame = Math.floor(Math.random() * this.#numberOfFrames);
-			return true;
-		}
-
-		if (this.#playbackMode === 'shuffle') {
-			this.#frame = this.#drawNextShuffleFrame();
-			return true;
-		}
-
-		if (this.#playbackMode === 'reverse') {
-			this.#frame--;
-			if (this.#frame < 0) {
-				this.#frame = this.#numberOfFrames - 1;
-			}
-			return true;
-		}
-
-		if (this.#playbackMode === 'pingpong') {
-			this.#frame += this.#pingpongDirection;
-			if (this.#frame >= this.#numberOfFrames - 1) {
-				this.#frame = this.#numberOfFrames - 1;
-				this.#pingpongDirection = -1;
-			} else if (this.#frame <= 0) {
-				this.#frame = 0;
-				this.#pingpongDirection = 1;
-			}
-			return true;
-		}
-
-		// 'loop' and 'once'
-		this.#frame++;
-		if (this.#frame < this.#numberOfFrames) {
-			return true;
-		}
-
-		if (this.#playbackMode === 'loop') {
-			this.#frame %= this.#numberOfFrames;
-			return true;
-		}
-
-		// 'once'
-		this.#frame = this.#numberOfFrames - 1;
-		this.#isFinished = true;
-		this.#unsubscribeFromClock();
-		return false;
-	}
-
-	/**
-	 * Draw the next frame for true shuffle mode.
-	 * Guarantees every frame is shown exactly once before any frame repeats,
-	 * like a shuffled playlist. Repopulates the unplayed pool when exhausted.
-	 * @returns {number} The next frame index to display
-	 */
-	#drawNextShuffleFrame() {
-		if (this.#numberOfFrames <= 1) {
-			return 0;
-		}
-		if (this.#unplayedShuffleFrames.length === 0) {
-			this.#unplayedShuffleFrames = this.#buildShuffledFramePool();
-		}
-		const nextFrame = this.#unplayedShuffleFrames.pop();
-		this.#lastRandomFrame = nextFrame;
-		return nextFrame;
-	}
-
-	/**
-	 * Build a freshly shuffled pool of all frame indices, ensuring the first
-	 * frame of the new pool never matches the last frame played (avoids
-	 * back-to-back repeats across pool boundaries).
-	 * @returns {number[]} Shuffled frame indices, ready to be popped
-	 */
-	#buildShuffledFramePool() {
-		const pool = Array.from({ length: this.#numberOfFrames }, (_, index) => index);
-		for (let i = pool.length - 1; i > 0; i--) {
-			const j = Math.floor(Math.random() * (i + 1));
-			[pool[i], pool[j]] = [pool[j], pool[i]];
-		}
-		// Pool is consumed from the end via pop(); avoid the first frame drawn
-		// from this pool (pool[length-1]) repeating the last frame played.
-		if (pool[pool.length - 1] === this.#lastRandomFrame && pool.length > 1) {
-			const swapIndex = Math.floor(Math.random() * (pool.length - 1));
-			[pool[pool.length - 1], pool[swapIndex]] = [pool[swapIndex], pool[pool.length - 1]];
-		}
-		return pool;
-	}
-
-	/**
-	 * Subscribe to MIDI clock events for BPM-synced playback.
-	 * Only subscribes if this clip uses BPM sync and is not already subscribed.
-	 */
-	#subscribeToClock() {
-		if (this.#isUsingBPMSync && !this.#unsubscribeClock) {
-			this.#unsubscribeClock = appState.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse());
-		}
-	}
-
-	/**
-	 * Unsubscribe from MIDI clock events.
-	 */
-	#unsubscribeFromClock() {
-		if (this.#unsubscribeClock) {
-			try {
-				this.#unsubscribeClock();
-			} catch (error) {
-				console.error('Error unsubscribing from clock events in Clip:', error);
-			}
-			this.#unsubscribeClock = null;
-		}
+		this.#playback.setScrubPosition(normalizedValue);
 	}
 
 	/**
 	 * Destroy clip and release image resources for garbage collection.
-	 * Unsubscribes from clock events and clears the image reference.
 	 */
 	destroy() {
-		this.#unsubscribeFromClock();
+		this.#timing.unsubscribeFromClock();
 		this.#image = null;
-	}
-
-	/**
-	 * Handle MIDI clock pulse for real-time sync mode
-	 * Advances frame when enough pulses have accumulated
-	 * Only active when MIDI clock is the BPM source
-	 */
-	#handleClockPulse() {
-		if (this.#isFinished || !this.#pulsesPerFrame) {
-			return;
-		}
-		if (appState.bpmSource !== BPM_SOURCE_CLOCK) {
-			return;
-		}
-
-		this.#pulseCount++;
-		const pulsesNeeded = this.#pulsesPerFrame[this.#frame] ?? this.#pulsesPerFrame[0] ?? DEFAULT_PULSES_PER_FRAME;
-
-		if (this.#pulseCount >= pulsesNeeded) {
-			this.#pulseCount = 0;
-			this.#advanceNextFrame();
-		}
 	}
 }
 

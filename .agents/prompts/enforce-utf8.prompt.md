@@ -1,4 +1,4 @@
-﻿# Enforce UTF-8 Encoding
+# Enforce UTF-8 Encoding
 
 Run this prompt if you suspect file encoding issues (e.g., weird characters appearing in logs, or builds failing on different operating systems).
 

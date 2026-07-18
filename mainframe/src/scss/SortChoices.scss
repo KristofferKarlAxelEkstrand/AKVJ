@@ -1,0 +1,5 @@
+@use 'ChoiceList';
+
+sort-choices {
+	@include ChoiceList.choice-list;
+}

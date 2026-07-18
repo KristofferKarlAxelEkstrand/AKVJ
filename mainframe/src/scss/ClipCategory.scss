@@ -1,0 +1,10 @@
+clip-category {
+	display: grid;
+	gap: 0.5rem;
+
+	.clip-category-header {
+		color: var(--ink);
+		font-size: 1rem;
+		margin: 0;
+	}
+}

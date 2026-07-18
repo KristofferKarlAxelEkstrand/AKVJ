@@ -7,57 +7,96 @@
 		<link rel="stylesheet" href="./styles.css" />
 	</head>
 	<body>
-		<header class="site-header">
-			<h1>AKVJ Mainframe</h1>
-			<p>Clip library, upload, and MIDI mapping for the shared clip bucket.</p>
-		</header>
-
 		<nav class="tabs" role="tablist">
-			<button type="button" class="tab is-active" data-tab="library" role="tab" aria-selected="true">Library</button>
-			<button type="button" class="tab" data-tab="upload" role="tab" aria-selected="false">Upload</button>
-			<button type="button" class="tab" data-tab="mapping" role="tab" aria-selected="false">Mapping</button>
+			<a href="/library" class="tab is-active" data-tab="library" role="tab" aria-selected="true">Library</a>
+			<a href="/clip/edit" class="tab" data-tab="upload" role="tab" aria-selected="false">Clip editor</a>
+			<a href="/key-map" class="tab" data-tab="mapping" role="tab" aria-selected="false">Mapping</a>
+			<a href="/projects" class="tab" data-tab="projects" role="tab" aria-selected="false">Projects</a>
 		</nav>
 
 		<main>
 			<section id="panel-library" class="panel is-active" role="tabpanel">
 				<div class="panel-head">
-					<h2>Clip library</h2>
 					<div class="panel-actions">
 						<span id="clip-summary" class="clip-summary"></span>
-						<select id="clip-sort" class="clip-sort" aria-label="Sort clips">
-							<option value="name">Sort: Name</option>
-							<option value="clipId">Sort: ID</option>
-							<option value="role">Sort: Role</option>
-							<option value="frames">Sort: Frames</option>
-						</select>
-						<select id="clip-role-filter" class="clip-role-filter" aria-label="Filter by role">
-							<option value="">All roles</option>
-						</select>
+						<sort-choices id="clip-sort"></sort-choices>
+						<role-choices id="clip-role-filter"></role-choices>
 						<input type="search" id="clip-search" class="clip-search" placeholder="Filter by name or role…" aria-label="Filter clips" />
 						<button type="button" id="clear-filters" class="clear-filters" hidden>Clear filters</button>
 						<button type="button" id="refresh-library">Refresh</button>
 					</div>
 				</div>
-				<akvj-sticky-piano-roll id="sticky-piano-roll" class="sticky-piano-roll"></akvj-sticky-piano-roll>
+				<piano-roll id="library-piano-roll" mode="category" channel="1" channel-select></piano-roll>
 				<akvj-clip-list id="clip-list" class="clip-list"></akvj-clip-list>
 			</section>
 
 			<section id="panel-upload" class="panel" role="tabpanel" hidden>
-				<h2>Upload clip</h2>
-				<form id="upload-form" class="upload-form">
-					<div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop PNG frames here or click to browse">
-						<p class="drop-zone-text">Drop PNG frames here or click to browse</p>
-						<input id="upload-files" name="files" type="file" accept="image/png" multiple required hidden />
+				<div class="panel-head">
+					<h2 id="clip-editor-heading" hidden></h2>
+					<div class="panel-actions">
+						<button type="button" id="clip-editor-new">New clip</button>
+						<button type="button" id="clip-frames-clear">Clear frames</button>
 					</div>
+				</div>
+				<form id="upload-form" class="upload-form">
+					<div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop PNG, JPG, or GIF frames here or click to browse">
+						<p class="drop-zone-text">Drop PNG, JPG, or GIF frames here or click to browse</p>
+						<input id="upload-files" name="files" type="file" accept="image/png,image/jpeg,image/gif,.png,.jpg,.jpeg,.gif" multiple hidden />
+					</div>
+					<p class="hint">Add images append; use Clear frames to replace.</p>
 					<div id="file-list" class="file-list"></div>
 					<akvj-staging-preview id="staging-preview"></akvj-staging-preview>
-					<label>
-						Clip ID
-						<input id="upload-clip-id" name="clipId" type="text" pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" required placeholder="neon-skull" />
-					</label>
+					<div class="clip-frames-toolbar">
+						<label>
+							All frames (ms)
+							<input id="clip-frames-global-duration" type="number" min="1" step="1" value="1000" />
+						</label>
+						<button type="button" id="clip-frames-set-all-duration" title="Apply this duration to every frame">Set all</button>
+						<label>
+							FPS preset
+							<select id="clip-frames-fps-preset" title="Apply a uniform duration derived from FPS (ms = 1000/fps)">
+								<option value="">—</option>
+								<option value="6">6</option>
+								<option value="12" selected>12</option>
+								<option value="15">15</option>
+								<option value="24">24</option>
+								<option value="25">25</option>
+								<option value="30">30</option>
+							</select>
+						</label>
+						<button type="button" id="clip-frames-apply-fps-preset" title="Set every frame to 1000/fps milliseconds">Apply FPS</button>
+					</div>
+					<div class="clip-frames-toolbar" id="upload-sync-toolbar">
+						<label>
+							Sync
+							<select id="upload-sync" title="Free uses per-frame ms/FPS; Beat synced fits the clip into a musical length">
+								<option value="free" selected>Free</option>
+								<option value="beat">Beat synced</option>
+							</select>
+						</label>
+						<div id="upload-sync-beat-fields" class="upload-sync-beat-fields" hidden>
+							<label>
+								Length
+								<select id="upload-sync-length"></select>
+							</label>
+							<label id="upload-sync-beats-field" hidden>
+								Custom beats
+								<input id="upload-sync-beats" type="number" min="0.001" step="any" placeholder="e.g. 6" />
+							</label>
+							<label>
+								Beats per bar
+								<input id="upload-beats-per-bar" type="number" min="1" step="1" value="4" title="Time signature numerator (default 4)" />
+							</label>
+						</div>
+					</div>
+					<clip-frames id="clip-frames"></clip-frames>
 					<label>
 						Name
-						<input id="upload-name" name="name" type="text" placeholder="Neon Skull" />
+						<clip-name-input id="upload-name" name="name" placeholder="Neon Skull"></clip-name-input>
+					</label>
+					<label>
+						Clip ID <span id="upload-clip-id-hint">(editable until first save)</span>
+						<input id="upload-clip-id" name="clipId" type="text" pattern="[a-zA-Z0-9][a-zA-Z0-9_-]*" required />
 					</label>
 					<label>
 						Role
@@ -76,6 +115,15 @@
 							<input id="upload-target-height" type="number" min="1" value="135" />
 						</label>
 						<label>
+							Scale
+							<select id="upload-scale-mode">
+								<option value="fit" selected>Fit</option>
+								<option value="cover">Cover</option>
+								<option value="stretch">Stretch</option>
+								<option value="none">None</option>
+							</select>
+						</label>
+						<label>
 							Playback
 							<select id="upload-playback">
 								<option value="loop">loop</option>
@@ -87,30 +135,57 @@
 								<option value="scrub">scrub</option>
 							</select>
 						</label>
+					</div>
+					<!-- TODO(task-141/142): revisit “still draws into 240×135” once non-default live sizes / pattern / placement land. -->
+					<p class="hint">Frame size is the spritesheet cell size (default 240×135). Live AKVJ playback still draws into 240×135.</p>
+					<div class="upload-config-row">
+						<label class="upload-checkbox">
+							<input id="upload-retrigger" type="checkbox" checked />
+							Retrigger
+						</label>
 						<label>
-							Frame rate
-							<input id="upload-frame-rate" type="number" min="1" value="12" />
+							Trigger type
+							<select id="upload-trigger-type">
+								<option value="momentary">momentary</option>
+								<option value="latch">latch</option>
+								<option value="one-shot">one-shot</option>
+							</select>
+						</label>
+						<label>
+							Trigger group
+							<input id="upload-trigger-group" type="text" placeholder="optional choke group" />
+						</label>
+						<label id="upload-bit-depth-field" hidden>
+							Bit depth
+							<select id="upload-bit-depth">
+								<option value="1">1</option>
+								<option value="2">2</option>
+								<option value="4">4</option>
+								<option value="8">8</option>
+							</select>
+							<span class="hint">Bit depth is for bitmask clips only.</span>
 						</label>
 					</div>
-					<button type="submit">Create sprite &amp; save</button>
+					<label>
+						Frame duration beats
+						<input id="upload-frame-duration-beats" type="text" placeholder='0.25 or [0.25, 0.5]' />
+					</label>
+					<button type="submit" id="upload-submit">Create sprite &amp; save</button>
 				</form>
 				<p id="upload-status" class="status" aria-live="polite"></p>
 			</section>
 
 			<section id="panel-mapping" class="panel" role="tabpanel" hidden>
 				<div class="panel-head">
-					<h2>Set mapping</h2>
 					<div class="panel-actions">
 						<button type="button" id="reload-mapping">Reload</button>
 						<button type="button" id="save-mapping">Save mapping</button>
 						<button type="button" id="run-pipeline">Run pipeline</button>
 					</div>
 				</div>
-				<p class="hint">Assign a clip ID to each MIDI slot. Channels use DAW numbering (1–16).</p>
-				<div class="piano-channel-bar">
-					<label for="piano-channel">Piano channel</label>
-					<select id="piano-channel" class="piano-channel"></select>
-				</div>
+				<p class="hint">
+					Key-map for active project: <strong id="mapping-project-label">default</strong>. Channels use DAW numbering (1–16).
+				</p>
 				<akvj-mapping-table id="mapping-table"></akvj-mapping-table>
 				<div class="mapping-add">
 					<label>Channel <input id="map-channel" type="number" min="1" max="16" value="1" /></label>
@@ -123,9 +198,26 @@
 					<button type="button" id="add-mapping">Add / update</button>
 				</div>
 				<p id="mapping-status" class="status" aria-live="polite"></p>
-				<akvj-piano-keyboard id="piano-keyboard" channel="1"></akvj-piano-keyboard>
+				<p class="hint">Edit: click empty keys to assign, click velocity bands to select. Play: sticky toggle to try mappings. Each roll has its own channel.</p>
+				<piano-roll id="mapping-piano-roll" mode="edit" channel="1" channel-select></piano-roll>
+				<div class="piano-channel-bar">
+					<span>Play / test</span>
+					<button type="button" id="clear-play-notes">Clear notes</button>
+				</div>
+				<piano-roll id="play-piano-roll" mode="play" channel="1" channel-select></piano-roll>
+			</section>
+
+			<section id="panel-projects" class="panel" role="tabpanel" hidden>
+				<div class="panel-head">
+					<h2>Projects</h2>
+				</div>
+				<p class="hint">Projects share the clip library; each project has its own MIDI key-map.</p>
+				<project-chooser id="project-chooser"></project-chooser>
+				<p id="projects-status" class="status" aria-live="polite"></p>
 			</section>
 		</main>
+
+		<user-messages id="user-messages"></user-messages>
 
 		<script type="module" src="./main.js"></script>
 	</body>

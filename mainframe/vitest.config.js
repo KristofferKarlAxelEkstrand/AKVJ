@@ -5,7 +5,8 @@ export default defineConfig({
 		globals: true,
 		environment: 'node',
 		exclude: ['**/node_modules/**', '**/dist/**', '**/server/**', '**/smoke/**', 'test/visual/**'],
+		pool: 'threads',
 		testTimeout: 30000,
-		fileParallelism: false
+		fileParallelism: true
 	}
 });

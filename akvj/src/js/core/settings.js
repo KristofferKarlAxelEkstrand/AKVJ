@@ -56,8 +56,10 @@ const settings = {
 		layerGroupC: [10, 11],
 		// Global effects - Effects applied to entire output
 		globalEffects: 12,
+		// Project selection - dedicated channel for switching projects live
+		projectSelection: 13,
 		// Reserved channels (ignored by layer group system)
-		reserved: [13, 14, 15]
+		reserved: [14, 15]
 	},
 	/**
 	 * Scrub configuration
@@ -105,10 +107,10 @@ const settings = {
 	},
 
 	performance: {
-		// Flat clip catalog (keyed by clipId)
-		clipsJsonUrl: '/clips/clips.json',
-		// MIDI → clipId mapping (DAW channels 1–16)
-		keyMapJsonUrl: '/clips/key-map.json',
+		// Per-project flat clip catalog — use with projectClipsJsonUrlTemplate
+		clipsJsonUrl: '/projects/default/clips/clips.json',
+		// MIDI → clipId mapping (DAW channels 1–16) — legacy fallback when no project is active
+		keyMapJsonUrl: '/projects/default/clips/key-map.json',
 		// Optional base path for clip assets. For apps served under a subpath
 		// this should include a trailing slash, e.g. '/subpath/'. Falls back to
 		// `import.meta.env.BASE_URL` or '/'.
@@ -122,13 +124,56 @@ const settings = {
 		 * memory usage and potentially increased network saturation. This is used by
 		 * `ClipLoader` for batching image load requests.
 		 */
-		maxConcurrentClipLoads: 8
+		maxConcurrentClipLoads: 8,
+		// Project-related URLs
+		activeProjectUrl: '/active-project.json',
+		projectsIndexUrl: '/projects/index.json',
+		projectKeyMapUrlTemplate: '/projects/{projectId}/clips/key-map.json',
+		projectClipsJsonUrlTemplate: '/projects/{projectId}/clips/clips.json',
+		projectClipsPathTemplate: '/projects/{projectId}/clips'
 	},
 	rendering: {
 		imageSmoothingEnabled: false,
 		imageSmoothingQuality: 'low',
 		backgroundColor: '#000000'
+	},
+	/**
+	 * Project-level settings defaults.
+	 * These settings can be overridden per-project via a project's settings.json.
+	 * General settings (canvas, midi, bpm, channelMapping, scrub, effectRanges, rendering)
+	 * are NOT overridable per-project — they define the hardware/protocol layer.
+	 */
+	projectDefaults: {
+		effectParams: {
+			effectVariantThreshold: 8,
+			glitchMaxDisplacement: 20,
+			glitchPixelProbability: 0.1,
+			posterizeBaseLevels: 8,
+			posterizeIntensityScale: 6,
+			splitMin: 2,
+			splitMax: 8
+		}
 	}
 };
+
+/**
+ * Merge project-level settings overrides into the global settings.
+ * Only `effectParams` (and future project-level keys) are merged;
+ * general settings remain unchanged.
+ * @param {Object} [projectSettings] - Project-specific settings overrides
+ * @returns {Object} Merged settings object with project overrides applied
+ */
+export function mergeProjectSettings(projectSettings) {
+	if (!projectSettings) {
+		return settings;
+	}
+	return {
+		...settings,
+		effectParams: {
+			...settings.effectParams,
+			...projectSettings.effectParams
+		}
+	};
+}
 
 export default settings;

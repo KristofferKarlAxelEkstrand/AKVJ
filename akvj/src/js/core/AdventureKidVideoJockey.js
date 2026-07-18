@@ -1,8 +1,10 @@
-import appState, { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF } from './AppState.js';
+import appState, { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_PROJECT_SWITCH, EVENT_CLIP_LOAD_ERROR } from './AppState.js';
 import settings from './settings.js';
 import ClipLoader from '../visuals/ClipLoader.js';
 import LayerManager from '../visuals/LayerManager.js';
 import Renderer from '../visuals/Renderer.js';
+import LoadingOverlay from '../ui/LoadingOverlay.js';
+import UserMessages from '../ui/UserMessages.js';
 
 /**
  * Adventure Kid Video Jockey - Main rendering component
@@ -17,6 +19,11 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#renderer;
 	#clips = {};
 	#unsubscribers = [];
+	#loadingOverlay = null;
+	#userMessages = null;
+	#activeProjectId = null;
+	#projectIndex = [];
+	#isSwitchingProject = false;
 
 	constructor() {
 		super();
@@ -35,6 +42,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#clipLoader = new ClipLoader(this.#displayContext);
 		this.#layerManager = new LayerManager();
 		this.#renderer = new Renderer(this.#displayContext, this.#layerManager, settings, appState);
+		this.#loadingOverlay = new LoadingOverlay();
+		this.#userMessages = new UserMessages();
 	}
 
 	/**
@@ -60,6 +69,107 @@ class AdventureKidVideoJockey extends HTMLElement {
 				this.#layerManager.noteOff(channel, note);
 			})
 		);
+
+		this.#unsubscribers.push(
+			appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, event => {
+				if (!this.#layerManager) {
+					return;
+				}
+				this.#layerManager.handleControlChange(event);
+			})
+		);
+	}
+
+	/**
+	 * Set up event listeners for project switching from app state
+	 */
+	#setupProjectEventListeners() {
+		this.#unsubscribers.push(
+			appState.subscribe(EVENT_PROJECT_SWITCH, event => {
+				this.#handleProjectSwitch(event.detail);
+			})
+		);
+	}
+
+	/**
+	 * Handle a project switch request from MIDI.
+	 * The detail may contain either a { projectId } string or a { note } number
+	 * that maps to a project index in the projects index array.
+	 * @param {{projectId?: string, note?: number}} detail
+	 */
+	async #handleProjectSwitch(detail) {
+		if (this.#isSwitchingProject) {
+			return;
+		}
+
+		let projectId = null;
+		if (typeof detail.projectId === 'string') {
+			projectId = detail.projectId;
+		} else if (typeof detail.note === 'number') {
+			projectId = await this.#resolveProjectIdFromNote(detail.note);
+		}
+
+		if (!projectId || projectId === this.#activeProjectId) {
+			return;
+		}
+
+		await this.#switchProject(projectId);
+	}
+
+	/**
+	 * Resolve a MIDI note number to a project ID using the projects index.
+	 * @param {number} note - MIDI note number (0-127)
+	 * @returns {Promise<string|null>}
+	 */
+	async #resolveProjectIdFromNote(note) {
+		if (this.#projectIndex.length === 0) {
+			try {
+				this.#projectIndex = await this.#clipLoader.fetchProjectsIndex();
+			} catch (error) {
+				console.error('Failed to fetch projects index:', error);
+				return null;
+			}
+		}
+
+		const projectEntry = this.#projectIndex[note];
+		return projectEntry?.id ?? null;
+	}
+
+	/**
+	 * Switch to a new project: freeze rendering, show overlay, load clips, swap, hide overlay.
+	 * @param {string} projectId
+	 */
+	async #switchProject(projectId) {
+		this.#isSwitchingProject = true;
+		appState.projectSwitching = true;
+
+		// Freeze the renderer — keep showing the last frame
+		this.#renderer?.freeze();
+
+		try {
+			const newClips = await this.#clipLoader.setupClipsFromProject(projectId);
+
+			// Destroy old clips and swap in new ones
+			this.#clipLoader.destroy(this.#clips);
+			this.#clips = newClips;
+			this.#layerManager.setClips(this.#clips);
+			this.#activeProjectId = projectId;
+			appState.activeProjectId = projectId;
+
+			this.#renderer?.unfreeze();
+			appState.dispatchProjectLoadComplete(projectId);
+
+			if (import.meta.env.DEV) {
+				console.log(`Switched to project: ${projectId}`);
+			}
+		} catch (error) {
+			console.error(`Failed to switch to project "${projectId}":`, error);
+			this.#renderer?.unfreeze();
+			appState.dispatchProjectLoadError(projectId, error.message);
+			appState.error(`Failed to switch to project "${projectId}": ${error.message}`);
+		}
+
+		this.#isSwitchingProject = false;
 	}
 
 	/**
@@ -83,9 +193,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 
 		this.appendChild(this.#canvas);
+		this.appendChild(this.#loadingOverlay);
+		this.appendChild(this.#userMessages);
 
 		// Safe to register even when visuals are disabled
 		this.#setupMIDIEventListeners();
+		this.#setupProjectEventListeners();
 
 		this.#setup();
 	}
@@ -137,8 +250,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 		} catch (error) {
 			console.error(`Failed to set up clips from ${jsonUrl}:`, error);
 			appState.clipsLoaded = false;
+			appState.error(`Failed to load clips: ${error.message}`);
 			appState.dispatchEvent(
-				new CustomEvent('clipLoadError', {
+				new CustomEvent(EVENT_CLIP_LOAD_ERROR, {
 					detail: { url: jsonUrl, error: error.message }
 				})
 			);
@@ -159,6 +273,15 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		await this.#setupClips(settings.performance.clipsJsonUrl);
 		if (appState.clipsLoaded) {
+			// Set the active project ID from active-project.json (if available)
+			try {
+				this.#activeProjectId = await this.#clipLoader.fetchActiveProjectId();
+				if (this.#activeProjectId) {
+					appState.activeProjectId = this.#activeProjectId;
+				}
+			} catch {
+				// No active project — that's fine, legacy mode
+			}
 			this.#renderer.start();
 		} else {
 			console.error('Renderer not started: Clips failed to load.');

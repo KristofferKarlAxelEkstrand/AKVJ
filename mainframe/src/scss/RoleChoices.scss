@@ -1,0 +1,5 @@
+@use 'ChoiceList';
+
+role-choices {
+	@include ChoiceList.choice-list;
+}

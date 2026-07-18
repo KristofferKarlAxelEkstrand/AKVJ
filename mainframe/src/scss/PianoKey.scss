@@ -1,0 +1,84 @@
+piano-key {
+	cursor: pointer;
+	flex-shrink: 0;
+	overflow: hidden;
+	position: relative;
+	--key-hue: 0;
+
+	&.is-white {
+		background: #f8f8f8;
+		border: 1px solid #ccc;
+	}
+
+	&.is-black {
+		background: #1a1a1a;
+		border: 1px solid #333;
+	}
+
+	&.is-white.is-mapped:not(.has-bands) {
+		background: #6c5ce7;
+		border-color: #5a4bd1;
+	}
+
+	&.is-black.is-mapped:not(.has-bands) {
+		background: #4834d4;
+		border-color: #402dba;
+	}
+
+	&.is-white.is-active,
+	&.is-black.is-active {
+		background: #fdcb6e;
+		border-color: #e0b94a;
+	}
+
+	&.is-dimmed {
+		opacity: 0.35;
+	}
+
+	.piano-key-label {
+		bottom: 0.15rem;
+		color: #999;
+		font-size: 0.55rem;
+		left: 50%;
+		pointer-events: none;
+		position: absolute;
+		transform: translateX(-50%);
+		white-space: nowrap;
+		z-index: 2;
+	}
+
+	.velocity-bands {
+		inset: 0;
+		pointer-events: none;
+		position: absolute;
+		z-index: 1;
+	}
+
+	.velocity-band {
+		border: none;
+		border-top: 1px solid color-mix(in srgb, #fff 25%, transparent);
+		color: #fff;
+		cursor: pointer;
+		font-size: 0.45rem;
+		left: 0;
+		line-height: 1.1;
+		overflow: hidden;
+		padding: 0.1rem 0.05rem;
+		pointer-events: auto;
+		position: absolute;
+		right: 0;
+		text-overflow: ellipsis;
+		text-shadow: 0 0 2px #000;
+		white-space: nowrap;
+		writing-mode: horizontal-tb;
+		background: hsl(var(--key-hue) 55% 42%);
+	}
+
+	&.is-black .velocity-band {
+		background: hsl(var(--key-hue) 50% 32%);
+	}
+
+	.velocity-band:hover {
+		filter: brightness(1.15);
+	}
+}

@@ -8,8 +8,6 @@
 		"url": "https://kristofferekstrand.se"
 	},
 	"devDependencies": {
-		"@commitlint/cli": "^21.2.1",
-		"@commitlint/config-conventional": "^21.2.0",
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.61.1",
 		"eslint": "^10.7.0",
@@ -35,6 +33,7 @@
 		"build:all": "npm run clips && npm run build -w akvj && npm run build -w mainframe",
 		"build:full": "npm run clips && npm run build -w akvj",
 		"check:eol": "node monorepo-scripts/check-line-endings.js",
+		"check:package-json": "node monorepo-scripts/sort-package-json.js --check",
 		"check:utf8": "node monorepo-scripts/check-utf8.js",
 		"clips": "node mainframe/scripts/clips",
 		"clips:clean": "node mainframe/scripts/clips --clean",
@@ -46,8 +45,9 @@
 		"mainframe": "npm run dev -w mainframe",
 		"fix:eol": "node monorepo-scripts/check-line-endings.js --fix",
 		"fix:utf8": "node monorepo-scripts/check-utf8.js --fix",
-		"format:check": "prettier --check .",
+		"format:check": "prettier --check . && npm run check:package-json",
 		"format:prettier": "prettier --write .",
+		"format:sort-package-json": "node monorepo-scripts/sort-package-json.js",
 		"format:stylelint": "stylelint \"**/*.css\" --fix",
 		"lint": "eslint .",
 		"lint:css": "stylelint \"**/*.css\"",

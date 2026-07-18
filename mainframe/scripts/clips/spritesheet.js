@@ -18,6 +18,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
+import { renderSpriteSheet, DEFAULT_FRAME_RATE } from './lib/spritesheet-core.js';
 
 /**
  * Parse command line arguments.
@@ -50,12 +51,12 @@ function parseArgs() {
 }
 
 async function createSpriteSheet(inputDir, outputDir, options = {}) {
-	const { framesPerRow = 8, frameRate = 12 } = options;
+	const { framesPerRow = 8, frameRate = DEFAULT_FRAME_RATE } = options;
 	const sharp = await importSharp();
 
 	const files = await loadFrameFiles(inputDir);
 	const { frameWidth, frameHeight } = await getFrameDimensions(sharp, inputDir, files[0]);
-	const composites = await buildComposites(sharp, inputDir, files, framesPerRow, frameWidth, frameHeight);
+	const composites = await buildCompositesFromFiles(sharp, inputDir, files, framesPerRow, frameWidth, frameHeight);
 	await writeSpriteSheet(sharp, outputDir, composites, framesPerRow, frameWidth, frameHeight, files.length);
 	await writeMetaFile(outputDir, files.length, framesPerRow, frameRate);
 }
@@ -95,34 +96,24 @@ async function getFrameDimensions(sharp, inputDir, firstFile) {
 	return { frameWidth: firstImage.width, frameHeight: firstImage.height };
 }
 
-async function buildComposites(sharp, inputDir, files, framesPerRow, frameWidth, frameHeight) {
+async function buildCompositesFromFiles(sharp, inputDir, files, framesPerRow, frameWidth, frameHeight) {
 	const cols = Math.min(files.length, framesPerRow);
 	const rows = Math.ceil(files.length / framesPerRow);
 	console.log(`Sprite sheet: ${cols}x${rows} grid (${cols * frameWidth}x${rows * frameHeight}px)`);
-	return Promise.all(
+	const composites = await Promise.all(
 		files.map(async (file, i) => ({
 			input: await sharp(path.join(inputDir, file)).toBuffer(),
 			left: (i % framesPerRow) * frameWidth,
 			top: Math.floor(i / framesPerRow) * frameHeight
 		}))
 	);
+	return composites;
 }
 
 async function writeSpriteSheet(sharp, outputDir, composites, framesPerRow, frameWidth, frameHeight, fileCount) {
-	const cols = Math.min(fileCount, framesPerRow);
-	const rows = Math.ceil(fileCount / framesPerRow);
+	const sheet = await renderSpriteSheet(sharp, composites, frameWidth, frameHeight, fileCount, framesPerRow);
 	await fs.mkdir(outputDir, { recursive: true });
-	await sharp({
-		create: {
-			width: cols * frameWidth,
-			height: rows * frameHeight,
-			channels: 4,
-			background: { r: 0, g: 0, b: 0, alpha: 0 }
-		}
-	})
-		.composite(composites)
-		.png()
-		.toFile(path.join(outputDir, 'sprite.png'));
+	await fs.writeFile(path.join(outputDir, 'sprite.png'), sheet);
 }
 
 async function writeMetaFile(outputDir, frames, framesPerRow, frameRate) {

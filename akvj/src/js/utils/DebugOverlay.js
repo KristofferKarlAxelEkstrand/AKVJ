@@ -28,68 +28,8 @@ const OVERLAY_HTML = `
 		</div>
 	`;
 
-const OVERLAY_CSS = `
-		#debug-overlay {
-			position: fixed;
-			top: 10px;
-			right: 10px;
-			background: rgba(0, 0, 0, 0.85);
-			color: #0f0;
-			font-family: 'Courier New', monospace;
-			font-size: 12px;
-			padding: 10px;
-			border-radius: 4px;
-			border: 1px solid #0f0;
-			z-index: 9999;
-			min-width: 200px;
-			display: none;
-			pointer-events: none;
-		}
-		#debug-overlay.visible {
-			display: block;
-		}
-		.debug-header {
-			font-weight: bold;
-			margin-bottom: 8px;
-			padding-bottom: 4px;
-			border-bottom: 1px solid #0f0;
-		}
-		.debug-hint {
-			font-weight: normal;
-			font-size: 10px;
-			opacity: 0.6;
-		}
-		.debug-section {
-			display: flex;
-			margin: 4px 0;
-		}
-		.debug-label {
-			width: 50px;
-			color: #888;
-		}
-		.debug-value {
-			flex: 1;
-			text-align: right;
-		}
-		.debug-log {
-			flex: 1;
-			font-size: 10px;
-			max-height: 120px;
-			overflow: hidden;
-		}
-		.debug-log-entry {
-			margin: 2px 0;
-			opacity: 0.9;
-		}
-		.debug-log-entry.note-on { color: #0f0; }
-		.debug-log-entry.note-off { color: #f80; }
-		.debug-log-entry.cc { color: #08f; }
-		.debug-log-entry.clock { color: #888; }
-	`;
-
 class DebugOverlay {
 	#element;
-	#styleElement;
 	#bpmElement = null;
 	#bpmSourceElement = null;
 	#midiStatusElement = null;
@@ -109,7 +49,6 @@ class DebugOverlay {
 		this.#element.id = 'debug-overlay';
 		this.#element.innerHTML = OVERLAY_HTML;
 		this.#cacheDomElements();
-		this.#applyStyles();
 	}
 
 	#cacheDomElements() {
@@ -117,18 +56,6 @@ class DebugOverlay {
 		this.#bpmSourceElement = this.#element.querySelector('#debug-bpm-source');
 		this.#midiStatusElement = this.#element.querySelector('#debug-midi-status');
 		this.#midiLogElement = this.#element.querySelector('#debug-midi-log');
-	}
-
-	#applyStyles() {
-		if (document.getElementById('debug-overlay-styles')) {
-			this.#styleElement = document.getElementById('debug-overlay-styles');
-			return;
-		}
-		const style = document.createElement('style');
-		style.id = 'debug-overlay-styles';
-		style.textContent = OVERLAY_CSS;
-		this.#styleElement = style;
-		document.head.appendChild(style);
 	}
 
 	#handleKeydown(event) {
@@ -269,11 +196,6 @@ class DebugOverlay {
 			this.#element?.remove();
 		} catch (error) {
 			console.error('Error removing DebugOverlay element:', error);
-		}
-		try {
-			this.#styleElement?.remove();
-		} catch (error) {
-			console.error('Error removing DebugOverlay style element:', error);
 		}
 	}
 }

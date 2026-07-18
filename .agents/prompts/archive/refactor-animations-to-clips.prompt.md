@@ -1,4 +1,4 @@
-﻿# Implementation Plan: Animation to Clip Refactor
+# Implementation Plan: Animation to Clip Refactor
 
 This is a bulletproof, step-by-step implementation plan to standardizing the AKVJ codebase strictly on VJ terminology by executing a global rename of "animation" to "clip".
 

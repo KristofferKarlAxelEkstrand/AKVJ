@@ -1,5 +1,6 @@
 import { transformCopy } from './pixelUtils.js';
 import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { getEffectVariant } from './effectVariant.js';
 
 /**
  * Split effect: divide the image into repeating horizontal or vertical sections.
@@ -20,11 +21,11 @@ export default {
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;
 		const { width, height, scratchBuffer } = effectContext;
-		const noteInRange = effect.note - effectContext.effectRanges.split.min;
 		const { effectVariantThreshold, splitMin, splitMax } = effectContext.effectParams;
+		const { noteInRange, isVariantA } = getEffectVariant(effect.note, effectContext.effectRanges.split, effectVariantThreshold);
 		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / 2) + splitMin));
 
-		if (noteInRange < effectVariantThreshold) {
+		if (isVariantA) {
 			applyHorizontalSplit(pixels, width, height, scratchBuffer, splits);
 		} else {
 			applyVerticalSplit(pixels, width, height, scratchBuffer, splits);

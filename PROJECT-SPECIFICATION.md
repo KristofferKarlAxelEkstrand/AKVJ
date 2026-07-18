@@ -27,7 +27,8 @@ AKVJ is a live performance visual tool for musicians and VJs. It displays animat
     - Channel 10: Mixed output effects (applied to mixed Layer Group A and Layer Group B output)
     - Channels 11-12: Layer Group C (overlay layer)
     - Channel 13: Global effects (applied to entire output)
-    - Channels 14-16: Reserved
+    - Channel 14: Project selection (note → project switch, latched)
+    - Channels 15-16: Reserved
 - Layer groups composite in order: Layer Group A + Layer Group B mixed → Mixed output effects → Layer Group C → Global effects
 - Multiple notes can be active simultaneously on different channels
 
@@ -96,12 +97,67 @@ Use this section to describe features you want to add. AI can reference this whe
 
 ### Planned
 
-- [ ] ...describe feature idea here...
-- [ ] ...another feature...
+- [ ] Song/scene selection within a project via dedicated MIDI channel (two-tier: Project = show, Song = scene)
 
-### Ideas (not yet decided)
+### Projects
 
-- ...brainstorm ideas here...
+A **Project** is a named gig/show that owns its own clip set (including bitmasks), key-map, and optional settings. Creating a project deep-copies clips from `default` (or another `copyFrom` project) into an editable fork.
+
+#### Project Structure
+
+```
+projects/
+  index.json              # [{ "id": "default", "name": "Default" }, ...]
+  {projectId}/
+    clips/{clipId}/
+      meta.json
+      sprite.png
+    .raw-assets/{clipId}/…  # Editable source frames (Mainframe)
+    key-map.json            # MIDI-to-clip mapping for this project
+    settings.json           # Project-level settings overrides (optional)
+active-project.json       # { "project": "default" }
+```
+
+Public (built) mirror under `akvj/src/public/`:
+
+```
+projects/{projectId}/clips/… + clips.json + key-map.json
+projects/index.json
+active-project.json
+```
+
+#### MIDI Project Selection
+
+- **Channel**: DAW channel 14 (code channel 13) — dedicated project selection channel
+- **Note → Project**: Note number maps to project index in `projects/index.json` (Note 0 = first project, Note 1 = second, etc.)
+- **Behavior**: Latched — project stays active until a different project note is pressed
+- **Velocity**: Ignored (any velocity > 0 triggers switch)
+
+#### Live Switching Behavior
+
+1. MIDI project note received on DAW channel 14
+2. **Freeze** current frame (render loop keeps drawing last frame without updating clips)
+3. Show `<akvj-loading-overlay>` — simple centered loading bar
+4. **Background load** new project's clips (non-blocking, render loop continues)
+5. Once loaded: destroy old clips, set new clips, hide overlay, resume rendering
+6. If load fails: hide overlay, resume with old clips, log error
+
+#### Settings Split
+
+**General (global, not per-project):**
+
+- `canvas` (width, height)
+- `midi` (commands, system real-time, ppqn)
+- `bpm` (default, min, max, clock timeout, CC mapping)
+- `channelMapping` (channel → layer group assignments)
+- `scrub` (CC assignments)
+- `effectRanges` (note range boundaries)
+- `rendering` (imageSmoothing, backgroundColor)
+
+**Project-level (overridable per-project via `settings.json`):**
+
+- `effectParams` (glitch intensity, posterize levels, split count, etc.)
+- Future: per-project effect tuning, custom background color
 
 ---
 
