@@ -64,6 +64,28 @@ class PlaybackController {
 	}
 
 	/**
+	 * Map a clock-driven progress value (0.0-1.0 through the clip's total
+	 * synced duration) to a displayed frame, per playback mode. Purely a
+	 * progress → frame-index mapping — knows nothing about beats, pulses,
+	 * or BPM (that's ClipTiming's job).
+	 *
+	 * Not applicable to 'random' or 'shuffle': sync does not apply to
+	 * non-deterministic modes (spec "Resolved questions" #4). Callers must
+	 * not invoke this method while in those modes.
+	 * @param {number} progress - 0.0 to 1.0 through the clip's synced duration
+	 * @throws {Error} If playback mode is 'random' or 'shuffle'
+	 */
+	setLinearProgress(progress) {
+		if (this.#playbackMode === 'random' || this.#playbackMode === 'shuffle') {
+			throw new Error(`setLinearProgress() does not apply to '${this.#playbackMode}' playback mode`);
+		}
+
+		const clamped = Math.max(0, Math.min(1, progress));
+		this.#frame = this.#playbackMode === 'pingpong' ? this.#pingpongFrameFromProgress(clamped) : this.#linearFrameFromProgress(clamped);
+		this.#isFinished = clamped >= 1 && this.#playbackMode !== 'loop';
+	}
+
+	/**
 	 * Reset to initial state for the current playback mode.
 	 */
 	reset() {
@@ -146,6 +168,31 @@ class PlaybackController {
 		this.#pingpongDirection = 1;
 		this.#lastShuffleFrame = -1;
 		this.#unplayedShuffleFrames = [];
+	}
+
+	/**
+	 * Map progress to a frame index for loop/once/reverse modes.
+	 * @param {number} progress - Clamped 0.0-1.0
+	 * @returns {number} Frame index
+	 */
+	#linearFrameFromProgress(progress) {
+		const linearIndex = Math.min(this.#numberOfFrames - 1, Math.floor(progress * this.#numberOfFrames));
+		return this.#playbackMode === 'reverse' ? this.#numberOfFrames - 1 - linearIndex : linearIndex;
+	}
+
+	/**
+	 * Map progress to a frame index for pingpong mode, spanning the
+	 * forward+backward traversal (0 → N-1 → 0, i.e. 2N-2 steps).
+	 * @param {number} progress - Clamped 0.0-1.0
+	 * @returns {number} Frame index
+	 */
+	#pingpongFrameFromProgress(progress) {
+		if (this.#numberOfFrames <= 1) {
+			return 0;
+		}
+		const span = 2 * (this.#numberOfFrames - 1);
+		const position = progress * span;
+		return position <= this.#numberOfFrames - 1 ? Math.round(position) : Math.round(span - position);
 	}
 
 	/**

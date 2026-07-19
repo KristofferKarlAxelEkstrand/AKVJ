@@ -4,70 +4,74 @@ This directory contains an autonomous, multi-agent development workflow. The tea
 
 ## How to Start the Team
 
-To bring the core team online, open **six separate chat windows or terminals** (one for each core agent). Copy and paste the corresponding startup prompt into each window. The two **optional** roles (#7 and #8) are nice-to-have and can be left off — start them in extra windows whenever you want deeper testing or dependency/config attention.
+Use the `run-team` script to start all agents automatically in tmux:
 
-### 1. Spawn the Team Lead
-Open your first chat window and paste:
-```text
-You are the Team Lead. Please read your core instructions at `.agents/workflows/developer-team/prompts/team-lead.prompt.md` and begin your workflow loop.
+```bash
+# List running teams
+/workspaces/AKVJ/.agents/workflows/scripts/run-team --list
+
+# Start developer-team workflow (interactive)
+/workspaces/AKVJ/.agents/workflows/scripts/run-team
+
+# Start specific workflow
+/workspaces/AKVJ/.agents/workflows/scripts/run-team developer-team
+
+# Restart specific agent
+/workspaces/AKVJ/.agents/workflows/scripts/run-team --restart developer-team overseer
+
+# Start health monitor
+/workspaces/AKVJ/.agents/workflows/scripts/run-team --monitor developer-team
 ```
 
-### 2. Spawn the AKVJ Developer
-Open your second chat window and paste:
-```text
-You are the AKVJ Developer. Please read your core instructions at `.agents/workflows/developer-team/prompts/akvj-developer.prompt.md` and begin your workflow loop.
-```
+See [WORKFLOW.md](WORKFLOW.md) for detailed documentation.
 
-### 3. Spawn the Mainframe Developer
-Open your third chat window and paste:
-```text
-You are the Mainframe Developer. Please read your core instructions at `.agents/workflows/developer-team/prompts/mainframe-developer.prompt.md` and begin your workflow loop.
-```
+## Agent Roles
 
-### 4. Spawn the QA Reviewer
-Open your fourth chat window and paste:
-```text
-You are the QA Reviewer. Please read your core instructions at `.agents/workflows/developer-team/prompts/qa-reviewer.prompt.md` and begin your workflow loop.
-```
+### Core Agents
 
-### 5. Spawn the Overseer (Bug Hunter, Strategist & Process Keeper)
-Open your fifth chat window and paste:
-```text
-You are the Overseer. Please read your core instructions at `.agents/workflows/developer-team/prompts/overseer.prompt.md` and begin your workflow loop.
-```
+**1. Team Lead** - Central coordinator — triages inbox requests, breaks them into tasks, assigns work to developers, reviews reports, sequences QA reviews, and runs `npm install` on behalf of the team. The single source of truth for task status and the team dashboard.
 
-### 6. Spawn the Nitpicker (Naming, Semantics & Code-Quality Steward)
-Open your sixth chat window and paste:
-```text
-You are the Nitpicker. Please read your core instructions at `.agents/workflows/developer-team/prompts/nitpicker.prompt.md` and begin your workflow loop.
-```
+**2. AKVJ Developer** - Implements features and fixes bugs in the `akvj/` visualizer — vanilla JS, 60fps canvas rendering, Web MIDI API. Runs lint and tests after every change, self-heals up to 3 times before escalating, and reports results to the Team Lead.
 
-### 7. Spawn the Test Marshal (Coverage Hawk) — *optional*
-Open another chat window and paste:
-```text
-You are the Test Marshal. Please read your core instructions at `.agents/workflows/developer-team/prompts/test-marshal.prompt.md` and begin your workflow loop.
-```
+**3. Mainframe Developer** - Implements features and fixes bugs in the `mainframe/` application — clip management, image optimization, file scaling, and the MIDI key-map UI. Runs lint, tests, and the clip pipeline after every change, self-heals up to 3 times before escalating, and reports results to the Team Lead.
 
-### 8. Spawn the Quartermaster (Dependencies, Lockfile & Config Hygiene) — *optional*
-Open another chat window and paste:
-```text
-You are the Quartermaster. Please read your core instructions at `.agents/workflows/developer-team/prompts/quartermaster.prompt.md` and begin your workflow loop.
-```
+**4. QA Reviewer** - Audits completed developer work assigned by the Team Lead. Reviews only the scope of each task — checks code against the task's claims, verifies Vanilla JS / 60fps rules, and returns an `[APPROVED]` or `[REJECTED]` verdict. Does not run open-ended sweeps; that's the Overseer's job.
+
+**5. Overseer** - Proactive product and process guardian — alternates between codebase bug/architecture sweeps and team process audits. Files inbox tickets for issues it finds, keeps specs and prompts current, and asks the human high-level questions. Wakes on a random 10–20 minute timer (or when pinged) so it never burns tokens sitting idle.
+
+**6. Nitpicker** - Focused readability and naming steward — hunts misleading identifiers, inconsistent terminology, stale comments, and naming-convention violations. Files one batched `[NIT]` ticket per sweep to the inbox (never touches product source). Wakes on a random 15–30 minute timer (or when pinged); goes quiet when there is nothing to report.
+
+### Optional Agents
+
+**7. Test Marshal** - Test-coverage and quality specialist — hunts coverage gaps, flaky assertions, stale tests, and wrong-tier tests. Files `[TEST]` inbox tickets for developers to close; never writes tests itself and stays out of QA's per-task reviews. Wakes on a random 20–40 minute timer (or when pinged).
+
+**8. Quartermaster** - Dependency and configuration hygiene specialist — audits `npm audit` advisories, version skew across workspaces, lockfile anomalies, dead npm scripts, and config inconsistencies. Files `[DEPS]` inbox tickets; runs only read-only diagnostics and never installs packages or edits `package.json`. Wakes on a random 30–60 minute timer (or when pinged).
 
 ## How to Assign Work
 
-Once the core agents are running (they should all report that they are hanging/sleeping via the `await-messages.js` or `await-messages-random.js` scripts), you can assign them work!
+Once the agents are running, drop work into the inbox:
 
-1. Create a markdown file (e.g., `feature-add-knob.md`).
-2. Write out your feature request or bug report.
-3. Save or move the file into `.agents/workflows/developer-team/inbox/`.
+1. Create a markdown file (e.g., `feature-add-knob.md`)
+2. Write your feature request or bug report
+3. Save or move the file into `.agents/workflows/developer-team/inbox/`
+
+### Epics
+
+Large multi-task initiatives live in `epics/` with a `drafts/` / `todo/` / `done/` lifecycle:
+
+- **`epics/drafts/`** - Work-in-progress ideas and proposals (humans or co-workers can iterate here)
+- **`epics/todo/`** - Ready-to-implement epics that have been split into concrete tasks
+- **`epics/done/`** - Completed or retired epics
+
+The **Team Lead** is responsible for moving epics through this lifecycle.
 
 **What happens next?**
-- The Team Lead will instantly wake up, read your request, update the dashboard, and assign specific tasks to the developers' slack folders.
-- The assigned developers will wake up, implement the code, run their own tests, and report back to the Team Lead.
-- The QA Reviewer sleeps until the Team Lead sends a `[TASK]-review-*` for completed work, then returns an `[APPROVED]` / `[REJECTED]` verdict (plus optional minor `[FEEDBACK]`). Free-form debt hunting is not QA's job.
-- The Overseer wakes every 10–20 minutes (or when pinged), alternating product bug/architecture sweeps with process hygiene audits, filing inbox tickets, pinging agents with `[PROMPT-UPDATED]` notices, and asking high-level questions in the `outbox/`.
-- The Nitpicker wakes on a timer (or when pinged) for focused naming/semantics/readability sweeps, filing tidy `[NIT]` inbox tickets (usually one batched checklist per sweep) for the Team Lead to slice. It stays in its lane — small code-quality things that make the code easier for a human to read — and never touches product source. When it has nothing urgent to do, it goes back to sleep instead of looping or self-triggering.
-- *(optional)* The Test Marshal wakes on a timer (or when pinged) to hunt test-coverage gaps, flaky/stale tests, and test duplication, filing `[TEST]` inbox tickets for a developer to close. It's report-only (writes no tests itself) and stays out of QA's per-task reviews.
-- *(optional)* The Quartermaster wakes on a timer (or when pinged) to check outdated dependencies, `npm audit` advisories, version skew, lockfile hygiene, and config/script health, filing `[DEPS]` inbox tickets. It's report-only — it runs only read-only diagnostics and never installs or edits `package.json`; the Team Lead sequences the actual change.
-- You can monitor their progress at any time by opening `.agents/workflows/developer-team/slack/general/team-dashboard.md`.
+- The **Team Lead** wakes instantly, reads the request, updates the dashboard, and assigns discrete tasks to the developers' slack folders
+- The **AKVJ Developer** or **Mainframe Developer** wakes, implements the work, runs lint and tests, self-heals up to 3 times, and reports back
+- The **QA Reviewer** wakes when the Team Lead drops a `[TASK]-review-*` file, audits the specific task's changes, and returns `[APPROVED]` / `[REJECTED]`
+- The **Overseer** wakes every 10–20 minutes (or when pinged), alternating product bug/architecture sweeps with process hygiene audits
+- The **Nitpicker** wakes on a timer (or when pinged) for focused naming/semantics/readability sweeps, filing tidy `[NIT]` inbox tickets
+- *(optional)* The **Test Marshal** wakes on a timer (or when pinged) to hunt coverage gaps and flaky tests, filing `[TEST]` inbox tickets
+- *(optional)* The **Quartermaster** wakes on a timer (or when pinged) to check outdated dependencies, `npm audit` advisories, lockfile hygiene, and dead scripts, filing `[DEPS]` inbox tickets
+
+Monitor the team's progress at any time by opening `.agents/workflows/developer-team/slack/general/team-dashboard.md`.

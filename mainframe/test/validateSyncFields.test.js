@@ -14,13 +14,7 @@ function baseMeta(overrides = {}) {
 }
 
 function syncErrors(meta) {
-	return validateMetaFields(baseMeta(meta)).filter(
-		message =>
-			message.includes('sync') ||
-			message.includes('syncLength') ||
-			message.includes('syncBeats') ||
-			message.includes('beatsPerBar')
-	);
+	return validateMetaFields(baseMeta(meta)).filter(message => message.includes('sync') || message.includes('syncLength') || message.includes('syncBeats') || message.includes('beatsPerBar'));
 }
 
 describe('validateSyncFields (via validateMetaFields)', () => {
@@ -84,5 +78,15 @@ describe('validateSyncFields (via validateMetaFields)', () => {
 
 	test('omitting sync entirely is valid (free/FPS default)', () => {
 		expect(syncErrors({})).toEqual([]);
+	});
+
+	test('hard-rejects frameDurationBeats field', () => {
+		const errors = validateMetaFields(baseMeta({ frameDurationBeats: [0.25, 0.25, 0.25, 0.25] }));
+		expect(errors).toContain('frameDurationBeats is no longer supported. Use sync: "beat" with syncLength and syncBeats instead.');
+	});
+
+	test('hard-rejects frameDurationBeats as a number', () => {
+		const errors = validateMetaFields(baseMeta({ frameDurationBeats: 1 }));
+		expect(errors).toContain('frameDurationBeats is no longer supported. Use sync: "beat" with syncLength and syncBeats instead.');
 	});
 });

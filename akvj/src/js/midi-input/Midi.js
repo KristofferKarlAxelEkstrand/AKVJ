@@ -14,7 +14,7 @@ class Midi {
 	#connectedInputs = new Map();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
-	#setupPromise = Promise.resolve();
+	#initializationPromise = Promise.resolve();
 	#destroyed = false;
 
 	constructor() {
@@ -22,12 +22,12 @@ class Midi {
 	}
 
 	get ready() {
-		return this.#setupPromise;
+		return this.#initializationPromise;
 	}
 
 	#initializeMIDIAccess() {
 		if (this.#isSupported()) {
-			this.#setupPromise = this.#requestAccess();
+			this.#initializationPromise = this.#requestAccess();
 		} else {
 			if (import.meta.env.DEV) {
 				console.log('WebMIDI is not supported in this browser.');
@@ -58,8 +58,8 @@ class Midi {
 		if (import.meta.env.DEV) {
 			console.log('WebMIDI supported');
 		}
-		this.#setupMIDIInputs(midiAccess);
-		this.#setupStateChangeListener(midiAccess);
+		this.#initializeMIDIInputs(midiAccess);
+		this.#initializeStateChangeListener(midiAccess);
 		this.#updateConnectionState();
 	}
 
@@ -67,8 +67,8 @@ class Midi {
 		console.error('Failed to get MIDI access:', error);
 		try {
 			appState.midiConnected = false;
-		} catch (error) {
-			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', error);
+		} catch (resetError) {
+			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', resetError);
 		}
 		appState.error(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
 	}
@@ -76,7 +76,7 @@ class Midi {
 	/**
 	 * Listen for MIDI device connect/disconnect events
 	 */
-	#setupStateChangeListener(midiAccess) {
+	#initializeStateChangeListener(midiAccess) {
 		try {
 			if (typeof midiAccess.addEventListener === 'function') {
 				midiAccess.addEventListener('statechange', this.#boundHandleStateChange);
@@ -103,9 +103,9 @@ class Midi {
 	}
 
 	/**
-	 * Set up all currently available MIDI inputs
+	 * Initialize all currently available MIDI inputs
 	 */
-	#setupMIDIInputs(midiAccess) {
+	#initializeMIDIInputs(midiAccess) {
 		for (const input of midiAccess.inputs.values()) {
 			this.#connectInput(input);
 		}
@@ -113,10 +113,18 @@ class Midi {
 
 	/**
 	 * Connect a single MIDI input device
+	 * Enforces maximum device limit to prevent resource exhaustion
 	 */
 	#connectInput(input) {
 		if (this.#connectedInputs.has(input.id)) {
 			return; // Already connected
+		}
+
+		// Security: Enforce maximum device limit
+		const maxMidiDevices = settings.midi?.maxMidiDevices ?? 8;
+		if (this.#connectedInputs.size >= maxMidiDevices) {
+			console.warn(`Midi: maximum MIDI device limit (${maxMidiDevices}) reached, ignoring connection: ${input.name}`);
+			return;
 		}
 
 		try {
@@ -185,6 +193,22 @@ class Midi {
 	#handleMIDIMessage(message) {
 		if (!message?.data || message.data.length === 0) {
 			return;
+		}
+
+		// Security: Validate message length before parsing
+		const maxMessageLength = settings.midi?.maxMessageLength ?? 256;
+		if (message.data.length > maxMessageLength) {
+			console.warn(`Midi: message length ${message.data.length} exceeds maximum ${maxMessageLength}, ignoring`);
+			return;
+		}
+
+		// Security: Validate data integrity - check for null bytes and control characters
+		for (let i = 0; i < message.data.length; i++) {
+			const byte = message.data[i];
+			if (typeof byte !== 'number' || byte < 0 || byte > 255 || !Number.isInteger(byte)) {
+				console.warn(`Midi: invalid byte at index ${i}: ${byte}, ignoring message`);
+				return;
+			}
 		}
 
 		const statusByte = message.data[0];

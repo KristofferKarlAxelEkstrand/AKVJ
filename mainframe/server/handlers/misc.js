@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { REPO_ROOT } from '../paths.js';
 import { expandGifBuffer } from '../gifExpand.js';
-import { readBody, sendJson } from '../httpUtils.js';
+import { sendJson, parseJsonBody } from '../httpUtils.js';
 
 export function handleGetHealth(_req, res) {
 	sendJson(res, 200, { ok: true });
@@ -35,7 +35,10 @@ export async function handlePostPipeline(_req, res) {
 }
 
 export async function handleExpandGif(req, res) {
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	const image = body.image ?? body.gif ?? body.data;
 	if (typeof image !== 'string' || !image) {
 		sendJson(res, 400, { error: 'image (base64 data URL or raw base64) is required' });

@@ -44,7 +44,8 @@ class Clip {
 	 * @param {number} options.framesPerRow
 	 * @param {string} [options.playback='loop']
 	 * @param {Object} [options.frameRatesForFrames={ 0: 1 }]
-	 * @param {number|number[]|null} [options.frameDurationBeats=null]
+	 * @param {number|null} [options.syncBeats=null] - Total clip duration in beats for
+	 *   `sync: "beat"` clips; ignored for 'random'/'shuffle' playback (sync doesn't apply)
 	 * @param {boolean} [options.retrigger=true]
 	 * @param {number|null} [options.bitDepth=null]
 	 * @param {string} [options.triggerType='momentary']
@@ -54,7 +55,7 @@ class Clip {
 	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
 	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
 	 */
-	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
+	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
 		this.#validateConstructorParams(frames, framesPerRow);
 		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
 		this.#initDimensions(image, frames, framesPerRow);
@@ -66,7 +67,10 @@ class Clip {
 		this.#scaleMode = scaleMode;
 		this.#placement = placement;
 
-		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationBeats, frames, bpmProvider, clockSource });
+		// Sync does not apply to non-deterministic playback modes — never engage
+		// clock-driven progress tracking for them, regardless of clip metadata.
+		const isNonDeterministic = playback === 'random' || playback === 'shuffle';
+		this.#timing = new ClipTiming({ frameRatesForFrames, syncBeats: isNonDeterministic ? null : syncBeats, frames, bpmProvider, clockSource });
 		this.#playback = new PlaybackController({ frames, playback });
 	}
 
@@ -153,6 +157,23 @@ class Clip {
 	}
 
 	/**
+	 * Advance via clock-driven progress (0.0-1.0 through the clip's synced
+	 * duration), used instead of step-based advancement while a MIDI clock is
+	 * actively driving a beat-synced clip.
+	 * @param {number} progress
+	 * @returns {boolean} True if playback continues, false once finished
+	 */
+	#advanceByProgress(progress) {
+		this.#playback.setLinearProgress(progress);
+		this.#timing.setCurrentFrameIndex(this.#playback.frame);
+		if (this.#playback.isFinished) {
+			this.#timing.unsubscribeFromClock();
+			return false;
+		}
+		return true;
+	}
+
+	/**
 	 * Draw the current frame to a canvas context using scaleMode + placement.
 	 * @param {CanvasRenderingContext2D} ctx
 	 */
@@ -234,7 +255,7 @@ class Clip {
 			return;
 		}
 		this.#resetState();
-		this.#timing.subscribeToClock(() => this.#advanceNextFrame());
+		this.#timing.subscribeToClock(progress => this.#advanceByProgress(progress));
 	}
 
 	#resetState() {

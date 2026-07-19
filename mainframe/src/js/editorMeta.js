@@ -1,69 +1,11 @@
 /**
  * Defaults and mapping for shared clip-editor meta hydrate / save.
- * Keep FPS on disk; the UI uses milliseconds via frameTiming helpers.
+ * UI uses milliseconds natively; frameRatesForFrames is kept for backward compatibility.
  */
 
-import {
-	DEFAULT_SYNC_MODE,
-	DEFAULT_BEATS_PER_BAR,
-	SYNC_LENGTH_PRESETS,
-	SYNC_MODES,
-	DEFAULT_PLACEMENT,
-	resolvePlacement,
-	DEFAULT_FRAME_WIDTH,
-	DEFAULT_FRAME_HEIGHT,
-	DEFAULT_SCALE_MODE,
-	DEFAULT_PLAYBACK,
-	DEFAULT_FRAME_RATE,
-	DEFAULT_TRIGGER_TYPE,
-	VALID_BIT_DEPTHS
-} from './clipSchema.js';
+import { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, SYNC_MODES, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS } from './clipSchema.js';
 
-export {
-	DEFAULT_SYNC_MODE,
-	DEFAULT_BEATS_PER_BAR,
-	SYNC_LENGTH_PRESETS,
-	DEFAULT_PLACEMENT,
-	resolvePlacement,
-	DEFAULT_FRAME_WIDTH,
-	DEFAULT_FRAME_HEIGHT,
-	DEFAULT_SCALE_MODE,
-	DEFAULT_PLAYBACK,
-	DEFAULT_FRAME_RATE,
-	DEFAULT_TRIGGER_TYPE,
-	VALID_BIT_DEPTHS
-};
-
-/**
- * @param {unknown} raw
- * @returns {{ ok: true, value: number|number[]|null } | { ok: false, error: string }}
- */
-export function parseFrameDurationBeats(raw) {
-	if (raw === null || raw === undefined) {
-		return { ok: true, value: null };
-	}
-	const text = String(raw).trim();
-	if (!text) {
-		return { ok: true, value: null };
-	}
-	let parsed;
-	try {
-		parsed = JSON.parse(text);
-	} catch {
-		const asNumber = Number(text);
-		if (Number.isFinite(asNumber) && asNumber > 0) {
-			return { ok: true, value: asNumber };
-		}
-		return { ok: false, error: 'frameDurationBeats must be a number or JSON array of numbers' };
-	}
-	if (typeof parsed === 'number' && Number.isFinite(parsed) && parsed > 0) {
-		return { ok: true, value: parsed };
-	}
-	if (Array.isArray(parsed) && parsed.length > 0 && parsed.every(value => typeof value === 'number' && Number.isFinite(value) && value > 0)) {
-		return { ok: true, value: parsed };
-	}
-	return { ok: false, error: 'frameDurationBeats must be a positive number or array of positive numbers' };
-}
+export { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS };
 
 /**
  * Map clip meta into editor form values (legacy-safe defaults).
@@ -73,13 +15,9 @@ export function editorValuesFromMeta(meta = {}) {
 	const firstRate = meta.frameRatesForFrames?.['0'] ?? meta.frameRatesForFrames?.[0];
 	const bitDepth = Number(meta.bitDepth);
 	const sync = typeof meta.sync === 'string' && SYNC_MODES.includes(meta.sync) ? meta.sync : DEFAULT_SYNC_MODE;
-	const syncLength =
-		typeof meta.syncLength === 'string' && SYNC_LENGTH_PRESETS.includes(meta.syncLength) ? meta.syncLength : '1 bar';
+	const syncLength = typeof meta.syncLength === 'string' && SYNC_LENGTH_PRESETS.includes(meta.syncLength) ? meta.syncLength : '1 bar';
 	const syncBeats = typeof meta.syncBeats === 'number' && meta.syncBeats > 0 ? meta.syncBeats : null;
-	const beatsPerBar =
-		typeof meta.beatsPerBar === 'number' && Number.isInteger(meta.beatsPerBar) && meta.beatsPerBar > 0
-			? meta.beatsPerBar
-			: DEFAULT_BEATS_PER_BAR;
+	const beatsPerBar = typeof meta.beatsPerBar === 'number' && Number.isInteger(meta.beatsPerBar) && meta.beatsPerBar > 0 ? meta.beatsPerBar : DEFAULT_BEATS_PER_BAR;
 	return {
 		name: typeof meta.name === 'string' ? meta.name : '',
 		role: meta.role === 'bitmask' ? 'bitmask' : '',
@@ -93,8 +31,6 @@ export function editorValuesFromMeta(meta = {}) {
 		triggerType: typeof meta.triggerType === 'string' && meta.triggerType ? meta.triggerType : DEFAULT_TRIGGER_TYPE,
 		triggerGroup: meta.triggerGroup !== null && meta.triggerGroup !== undefined ? String(meta.triggerGroup) : '',
 		bitDepth: VALID_BIT_DEPTHS.includes(bitDepth) ? bitDepth : 1,
-		frameDurationBeatsText:
-			meta.frameDurationBeats !== null && meta.frameDurationBeats !== undefined ? JSON.stringify(meta.frameDurationBeats) : '',
 		sync,
 		syncLength,
 		syncBeats,
@@ -140,6 +76,10 @@ export function metaPatchFromEditor(values) {
 		patch.triggerGroup = null;
 	}
 
+	if (values.frameDurationsMs) {
+		patch.frameDurationsMs = values.frameDurationsMs;
+	}
+
 	if (values.frameRatesForFrames) {
 		patch.frameRatesForFrames = values.frameRatesForFrames;
 	}
@@ -174,8 +114,8 @@ export function optionalMetaFromEditor(values) {
 }
 
 /**
- * Sync + frameDurationBeats for save payloads.
- * Beat mode clears explicit frameDurationBeats so the engine expands from sync fields.
+ * Sync fields for save payloads.
+ * Beat mode uses syncLength/syncBeats; free mode clears sync fields.
  * @param {object} values
  * @returns {object}
  */
@@ -185,11 +125,7 @@ function syncFieldsPatch(values) {
 		const patch = {
 			sync: 'beat',
 			syncLength: typeof values.syncLength === 'string' ? values.syncLength : '1 bar',
-			beatsPerBar:
-				typeof values.beatsPerBar === 'number' && Number.isInteger(values.beatsPerBar) && values.beatsPerBar > 0
-					? values.beatsPerBar
-					: DEFAULT_BEATS_PER_BAR,
-			frameDurationBeats: null
+			beatsPerBar: typeof values.beatsPerBar === 'number' && Number.isInteger(values.beatsPerBar) && values.beatsPerBar > 0 ? values.beatsPerBar : DEFAULT_BEATS_PER_BAR
 		};
 		if (patch.syncLength === 'custom') {
 			patch.syncBeats = typeof values.syncBeats === 'number' && values.syncBeats > 0 ? values.syncBeats : null;
@@ -198,16 +134,10 @@ function syncFieldsPatch(values) {
 		}
 		return patch;
 	}
-	const patch = {
+	return {
 		sync: 'free',
 		syncLength: null,
 		syncBeats: null,
 		beatsPerBar: null
 	};
-	if (values.frameDurationBeats !== null && values.frameDurationBeats !== undefined) {
-		patch.frameDurationBeats = values.frameDurationBeats;
-	} else {
-		patch.frameDurationBeats = null;
-	}
-	return patch;
 }

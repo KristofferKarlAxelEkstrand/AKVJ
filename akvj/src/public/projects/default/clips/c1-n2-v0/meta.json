@@ -5,5 +5,7 @@
 	"framesPerRow": 8,
 	"playback": "loop",
 	"retrigger": true,
-	"frameDurationBeats": 2
+	"sync": "beat",
+	"syncLength": "custom",
+	"syncBeats": 128
 }

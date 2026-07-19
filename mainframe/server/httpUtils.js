@@ -4,7 +4,7 @@ export const MAX_BODY_BYTES = 32 * 1024 * 1024;
 const ALLOWED_ORIGINS = new Set(['http://localhost:9999', 'http://127.0.0.1:9999', 'http://localhost:8888', 'http://127.0.0.1:8888']);
 
 /**
- * @param {http.IncomingMessage} req
+ * @param {import('http').IncomingMessage} req
  * @param {number} [maxBytes]
  * @returns {Promise<Buffer>}
  */
@@ -27,7 +27,7 @@ export function readBody(req, maxBytes = MAX_BODY_BYTES) {
 }
 
 /**
- * @param {http.ServerResponse} res
+ * @param {import('http').ServerResponse} res
  * @param {number} status
  * @param {unknown} payload
  * @param {Record<string, string>} [headers]
@@ -43,8 +43,8 @@ export function sendJson(res, status, payload, headers = {}) {
 }
 
 /**
- * @param {http.IncomingMessage} req
- * @param {http.ServerResponse} res
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
  */
 export function applyCors(req, res) {
 	const origin = req.headers.origin;
@@ -54,4 +54,22 @@ export function applyCors(req, res) {
 	}
 	res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS');
 	res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+/**
+ * @param {import('http').IncomingMessage} req
+ * @param {import('http').ServerResponse} res
+ * @returns {Promise<unknown>}
+ */
+export async function parseJsonBody(req, res) {
+	const body = await readBody(req);
+	try {
+		return JSON.parse(body.toString('utf8') || '{}');
+	} catch (error) {
+		if (error instanceof SyntaxError) {
+			sendJson(res, 400, { error: 'Invalid JSON in request body' });
+			return null;
+		}
+		throw error;
+	}
 }

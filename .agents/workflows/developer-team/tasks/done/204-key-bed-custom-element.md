@@ -1,5 +1,5 @@
 ---
-status: in-review
+status: done
 assignee: qa-reviewer
 priority: medium
 ---

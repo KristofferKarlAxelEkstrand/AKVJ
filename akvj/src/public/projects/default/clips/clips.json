@@ -5,12 +5,12 @@
 		"framesPerRow": 4,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 1,
-			"1": 1,
-			"2": 1,
-			"3": 1
-		},
+		"frameDurationsMs": [
+			1000,
+			1000,
+			1000,
+			1000
+		],
 		"scaleMode": "fit",
 		"frameWidth": 240,
 		"frameHeight": 135,
@@ -23,7 +23,9 @@
 		"framesPerRow": 8,
 		"playback": "loop",
 		"retrigger": true,
-		"frameDurationBeats": 0.5,
+		"sync": "beat",
+		"syncLength": "custom",
+		"syncBeats": 32,
 		"triggerType": "momentary"
 	},
 	"c1-n1-v0": {
@@ -33,7 +35,9 @@
 		"framesPerRow": 8,
 		"playback": "loop",
 		"retrigger": true,
-		"frameDurationBeats": 0.5
+		"sync": "beat",
+		"syncLength": "custom",
+		"syncBeats": 32
 	},
 	"c1-n2-v0": {
 		"name": "",
@@ -42,7 +46,9 @@
 		"framesPerRow": 8,
 		"playback": "loop",
 		"retrigger": true,
-		"frameDurationBeats": 2
+		"sync": "beat",
+		"syncLength": "custom",
+		"syncBeats": 128
 	},
 	"c5-n0-v0": {
 		"name": "",
@@ -51,7 +57,9 @@
 		"framesPerRow": 8,
 		"playback": "loop",
 		"retrigger": true,
-		"frameDurationBeats": 0.25,
+		"sync": "beat",
+		"syncLength": "custom",
+		"syncBeats": 16,
 		"role": "bitmask",
 		"bitDepth": 1
 	},
@@ -62,7 +70,9 @@
 		"framesPerRow": 8,
 		"playback": "loop",
 		"retrigger": true,
-		"frameDurationBeats": 0.5
+		"sync": "beat",
+		"syncLength": "custom",
+		"syncBeats": 32
 	},
 	"custom-clip": {
 		"png": "sprite.png",
@@ -70,9 +80,9 @@
 		"framesPerRow": 1,
 		"playback": "once",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 24
-		},
+		"frameDurationsMs": [
+			41.67
+		],
 		"name": "My Cool Clip"
 	},
 	"default-size": {
@@ -81,9 +91,9 @@
 		"framesPerRow": 1,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33
+		]
 	},
 	"existing-clip": {
 		"png": "sprite.png",
@@ -91,9 +101,9 @@
 		"framesPerRow": 1,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33
+		]
 	},
 	"many-frames": {
 		"png": "sprite.png",
@@ -101,9 +111,28 @@
 		"framesPerRow": 16,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33,
+			83.33
+		]
 	},
 	"mask-clip": {
 		"png": "sprite.png",
@@ -111,9 +140,9 @@
 		"framesPerRow": 1,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		},
+		"frameDurationsMs": [
+			83.33
+		],
 		"role": "bitmask",
 		"bitDepth": 1
 	},
@@ -123,9 +152,11 @@
 		"framesPerRow": 3,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33,
+			83.33,
+			83.33
+		]
 	},
 	"raw-test": {
 		"png": "sprite.png",
@@ -133,9 +164,10 @@
 		"framesPerRow": 2,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33,
+			83.33
+		]
 	},
 	"resized-clip": {
 		"png": "sprite.png",
@@ -143,9 +175,9 @@
 		"framesPerRow": 1,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33
+		]
 	},
 	"single-frame": {
 		"png": "sprite.png",
@@ -153,9 +185,9 @@
 		"framesPerRow": 1,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 12
-		}
+		"frameDurationsMs": [
+			83.33
+		]
 	},
 	"t6gf": {
 		"png": "sprite.png",
@@ -163,14 +195,14 @@
 		"framesPerRow": 6,
 		"playback": "loop",
 		"retrigger": true,
-		"frameRatesForFrames": {
-			"0": 20,
-			"1": 20,
-			"2": 20,
-			"3": 20,
-			"4": 20,
-			"5": 20
-		},
+		"frameDurationsMs": [
+			50,
+			50,
+			50,
+			50,
+			50,
+			50
+		],
 		"scaleMode": "none",
 		"frameWidth": 240,
 		"frameHeight": 135,

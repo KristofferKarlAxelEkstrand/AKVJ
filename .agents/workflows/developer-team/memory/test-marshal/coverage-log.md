@@ -4,11 +4,7 @@ Running record of coverage assessments so I don't re-report the same gap. One li
 `YYYY-MM-DD | area | module | gap | ticket filed`. Also track sweep rotation.
 
 ## Next sweep area
-19th ticket filed 2026-07-18 (`[TEST]-akvj-cliploader-project-path-coverage.md`). Next wake:
-(1) confirm Task 197 (ClipInstance/fsUtils) and this ClipLoader ticket triage status;
-(2) rotate to **e2e tier** (Playwright specs under `e2e/` — baseURL/projects hygiene, stale
-selectors, vacuous guards) or **mainframe editor** if e2e is still clean from prior RESOLVED
-pass. Skip re-filing ClipLoader project-path or ClipInstance/fsUtils if still open.
+2026-07-19 sweep complete. Tasks 197 and 198 now in `done/` (RESOLVED). Utils/e2e/smoke/shared/handlers/visuals/mainframe-src/monorepo-scripts sweep: KeyBed.js has zero coverage (ticket filed). scripts/clips has one known gap (fsUtils.js EPERM/ENOSYS fallback, filed in Task 197). monorepo-scripts all clean (5 modules, 18 tests). Next wake: rotate to **akvj core** (AppState, AdventureKidVideoJockey, settings) or **e2e** if akvj core is clean.
 
 ## Known gaps from the Wave 2 review (verify, then file if still open)
 - akvj `ClipTiming.js` — no direct unit test (only exercised indirectly via `Clip.test.js`).
@@ -19,6 +15,15 @@ pass. Skip re-filing ClipLoader project-path or ClipInstance/fsUtils if still op
 - Duplication: `createMockClip`, mock 2D-context factories, smoke helpers; orphan `server/health.test.js`.
 
 ## Sweeps
+- 2026-07-19 | akvj/src/js/utils/ | timing.js, velocitySelection.js, snapToPixel.js, DebugOverlay.js, Fullscreen.js | All well covered: velocitySelection.test.js (8 tests), DebugOverlay.test.js (18 tests), Fullscreen.test.js (11 tests), timing/snapToPixel trivial | (clean)
+- 2026-07-19 | mainframe/server/handlers/ | clips.js, projects.js, misc.js | Well covered via server.test.js (792 lines, real HTTP server). All endpoints tested including error paths. | (clean)
+- 2026-07-19 | mainframe/shared/ | clipId.js, clipSchema.js, frameBake.js, frameFit.js, frameTiming.js, mappingLeaf.js | All well covered: clipId (via generateClipId.test.js), clipSchema (clipSchema.test.js + clipSchema.syncParity.test.js), frameBake (frameBake.test.js), frameFit (frameFit.test.js), frameTiming (frameTiming.test.js), mappingLeaf (indirectly via mappingService.test.js) | (clean)
+- 2026-07-19 | akvj/src/js/visuals/ | PlaybackController.js, ClipTiming.js, ProjectCatalog.js, EffectsPipeline.js, effectVariant.js | All RESOLVED — Task 162 done: PlaybackController.test.js (8 tests), ClipTiming.test.js (12 tests), ProjectCatalog.test.js (14 tests), EffectsPipeline.test.js (2 tests for destroy), effectVariant.test.js (2 tests). appState leak fixed in Clip.test.js. | (clean)
+- 2026-07-19 | mainframe/src/js/ | KeyBed.js (88 lines) | Zero direct or indirect coverage — no KeyBed.test.js, not tested via PianoRoll.test.js. Untested: connectedCallback, disconnectedCallback, keys getter (lazy render), setMappedKeys (edit/select/play modes), #renderKeys. Ticket filed. | [TEST]-mainframe-keybed-coverage.md
+- 2026-07-19 | monorepo-scripts/ | sort-package-json.js, check-utf8.js, check-line-endings.js, lib/gitTrackedTextFiles.js, lib/report.js | All clean — 5 modules with direct unit tests (18 tests total). Previously RESOLVED in Task 168. No new gaps found. | (clean)
+- 2026-07-19 | e2e/ | akvj.spec.js, mainframe.spec.js | Clean: uses per-test baseURL, test.skip for conditional tests (not vacuous if blocks), no waitForTimeout sleeps | (clean)
+- 2026-07-19 | smoke/ | akvj-startup.smoke.js, startup.smoke.js, mainframe-startup.smoke.js, pollUrl.js | Clean: all use .smoke.js suffix, pollUrl centralized, no orphan tests | (clean)
+- 2026-07-19 | akvj/src/js/ + mainframe/src/js/ | New module check | 38 akvj modules, 37 mainframe modules — no new untested modules since last sweep | (clean)
 - 2026-07-18 | akvj/src/js/visuals/ | PlaybackController.js | 4 of 7 playback modes untested (pingpong, random, reverse, scrub); finish/clearFinished/playbackMode getter untested | [TEST]-akvj-visuals-coverage.md
 - 2026-07-18 | akvj/src/js/visuals/ | ClipTiming.js | Injection points (bpmProvider, clockSource) never tested; getFrameInterval BPM clamping; isClockDriven; setCurrentFrameIndex; #handleClockPulse fallback; unsubscribeFromClock error handling | [TEST]-akvj-visuals-coverage.md
 - 2026-07-18 | akvj/src/js/visuals/ | ProjectCatalog.js | Nearly all paths untested; fetchActiveProjectId success path never exercised (ClipLoader mocks it to 404); fetchProjectsIndex, buildProjectKeyMapUrl, buildProjectClipsJsonUrl, setupClipsFromProject all untested | [TEST]-akvj-visuals-coverage.md

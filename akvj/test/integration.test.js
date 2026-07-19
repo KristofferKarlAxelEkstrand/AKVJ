@@ -204,10 +204,12 @@ describe('EffectsManager', () => {
 		const effects = new EffectsManager();
 		const channel = settings.channelMapping.mixedOutputEffects;
 
-		// Reserved note range 96-127
+		// All notes 0-127 are now assigned to effect ranges
+		// No reserved range exists anymore
+		// Test that grayscale displacement effects work (notes 96-111)
 		effects.noteOn(channel, 100, 100);
-		expect(effects.hasMixedOutputEffects()).toBe(false);
-		expect(effects.noteOff(channel, 100)).toBe(false);
+		expect(effects.hasMixedOutputEffects()).toBe(true);
+		expect(effects.noteOff(channel, 100)).toBe(true);
 	});
 });
 
@@ -301,7 +303,8 @@ describe('Channel Mapping from Settings', () => {
 		expect(settings.effectRanges.color).toEqual({ min: 48, max: 63 });
 		expect(settings.effectRanges.glitch).toEqual({ min: 64, max: 79 });
 		expect(settings.effectRanges.strobe).toEqual({ min: 80, max: 95 });
-		expect(settings.effectRanges.reserved).toEqual({ min: 96, max: 127 });
+		expect(settings.effectRanges.grayscaleDisplacement).toEqual({ min: 96, max: 111 });
+		expect(settings.effectRanges.grayscaleBlend).toEqual({ min: 112, max: 127 });
 	});
 });
 

@@ -164,7 +164,7 @@ describe('validate.js extended validation', () => {
 	});
 
 	describe('frameDurationBeats validation', () => {
-		test('accepts single positive number (shorthand)', async () => {
+		test('hard-rejects frameDurationBeats field (single number)', async () => {
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -173,11 +173,11 @@ describe('validate.js extended validation', () => {
 			});
 
 			const result = await validate(testClipsDir);
-			expect(result.errors).toHaveLength(0);
-			expect(result.valid[0].meta.frameDurationBeats).toBe(0.5);
+			expect(result.errors).toHaveLength(1);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats is no longer supported'))).toBe(true);
 		});
 
-		test('accepts array of positive numbers matching frames', async () => {
+		test('hard-rejects frameDurationBeats field (array)', async () => {
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -186,37 +186,11 @@ describe('validate.js extended validation', () => {
 			});
 
 			const result = await validate(testClipsDir);
-			expect(result.errors).toHaveLength(0);
-			expect(result.valid[0].meta.frameDurationBeats).toEqual([0.5]);
-		});
-
-		test('rejects array with wrong length', async () => {
-			await createTestClip('test-clip', {
-				png: 'sprite.png',
-				frames: 4,
-				framesPerRow: 1, // Note: will fail dimension check, but we test frameDurationBeats first
-				frameDurationBeats: [1, 0.5] // Only 2 elements, should be 4
-			});
-
-			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats array length'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats is no longer supported'))).toBe(true);
 		});
 
-		test('rejects non-positive numbers in array', async () => {
-			await createTestClip('test-clip', {
-				png: 'sprite.png',
-				frames: 4,
-				framesPerRow: 1,
-				frameDurationBeats: [1, 0, 0.5, 2] // 0 is not positive
-			});
-
-			const result = await validate(testClipsDir);
-			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats[1]'))).toBe(true);
-		});
-
-		test('rejects negative shorthand value', async () => {
+		test('hard-rejects frameDurationBeats field (negative)', async () => {
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -226,10 +200,10 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats is no longer supported'))).toBe(true);
 		});
 
-		test('rejects zero shorthand value', async () => {
+		test('hard-rejects frameDurationBeats field (zero)', async () => {
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -239,10 +213,10 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be a positive number'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats is no longer supported'))).toBe(true);
 		});
 
-		test('rejects invalid type (string)', async () => {
+		test('hard-rejects frameDurationBeats field (invalid type)', async () => {
 			await createTestClip('test-clip', {
 				png: 'sprite.png',
 				frames: 1,
@@ -252,7 +226,7 @@ describe('validate.js extended validation', () => {
 
 			const result = await validate(testClipsDir);
 			expect(result.errors).toHaveLength(1);
-			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats must be'))).toBe(true);
+			expect(result.errors[0].errors.some(e => e.includes('frameDurationBeats is no longer supported'))).toBe(true);
 		});
 
 		test('allows omitting frameDurationBeats entirely', async () => {

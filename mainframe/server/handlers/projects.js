@@ -10,7 +10,7 @@ import {
 	readProjectKeyMapFile,
 	writeProjectKeyMapFile
 } from '../projects.js';
-import { readBody, sendJson } from '../httpUtils.js';
+import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { listClips } from '../clipCatalog.js';
 import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
 
@@ -19,7 +19,10 @@ export async function handleGetProjects(_req, res) {
 }
 
 export async function handlePostProjects(req, res) {
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	try {
 		const project = await createProject({
 			name: body.name,
@@ -46,7 +49,10 @@ export async function handleGetProject(_req, res, projectId) {
 }
 
 export async function handlePutProject(req, res, projectId) {
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	try {
 		const project = await updateProject(projectId, {
 			name: body.name,
@@ -86,7 +92,10 @@ export async function handleGetProjectKeyMap(_req, res, projectId) {
 }
 
 export async function handlePutProjectKeyMap(req, res, projectId) {
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	try {
 		if (!isValidProjectId(projectId)) {
 			sendJson(res, 400, { error: 'Invalid project id' });

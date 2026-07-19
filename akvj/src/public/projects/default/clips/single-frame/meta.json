@@ -4,7 +4,7 @@
 	"framesPerRow": 1,
 	"playback": "loop",
 	"retrigger": true,
-	"frameRatesForFrames": {
-		"0": 12
-	}
+	"frameDurationsMs": [
+		83.33
+	]
 }

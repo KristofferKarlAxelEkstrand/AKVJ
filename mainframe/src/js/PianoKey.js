@@ -5,6 +5,7 @@ const PIANO_BLACK_KEY_OFFSETS = [1, 3, 6, 8, 10];
 const VELOCITY_RANGE = 128;
 const MIN_VELOCITY_GAP = 1;
 const MIN_REGION_LABEL_HEIGHT_PX = 14;
+const MIN_REGION_VELOCITY = 2;
 
 /**
  * @param {number} note - MIDI note number (0–127)
@@ -314,6 +315,14 @@ class PianoKey extends HTMLElement {
 		const insertAt = insertionIndexForDropVelocity(dropVelocity, this.#velocityBands);
 		const clipIds = this.#velocityBands.map(band => band.clipId);
 		clipIds.splice(insertAt, 0, trimmedId);
+
+		// Reject drop if adding this clip would create regions smaller than MIN_REGION_VELOCITY.
+		// This prevents the drag constraint inversion bug where minVelocity > maxVelocity.
+		const newCount = clipIds.length;
+		if (VELOCITY_RANGE / newCount < MIN_REGION_VELOCITY) {
+			return;
+		}
+
 		const mappings = redistributeVelocities(clipIds);
 		const velocity = mappings[insertAt]?.velocity ?? 0;
 
@@ -393,6 +402,12 @@ class PianoKey extends HTMLElement {
 					})
 				);
 			});
+
+			region.addEventListener('dblclick', event => {
+				event.stopPropagation();
+				this.#removeRegion(region);
+			});
+
 			this.#regionsContainer.append(region);
 
 			// Handle sits on the boundary between this region and the next (start of next band).
@@ -606,4 +621,4 @@ class PianoKey extends HTMLElement {
 
 customElements.define('piano-key', PianoKey);
 
-export { PianoKey, isBlackKey, noteLabel, noteHue, clipHue, buildVelocityBands, redistributeVelocities, insertionIndexForDropVelocity };
+export { PianoKey, isBlackKey, noteLabel, noteHue, clipHue, buildVelocityBands, redistributeVelocities, insertionIndexForDropVelocity, MIN_REGION_VELOCITY };

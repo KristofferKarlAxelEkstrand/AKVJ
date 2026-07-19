@@ -6,6 +6,8 @@
  * the `frames ?? numberOfFrames` or `playback ?? (loop === false ? 'once' : 'loop')` logic.
  */
 
+import { durationsMsToFrameRates } from './timingConversion.js';
+
 /**
  * Canonical playback modes supported by the engine.
  * @type {readonly string[]}
@@ -64,6 +66,7 @@ export const DEFAULT_PLACEMENT = Object.freeze({ x: 0, y: 0 });
  *
  * - `frames` takes priority; falls back to legacy `numberOfFrames`
  * - `playback` takes priority; falls back to legacy `loop` (false → 'once', true/undefined → 'loop')
+ * - `frameRatesForFrames` takes priority; falls back to `frameDurationsMs` converted to FPS
  * - Optional fields get defaults where the engine expects a value
  *
  * Does NOT mutate the input object.
@@ -79,15 +82,16 @@ export function normalizeClipMetadata(rawMeta) {
 	const frames = rawMeta.frames ?? rawMeta.numberOfFrames ?? null;
 	const playback = resolvePlayback(rawMeta);
 
-	const frameDurationBeats = resolveFrameDurationBeats(rawMeta, frames);
+	const syncBeats = resolveSyncBeats(rawMeta);
+	const frameRatesForFrames = resolveFrameRates(rawMeta);
 
 	return {
 		png: rawMeta.png ?? 'sprite.png',
 		frames,
 		framesPerRow: rawMeta.framesPerRow ?? null,
 		playback,
-		frameRatesForFrames: rawMeta.frameRatesForFrames ?? null,
-		frameDurationBeats,
+		frameRatesForFrames,
+		syncBeats,
 		retrigger: rawMeta.retrigger ?? true,
 		bitDepth: rawMeta.bitDepth ?? null,
 		triggerType: rawMeta.triggerType ?? DEFAULT_TRIGGER_TYPE,
@@ -117,6 +121,31 @@ function resolvePlayback(rawMeta) {
 }
 
 /**
+ * Resolve frame rates from raw metadata, supporting both FPS-based and ms-based timing.
+ *
+ * - `frameRatesForFrames` (object with frame index → FPS) takes priority
+ * - Falls back to `frameDurationsMs` (object with frame index → ms per frame), converted to FPS
+ * - Both null if neither is provided
+ *
+ * @param {Object} rawMeta
+ * @returns {Object|null}
+ */
+function resolveFrameRates(rawMeta) {
+	// Priority: frameRatesForFrames (legacy FPS-based)
+	if (rawMeta.frameRatesForFrames && typeof rawMeta.frameRatesForFrames === 'object') {
+		return rawMeta.frameRatesForFrames;
+	}
+
+	// Fallback: frameDurationsMs (new ms-based), convert to FPS using utility
+	if (rawMeta.frameDurationsMs && typeof rawMeta.frameDurationsMs === 'object') {
+		const frameRatesForFrames = durationsMsToFrameRates(rawMeta.frameDurationsMs);
+		return Object.keys(frameRatesForFrames).length > 0 ? frameRatesForFrames : null;
+	}
+
+	return null;
+}
+
+/**
  * Preset beat counts for syncLength values.
  * Sub-beat/beat presets map directly; bar presets use beatsPerBar.
  */
@@ -138,63 +167,30 @@ const PRESET_BARS = {
 };
 
 /**
- * Resolve frameDurationBeats from sync fields, or return the explicit value.
+ * Resolve the total synced duration in beats for `sync: "beat"` clips.
  *
- * - If `frameDurationBeats` is already set, it takes precedence (explicit authoring wins).
- * - If `sync === 'beat'`, expand sync fields into a per-frame beats array.
- * - Otherwise return the raw value (null if absent).
+ * `syncBeats` is the resolved runtime value ClipTiming consumes — never `syncLength`
+ * (the author-facing preset string). `frameRatesForFrames` timing is preserved as-is
+ * and scaled by ClipTiming via a speed multiplier; this function only resolves the
+ * clip's total musical length.
  *
- * @param {Object} rawMeta
- * @param {number|null} frames
- * @returns {number|number[]|null}
- */
-function resolveFrameDurationBeats(rawMeta, frames) {
-	if (rawMeta.frameDurationBeats !== undefined && rawMeta.frameDurationBeats !== null) {
-		return rawMeta.frameDurationBeats;
-	}
-	if (rawMeta.sync !== 'beat' || !frames) {
-		return rawMeta.frameDurationBeats ?? null;
-	}
-	return expandSyncToFrameDurationBeats(rawMeta, frames);
-}
-
-/**
- * Expand sync fields into a per-frame beats array.
+ * - `sync` !== 'beat' (including the default 'free') → null (no sync).
+ * - `syncLength` is a preset → beats computed from the preset (bar presets use `beatsPerBar`).
+ * - `syncLength` is 'custom' → the author-provided `syncBeats` is used directly.
+ * - Invalid/missing `syncLength`, or 'custom' without a positive `syncBeats` → null.
  *
- * Algorithm:
- * 1. Resolve total beats from syncLength preset or custom syncBeats.
- * 2. Compute per-frame weights from frameRatesForFrames (1/fps) or uniform (1).
- * 3. Normalize weights to sum to 1, multiply by totalBeats.
- *
- * @param {Object} rawMeta
- * @param {number} frames
- * @returns {number[]}
- */
-function expandSyncToFrameDurationBeats(rawMeta, frames) {
-	const totalBeats = resolveTotalBeats(rawMeta);
-	if (totalBeats === null) {
-		return null;
-	}
-
-	const weights = computeFrameWeights(rawMeta, frames);
-	const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-
-	return weights.map(weight => (weight / totalWeight) * totalBeats);
-}
-
-/**
- * Resolve total beats for the clip from syncLength preset or custom syncBeats.
  * @param {Object} rawMeta
  * @returns {number|null}
  */
-function resolveTotalBeats(rawMeta) {
+function resolveSyncBeats(rawMeta) {
+	if (rawMeta.sync !== 'beat') {
+		return null;
+	}
+
 	const { syncLength, syncBeats, beatsPerBar } = rawMeta;
 
 	if (syncLength === 'custom') {
-		if (typeof syncBeats !== 'number' || syncBeats <= 0) {
-			return null;
-		}
-		return syncBeats;
+		return typeof syncBeats === 'number' && syncBeats > 0 ? syncBeats : null;
 	}
 
 	if (syncLength in PRESET_BEATS) {
@@ -207,23 +203,6 @@ function resolveTotalBeats(rawMeta) {
 	}
 
 	return null;
-}
-
-/**
- * Compute per-frame weights from frameRatesForFrames.
- * Frames with an FPS entry get weight 1/fps; others get weight 1 (uniform).
- * @param {Object} rawMeta
- * @param {number} frames
- * @returns {number[]}
- */
-function computeFrameWeights(rawMeta, frames) {
-	const frameRates = rawMeta.frameRatesForFrames ?? {};
-	const weights = [];
-	for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
-		const fps = frameRates[frameIndex];
-		weights.push(typeof fps === 'number' && fps > 0 ? 1 / fps : 1);
-	}
-	return weights;
 }
 
 /**

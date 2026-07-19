@@ -1,0 +1,478 @@
+#!/bin/bash
+
+# Configuration
+WORKFLOWS_DIR="/workspaces/AKVJ/.agents/workflows"
+DEFAULT_MODEL="SWE-1.6"
+DEVIN_PERMISSION_MODE="yolo"
+CLAUDE_PERMISSION_MODE="bypassPermissions"
+AKVJ_ROOT="/workspaces/AKVJ"
+
+# Check for required dependencies
+if ! command -v jq &> /dev/null; then
+    echo "Error: jq is required but not installed. Install with: sudo apt install jq"
+    exit 1
+fi
+
+if ! command -v tmux &> /dev/null; then
+    echo "Error: tmux is required but not installed. Install with: sudo apt install tmux"
+    exit 1
+fi
+
+# Find available CLI binaries (non-fatal — only fail if the chosen cli is missing at launch time)
+DEVIN_BIN=$(find ~/.devin-server/bin -name "devin" -type f 2>/dev/null | head -1)
+CLAUDE_BIN=$(command -v claude 2>/dev/null)
+
+[ -n "$DEVIN_BIN" ]  && echo "Found devin:  $DEVIN_BIN"
+[ -n "$CLAUDE_BIN" ] && echo "Found claude: $CLAUDE_BIN"
+[ -z "$DEVIN_BIN" ] && [ -z "$CLAUDE_BIN" ] && echo "Warning: neither devin nor claude found in PATH"
+
+# Change to AKVJ directory
+cd "$AKVJ_ROOT"
+
+# ---------------------------------------------------------------------------
+# Helper functions
+# ---------------------------------------------------------------------------
+
+read_json() {
+    local file="$1"
+    local key="$2"
+    local default="$3"
+
+    if [ ! -f "$file" ]; then
+        echo "Error: Config file not found: $file" >&2
+        echo "$default"
+        return 1
+    fi
+
+    local value
+    value=$(jq -r "${key} // \"${default}\"" "$file" 2>/dev/null)
+    if [ -z "$value" ] || [ "$value" = "null" ]; then
+        echo "$default"
+        return 1
+    fi
+    echo "$value"
+}
+
+list_running_teams() {
+    echo "Running teams:"
+    local sessions
+    sessions=$(tmux ls 2>/dev/null)
+    if [ -z "$sessions" ]; then
+        echo "  No teams currently running"
+    else
+        echo "$sessions" | while IFS=: read -r session_name rest; do
+            echo "  - $session_name"
+        done
+    fi
+    echo ""
+}
+
+list_workflows() {
+    echo "Available workflows:"
+    local count=0
+    for dir in "$WORKFLOWS_DIR"/*/; do
+        if [ -d "$dir" ]; then
+            local workflow_name
+            workflow_name=$(basename "$dir")
+            if [ "$workflow_name" != "scripts" ]; then
+                count=$((count + 1))
+                echo "  $count. $workflow_name"
+            fi
+        fi
+    done
+    if [ $count -eq 0 ]; then
+        echo "  No workflows found in $WORKFLOWS_DIR"
+        exit 1
+    fi
+}
+
+get_workflow_by_number() {
+    local number=$1
+    local count=0
+    for dir in "$WORKFLOWS_DIR"/*/; do
+        if [ -d "$dir" ]; then
+            local workflow_name
+            workflow_name=$(basename "$dir")
+            if [ "$workflow_name" != "scripts" ]; then
+                count=$((count + 1))
+                if [ $count -eq $number ]; then
+                    echo "$workflow_name"
+                    return
+                fi
+            fi
+        fi
+    done
+    echo ""
+}
+
+discover_agents() {
+    local workflow=$1
+    local coworkers_dir="$WORKFLOWS_DIR/$workflow/co-workers"
+    local agents=()
+
+    if [ ! -d "$coworkers_dir" ]; then
+        echo "Warning: No co-workers directory found for workflow '$workflow'" >&2
+        return
+    fi
+
+    for config_file in "$coworkers_dir"/*.prompt.json; do
+        if [ -f "$config_file" ]; then
+            local agent_name
+            agent_name=$(basename "$config_file" .prompt.json)
+            agents+=("$agent_name")
+        fi
+    done
+
+    printf '%s\n' "${agents[@]}"
+}
+
+# Launch the right CLI in a tmux pane.
+# For devin: passes --prompt-file and the wait_script is sent as a follow-up command.
+# For claude: runs a shell loop — claude exits after each turn, then the wait script
+#             blocks until new mail arrives, then the loop restarts claude.
+launch_agent_in_pane() {
+    local pane_target="$1"
+    local cli="$2"
+    local model="$3"
+    local prompt_file="$4"
+    local wait_script="$5"
+
+    tmux send-keys -t "$pane_target" "cd $AKVJ_ROOT" C-m
+
+    if [ "$cli" = "claude" ]; then
+        if [ -z "$CLAUDE_BIN" ]; then
+            echo "Error: cli is 'claude' but claude binary not found in PATH" >&2
+            return 1
+        fi
+        # Claude loop: claude processes one turn then exits; wait script blocks until
+        # new mail; shell loop restarts claude for the next cycle.
+        local loop_cmd="while true; do $CLAUDE_BIN --model $model --permission-mode $CLAUDE_PERMISSION_MODE < '$prompt_file'; $wait_script; done"
+        tmux send-keys -t "$pane_target" "$loop_cmd" C-m
+    else
+        # Devin (default)
+        if [ -z "$DEVIN_BIN" ]; then
+            echo "Error: cli is 'devin' but devin binary not found in ~/.devin-server/bin" >&2
+            return 1
+        fi
+        tmux send-keys -t "$pane_target" "$DEVIN_BIN --model $model --permission-mode $DEVIN_PERMISSION_MODE --prompt-file $prompt_file" C-m
+        # Devin manages its own loop; wait_script is sent as the next command after
+        # Devin finishes its startup turn.
+        if [ -n "$wait_script" ]; then
+            sleep 1
+            tmux send-keys -t "$pane_target" "$wait_script" C-m
+        fi
+    fi
+}
+
+# ---------------------------------------------------------------------------
+# Restart a single agent in an existing tmux session
+# ---------------------------------------------------------------------------
+restart_agent() {
+    local workflow="$1"
+    local agent_name="$2"
+    local session_name="${workflow}-agents"
+    local config_dir="$WORKFLOWS_DIR/$workflow/co-workers"
+    local health_dir="$WORKFLOWS_DIR/$workflow/health"
+
+    if ! tmux has-session -t "$session_name" 2>/dev/null; then
+        echo "Error: Session '$session_name' is not running"
+        return 1
+    fi
+
+    local config_file="$config_dir/${agent_name}.prompt.json"
+    if [ ! -f "$config_file" ]; then
+        echo "Error: Agent config not found: $config_file"
+        return 1
+    fi
+
+    local pane_tracking_file="$health_dir/${agent_name}-pane.json"
+    if [ ! -f "$pane_tracking_file" ]; then
+        echo "Error: Pane tracking file not found: $pane_tracking_file"
+        return 1
+    fi
+
+    local pane_index
+    pane_index=$(jq -r '.pane_index' "$pane_tracking_file")
+    if [ -z "$pane_index" ] || [ "$pane_index" = "null" ]; then
+        echo "Error: Could not determine pane index for agent $agent_name"
+        return 1
+    fi
+
+    local startup_prompt model wait_script cli
+    startup_prompt=$(read_json "$config_file" '.prompt' '')
+    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+    wait_script=$(read_json "$config_file" '.wait_script' '')
+    cli=$(read_json "$config_file" '.cli' 'devin')
+
+    if [ -z "$startup_prompt" ]; then
+        echo "Error: No prompt found in $config_file"
+        return 1
+    fi
+
+    local prompt_file
+    prompt_file=$(mktemp)
+    echo "$startup_prompt" > "$prompt_file"
+
+    echo "Restarting agent: $agent_name (cli=$cli) in pane $pane_index..."
+
+    # Kill current process in pane
+    tmux send-keys -t "$session_name:0.$pane_index" C-c
+    sleep 2
+
+    launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+
+    rm -f "$prompt_file"
+    echo "Agent $agent_name restarted successfully"
+}
+
+# ---------------------------------------------------------------------------
+# Health monitor loop for a workflow
+# ---------------------------------------------------------------------------
+monitor_workflow() {
+    local workflow="$1"
+    local session_name="${workflow}-agents"
+    local config_dir="$WORKFLOWS_DIR/$workflow/co-workers"
+    local health_dir="$WORKFLOWS_DIR/$workflow/health"
+    local heartbeat_dir="$health_dir/heartbeats"
+    local restart_request_dir="$health_dir/restart-requests"
+
+    echo "Starting health monitor for workflow: $workflow"
+    echo "Press Ctrl+C to stop monitoring"
+    echo ""
+
+    mkdir -p "$heartbeat_dir" "$restart_request_dir"
+
+    while true; do
+        # Process restart requests
+        for request_file in "$restart_request_dir"/*.json; do
+            [ -f "$request_file" ] || continue
+
+            local agent_to_restart
+            agent_to_restart=$(basename "$request_file" .json)
+            echo "Found restart request for: $agent_to_restart"
+
+            local pane_tracking_file="$health_dir/${agent_to_restart}-pane.json"
+            if [ -f "$pane_tracking_file" ]; then
+                local pane_index
+                pane_index=$(jq -r '.pane_index' "$pane_tracking_file")
+                if [ -n "$pane_index" ] && [ "$pane_index" != "null" ]; then
+                    local config_file="$config_dir/${agent_to_restart}.prompt.json"
+                    local startup_prompt model wait_script cli
+                    startup_prompt=$(read_json "$config_file" '.prompt' '')
+                    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+                    wait_script=$(read_json "$config_file" '.wait_script' '')
+                    cli=$(read_json "$config_file" '.cli' 'devin')
+
+                    if [ -n "$startup_prompt" ]; then
+                        local prompt_file
+                        prompt_file=$(mktemp)
+                        echo "$startup_prompt" > "$prompt_file"
+
+                        echo "Restarting $agent_to_restart (cli=$cli) in pane $pane_index..."
+                        tmux send-keys -t "$session_name:0.$pane_index" C-c
+                        sleep 2
+                        launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+
+                        rm -f "$prompt_file"
+                        echo "Agent $agent_to_restart restarted"
+                    fi
+                fi
+            fi
+
+            rm -f "$request_file"
+        done
+
+        # Warn on stale heartbeats (> 5 minutes)
+        local current_time
+        current_time=$(date +%s)
+        for heartbeat_file in "$heartbeat_dir"/*.json; do
+            [ -f "$heartbeat_file" ] || continue
+
+            local last_heartbeat age
+            last_heartbeat=$(stat -c %Y "$heartbeat_file" 2>/dev/null || stat -f %m "$heartbeat_file" 2>/dev/null)
+            age=$((current_time - last_heartbeat))
+
+            if [ $age -gt 300 ]; then
+                local stale_agent
+                stale_agent=$(basename "$heartbeat_file" .json)
+                echo "Warning: Agent $stale_agent heartbeat stale (${age}s old)"
+            fi
+        done
+
+        sleep 10
+    done
+}
+
+# ---------------------------------------------------------------------------
+# Parse command line arguments
+# ---------------------------------------------------------------------------
+WORKFLOW=""
+RESTART_AGENT=""
+MONITOR_MODE=false
+
+if [ "$1" = "--list" ] || [ "$1" = "-l" ]; then
+    list_running_teams
+    exit 0
+fi
+
+if [ "$1" = "--restart" ] || [ "$1" = "-r" ]; then
+    if [ $# -lt 3 ]; then
+        echo "Usage: $0 --restart <workflow> <agent>"
+        exit 1
+    fi
+    restart_agent "$2" "$3"
+    exit $?
+fi
+
+if [ "$1" = "--monitor" ] || [ "$1" = "-m" ]; then
+    if [ $# -lt 2 ]; then
+        echo "Usage: $0 --monitor <workflow>"
+        exit 1
+    fi
+    monitor_workflow "$2"
+    exit 0
+fi
+
+if [ $# -eq 0 ]; then
+    list_running_teams
+    echo "No workflow specified. Please select a workflow:"
+    list_workflows
+    echo ""
+    read -r -p "Enter workflow number or name: " selection
+
+    if [[ "$selection" =~ ^[0-9]+$ ]]; then
+        WORKFLOW=$(get_workflow_by_number "$selection")
+    else
+        WORKFLOW="$selection"
+    fi
+
+    if [ -z "$WORKFLOW" ]; then
+        echo "Error: Invalid selection"
+        exit 1
+    fi
+else
+    WORKFLOW="$1"
+fi
+
+# ---------------------------------------------------------------------------
+# Start workflow
+# ---------------------------------------------------------------------------
+
+if [ ! -d "$WORKFLOWS_DIR/$WORKFLOW" ]; then
+    echo "Error: Workflow '$WORKFLOW' not found in $WORKFLOWS_DIR"
+    echo ""
+    list_workflows
+    exit 1
+fi
+
+mapfile -t AGENTS < <(discover_agents "$WORKFLOW")
+
+if [ ${#AGENTS[@]} -eq 0 ]; then
+    echo "Error: No agent configs found in $WORKFLOWS_DIR/$WORKFLOW/co-workers"
+    exit 1
+fi
+
+echo "Starting workflow: $WORKFLOW"
+echo "Found ${#AGENTS[@]} agents: ${AGENTS[*]}"
+echo ""
+
+SESSION_NAME="${WORKFLOW}-agents"
+CONFIG_DIR="$WORKFLOWS_DIR/$WORKFLOW/co-workers"
+HEALTH_DIR="$WORKFLOWS_DIR/$WORKFLOW/health"
+
+mkdir -p "$HEALTH_DIR"
+
+# Cleanup temp prompt files on exit
+TEMP_FILES=()
+cleanup() {
+    for temp_file in "${TEMP_FILES[@]}"; do
+        rm -f "$temp_file" 2>/dev/null
+    done
+}
+trap cleanup EXIT
+
+# Kill any existing session and start fresh
+tmux kill-session -t "$SESSION_NAME" 2>/dev/null
+tmux new-session -d -s "$SESSION_NAME" -n agents
+
+add_agent() {
+    local name="$1"
+    local config_file="${CONFIG_DIR}/${name}.prompt.json"
+
+    local startup_prompt model wait_script cli
+    startup_prompt=$(read_json "$config_file" '.prompt' '')
+    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+    wait_script=$(read_json "$config_file" '.wait_script' '')
+    cli=$(read_json "$config_file" '.cli' 'devin')
+
+    if [ -z "$startup_prompt" ]; then
+        echo "Error: No prompt found in $config_file" >&2
+        return 1
+    fi
+
+    local prompt_file
+    prompt_file=$(mktemp)
+    echo "$startup_prompt" > "$prompt_file"
+    TEMP_FILES+=("$prompt_file")
+
+    tmux split-window -h -t "$SESSION_NAME"
+    local pane_index
+    pane_index=$(tmux display-message -p -t "$SESSION_NAME" '#{pane_index}')
+    if [ -z "$pane_index" ]; then
+        echo "Error: Could not determine pane index for agent $name" >&2
+        return 1
+    fi
+
+    launch_agent_in_pane "$SESSION_NAME:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+    tmux select-layout -t "$SESSION_NAME" even-horizontal
+
+    echo "{\"agent\":\"$name\",\"pane_index\":$pane_index,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
+}
+
+setup_first_agent() {
+    local name="$1"
+    local config_file="${CONFIG_DIR}/${name}.prompt.json"
+
+    local startup_prompt model wait_script cli
+    startup_prompt=$(read_json "$config_file" '.prompt' '')
+    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+    wait_script=$(read_json "$config_file" '.wait_script' '')
+    cli=$(read_json "$config_file" '.cli' 'devin')
+
+    if [ -z "$startup_prompt" ]; then
+        echo "Error: No prompt found in $config_file" >&2
+        return 1
+    fi
+
+    local prompt_file
+    prompt_file=$(mktemp)
+    echo "$startup_prompt" > "$prompt_file"
+    TEMP_FILES+=("$prompt_file")
+
+    launch_agent_in_pane "$SESSION_NAME:0.0" "$cli" "$model" "$prompt_file" "$wait_script"
+
+    echo "{\"agent\":\"$name\",\"pane_index\":0,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
+}
+
+# Launch all agents
+setup_first_agent "${AGENTS[0]}"
+for i in "${!AGENTS[@]}"; do
+    [ $i -gt 0 ] && add_agent "${AGENTS[$i]}"
+done
+
+tmux select-layout -t "$SESSION_NAME" even-horizontal
+
+echo "Started tmux session '$SESSION_NAME' with ${#AGENTS[@]} agents"
+echo "Agents: ${AGENTS[*]}"
+echo ""
+echo "Each agent will start with its startup prompt and begin its workflow loop."
+echo "Agents communicate via file-based IPC in $WORKFLOWS_DIR/$WORKFLOW/"
+echo ""
+echo "Tmux controls:"
+echo "  Ctrl+B then Arrow keys - Switch between agent panes"
+echo "  Ctrl+B then d          - Detach (leave agents running)"
+echo "  tmux attach -t $SESSION_NAME - Reattach"
+echo "  tmux kill-session -t $SESSION_NAME - Stop all agents"
+echo ""
+list_running_teams
+echo "To attach: tmux attach -t $SESSION_NAME"

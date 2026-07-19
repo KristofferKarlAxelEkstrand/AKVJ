@@ -83,7 +83,7 @@ async function copyChangedFiles(cacheFiles, cacheDir, publicDir, stats) {
 async function removeOrphanedFiles(publicFiles, cacheFiles, publicDir, stats) {
 	const cacheFileSet = new Set(cacheFiles);
 	for (const file of publicFiles) {
-		if (file.includes('LICENSE')) {
+		if (path.basename(file) === 'LICENSE-ASSETS.md') {
 			continue;
 		}
 		if (!cacheFileSet.has(file)) {
@@ -128,7 +128,7 @@ export async function clean(cacheDir, publicDir) {
 	try {
 		const files = await getAllFiles(publicDir);
 		for (const file of files) {
-			if (!file.includes('LICENSE')) {
+			if (path.basename(file) !== 'LICENSE-ASSETS.md') {
 				await fs.unlink(path.join(publicDir, file));
 			}
 		}

@@ -18,6 +18,7 @@ class ClipList extends HTMLElement {
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
+	#showMapAction = true;
 
 	/**
 	 * @param {Array<{clipId: string, meta: object, hasSprite: boolean, pipelineReady: boolean}>} clips
@@ -29,6 +30,18 @@ class ClipList extends HTMLElement {
 
 	get clips() {
 		return this.#loadedClips;
+	}
+
+	/**
+	 * @param {boolean} show - Whether to show the Map action button on child ClipInstances (default: true)
+	 */
+	set showMapAction(show) {
+		this.#showMapAction = show;
+		this.#render();
+	}
+
+	get showMapAction() {
+		return this.#showMapAction;
 	}
 
 	/**
@@ -100,6 +113,7 @@ class ClipList extends HTMLElement {
 			for (const clip of clips) {
 				const instance = new ClipInstance();
 				instance.clip = clip;
+				instance.showMapAction = this.#showMapAction;
 				categoryElement.append(instance);
 			}
 			this.append(categoryElement);

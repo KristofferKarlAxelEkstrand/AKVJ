@@ -139,11 +139,15 @@ describe('EffectsManager', () => {
 		expect(em.noteOff(channel, -1)).toBe(false);
 	});
 
-	test('reserved notes (96-127) do not activate effects', () => {
+	test('grayscale displacement and blend effects activate on notes 96-127', () => {
 		const channel = settings.channelMapping.mixedOutputEffects;
-		expect(em.noteOn(channel, 100, 100)).toBe(false);
-		expect(em.noteOn(channel, 127, 100)).toBe(false);
-		expect(em.hasMixedOutputEffects()).toBe(false);
+		// Grayscale displacement range (96-111)
+		expect(em.noteOn(channel, 100, 100)).toBe(true);
+		expect(em.hasMixedOutputEffects()).toBe(true);
+		em.noteOff(channel, 100);
+		// Grayscale blend range (112-127)
+		expect(em.noteOn(channel, 120, 100)).toBe(true);
+		expect(em.hasMixedOutputEffects()).toBe(true);
 	});
 
 	test('global effects and mixed output effects are independent', () => {

@@ -6,8 +6,7 @@ import { optimize } from './lib/optimize.js';
 import { generate } from './lib/generate.js';
 import { copyToPublic, clean } from './lib/copy.js';
 import { copyFileWithFallback } from './lib/fsUtils.js';
-
-const PROJECT_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+import { isValidProjectId } from '../../server/paths.js';
 
 /**
  * Pipeline - Orchestrates the clip build process per project.
@@ -86,7 +85,7 @@ export class Pipeline {
 	 */
 	async #listProjectIds(onlyProjectId) {
 		if (onlyProjectId) {
-			if (!PROJECT_ID_PATTERN.test(onlyProjectId) || /^\d+$/.test(onlyProjectId)) {
+			if (!isValidProjectId(onlyProjectId)) {
 				throw new Error(`Invalid project id: ${onlyProjectId}`);
 			}
 			return [onlyProjectId];
@@ -104,7 +103,7 @@ export class Pipeline {
 			throw error;
 		}
 		return entries
-			.filter(entry => entry.isDirectory() && PROJECT_ID_PATTERN.test(entry.name) && !/^\d+$/.test(entry.name))
+			.filter(entry => entry.isDirectory() && isValidProjectId(entry.name))
 			.map(entry => entry.name)
 			.sort();
 	}

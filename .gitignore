@@ -5,7 +5,7 @@ npm-debug.log*
 yarn-debug.log*
 
 # Agent workflow state
-.agents/workflows/developer-team/scripts/.await-state.json
+.agents/workflows/developer-team/.temp/
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
@@ -46,6 +46,7 @@ dist-ssr/
 tmp/
 temp/
 tmp-*.js
+test-bug-*.js
 
 # Clip pipeline outputs
 .cache/

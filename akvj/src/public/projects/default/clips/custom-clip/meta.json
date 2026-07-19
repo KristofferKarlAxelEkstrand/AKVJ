@@ -4,8 +4,8 @@
 	"framesPerRow": 1,
 	"playback": "once",
 	"retrigger": true,
-	"frameRatesForFrames": {
-		"0": 24
-	},
+	"frameDurationsMs": [
+		41.67
+	],
 	"name": "My Cool Clip"
 }

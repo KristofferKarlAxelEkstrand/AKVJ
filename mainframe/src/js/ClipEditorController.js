@@ -1,15 +1,13 @@
 import { api } from './apiClient.js';
 import { generateClipId } from './generateClipId.js';
 import { partitionImageFiles, formatSkippedFilesMessage, shouldAttemptGifExpand } from './acceptedImageFiles.js';
-import { durationsMsToFrameRates, fpsToMs, DEFAULT_FALLBACK_FPS } from './frameTiming.js';
+import { DEFAULT_FALLBACK_FPS } from './frameTiming.js';
 import { editClipPath, resolveClipEditRoute } from './clipEditorRoute.js';
-import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor, parseFrameDurationBeats } from './editorMeta.js';
+import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor } from './editorMeta.js';
 import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement } from './clipSchema.js';
 import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
-import { expandSyncToFrameDurationBeats, frameDurationBeatsToPreviewMs } from './syncTiming.js';
 import mainframeState, { messages } from './mainframeState.js';
 
-const FPS_PRESETS = [6, 12, 15, 24, 25, 30];
 /** Default length preset when beat-synced (must be in SYNC_LENGTH_PRESETS). */
 const DEFAULT_SYNC_LENGTH = '1 bar';
 
@@ -35,16 +33,12 @@ export class ClipEditorController {
 	#hydrateGeneration = 0;
 	/** Last uniform per-frame duration (ms); used when re-applying after a mixed state. */
 	#lastUniformDurationMs = 1000;
-	/** Last FPS preset used for Apply FPS. */
-	#lastFpsPreset = DEFAULT_FALLBACK_FPS;
 	/** Last uniform bake scale (for re-apply after mixed). */
 	#lastUniformBakeScale = 'fit';
 	#lastUniformBakeWidth = 240;
 	#lastUniformBakeHeight = 135;
 	#globalDurationInput;
 	#globalDurationApply;
-	#fpsPresetSelect;
-	#fpsPresetApply;
 	#globalBakeScaleSelect;
 	#globalBakeCustomSize;
 	#globalBakeCustomWidth;
@@ -53,7 +47,7 @@ export class ClipEditorController {
 
 	/**
 	 * @param {object} options
-	 * @param {(statusElement: HTMLElement, message: string, kind?: string) => void} options.setStatus
+	 * @param {(statusElement: HTMLElement, message: string, statusClass?: string) => void} options.setStatus
 	 * @param {() => Promise<void>} options.onLibraryChanged
 	 * @param {{ navigate: Function, replace: Function }} options.router
 	 */
@@ -74,8 +68,6 @@ export class ClipEditorController {
 		this.#statusElement = document.getElementById('clip-editor-status');
 		this.#globalDurationInput = document.getElementById('clip-frames-global-duration');
 		this.#globalDurationApply = document.getElementById('clip-frames-set-all-duration');
-		this.#fpsPresetSelect = document.getElementById('clip-frames-fps-preset');
-		this.#fpsPresetApply = document.getElementById('clip-frames-apply-fps-preset');
 		this.#globalBakeScaleSelect = document.getElementById('clip-frames-global-bake-scale');
 		this.#globalBakeCustomSize = document.getElementById('clip-frames-global-custom-size');
 		this.#globalBakeCustomWidth = document.getElementById('clip-frames-global-custom-width');
@@ -204,9 +196,6 @@ export class ClipEditorController {
 		this.#globalDurationApply?.addEventListener('click', () => {
 			this.applyGlobalDurationToAllFrames();
 		});
-		this.#fpsPresetApply?.addEventListener('click', () => {
-			this.applyFpsPresetToAllFrames();
-		});
 		this.#globalBakeScaleSelect?.addEventListener('change', () => {
 			this.#updateGlobalBakeCustomVisibility();
 		});
@@ -295,11 +284,7 @@ export class ClipEditorController {
 			}
 			this.#applyHydratedClip(resolved.clipId, framesResponse);
 
-			const files = await Promise.all(
-				framesResponse.frames.map((frameDataUrl, index) =>
-					dataUrlToFile(frameDataUrl, `frame-${String(index).padStart(4, '0')}.png`)
-				)
-			);
+			const files = await Promise.all(framesResponse.frames.map((frameDataUrl, index) => dataUrlToFile(frameDataUrl, `frame-${String(index).padStart(4, '0')}.png`)));
 			if (generation !== this.#hydrateGeneration) {
 				return;
 			}
@@ -317,10 +302,7 @@ export class ClipEditorController {
 			this.updateEditorChrome();
 			this.syncStagedFramesUi();
 			this.#framesDirty = false;
-			this.#reportOutcome(
-				'info',
-				`Loaded ${this.#stagedFiles.length} frame${this.#stagedFiles.length === 1 ? '' : 's'} from ${framesResponse.source === 'raw' ? 'raw' : 'sprite'}`
-			);
+			this.#reportOutcome('info', `Loaded ${this.#stagedFiles.length} frame${this.#stagedFiles.length === 1 ? '' : 's'} from ${framesResponse.source === 'raw' ? 'raw' : 'sprite'}`);
 		} catch (error) {
 			if (generation !== this.#hydrateGeneration) {
 				return;
@@ -362,8 +344,7 @@ export class ClipEditorController {
 				this.#reportOutcome('error', extended.error);
 				return;
 			}
-			const sizeOrScaleChanged =
-				Number(targetWidth) !== this.#loadedFrameWidth || Number(targetHeight) !== this.#loadedFrameHeight || scaleMode !== this.#loadedScaleMode;
+			const sizeOrScaleChanged = Number(targetWidth) !== this.#loadedFrameWidth || Number(targetHeight) !== this.#loadedFrameHeight || scaleMode !== this.#loadedScaleMode;
 
 			if (this.#editingClipId) {
 				if (this.#framesDirty || sizeOrScaleChanged) {
@@ -396,12 +377,11 @@ export class ClipEditorController {
 								frameWidth: targetWidth,
 								frameHeight: targetHeight,
 								placement,
-								frameRatesForFrames: durationsMsToFrameRates(frameDurations),
+								frameDurationsMs: frameDurations,
 								retrigger: extended.values.retrigger,
 								triggerType: extended.values.triggerType,
 								triggerGroup: extended.values.triggerGroup,
 								bitDepth: extended.values.bitDepth,
-								frameDurationBeats: extended.frameDurationBeats,
 								sync: extended.values.sync,
 								syncLength: extended.values.syncLength,
 								syncBeats: extended.values.syncBeats,
@@ -475,13 +455,10 @@ export class ClipEditorController {
 				});
 				if (result.animated) {
 					const expandedFiles = await Promise.all(result.frames.map((frameDataUrl, index) => dataUrlToFile(frameDataUrl, `gif-frame-${String(index).padStart(4, '0')}.png`)));
-					const expandedDurations = result.durationsMs.map(ms => Number(ms) || fpsToMs(12));
+					const expandedDurations = result.durationsMs.map(ms => Number(ms) || (1000 / DEFAULT_FALLBACK_FPS));
 					this.#stagedFiles = [...this.#stagedFiles, ...expandedFiles];
 					this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...expandedDurations];
-					this.#stagedBakeConfigs = [
-						...this.#stagedBakeConfigs,
-						...expandedFiles.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))
-					];
+					this.#stagedBakeConfigs = [...this.#stagedBakeConfigs, ...expandedFiles.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))];
 					this.#framesDirty = true;
 					this.syncStagedFramesUi();
 					this.#reportOutcome('info', `Expanded animated GIF into ${expandedFiles.length} frames`);
@@ -495,10 +472,7 @@ export class ClipEditorController {
 
 		this.#stagedFiles = [...this.#stagedFiles, ...accepted];
 		this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...accepted.map(() => 1000)];
-		this.#stagedBakeConfigs = [
-			...this.#stagedBakeConfigs,
-			...accepted.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))
-		];
+		this.#stagedBakeConfigs = [...this.#stagedBakeConfigs, ...accepted.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))];
 		this.#framesDirty = true;
 		this.syncStagedFramesUi();
 		if (rejected.length === 0) {
@@ -610,9 +584,7 @@ export class ClipEditorController {
 		if (!this.#clipFramesElement || this.#clipFramesElement.frameCount === 0) {
 			return;
 		}
-		const scaleMode = FRAME_BAKE_SCALE_MODES.includes(this.#globalBakeScaleSelect?.value)
-			? this.#globalBakeScaleSelect.value
-			: this.#lastUniformBakeScale;
+		const scaleMode = FRAME_BAKE_SCALE_MODES.includes(this.#globalBakeScaleSelect?.value) ? this.#globalBakeScaleSelect.value : this.#lastUniformBakeScale;
 		const width = Number(this.#globalBakeCustomWidth?.value);
 		const height = Number(this.#globalBakeCustomHeight?.value);
 		const bakeConfig = resolveFrameBakeConfig({
@@ -701,24 +673,6 @@ export class ClipEditorController {
 	}
 
 	/**
-	 * Apply an FPS preset as uniform per-frame ms (same path as Set all / setAllDurationsMs).
-	 */
-	applyFpsPresetToAllFrames() {
-		if (!this.#clipFramesElement || this.#clipFramesElement.frameCount === 0) {
-			return;
-		}
-		const raw = Number(this.#fpsPresetSelect?.value);
-		const fps = Number.isFinite(raw) && raw > 0 ? raw : this.#lastFpsPreset;
-		const ms = fpsToMs(fps);
-		this.#lastFpsPreset = fps;
-		this.#clipFramesElement.setAllDurationsMs(ms);
-		this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
-		this.#framesDirty = true;
-		this.syncGlobalDurationControl();
-		this.updateStagingPreview();
-	}
-
-	/**
 	 * Enable timing controls when all frames match; disable + blank when mixed.
 	 * Mixed display choice: blank (not the last uniform value).
 	 */
@@ -744,25 +698,6 @@ export class ClipEditorController {
 		if (this.#globalDurationApply) {
 			this.#globalDurationApply.disabled = !hasFrames;
 		}
-
-		if (this.#fpsPresetSelect) {
-			if (!hasFrames || !uniform) {
-				this.#fpsPresetSelect.disabled = !hasFrames || !uniform;
-				this.#fpsPresetSelect.value = '';
-			} else {
-				this.#fpsPresetSelect.disabled = false;
-				const match = FPS_PRESETS.find(fps => Math.round(fpsToMs(fps)) === Math.round(first));
-				if (match) {
-					this.#fpsPresetSelect.value = String(match);
-					this.#lastFpsPreset = match;
-				} else {
-					this.#fpsPresetSelect.value = '';
-				}
-			}
-		}
-		if (this.#fpsPresetApply) {
-			this.#fpsPresetApply.disabled = !hasFrames;
-		}
 	}
 
 	updateStagingPreview() {
@@ -772,17 +707,7 @@ export class ClipEditorController {
 		const scaleMode = document.getElementById('clip-editor-scale-mode').value;
 		const placement = this.#readPlacementFromDom();
 		const bakeConfigs = this.#clipFramesElement?.getBakeConfigs?.() ?? this.#stagedBakeConfigs;
-		this.#stagingPreview.loadFrames(
-			this.#stagedFiles,
-			targetWidth,
-			targetHeight,
-			DEFAULT_FALLBACK_FPS,
-			playback,
-			scaleMode,
-			this.#previewDurationsMs(),
-			placement,
-			bakeConfigs
-		);
+		this.#stagingPreview.loadFrames(this.#stagedFiles, targetWidth, targetHeight, this.#previewDurationsMs(), playback, scaleMode, placement, bakeConfigs);
 	}
 
 	/**
@@ -826,14 +751,11 @@ export class ClipEditorController {
 	}
 
 	/**
-	 * Free mode: staged ms. Beat mode: expand sync → beats → preview ms @ 120 BPM.
+	 * Free mode: staged ms. Beat mode: use base durations (engine handles per-frame timing via frameRatesForFrames).
 	 * @returns {number[]}
 	 */
 	#previewDurationsMs() {
-		const base =
-			this.#stagedDurationsMs.length > 0
-				? this.#stagedDurationsMs
-				: this.#stagedFiles.map(() => 1000);
+		const base = this.#stagedDurationsMs.length > 0 ? this.#stagedDurationsMs : this.#stagedFiles.map(() => 1000);
 		if (this.#stagedFiles.length === 0) {
 			return base;
 		}
@@ -841,21 +763,9 @@ export class ClipEditorController {
 		if (syncFields.sync !== 'beat') {
 			return base;
 		}
-		const frames = this.#stagedFiles.length;
-		const beats = expandSyncToFrameDurationBeats(
-			{
-				sync: 'beat',
-				syncLength: syncFields.syncLength,
-				syncBeats: syncFields.syncBeats,
-				beatsPerBar: syncFields.beatsPerBar,
-				frameRatesForFrames: durationsMsToFrameRates(base)
-			},
-			frames
-		);
-		if (!beats) {
-			return base;
-		}
-		return frameDurationBeatsToPreviewMs(beats);
+		// Beat mode: engine handles per-frame timing via frameRatesForFrames and speed multiplier.
+		// Preview uses base durations; sync validation ensures syncLength/syncBeats are valid.
+		return base;
 	}
 
 	/**
@@ -870,8 +780,7 @@ export class ClipEditorController {
 			sync,
 			syncLength,
 			syncBeats: Number.isFinite(syncBeatsRaw) && syncBeatsRaw > 0 ? syncBeatsRaw : null,
-			beatsPerBar:
-				Number.isInteger(beatsPerBarRaw) && beatsPerBarRaw > 0 ? beatsPerBarRaw : DEFAULT_BEATS_PER_BAR
+			beatsPerBar: Number.isInteger(beatsPerBarRaw) && beatsPerBarRaw > 0 ? beatsPerBarRaw : DEFAULT_BEATS_PER_BAR
 		};
 	}
 
@@ -888,7 +797,6 @@ export class ClipEditorController {
 		setValue('clip-editor-placement-x', '0');
 		setValue('clip-editor-placement-y', '0');
 		setValue('clip-editor-playback', 'loop');
-		setValue('clip-frames-fps-preset', String(DEFAULT_FALLBACK_FPS));
 		const retrigger = document.getElementById('clip-editor-retrigger');
 		if (retrigger) {
 			retrigger.checked = true;
@@ -896,7 +804,6 @@ export class ClipEditorController {
 		setValue('clip-editor-trigger-type', 'momentary');
 		setValue('clip-editor-trigger-group', '');
 		setValue('clip-editor-bit-depth', '1');
-		setValue('clip-editor-frame-duration-beats', '');
 		setValue('clip-editor-sync', DEFAULT_SYNC_MODE);
 		this.#populateSyncLengthOptions();
 		setValue('clip-editor-sync-length', DEFAULT_SYNC_LENGTH);
@@ -937,10 +844,6 @@ export class ClipEditorController {
 		if (bitDepth) {
 			bitDepth.value = String(editorValues.bitDepth);
 		}
-		const beats = document.getElementById('clip-editor-frame-duration-beats');
-		if (beats) {
-			beats.value = editorValues.frameDurationBeatsText;
-		}
 		const sync = document.getElementById('clip-editor-sync');
 		if (sync) {
 			sync.value = editorValues.sync;
@@ -972,10 +875,6 @@ export class ClipEditorController {
 	}
 
 	#readExtendedEditorFields() {
-		const beatsParsed = parseFrameDurationBeats(document.getElementById('clip-editor-frame-duration-beats').value);
-		if (!beatsParsed.ok) {
-			return { error: beatsParsed.error };
-		}
 		const syncFields = this.#readSyncFieldsFromDom();
 		if (syncFields.sync === 'beat' && syncFields.syncLength === 'custom' && syncFields.syncBeats === null) {
 			return { error: 'Custom beats is required when sync length is custom' };
@@ -986,13 +885,12 @@ export class ClipEditorController {
 			triggerGroup: document.getElementById('clip-editor-trigger-group').value.trim(),
 			role: document.getElementById('clip-editor-role').value || undefined,
 			bitDepth: Number(document.getElementById('clip-editor-bit-depth').value),
-			frameDurationBeats: beatsParsed.value,
 			sync: syncFields.sync,
 			syncLength: syncFields.syncLength,
 			syncBeats: syncFields.syncBeats,
 			beatsPerBar: syncFields.beatsPerBar
 		};
-		return { optional: optionalMetaFromEditor(values), values, frameDurationBeats: beatsParsed.value };
+		return { optional: optionalMetaFromEditor(values), values };
 	}
 }
 

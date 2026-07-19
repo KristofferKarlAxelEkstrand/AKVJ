@@ -10,6 +10,7 @@ import '../scss/ClipInstance.scss';
  */
 class ClipInstance extends HTMLElement {
 	#clip = null;
+	#showMapAction = true;
 	#boundDragStart = this.#handleDragStart.bind(this);
 
 	/**
@@ -22,6 +23,18 @@ class ClipInstance extends HTMLElement {
 
 	get clip() {
 		return this.#clip;
+	}
+
+	/**
+	 * @param {boolean} show - Whether to show the Map action button (default: true)
+	 */
+	set showMapAction(show) {
+		this.#showMapAction = show;
+		this.#render();
+	}
+
+	get showMapAction() {
+		return this.#showMapAction;
 	}
 
 	connectedCallback() {
@@ -88,7 +101,11 @@ class ClipInstance extends HTMLElement {
 			this.dispatchEvent(new CustomEvent('clipmap', { bubbles: true, detail: { clipId: clip.clipId } }));
 		});
 
-		actions.append(editButton, mapButton, deleteButton);
+		actions.append(editButton);
+		if (this.#showMapAction) {
+			actions.append(mapButton);
+		}
+		actions.append(deleteButton);
 		this.append(img, clipInfo, actions);
 
 		this.draggable = true;

@@ -107,6 +107,77 @@ describe('PlaybackController', () => {
 		});
 	});
 
+	describe('setLinearProgress', () => {
+		test('loop: maps progress directly to frame index, never finishes', () => {
+			const playback = new PlaybackController({ frames: 4, playback: 'loop' });
+			playback.setLinearProgress(0);
+			expect(playback.frame).toBe(0);
+			expect(playback.isFinished).toBe(false);
+			playback.setLinearProgress(0.5);
+			expect(playback.frame).toBe(2);
+			playback.setLinearProgress(1);
+			expect(playback.frame).toBe(3);
+			expect(playback.isFinished).toBe(false);
+		});
+
+		test('once: maps progress directly to frame index and finishes at progress 1', () => {
+			const playback = new PlaybackController({ frames: 4, playback: 'once' });
+			playback.setLinearProgress(0);
+			expect(playback.frame).toBe(0);
+			expect(playback.isFinished).toBe(false);
+			playback.setLinearProgress(1);
+			expect(playback.frame).toBe(3);
+			expect(playback.isFinished).toBe(true);
+		});
+
+		test('reverse: flips the linear index and finishes at progress 1', () => {
+			const playback = new PlaybackController({ frames: 4, playback: 'reverse' });
+			playback.setLinearProgress(0);
+			expect(playback.frame).toBe(3);
+			expect(playback.isFinished).toBe(false);
+			playback.setLinearProgress(1);
+			expect(playback.frame).toBe(0);
+			expect(playback.isFinished).toBe(true);
+		});
+
+		test('pingpong: progress 0 starts at frame 0, 0.5 lands on the last frame, 1 returns to frame 0 and finishes', () => {
+			const playback = new PlaybackController({ frames: 4, playback: 'pingpong' });
+			playback.setLinearProgress(0);
+			expect(playback.frame).toBe(0);
+			expect(playback.isFinished).toBe(false);
+			playback.setLinearProgress(0.5);
+			expect(playback.frame).toBe(3);
+			expect(playback.isFinished).toBe(false);
+			playback.setLinearProgress(1);
+			expect(playback.frame).toBe(0);
+			expect(playback.isFinished).toBe(true);
+		});
+
+		test('pingpong: interpolates within the forward and backward legs', () => {
+			const playback = new PlaybackController({ frames: 5, playback: 'pingpong' });
+			playback.setLinearProgress(0.2); // position 1.6 of span 8 (forward leg)
+			expect(playback.frame).toBe(2);
+			playback.setLinearProgress(0.6); // position 4.8 of span 8 (backward leg)
+			expect(playback.frame).toBe(3);
+		});
+
+		test('clamps out-of-range progress values', () => {
+			const playback = new PlaybackController({ frames: 4, playback: 'loop' });
+			playback.setLinearProgress(-0.5);
+			expect(playback.frame).toBe(0);
+			playback.setLinearProgress(1.5);
+			expect(playback.frame).toBe(3);
+		});
+
+		test('throws for random and shuffle modes rather than silently no-oping', () => {
+			const randomPlayback = new PlaybackController({ frames: 4, playback: 'random' });
+			expect(() => randomPlayback.setLinearProgress(0.5)).toThrow();
+
+			const shufflePlayback = new PlaybackController({ frames: 4, playback: 'shuffle' });
+			expect(() => shufflePlayback.setLinearProgress(0.5)).toThrow();
+		});
+	});
+
 	describe('finish / clearFinished / playbackMode', () => {
 		test('finish and clearFinished toggle isFinished', () => {
 			const playback = new PlaybackController({ frames: 3, playback: 'loop' });

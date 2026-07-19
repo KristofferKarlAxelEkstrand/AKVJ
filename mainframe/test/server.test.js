@@ -44,6 +44,16 @@ async function fetchJson(method, pathname, body) {
 	return { status: response.status, data: responseBody };
 }
 
+async function fetchJsonRaw(method, pathname, body) {
+	const response = await fetch(`${baseUrl}${pathname}`, {
+		method,
+		headers: { 'Content-Type': 'application/json' },
+		body
+	});
+	const responseBody = await response.json().catch(() => ({}));
+	return { status: response.status, data: responseBody };
+}
+
 beforeAll(async () => {
 	await setupTestProjectsDir();
 	process.env.AKVJ_PROJECTS_DIR = testProjectsDir;
@@ -787,5 +797,61 @@ describe('POST /api/clips/:clipId/recompile', () => {
 		const { status, data } = await fetchJson('POST', `/api/clips/${clipId}/recompile`, {});
 		expect(status).toBe(400);
 		expect(data.error).toMatch(/raw assets/i);
+	});
+});
+
+describe('Malformed JSON request bodies', () => {
+	test('POST /api/clips returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('POST', '/api/clips', '{ not json');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('PUT /api/clips/:clipId/frames returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('PUT', '/api/clips/test-clip-a/frames', '{ invalid');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('PUT /api/clips/:clipId returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('PUT', '/api/clips/test-clip-a', '{ broken');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('POST /api/clips/:clipId/recompile returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('POST', '/api/clips/test-clip-a/recompile', '{ bad');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('POST /api/projects returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('POST', '/api/projects', '{ malformed');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('PUT /api/projects/:id returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('PUT', '/api/projects/default', '{ bad json');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('PUT /api/mapping returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('PUT', '/api/mapping', '{ invalid');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('PUT /api/projects/:id/key-map returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('PUT', '/api/projects/default/key-map', '{ broken');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
+	});
+
+	test('POST /api/expand-gif returns 400 for malformed JSON', async () => {
+		const { status, data } = await fetchJsonRaw('POST', '/api/expand-gif', '{ bad');
+		expect(status).toBe(400);
+		expect(data.error).toBe('Invalid JSON in request body');
 	});
 });

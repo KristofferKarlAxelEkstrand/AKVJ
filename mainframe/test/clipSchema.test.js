@@ -52,6 +52,58 @@ describe('validateMetaFields — non-mutation', () => {
 	});
 });
 
+describe('validateMetaFields — frameDurationsMs', () => {
+	function baseMeta(overrides = {}) {
+		return { frames: 4, framesPerRow: 2, playback: 'loop', ...overrides };
+	}
+
+	test('accepts valid frameDurationsMs array matching frame count', () => {
+		const meta = baseMeta({ frameDurationsMs: [1000, 1000, 1000, 1000] });
+		const errors = validateMetaFields(meta);
+		expect(errors.filter(e => e.includes('frameDurationsMs'))).toEqual([]);
+	});
+
+	test('rejects frameDurationsMs that is not an array', () => {
+		const meta = baseMeta({ frameDurationsMs: { 0: 1000, 1: 1000 } });
+		const errors = validateMetaFields(meta);
+		expect(errors.some(e => e.includes('frameDurationsMs must be an array'))).toBe(true);
+	});
+
+	test('rejects frameDurationsMs with length mismatching frame count', () => {
+		const meta = baseMeta({ frameDurationsMs: [1000, 1000, 1000] });
+		const errors = validateMetaFields(meta);
+		expect(errors.some(e => e.includes('frameDurationsMs length (3) must match frames (4)'))).toBe(true);
+	});
+
+	test('rejects frameDurationsMs with non-positive values', () => {
+		const meta = baseMeta({ frameDurationsMs: [1000, 0, 1000, 1000] });
+		const errors = validateMetaFields(meta);
+		expect(errors.some(e => e.includes('frameDurationsMs[1] must be a positive number'))).toBe(true);
+	});
+
+	test('rejects frameDurationsMs with negative values', () => {
+		const meta = baseMeta({ frameDurationsMs: [1000, -500, 1000, 1000] });
+		const errors = validateMetaFields(meta);
+		expect(errors.some(e => e.includes('frameDurationsMs[1] must be a positive number'))).toBe(true);
+	});
+
+	test('accepts clips with only frameRatesForFrames (backward compatibility)', () => {
+		const meta = baseMeta({ frameRatesForFrames: { 0: 12, 1: 12, 2: 12, 3: 12 } });
+		const errors = validateMetaFields(meta);
+		expect(errors.filter(e => e.includes('frameRatesForFrames'))).toEqual([]);
+	});
+
+	test('accepts clips with both frameDurationsMs and frameRatesForFrames', () => {
+		const meta = baseMeta({
+			frameDurationsMs: [1000, 1000, 1000, 1000],
+			frameRatesForFrames: { 0: 12, 1: 12, 2: 12, 3: 12 }
+		});
+		const errors = validateMetaFields(meta);
+		expect(errors.filter(e => e.includes('frameDurationsMs'))).toEqual([]);
+		expect(errors.filter(e => e.includes('frameRatesForFrames'))).toEqual([]);
+	});
+});
+
 describe('validateMetaFields — scaleMode', () => {
 	function baseMeta(overrides = {}) {
 		return { frames: 4, framesPerRow: 2, playback: 'loop', ...overrides };
@@ -65,7 +117,10 @@ describe('validateMetaFields — scaleMode', () => {
 	test('accepts every SCALE_MODES value', () => {
 		for (const scaleMode of SCALE_MODES) {
 			const errors = validateMetaFields(baseMeta({ scaleMode }));
-			expect(errors.filter(e => e.includes('scaleMode')), scaleMode).toEqual([]);
+			expect(
+				errors.filter(e => e.includes('scaleMode')),
+				scaleMode
+			).toEqual([]);
 		}
 	});
 

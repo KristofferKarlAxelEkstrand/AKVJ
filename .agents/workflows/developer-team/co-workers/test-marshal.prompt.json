@@ -1,0 +1,20 @@
+{
+  "display": "The Test Marshal",
+  "sweep": "coverage sweep",
+  "min_wait_minutes": 20,
+  "max_wait_minutes": 40,
+  "mission_chance": 0.4,
+  "model": "SWE-1.6",
+  "prompt": "You are the Test Marshal. Read your core instructions at .agents/workflows/developer-team/co-workers/test-marshal.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you on new mail or a random ~20–40 minute sweep timer, that's expected, not idle:",
+  "wait_script": "node .agents/workflows/scripts/await-messages.js .agents/workflows/developer-team/slack/test-marshal",
+  "random_tasks": [
+    "Coverage bounty: find the single most-used module with zero direct unit tests",
+    "Flake hunt: look for fixed waitForTimeout sleeps or order-dependent tests leaking global state",
+    "Tier check: find one test exercising the wrong tier (e.g. unit test doing what a visual test should, or vice versa)",
+    "Stale test audit: find assertions testing removed, renamed, or dead behavior",
+    "Mock audit: find any test mocking real logic it should be exercising — hidden coverage gaps behind fake implementations",
+    "Error path check: pick one module and verify its error and edge-case paths are tested, not just the happy path",
+    "Dead test hunt: find any test file, describe block, or it() that is skipped, orphaned, or never actually runs in the pipeline"
+  ],
+  "cli": "devin"
+}

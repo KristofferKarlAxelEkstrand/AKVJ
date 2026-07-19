@@ -24,7 +24,11 @@ const settings = {
 		// Pulses Per Quarter Note (PPQN) for MIDI clock pulses. Standard MIDI clock is 24 PPQN.
 		ppqn: 24,
 		// Minimum byte length for channel messages (note on/off, CC)
-		channelMessageMinLength: 3
+		channelMessageMinLength: 3,
+		// Security: Rate limiting and resource limits
+		maxMidiDevices: 8,
+		maxClockPulsesPerSecond: 1000,
+		maxMessageLength: 256
 	},
 	/**
 	 * BPM (Beats Per Minute) synchronization settings
@@ -34,7 +38,7 @@ const settings = {
 		default: 120, // Default BPM when no clock/CC received
 		min: 10, // Minimum BPM value (must be > 0 to prevent division by zero)
 		max: 522, // Maximum BPM value (512 range + 10 minimum)
-		clockTimeoutMs: 500, // Fall back to CC/default if no clock pulses for this long
+		clockTimeoutMs: 300, // Fall back to CC/default if no clock pulses for this long (tuned for DoS protection)
 		// MIDI CC (fallback when no clock)
 		controlCC: 0, // CC number (0-127)
 		controlChannel: 0 // MIDI channel (0-15)
@@ -82,7 +86,8 @@ const settings = {
 		color: { min: 48, max: 63 }, // Color effects (invert, posterize, etc.)
 		glitch: { min: 64, max: 79 }, // Glitch effects
 		strobe: { min: 80, max: 95 }, // Strobe/Flash effects
-		reserved: { min: 96, max: 127 } // Reserved for future use
+		grayscaleDisplacement: { min: 96, max: 111 }, // Grayscale-driven displacement effects
+		grayscaleBlend: { min: 112, max: 127 } // Grayscale-driven blend effects
 	},
 	/**
 	 * Effect parameters for tuning visual effects
@@ -103,7 +108,12 @@ const settings = {
 		posterizeIntensityScale: 6,
 		// Split effect: min and max number of splits
 		splitMin: 2,
-		splitMax: 8
+		splitMax: 8,
+		// Grayscale displacement: maximum pixel shift (scaled by intensity)
+		grayscaleDisplacementMaxShift: 16,
+		// Grayscale blend: bit depth for quantization (2, 4, or 8)
+		// Lower values create more visible stepping (lo-fi look)
+		grayscaleBlendBitDepth: 2
 	},
 
 	performance: {
@@ -130,50 +140,18 @@ const settings = {
 		projectsIndexUrl: '/projects/index.json',
 		projectKeyMapUrlTemplate: '/projects/{projectId}/clips/key-map.json',
 		projectClipsJsonUrlTemplate: '/projects/{projectId}/clips/clips.json',
-		projectClipsPathTemplate: '/projects/{projectId}/clips'
+		projectClipsPathTemplate: '/projects/{projectId}/clips',
+		// Security: Image dimension limits to prevent memory exhaustion
+		maxImageWidth: 8192,
+		maxImageHeight: 8192,
+		maxTotalPixels: 67108864, // 8192 * 8192 = 64MP max
+		maxActiveClips: 512 // Maximum total active clips to prevent resource exhaustion
 	},
 	rendering: {
 		imageSmoothingEnabled: false,
 		imageSmoothingQuality: 'low',
 		backgroundColor: '#000000'
-	},
-	/**
-	 * Project-level settings defaults.
-	 * These settings can be overridden per-project via a project's settings.json.
-	 * General settings (canvas, midi, bpm, channelMapping, scrub, effectRanges, rendering)
-	 * are NOT overridable per-project — they define the hardware/protocol layer.
-	 */
-	projectDefaults: {
-		effectParams: {
-			effectVariantThreshold: 8,
-			glitchMaxDisplacement: 20,
-			glitchPixelProbability: 0.1,
-			posterizeBaseLevels: 8,
-			posterizeIntensityScale: 6,
-			splitMin: 2,
-			splitMax: 8
-		}
 	}
 };
-
-/**
- * Merge project-level settings overrides into the global settings.
- * Only `effectParams` (and future project-level keys) are merged;
- * general settings remain unchanged.
- * @param {Object} [projectSettings] - Project-specific settings overrides
- * @returns {Object} Merged settings object with project overrides applied
- */
-export function mergeProjectSettings(projectSettings) {
-	if (!projectSettings) {
-		return settings;
-	}
-	return {
-		...settings,
-		effectParams: {
-			...settings.effectParams,
-			...projectSettings.effectParams
-		}
-	};
-}
 
 export default settings;

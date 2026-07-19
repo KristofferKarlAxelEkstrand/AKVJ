@@ -5,7 +5,9 @@
 	"framesPerRow": 8,
 	"playback": "loop",
 	"retrigger": true,
-	"frameDurationBeats": 0.25,
+	"sync": "beat",
+	"syncLength": "custom",
+	"syncBeats": 16,
 	"role": "bitmask",
 	"bitDepth": 1
 }

@@ -49,15 +49,14 @@ describe('Clip', () => {
 		const ctx = createMockDrawContext();
 		const appState = (await import('../src/js/core/AppState.js')).default;
 
-		// Use a frameDuration that maps to 1 pulse per frame (1/PPQN beats)
-		const beatsPerFrame = 1 / 24; // 1 pulse when PPQN=24
-
+		// syncBeats small enough that totalPulses (round(syncBeats * 24 PPQN)) is tiny,
+		// so a couple of clock pulses already move progress well past frame 0's span.
 		const clip = new Clip(
 			defaultOptions({
 				displayContext: ctx,
 				frames: 2,
 				framesPerRow: 2,
-				frameDurationBeats: beatsPerFrame,
+				syncBeats: 2 / 24, // totalPulses = 2
 				playback: 'once'
 			})
 		);
@@ -75,9 +74,8 @@ describe('Clip', () => {
 			appState.dispatchMIDIClock(i * 10);
 		}
 
-		// Now a single pulse should advance the frame (pulsesPerFrame === 1)
+		// A pulse once clock-synced should advance progress off frame 0
 		appState.dispatchMIDIClock(100);
-		// Drawing after pulse should show frame 1
 		clip.renderToContext(ctx, 100);
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
@@ -87,14 +85,14 @@ describe('Clip', () => {
 		// Another pulse should NOT advance the frame further
 		appState.dispatchMIDIClock(200);
 		clip.renderToContext(ctx, 200);
-		// The frame should remain the same (still frame 1)
+		// The frame should remain the same (still the last drawn frame)
 		expect(ctx.drawImage.mock.calls.at(-1)[1]).not.toBe(0);
 
 		// Reset global AppState to avoid leaking clock sync between tests
 		appState.reset();
 	});
 
-	test('frameDurationBeats array controls per-frame timing and falls back to first element', () => {
+	test('syncBeats scales the whole clip while preserving each frame natural relative timing', () => {
 		// Create a fake context that captures drawImage sx value
 		let lastSx = null;
 		const ctx = {
@@ -105,14 +103,17 @@ describe('Clip', () => {
 
 		const image = { width: 30, height: 10 }; // frameWidth = 10
 
-		// frames = 3, framesPerRow = 3
-		// Provide a frameDurationBeats array with explicit per-frame values
+		// frames = 3, framesPerRow = 3; frameRatesForFrames gives frame 1 a natural
+		// duration 2x frame 0/2 (8 fps = 125ms vs 4 fps = 250ms). syncBeats scales the
+		// whole 500ms natural clip to 500ms target (speedMultiplier 1) at 120 BPM,
+		// so the relative 125/250/125 timing is preserved unchanged.
 		const clip = new Clip({
 			displayContext: ctx,
 			image,
 			frames: 3,
 			framesPerRow: 3,
-			frameDurationBeats: [0.25, 0.5, 0.25],
+			frameRatesForFrames: { 0: 8, 1: 4, 2: 8 },
+			syncBeats: 1,
 			playback: 'once'
 		});
 
@@ -120,15 +121,15 @@ describe('Clip', () => {
 		clip.renderToContext(ctx, 0);
 		expect(lastSx).toBe(0);
 
-		// Advance by 125ms (0.25 beats @ 120 BPM) -> frame 1
+		// Advance by 125ms (frame 0's natural interval) -> frame 1
 		clip.renderToContext(ctx, 125);
 		expect(lastSx).toBe(10);
 
-		// Advance by 250ms (0.5 beats) -> frame 2
+		// Advance by 250ms (frame 1's natural interval, 2x frame 0's) -> frame 2
 		clip.renderToContext(ctx, 375);
 		expect(lastSx).toBe(20);
 
-		// If frameDurationBeats array length doesn't match frames, constructor should throw
+		// Invalid syncBeats still throws (no silent fallback)
 		expect(
 			() =>
 				new Clip({
@@ -136,10 +137,10 @@ describe('Clip', () => {
 					image,
 					frames: 4,
 					framesPerRow: 4,
-					frameDurationBeats: [0.25, 0.5],
+					syncBeats: 0,
 					playback: 'once'
 				})
-		).toThrow('frameDurationBeats array length');
+		).toThrow('invalid syncBeats');
 	});
 
 	describe('constructor', () => {
@@ -191,6 +192,21 @@ describe('Clip', () => {
 			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
 			mockNow.mockReturnValue(1000);
 			// Should not throw due to invalid frame rates
+			expect(() => clip.renderToContext(ctx)).not.toThrow();
+			mockNow.mockRestore();
+		});
+
+		test('handles frameRatesForFrames: null without throwing', () => {
+			const ctx = createMockDrawContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+
+			// This simulates the case where normalizeClipMetadata returns frameRatesForFrames: null
+			// when the field is missing from meta.json
+			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: null }));
+			// Should not throw during construction
+			expect(clip).toBeInstanceOf(Clip);
+			// Should be able to render without throwing
 			expect(() => clip.renderToContext(ctx)).not.toThrow();
 			mockNow.mockRestore();
 		});
@@ -637,177 +653,6 @@ describe('Clip', () => {
 			clip.renderToContext(ctx);
 
 			expect(ctx.drawImage).not.toHaveBeenCalled();
-		});
-	});
-
-	describe('BPM sync mode (frameDurationBeats)', () => {
-		test('accepts frameDurationBeats as single number and uses BPM sync', async () => {
-			const ctx = createMockDrawContext();
-			// Import appState to set BPM
-			const appState = (await import('../src/js/core/AppState.js')).default;
-			appState.bpm = 120; // 120 BPM
-
-			const clip = new Clip(
-				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
-					framesPerRow: 4,
-					frameDurationBeats: 0.5 // Half beat per frame = 250ms at 120 BPM
-				})
-			);
-
-			// t=0 -> initial draw (frame 0)
-			clip.renderToContext(ctx, 0);
-			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
-
-			// t=249ms -> should still be on frame 0
-			clip.renderToContext(ctx, 249);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // sx=0 for frame 0
-
-			// t=250ms -> should advance to frame 1
-			clip.renderToContext(ctx, 250);
-			// Frame 1: sx = 60 (240px width / 4 frames)
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60);
-		});
-
-		test('accepts frameDurationBeats as array with per-frame values', async () => {
-			const ctx = createMockDrawContext();
-			const appState = (await import('../src/js/core/AppState.js')).default;
-			appState.bpm = 120; // 120 BPM
-
-			const clip = new Clip(
-				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
-					framesPerRow: 4,
-					// Frame 0: 0.25 beat (125ms), Frame 1: 0.5 beat (250ms), etc.
-					frameDurationBeats: [0.25, 0.5, 0.25, 0.5]
-				})
-			);
-
-			// t=0 -> initial draw (frame 0)
-			clip.renderToContext(ctx, 0);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// t=125ms -> should advance to frame 1
-			clip.renderToContext(ctx, 125);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(60); // Frame 1
-
-			// t=375ms -> should advance to frame 2 (125 + 250 = 375)
-			clip.renderToContext(ctx, 375);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 2
-		});
-
-		test('responds to BPM changes during playback', async () => {
-			const ctx = createMockDrawContext();
-			const appState = (await import('../src/js/core/AppState.js')).default;
-			appState.bpm = 60; // Start at 60 BPM (0.5 beat = 500ms)
-
-			const clip = new Clip(
-				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
-					framesPerRow: 4,
-					frameDurationBeats: 0.5
-				})
-			);
-
-			// t=0 -> frame 0
-			clip.renderToContext(ctx, 0);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// t=499ms at 60 BPM -> still frame 0 (need 500ms)
-			clip.renderToContext(ctx, 499);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// Reset appState to 120 BPM for other tests
-			appState.bpm = 120;
-		});
-
-		test('throws when frameDurationBeats is invalid (no fallback)', async () => {
-			const ctx = createMockDrawContext();
-
-			expect(
-				() =>
-					new Clip(
-						defaultOptions({
-							displayContext: ctx,
-							frames: 2,
-							framesPerRow: 2,
-							frameDurationBeats: 'invalid', // Invalid value
-							frameRatesForFrames: { 0: 1000 } // would be used previously
-						})
-					)
-			).toThrow('invalid frameDurationBeats');
-		});
-
-		test('frameDurationBeats takes priority over frameRatesForFrames', async () => {
-			const ctx = createMockDrawContext();
-			const appState = (await import('../src/js/core/AppState.js')).default;
-			appState.bpm = 120;
-
-			const clip = new Clip(
-				defaultOptions({
-					displayContext: ctx,
-					frames: 2,
-					framesPerRow: 2,
-					frameDurationBeats: 0.5, // 250ms at 120 BPM
-					frameRatesForFrames: { 0: 1000 } // Would be 1ms if used
-				})
-			);
-
-			// t=0 -> frame 0
-			clip.renderToContext(ctx, 0);
-
-			// t=10ms -> if FPS were used, would advance. With BPM sync, stays on frame 0
-			clip.renderToContext(ctx, 10);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0); // Still frame 0
-
-			// t=250ms -> BPM sync advances
-			clip.renderToContext(ctx, 250);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(120); // Frame 1
-		});
-
-		test('does not burst-advance frames when transitioning from clock to time-based BPM', async () => {
-			const ctx = createMockDrawContext();
-			const appState = (await import('../src/js/core/AppState.js')).default;
-			appState.bpm = 120; // 120 BPM
-
-			const clip = new Clip(
-				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
-					framesPerRow: 4,
-					frameDurationBeats: 0.5 // 250ms at 120 BPM
-				})
-			);
-
-			// Activate clip and draw initial frame
-			clip.reset();
-			clip.renderToContext(ctx, 0);
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// Simulate clock sync mode: send enough pulses to set bpmSource to clock
-			for (let i = 0; i < 8; i++) {
-				appState.dispatchMIDIClock(1000 + i * 10);
-			}
-			expect(appState.bpmSource).toBe('clock');
-
-			// While in clock mode, play() should not advance frames via time
-			clip.renderToContext(ctx, 2000);
-			clip.renderToContext(ctx, 3000);
-			// Frame should still be 0 (clock pulses drive advancement, not time)
-			expect(ctx.drawImage.mock.calls.at(-1)[1]).toBe(0);
-
-			// Simulate clock timeout: bpmSource falls back to default
-			appState.reset();
-			appState.bpm = 120; // Restore BPM after reset
-
-			// Now play at t=4000 — should NOT burst-advance due to stale #lastTimestamp
-			clip.renderToContext(ctx, 4000);
-			// Should be on frame 0 or 1 at most, not frame 3 (which would indicate catch-up)
-			const sx = ctx.drawImage.mock.calls.at(-1)[1];
-			expect(sx).toBeLessThan(120); // Less than frame 2's sx
 		});
 	});
 });

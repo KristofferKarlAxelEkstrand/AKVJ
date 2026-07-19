@@ -1,13 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import {
-	editorValuesFromMeta,
-	metaPatchFromEditor,
-	optionalMetaFromEditor,
-	parseFrameDurationBeats,
-	DEFAULT_FRAME_WIDTH,
-	DEFAULT_FRAME_HEIGHT,
-	DEFAULT_SCALE_MODE
-} from '../src/js/editorMeta.js';
+import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE } from '../src/js/editorMeta.js';
 
 describe('editorMeta', () => {
 	test('hydrates editor fields from meta including optional fields', () => {
@@ -23,8 +15,7 @@ describe('editorMeta', () => {
 				retrigger: false,
 				triggerType: 'latch',
 				triggerGroup: 'masks',
-				bitDepth: 4,
-				frameDurationBeats: [0.25, 0.5]
+				bitDepth: 4
 			})
 		).toEqual({
 			name: 'Neon',
@@ -39,7 +30,6 @@ describe('editorMeta', () => {
 			triggerType: 'latch',
 			triggerGroup: 'masks',
 			bitDepth: 4,
-			frameDurationBeatsText: '[0.25,0.5]',
 			sync: 'free',
 			syncLength: '1 bar',
 			syncBeats: null,
@@ -61,7 +51,6 @@ describe('editorMeta', () => {
 			triggerType: 'momentary',
 			triggerGroup: '',
 			bitDepth: 1,
-			frameDurationBeatsText: '',
 			sync: 'free',
 			syncLength: '1 bar',
 			syncBeats: null,
@@ -108,7 +97,6 @@ describe('editorMeta', () => {
 				triggerType: 'momentary',
 				triggerGroup: '',
 				bitDepth: 2,
-				frameDurationBeats: 0.25,
 				sync: 'free'
 			})
 		).toEqual({
@@ -124,7 +112,6 @@ describe('editorMeta', () => {
 			triggerType: 'momentary',
 			triggerGroup: null,
 			bitDepth: 2,
-			frameDurationBeats: 0.25,
 			sync: 'free',
 			syncLength: null,
 			syncBeats: null,
@@ -132,7 +119,7 @@ describe('editorMeta', () => {
 		});
 	});
 
-	test('metaPatchFromEditor beat mode clears explicit frameDurationBeats', () => {
+	test('metaPatchFromEditor beat mode sets sync fields', () => {
 		expect(
 			metaPatchFromEditor({
 				name: '',
@@ -144,7 +131,6 @@ describe('editorMeta', () => {
 				retrigger: true,
 				triggerType: 'momentary',
 				triggerGroup: '',
-				frameDurationBeats: [0.25],
 				sync: 'beat',
 				syncLength: '1 bar',
 				beatsPerBar: 4
@@ -153,16 +139,8 @@ describe('editorMeta', () => {
 			sync: 'beat',
 			syncLength: '1 bar',
 			beatsPerBar: 4,
-			frameDurationBeats: null,
 			syncBeats: null
 		});
-	});
-
-	test('parseFrameDurationBeats accepts number, array, or empty', () => {
-		expect(parseFrameDurationBeats('')).toEqual({ ok: true, value: null });
-		expect(parseFrameDurationBeats('0.25')).toEqual({ ok: true, value: 0.25 });
-		expect(parseFrameDurationBeats('[0.25, 0.5]')).toEqual({ ok: true, value: [0.25, 0.5] });
-		expect(parseFrameDurationBeats('nope').ok).toBe(false);
 	});
 
 	test('optionalMetaFromEditor includes sync flag and bitmask depth', () => {
@@ -173,7 +151,6 @@ describe('editorMeta', () => {
 				triggerGroup: 'g1',
 				role: 'bitmask',
 				bitDepth: 8,
-				frameDurationBeats: [0.5],
 				sync: 'free'
 			})
 		).toEqual({
@@ -184,7 +161,6 @@ describe('editorMeta', () => {
 			role: 'bitmask',
 			bitDepth: 8,
 			placement: { x: 0, y: 0 },
-			frameDurationBeats: [0.5],
 			sync: 'free',
 			syncLength: null,
 			syncBeats: null,

@@ -56,6 +56,29 @@ describe('scripts/clips/lib/copy.js', () => {
 		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('keep me');
 	});
 
+	test('copyToPublic removes files with LICENSE in path but not exact basename', async () => {
+		await fs.writeFile(path.join(cacheDir, 'clips.json'), '{}');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-something.txt'), 'remove me');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'keep me');
+
+		const stats = await copyToPublic(cacheDir, publicDir);
+		expect(stats.removed).toBe(1);
+		await expect(fs.access(path.join(publicDir, 'LICENSE-something.txt'))).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('keep me');
+	});
+
+	test('copyToPublic removes files in directories with LICENSE in directory name', async () => {
+		await fs.writeFile(path.join(cacheDir, 'clips.json'), '{}');
+		await fs.mkdir(path.join(publicDir, 'LICENSE-dir'), { recursive: true });
+		await fs.writeFile(path.join(publicDir, 'LICENSE-dir', 'file.txt'), 'remove me');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'keep me');
+
+		const stats = await copyToPublic(cacheDir, publicDir);
+		expect(stats.removed).toBe(1);
+		await expect(fs.access(path.join(publicDir, 'LICENSE-dir', 'file.txt'))).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('keep me');
+	});
+
 	test('removeEmptyDirs removes nested empty directories', async () => {
 		const nested = path.join(publicDir, 'a', 'b', 'c');
 		await fs.mkdir(nested, { recursive: true });
@@ -66,12 +89,37 @@ describe('scripts/clips/lib/copy.js', () => {
 	test('clean removes cache and public generated files but preserves LICENSE', async () => {
 		await fs.writeFile(path.join(cacheDir, 'x.png'), 'cache');
 		await fs.writeFile(path.join(publicDir, 'y.png'), 'pub');
-		await fs.writeFile(path.join(publicDir, 'LICENSE.txt'), 'license');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'license');
 
 		await clean(cacheDir, publicDir);
 
 		await expect(fs.access(cacheDir)).rejects.toMatchObject({ code: 'ENOENT' });
 		await expect(fs.access(path.join(publicDir, 'y.png'))).rejects.toMatchObject({ code: 'ENOENT' });
-		expect(await fs.readFile(path.join(publicDir, 'LICENSE.txt'), 'utf8')).toBe('license');
+		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('license');
+	});
+
+	test('clean removes files with LICENSE in path but not exact basename', async () => {
+		await fs.writeFile(path.join(cacheDir, 'x.png'), 'cache');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-something.txt'), 'remove me');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'keep me');
+
+		await clean(cacheDir, publicDir);
+
+		await expect(fs.access(cacheDir)).rejects.toMatchObject({ code: 'ENOENT' });
+		await expect(fs.access(path.join(publicDir, 'LICENSE-something.txt'))).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('keep me');
+	});
+
+	test('clean removes files in directories with LICENSE in directory name', async () => {
+		await fs.writeFile(path.join(cacheDir, 'x.png'), 'cache');
+		await fs.mkdir(path.join(publicDir, 'LICENSE-dir'), { recursive: true });
+		await fs.writeFile(path.join(publicDir, 'LICENSE-dir', 'file.txt'), 'remove me');
+		await fs.writeFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'keep me');
+
+		await clean(cacheDir, publicDir);
+
+		await expect(fs.access(cacheDir)).rejects.toMatchObject({ code: 'ENOENT' });
+		await expect(fs.access(path.join(publicDir, 'LICENSE-dir', 'file.txt'))).rejects.toMatchObject({ code: 'ENOENT' });
+		expect(await fs.readFile(path.join(publicDir, 'LICENSE-ASSETS.md'), 'utf8')).toBe('keep me');
 	});
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { redistributeVelocities, insertionIndexForDropVelocity, clipHue } from '../src/js/PianoKey.js';
+import { redistributeVelocities, insertionIndexForDropVelocity, clipHue, MIN_REGION_VELOCITY } from '../src/js/PianoKey.js';
 import '../src/js/PianoRoll.js';
 
 /**
@@ -582,6 +582,70 @@ describe('PianoRoll', () => {
 		expect(brokenHandle.querySelector('.velocity-handle-readout')).toBeNull();
 	});
 
+	test('drop is rejected when key has too many clips (would violate MIN_REGION_VELOCITY)', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+
+		// With MIN_REGION_VELOCITY=2 and VELOCITY_RANGE=128, max clips = 64
+		expect(MIN_REGION_VELOCITY).toBe(2);
+		// Create 64 clips already mapped to the key
+		const existingMappings = [];
+		for (let i = 0; i < 64; i++) {
+			existingMappings.push({ channel: 1, note: 60, velocity: i * 2, clipId: `clip-${i}` });
+		}
+		element.mappings = existingMappings;
+
+		const key = element.querySelectorAll('piano-key')[60];
+		let addFired = false;
+		element.addEventListener('mappingadd', () => {
+			addFired = true;
+		});
+
+		const dataTransfer = {
+			types: ['application/x-akvj-clip-id'],
+			getData: () => 'new-clip'
+		};
+		const event = new Event('drop', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+		key.dispatchEvent(event);
+
+		// Drop should be rejected since adding another clip would exceed the limit
+		expect(addFired).toBe(false);
+	});
+
+	test('drop succeeds when key is below the clip limit', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+
+		// Create 63 clips (one below the limit of 64)
+		const existingMappings = [];
+		for (let i = 0; i < 63; i++) {
+			existingMappings.push({ channel: 1, note: 60, velocity: Math.round((128 * i) / 63), clipId: `clip-${i}` });
+		}
+		element.mappings = existingMappings;
+
+		const key = element.querySelectorAll('piano-key')[60];
+		let addDetail = null;
+		element.addEventListener('mappingadd', event => {
+			addDetail = event.detail;
+		});
+
+		const dataTransfer = {
+			types: ['application/x-akvj-clip-id'],
+			getData: () => 'new-clip'
+		};
+		const event = new Event('drop', { bubbles: true, cancelable: true });
+		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+
+		key.dispatchEvent(event);
+
+		// Drop should succeed
+		expect(addDetail).not.toBeNull();
+		expect(addDetail.clipId).toBe('new-clip');
+		expect(addDetail.mappings).toHaveLength(64);
+	});
+
 	test('edit mode right-click region dispatches mappingremove with redistributed mappings', () => {
 		element.mode = 'edit';
 		element.channel = 1;
@@ -597,6 +661,29 @@ describe('PianoRoll', () => {
 
 		const region = element.querySelectorAll('piano-key')[60].querySelector('[data-clip-id="soft"]');
 		region.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+
+		expect(detail.channel).toBe(1);
+		expect(detail.note).toBe(60);
+		expect(detail.clipId).toBe('soft');
+		expect(detail.velocity).toBe(0);
+		expect(detail.mappings).toEqual([{ clipId: 'hard', velocity: 0 }]);
+	});
+
+	test('edit mode double-click region dispatches mappingremove with redistributed mappings', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		let detail = null;
+		element.addEventListener('mappingremove', event => {
+			detail = event.detail;
+		});
+
+		const region = element.querySelectorAll('piano-key')[60].querySelector('[data-clip-id="soft"]');
+		region.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
 
 		expect(detail.channel).toBe(1);
 		expect(detail.note).toBe(60);
@@ -677,3 +764,4 @@ describe('PianoRoll', () => {
 		expect(handler).toHaveBeenCalledTimes(2);
 	});
 });
+

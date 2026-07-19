@@ -54,6 +54,8 @@ class AppState extends EventTarget {
 	#clockTimeoutId = null;
 	#recentPulseIntervals = []; // Last few pulse intervals for BPM calculation
 	#resetGeneration = 0; // Increments on each reset() to invalidate pending callbacks
+	#clockPulseCount = 0; // Rate limiting: count pulses in current time window
+	#clockPulseWindowStart = 0; // Rate limiting: start of current time window
 
 	/**
 	 * @param {Object} [settings=defaultSettings] - Runtime configuration (defaults to global settings)
@@ -256,12 +258,51 @@ class AppState extends EventTarget {
 	 * 2. Average the last few intervals
 	 * 3. Calculate BPM from average
 	 *
+	 * Rate limiting: Reject excessive clock pulses to prevent CPU exhaustion
+	 *
 	 * @param {number} timestamp - Performance.now() timestamp
 	 */
 	dispatchMIDIClock(timestamp) {
+		if (!this.#shouldProcessClockPulse(timestamp)) {
+			return; // Rate limit exceeded, ignore this pulse
+		}
+
 		this.#resetClockTimeout();
 		this.#processClockPulse(timestamp);
 		this.#dispatchStateEvent(EVENT_MIDI_CLOCK, { timestamp });
+	}
+
+	/**
+	 * Check if clock pulse should be processed based on rate limiting
+	 * Consolidates rate-limiting logic to avoid double-increment bug
+	 * @param {number} timestamp - Current timestamp
+	 * @returns {boolean} True if pulse should be processed, false if rate limited
+	 */
+	#shouldProcessClockPulse(timestamp) {
+		const maxPulsesPerSecond = this.#settings.midi?.maxClockPulsesPerSecond ?? 1000;
+		const windowSizeMs = 1000; // 1 second window
+
+		// Initialize window on first pulse
+		if (this.#clockPulseWindowStart === 0) {
+			this.#clockPulseWindowStart = timestamp;
+			this.#clockPulseCount = 0;
+		}
+
+		// Reset window if it has expired
+		if (timestamp - this.#clockPulseWindowStart > windowSizeMs) {
+			this.#clockPulseWindowStart = timestamp;
+			this.#clockPulseCount = 0;
+		}
+
+		// Check if we've exceeded the rate limit
+		if (this.#clockPulseCount >= maxPulsesPerSecond) {
+			console.warn(`AppState: MIDI clock rate limit exceeded (${maxPulsesPerSecond} pulses/second), ignoring excess pulses`);
+			return false;
+		}
+
+		// Increment counter exactly once per valid pulse
+		this.#clockPulseCount++;
+		return true;
 	}
 
 	#resetClockTimeout() {
@@ -300,7 +341,6 @@ class AppState extends EventTarget {
 		if (this.#recentPulseIntervals.length >= MIN_CLOCK_INTERVALS_FOR_BPM) {
 			this.#calculateBPMFromClock();
 		}
-		this.#lastClockTimestamp = timestamp;
 	}
 
 	#calculateBPMFromClock() {
@@ -400,6 +440,8 @@ class AppState extends EventTarget {
 		this.#bpmSource = BPM_SOURCE_DEFAULT;
 		this.#lastClockTimestamp = null;
 		this.#recentPulseIntervals = [];
+		this.#clockPulseCount = 0;
+		this.#clockPulseWindowStart = 0;
 
 		if (this.#clockTimeoutId !== null) {
 			clearTimeout(this.#clockTimeoutId);

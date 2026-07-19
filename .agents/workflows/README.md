@@ -1,27 +1,47 @@
 # AKVJ Agent Workflows
 
-This directory contains advanced, folder-based Kanban workflows for AI agents. Unlike the single-file scripts in the `prompts/` directory, these workflows are autonomous pipelines designed for long-term, multi-phase goals.
+This directory contains advanced, folder-based Kanban workflows for AI agents. These workflows are autonomous pipelines designed for long-term, multi-phase goals.
+
+## Shared Scripts
+
+The `scripts/` directory contains shared utilities used across workflows:
+- `run-team` - Main script for starting/managing agent teams in tmux
+- `await-messages.js` - Message wake cycle for agents; random wake enabled by `min_wait_minutes` / `max_wait_minutes` in the agent config
+- `generate-dashboard.js` - Dashboard generation for task tracking
+- `archive-task.js` - Task archiving utility
+- `state/` - Await state files (gitignored)
 
 ## How Workflows Operate
 
 Each workflow has its own dedicated folder containing:
-1. **The Prompt**: The core instructions for the agent.
-2. **The Inbox**: A drop zone for your feature requests and bug reports.
-3. **The Tasks**: The agent's generated queue of prioritized work.
-4. **The Spec**: Overarching goals that the agent must strictly adhere to.
-5. **The Memory**: The persistent ledger tracking the agent's progress across sessions.
+1. **Co-workers**: Agent configuration files (`*.prompt.json`)
+2. **Inbox**: Drop zone for feature requests and bug reports
+3. **Tasks**: Agent's generated queue of prioritized work
+4. **Epics**: Multi-task initiatives with `drafts/`, `todo/`, and `done/` lifecycle
+5. **Spec**: Overarching goals that agents must adhere to
+6. **Memory**: Persistent ledger tracking agent progress across sessions
+7. **Slack**: File-based IPC for agent communication
+8. **Health**: Health monitoring and restart tracking
 
-To use a workflow, you simply drop a `.md` file into its `inbox/` directory and trigger the agent. The agent will read your request, convert it into discrete tasks, and begin executing them automatically.
+To use a workflow, use the `run-team` script to start agents, then drop work into the `inbox/` directory.
 
 ---
 
 ## Active Workflows
 
-To trigger any of these systems, copy the provided trigger text and paste it directly into your AI chat window.
-
 ### 👥 Developer Team
-Autonomous, multi-agent development workflow — **six core** agents (Team Lead, AKVJ Developer, Mainframe Developer, QA Reviewer, Overseer, Nitpicker) plus **two optional** specialists (Test Marshal, Quartermaster). See [`developer-team/README.md`](developer-team/README.md) for how to start the team and assign work.
+Autonomous, multi-agent development workflow — **six core** agents (Team Lead, AKVJ Developer, Mainframe Developer, QA Reviewer, Overseer, Nitpicker) plus **two optional** specialists (Test Marshal, Quartermaster).
 
----
+**Quick Start:**
+```bash
+# Start the team
+/workspaces/AKVJ/.agents/workflows/scripts/run-team developer-team
 
-The Server Architect and MIDI MCP Developer workflows that used to live here have completed their founding missions — the `akvj`/`mainframe` monorepo split and the `midi-mcp` server both now exist as their own workspaces — and have been retired. Their origin specs are kept for historical reference at `.agents/prompts/specs/mainframe-and-akvj.prompt.md` and `.agents/prompts/archive/mcp-midi-protocol.prompt.md`; the Server Architect's iteration log lives at `developer-team/memory/archive/akvj-and-mainframe.memory.md`.
+# List running teams
+/workspaces/AKVJ/.agents/workflows/scripts/run-team --list
+
+# Restart specific agent
+/workspaces/AKVJ/.agents/workflows/scripts/run-team --restart developer-team overseer
+```
+
+See [`developer-team/README.md`](developer-team/README.md) for detailed instructions and [`developer-team/WORKFLOW.md`](developer-team/WORKFLOW.md) for technical documentation.

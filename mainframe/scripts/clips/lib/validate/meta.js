@@ -12,14 +12,20 @@ import { SCALE_MODES } from '../../../../shared/frameFit.js';
 export function validateMetaFields(meta) {
 	const errors = [];
 
+	// Hard-reject frameDurationBeats: this field is no longer supported.
+	// Use sync: "beat" with syncLength/syncBeats instead.
+	if (meta.frameDurationBeats !== undefined && meta.frameDurationBeats !== null) {
+		errors.push('frameDurationBeats is no longer supported. Use sync: "beat" with syncLength and syncBeats instead.');
+	}
+
 	validateBasicFields(meta, errors);
 	validateBitDepth(meta, errors);
 
-	if (meta.frameDurationBeats !== undefined) {
-		validateFrameDurationBeats(meta, errors);
-	}
 	if (meta.frameRatesForFrames !== undefined && meta.frameRatesForFrames !== null) {
 		validateFrameRatesForFrames(meta, errors);
+	}
+	if (meta.frameDurationsMs !== undefined && meta.frameDurationsMs !== null) {
+		validateFrameDurationsMs(meta, errors);
 	}
 	validateSyncFields(meta, errors);
 
@@ -108,32 +114,6 @@ function validateBitDepth(meta, errors) {
 	}
 }
 
-function validateFrameDurationBeats(meta, errors) {
-	if (Array.isArray(meta.frameDurationBeats)) {
-		if (meta.frameDurationBeats.length === 0) {
-			errors.push('meta.json: frameDurationBeats array cannot be empty');
-		}
-		const frameCount = meta.frames ?? meta.numberOfFrames;
-		if (frameCount && meta.frameDurationBeats.length > 0 && meta.frameDurationBeats.length !== frameCount) {
-			errors.push(`meta.json: frameDurationBeats array length (${meta.frameDurationBeats.length}) must match frames (${frameCount})`);
-		}
-		for (let i = 0; i < meta.frameDurationBeats.length; i++) {
-			const duration = meta.frameDurationBeats[i];
-			if (typeof duration !== 'number') {
-				errors.push(`meta.json: frameDurationBeats[${i}] must be a number (got ${typeof duration})`);
-			} else if (duration <= 0) {
-				errors.push(`meta.json: frameDurationBeats[${i}] must be a positive number (got ${duration})`);
-			}
-		}
-	} else if (typeof meta.frameDurationBeats === 'number') {
-		if (meta.frameDurationBeats <= 0) {
-			errors.push(`meta.json: frameDurationBeats must be a positive number (got ${meta.frameDurationBeats})`);
-		}
-	} else {
-		errors.push('meta.json: frameDurationBeats must be a positive number or array of positive numbers');
-	}
-}
-
 function validateFrameRatesForFrames(meta, errors) {
 	if (typeof meta.frameRatesForFrames !== 'object') {
 		errors.push('frameRatesForFrames must be an object');
@@ -151,6 +131,23 @@ function validateFrameRatesForFrames(meta, errors) {
 		const rate = meta.frameRatesForFrames[key];
 		if (typeof rate !== 'number' || rate <= 0) {
 			errors.push(`frameRatesForFrames["${key}"] must be a positive number (got ${rate})`);
+		}
+	}
+}
+
+function validateFrameDurationsMs(meta, errors) {
+	if (!Array.isArray(meta.frameDurationsMs)) {
+		errors.push('frameDurationsMs must be an array');
+		return;
+	}
+	const frameCount = meta.frames ?? meta.numberOfFrames;
+	if (frameCount && meta.frameDurationsMs.length !== frameCount) {
+		errors.push(`frameDurationsMs length (${meta.frameDurationsMs.length}) must match frames (${frameCount})`);
+	}
+	for (let index = 0; index < meta.frameDurationsMs.length; index++) {
+		const duration = meta.frameDurationsMs[index];
+		if (typeof duration !== 'number' || duration <= 0) {
+			errors.push(`frameDurationsMs[${index}] must be a positive number (got ${duration})`);
 		}
 	}
 }

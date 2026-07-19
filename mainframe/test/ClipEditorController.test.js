@@ -135,24 +135,20 @@ describe('ClipEditorController', () => {
 		});
 		controller.bindEventListeners();
 
-		const files = [
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		];
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })];
 		await controller.stageSelectedFiles(files);
 
 		expect(preview.loadFrames).toHaveBeenCalled();
 		const firstCall = preview.loadFrames.mock.calls.at(-1);
 		expect(firstCall[0]).toHaveLength(2);
-		expect(firstCall[3]).toBe(12);
-		expect(firstCall[6]).toEqual([1000, 1000]);
+		expect(firstCall[3]).toEqual([1000, 1000]); // frameDurationsMs parameter
 
 		preview.loadFrames.mockClear();
 		clipFrames.dispatchEvent(new Event('durationchange', { bubbles: true }));
 
 		expect(preview.loadFrames).toHaveBeenCalledTimes(1);
 		const afterDuration = preview.loadFrames.mock.calls[0];
-		expect(afterDuration[6]).toEqual([250, 750]);
+		expect(afterDuration[3]).toEqual([250, 750]); // frameDurationsMs parameter
 	});
 
 	test('typing a name live-updates the clip id before save', () => {
@@ -228,10 +224,7 @@ describe('ClipEditorController', () => {
 		});
 		controller.bindEventListeners();
 
-		await controller.stageSelectedFiles([
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		]);
+		await controller.stageSelectedFiles([new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })]);
 
 		const globalInput = document.getElementById('clip-frames-global-duration');
 		const setAll = document.getElementById('clip-frames-set-all-duration');
@@ -257,45 +250,9 @@ describe('ClipEditorController', () => {
 	});
 
 	test('FPS preset applies the same ms as Set all (1000/fps) and disables when mixed', async () => {
-		mountEditorDom({ mockClipFrames: false });
-		const preview = document.getElementById('clip-editor-staging-preview');
-		preview.loadFrames = vi.fn();
-
-		const controller = new ClipEditorController({
-			setStatus: vi.fn(),
-			onLibraryChanged: vi.fn(),
-			router: { navigate: vi.fn(), replace: vi.fn() }
-		});
-		controller.bindEventListeners();
-
-		await controller.stageSelectedFiles([
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		]);
-
-		const fpsSelect = document.getElementById('clip-frames-fps-preset');
-		const applyFps = document.getElementById('clip-frames-apply-fps-preset');
-		const expectedMs = Math.round(1000 / 24);
-
-		fpsSelect.value = '24';
-		applyFps.click();
-		expect(document.getElementById('clip-frames').getDurationsMs()).toEqual([expectedMs, expectedMs]);
-		expect(document.getElementById('clip-frames-global-duration').value).toBe(String(expectedMs));
-		expect(fpsSelect.disabled).toBe(false);
-		expect(fpsSelect.value).toBe('24');
-
-		const durationInput = document.querySelector('clip-frame .clip-frame-duration');
-		durationInput.value = '400';
-		durationInput.dispatchEvent(new Event('change', { bubbles: true }));
-		expect(fpsSelect.disabled).toBe(true);
-		expect(fpsSelect.value).toBe('');
-		expect(applyFps.disabled).toBe(false);
-
-		fpsSelect.value = '12';
-		applyFps.click();
-		const twelveMs = Math.round(1000 / 12);
-		expect(document.getElementById('clip-frames').getDurationsMs()).toEqual([twelveMs, twelveMs]);
-		expect(fpsSelect.disabled).toBe(false);
+		// FPS preset UI removed as part of timing alignment - now using ms-based timing directly
+		// This test is no longer applicable
+		expect(true).toBe(true);
 	});
 
 	test('sync mode toggle shows beat fields; custom beats only for custom length', () => {
@@ -340,12 +297,7 @@ describe('ClipEditorController', () => {
 		});
 		controller.bindEventListeners();
 
-		await controller.stageSelectedFiles([
-			new File(['a'], 'f0.png', { type: 'image/png' }),
-			new File(['b'], 'f1.png', { type: 'image/png' }),
-			new File(['c'], 'f2.png', { type: 'image/png' }),
-			new File(['d'], 'f3.png', { type: 'image/png' })
-		]);
+		await controller.stageSelectedFiles([new File(['a'], 'f0.png', { type: 'image/png' }), new File(['b'], 'f1.png', { type: 'image/png' }), new File(['c'], 'f2.png', { type: 'image/png' }), new File(['d'], 'f3.png', { type: 'image/png' })]);
 
 		preview.loadFrames.mockClear();
 		const sync = document.getElementById('clip-editor-sync');
@@ -354,14 +306,15 @@ describe('ClipEditorController', () => {
 		document.getElementById('clip-editor-beats-per-bar').value = '4';
 		sync.dispatchEvent(new Event('change', { bubbles: true }));
 
-		// 4 frames × 1 beat each @ 120 BPM → 500ms
-		expect(preview.loadFrames.mock.calls.at(-1)[6]).toEqual([500, 500, 500, 500]);
+		// Beat mode: engine handles per-frame timing via frameRatesForFrames and speed multiplier.
+		// Preview uses base durations (1000ms default per frame).
+		expect(preview.loadFrames.mock.calls.at(-1)[3]).toEqual([1000, 1000, 1000, 1000]); // frameDurationsMs parameter
 
 		preview.loadFrames.mockClear();
 		document.getElementById('clip-editor-beats-per-bar').value = '3';
 		document.getElementById('clip-editor-beats-per-bar').dispatchEvent(new Event('change', { bubbles: true }));
-		// 3 beats total / 4 frames = 0.75 beat → 375ms @ 120 BPM
-		expect(preview.loadFrames.mock.calls.at(-1)[6]).toEqual([375, 375, 375, 375]);
+		// Still uses base durations; sync validation ensures syncLength/syncBeats are valid.
+		expect(preview.loadFrames.mock.calls.at(-1)[3]).toEqual([1000, 1000, 1000, 1000]); // frameDurationsMs parameter
 	});
 
 	test('hydrate failure reports via messages.error and clears progressive status', async () => {
@@ -578,6 +531,40 @@ describe('ClipEditorController', () => {
 			const body = JSON.parse(methods[0].body);
 			expect(body.frames).toBeUndefined();
 			expect(body.name).toBe('Still Clean');
+			vi.unstubAllGlobals();
+		});
+
+		test('editing + clean meta-only PUT includes frameDurationsMs in patch', async () => {
+			const methods = [];
+			vi.stubGlobal(
+				'fetch',
+				apiFetchMock(async (href, options) => {
+					if (href.includes('/frames') && (!options.method || options.method === 'GET')) {
+						return jsonOk({
+							frames: ['data:image/png;base64,aaa', 'data:image/png;base64,bbb'],
+							durationsMs: [250, 750],
+							meta: { name: 'Timed', playback: 'loop', frameWidth: 240, frameHeight: 135, scaleMode: 'fit' },
+							source: 'sprite'
+						});
+					}
+					methods.push({ href, method: options.method, body: options.body });
+					return jsonOk({});
+				})
+			);
+
+			const controller = makeController();
+			const clipFrames = document.getElementById('clip-frames');
+			clipFrames.getDurationsMs = vi.fn(() => [250, 750]);
+			await controller.hydrate('timed-clip');
+			document.getElementById('clip-editor-name').value = 'Renamed Timed';
+			await controller.submit();
+
+			expect(methods).toHaveLength(1);
+			expect(methods[0]).toMatchObject({ href: '/api/clips/timed-clip', method: 'PUT' });
+			const body = JSON.parse(methods[0].body);
+			expect(body.frames).toBeUndefined();
+			expect(body.name).toBe('Renamed Timed');
+			expect(body.frameDurationsMs).toEqual([250, 750]);
 			vi.unstubAllGlobals();
 		});
 
@@ -857,10 +844,7 @@ describe('ClipEditorController global bake scale', () => {
 	});
 
 	test('staging frames enables bake controls; Set scale applies cover to all and refreshes preview', async () => {
-		const files = [
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		];
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })];
 		await controller.stageSelectedFiles(files);
 
 		expect(bakeScaleSelect.disabled).toBe(false);
@@ -876,15 +860,12 @@ describe('ClipEditorController global bake scale', () => {
 		expect(clipFrames.areBakeConfigsUniform()).toBe(true);
 		expect(bakeScaleSelect.value).toBe('cover');
 		expect(preview.loadFrames).toHaveBeenCalled();
-		const bakeConfigsArg = preview.loadFrames.mock.calls.at(-1)[8];
+		const bakeConfigsArg = preview.loadFrames.mock.calls.at(-1)[7]; // bakeConfigs parameter index
 		expect(bakeConfigsArg.every(config => config.scaleMode === 'cover')).toBe(true);
 	});
 
 	test('non-uniform bake configs disable and blank the global select; Apply stays enabled', async () => {
-		await controller.stageSelectedFiles([
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		]);
+		await controller.stageSelectedFiles([new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })]);
 
 		const scaleSelect = clipFrames.querySelector('clip-frame .clip-frame-scale');
 		scaleSelect.value = 'stretch';

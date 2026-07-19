@@ -43,9 +43,7 @@ describe('ClipList — grouped category rendering', () => {
 	});
 
 	test('clip-instance entries are draggable with clipId in dataTransfer', () => {
-		element.clips = [
-			{ clipId: 'kick', meta: { category: 'drums', name: 'Kick' }, hasSprite: false, pipelineReady: true }
-		];
+		element.clips = [{ clipId: 'kick', meta: { category: 'drums', name: 'Kick' }, hasSprite: false, pipelineReady: true }];
 
 		const instance = element.querySelector('clip-instance');
 		expect(instance.draggable).toBe(true);
@@ -188,9 +186,7 @@ describe('ClipList — grouped category rendering', () => {
 	});
 
 	test('hasSprite true sets img src to sprite API URL', () => {
-		element.clips = [
-			{ clipId: 'fx/wave', meta: { name: 'Wave' }, hasSprite: true, pipelineReady: true }
-		];
+		element.clips = [{ clipId: 'fx/wave', meta: { name: 'Wave' }, hasSprite: true, pipelineReady: true }];
 
 		const img = element.querySelector('.clip-instance-img');
 		expect(img.src).toMatch(/\/api\/clips\/fx%2Fwave\/sprite/);
@@ -216,5 +212,38 @@ describe('ClipList — grouped category rendering', () => {
 		});
 		instance.dispatchEvent(dragEvent);
 		expect(data.size).toBe(0);
+	});
+
+	test('showMapAction flag hides Map button when set to false', () => {
+		element.clips = [{ clipId: 'a', meta: { name: 'A' }, hasSprite: false, pipelineReady: true }];
+		element.showMapAction = false;
+
+		const mapButton = element.querySelector('.clip-map');
+		expect(mapButton).toBeNull();
+	});
+
+	test('showMapAction flag shows Map button by default (true)', () => {
+		element.clips = [{ clipId: 'a', meta: { name: 'A' }, hasSprite: false, pipelineReady: true }];
+
+		const mapButton = element.querySelector('.clip-map');
+		expect(mapButton).not.toBeNull();
+	});
+
+	test('showMapAction flag can be toggled after clips are set', () => {
+		element.clips = [{ clipId: 'a', meta: { name: 'A' }, hasSprite: false, pipelineReady: true }];
+
+		// Map button should be visible by default
+		let mapButton = element.querySelector('.clip-map');
+		expect(mapButton).not.toBeNull();
+
+		// Hide the Map button
+		element.showMapAction = false;
+		mapButton = element.querySelector('.clip-map');
+		expect(mapButton).toBeNull();
+
+		// Show the Map button again
+		element.showMapAction = true;
+		mapButton = element.querySelector('.clip-map');
+		expect(mapButton).not.toBeNull();
 	});
 });

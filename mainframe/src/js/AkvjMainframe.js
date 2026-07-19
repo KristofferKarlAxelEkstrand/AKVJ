@@ -56,6 +56,7 @@ class AkvjMainframe extends HTMLElement {
 		};
 
 		const clipListElement = root.querySelector('#clip-list');
+		const mappingClipListElement = root.querySelector('#mapping-clip-list');
 		const mappingTableElement = root.querySelector('#mapping-table');
 		const libraryPianoRoll = root.querySelector('#library-piano-roll');
 		const mappingPianoRoll = root.querySelector('#mapping-piano-roll');
@@ -99,6 +100,63 @@ class AkvjMainframe extends HTMLElement {
 			libraryPianoRoll.clearSelection();
 		});
 
+		// Mapping clip list - independent filter/search/sort state
+		const mappingClipSearchInput = root.querySelector('#mapping-clip-search');
+		let mappingSearchQuery = '';
+		let mappingRoleFilter = '';
+		let mappingSortMode = 'name';
+
+		mappingClipSearchInput.addEventListener('input', () => {
+			mappingPianoRoll.clearSelection();
+			mappingSearchQuery = mappingClipSearchInput.value.trim().toLowerCase();
+			mappingClipListElement.searchQuery = mappingSearchQuery;
+			updateMappingFilterVisibility();
+		});
+
+		const mappingClipRoleChoices = root.querySelector('#mapping-clip-role-filter');
+		mappingClipRoleChoices.choices = [
+			{ value: '', label: 'All' },
+			{ value: 'clip', label: 'Clip' },
+			{ value: 'bitmask', label: 'Bitmask' }
+		];
+		mappingClipRoleChoices.addEventListener('rolechange', event => {
+			mappingRoleFilter = event.detail.roleFilter;
+			mappingClipListElement.roleFilter = mappingRoleFilter;
+			updateMappingFilterVisibility();
+		});
+
+		const mappingClipSortChoices = root.querySelector('#mapping-clip-sort');
+		mappingClipSortChoices.choices = [
+			{ value: 'name', label: 'Name' },
+			{ value: 'clipId', label: 'ID' },
+			{ value: 'role', label: 'Role' },
+			{ value: 'frames', label: 'Frames' }
+		];
+		mappingClipSortChoices.addEventListener('sortchange', event => {
+			mappingSortMode = event.detail.sortMode;
+			mappingClipListElement.sortMode = mappingSortMode;
+		});
+
+		const mappingClearFiltersButton = root.querySelector('#mapping-clear-filters');
+		mappingClearFiltersButton.addEventListener('click', () => {
+			mappingSearchQuery = '';
+			mappingRoleFilter = '';
+			mappingSortMode = 'name';
+			mappingClipSearchInput.value = '';
+			mappingClipRoleChoices.roleFilter = '';
+			mappingClipSortChoices.sortMode = 'name';
+			mappingPianoRoll.clearSelection();
+			mappingClipListElement.searchQuery = '';
+			mappingClipListElement.roleFilter = '';
+			mappingClipListElement.sortMode = 'name';
+			updateMappingFilterVisibility();
+		});
+
+		function updateMappingFilterVisibility() {
+			const hasActiveFilter = mappingSearchQuery !== '' || mappingRoleFilter !== '';
+			mappingClearFiltersButton.hidden = !hasActiveFilter;
+		}
+
 		clipListElement.addEventListener('clipsaved', _event => {
 			loadLibrary().catch(error => console.error(error));
 		});
@@ -109,6 +167,14 @@ class AkvjMainframe extends HTMLElement {
 
 		clipListElement.addEventListener('clipmap', event => {
 			mapClipFromLibrary(event.detail.clipId);
+		});
+
+		mappingClipListElement.addEventListener('clipmap', event => {
+			mapClipFromLibrary(event.detail.clipId);
+		});
+
+		mappingClipListElement.addEventListener('clipedit', event => {
+			clipEditor.open(event.detail.clipId);
 		});
 
 		function updateFilterVisibility() {
@@ -184,6 +250,11 @@ class AkvjMainframe extends HTMLElement {
 			clipListElement.clips = mainframeState.clips;
 			updateClipSummary();
 			updateFilterVisibility();
+		}
+
+		function renderMappingClipList() {
+			mappingClipListElement.clips = mainframeState.clips;
+			mappingClipListElement.showMapAction = false;
 		}
 
 		function updateClipSummary() {
@@ -353,6 +424,7 @@ class AkvjMainframe extends HTMLElement {
 		this.#unsubscribers.push(
 			mainframeState.subscribe(EVENT_CLIPS_CHANGED, () => {
 				renderLibrary();
+				renderMappingClipList();
 				fillClipSelect();
 			})
 		);

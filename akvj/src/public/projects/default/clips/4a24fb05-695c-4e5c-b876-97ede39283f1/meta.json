@@ -4,12 +4,7 @@
 	"framesPerRow": 4,
 	"playback": "loop",
 	"retrigger": true,
-	"frameRatesForFrames": {
-		"0": 1,
-		"1": 1,
-		"2": 1,
-		"3": 1
-	},
+	"frameDurationsMs": [1000, 1000, 1000, 1000],
 	"scaleMode": "fit",
 	"frameWidth": 240,
 	"frameHeight": 135,

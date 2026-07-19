@@ -38,7 +38,7 @@ Batch size: a modest batch per wake is fine — steady cleanup beats one giant w
 If the `inbox/` is empty and the `tasks/` queue is completely cleared, do not just exit. Instead, pick ONE of the following:
 
 ### 1. Test Audit & Coverage
-- Run `npm run test:all`. If anything fails, fix it.
+- Run `npm run test`. If anything fails, fix it.
 - If everything passes, pick a critical file in `akvj/src/` or `mainframe/server/` that lacks comprehensive tests and write a new test suite for it in the `test/` directory.
 
 ### 2. Dependency Audit

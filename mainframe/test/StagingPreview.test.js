@@ -158,7 +158,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('play/pause button stays disabled when loadFrames called with no files', async () => {
-		await element.loadFrames([], 240, 135, 12, 'loop');
+		await element.loadFrames([], 240, 135, [], 'loop');
 		const playButton = element.querySelector('button.clip-preview-play');
 		expect(playButton.disabled).toBe(true);
 	});
@@ -180,7 +180,7 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
 
 		const playButton = element.querySelector('button.clip-preview-play');
 		expect(playButton.disabled).toBe(false);
@@ -189,7 +189,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('sets CSS display size to 2× frame size', async () => {
-		await element.loadFrames([], 240, 135, 12, 'loop');
+		await element.loadFrames([], 240, 135, [], 'loop');
 		const canvas = element.querySelector('canvas');
 		expect(canvas.width).toBe(240);
 		expect(canvas.height).toBe(135);
@@ -198,7 +198,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('caps CSS display width at 960px', async () => {
-		await element.loadFrames([], 600, 300, 12, 'loop');
+		await element.loadFrames([], 600, 300, [], 'loop');
 		const canvas = element.querySelector('canvas');
 		expect(canvas.width).toBe(600);
 		expect(canvas.height).toBe(300);
@@ -207,7 +207,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('pattern mode previews on the 240×135 output canvas', async () => {
-		await element.loadFrames([], 16, 16, 12, 'loop', 'pattern');
+		await element.loadFrames([], 16, 16, [], 'loop', 'pattern');
 		const canvas = element.querySelector('canvas');
 		expect(canvas.width).toBe(240);
 		expect(canvas.height).toBe(135);
@@ -216,7 +216,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('shows "No frames staged" when loadFrames called with no files', async () => {
-		await element.loadFrames([], 240, 135, 12, 'loop');
+		await element.loadFrames([], 240, 135, [], 'loop');
 		const frameLabel = element.querySelector('.clip-preview-frame-label');
 		expect(frameLabel.textContent).toBe('No frames staged');
 	});
@@ -238,7 +238,7 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
 
 		const frameLabel = element.querySelector('.clip-preview-frame-label');
 		expect(frameLabel.textContent).toContain('Failed to load');
@@ -267,7 +267,7 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames(files, 240, 135, 12, 'loop');
+		await element.loadFrames(files, 240, 135, [], 'loop');
 
 		const scrub = element.querySelector('.clip-preview-scrub');
 		expect(scrub.disabled).toBe(false);
@@ -300,7 +300,7 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
 		const playButton = element.querySelector('button.clip-preview-play');
 		expect(playButton.disabled).toBe(false);
 		expect(playButton.textContent).toBe('Pause');
@@ -342,7 +342,7 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames(files, 240, 135, 12, 'once', 'fit', durationsMs);
+		await element.loadFrames(files, 240, 135, durationsMs, 'once', 'fit');
 
 		const frameLabel = element.querySelector('.clip-preview-frame-label');
 		expect(frameLabel.textContent).toBe('Frame 1 / 3');
@@ -390,14 +390,14 @@ describe('StagingPreview', () => {
 			}
 		};
 
-		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
 		const speedSelect = element.querySelector('.clip-preview-speed');
 		speedSelect.value = '2';
 		speedSelect.dispatchEvent(new Event('change', { bubbles: true }));
 		expect(element.playbackSpeed).toBe(2);
 		expect(speedSelect.value).toBe('2');
 
-		await element.loadFrames([mockFile], 240, 135, 12, 'loop');
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
 		expect(element.playbackSpeed).toBe(1);
 		expect(element.querySelector('.clip-preview-speed').value).toBe('1');
 
@@ -632,7 +632,7 @@ describe('StagingPreview bake/placement drawing', () => {
 		const restoreImage = installSolidImageMock({ width: 8, height: 8, fill: [255, 0, 0, 255] });
 		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
 
-		await element.loadFrames([file], 32, 32, 12, 'loop', 'none', [1000], { x: 0, y: 0 }, [
+		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 0, y: 0 }, [
 			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
 		]);
 		element.querySelector('button.clip-preview-play').click();
@@ -641,7 +641,7 @@ describe('StagingPreview bake/placement drawing', () => {
 		const baseline = firstOpaquePixel(previewCtx.getImageData(0, 0, canvas.width, canvas.height));
 		expect(baseline).not.toBeNull();
 
-		await element.loadFrames([file], 32, 32, 12, 'loop', 'none', [1000], { x: 10, y: 6 }, [
+		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 10, y: 6 }, [
 			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
 		]);
 		element.querySelector('button.clip-preview-play').click();
@@ -662,7 +662,7 @@ describe('StagingPreview bake/placement drawing', () => {
 			new File(['b'], 'frame1.png', { type: 'image/png' })
 		];
 
-		await element.loadFrames(files, 40, 40, 12, 'loop', 'none', [1000, 1000], { x: 0, y: 0 }, [
+		await element.loadFrames(files, 40, 40, [1000, 1000], 'loop', 'none', { x: 0, y: 0 }, [
 			{ scaleMode: 'none', placement: { x: 0, y: 0 } },
 			{ scaleMode: 'none', placement: { x: 12, y: 0 } }
 		]);
@@ -689,21 +689,21 @@ describe('StagingPreview bake/placement drawing', () => {
 		const restoreImage = installSolidImageMock({ width: 4, height: 4, fill: [0, 0, 255, 255] });
 		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
 
-		await element.loadFrames([file], 16, 16, 12, 'loop', 'fit', [1000], { x: 0, y: 0 }, [
+		await element.loadFrames([file], 16, 16, [1000], 'loop', 'fit', { x: 0, y: 0 }, [
 			{ scaleMode: 'fit' }
 		]);
 		element.querySelector('button.clip-preview-play').click();
 		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 16 && call.sourceHeight === 16)).toBe(true);
 
 		previewCtx.drawCalls.length = 0;
-		await element.loadFrames([file], 300, 200, 12, 'loop', 'fit', [1000], { x: 0, y: 0 }, [
+		await element.loadFrames([file], 300, 200, [1000], 'loop', 'fit', { x: 0, y: 0 }, [
 			{ scaleMode: 'fit' }
 		]);
 		element.querySelector('button.clip-preview-play').click();
 		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 300 && call.sourceHeight === 200)).toBe(true);
 
 		previewCtx.drawCalls.length = 0;
-		await element.loadFrames([file], 16, 16, 12, 'loop', 'pattern', [1000], { x: 3, y: 5 }, [
+		await element.loadFrames([file], 16, 16, [1000], 'loop', 'pattern', { x: 3, y: 5 }, [
 			{ scaleMode: 'none' }
 		]);
 		element.querySelector('button.clip-preview-play').click();

@@ -77,9 +77,9 @@ Then add `sprite.png`, map the clip in `key-map.json`, and run `npm run clips`.
     "framesPerRow": 8,
     "playback": "loop",
     "retrigger": true,
-    "frameRatesForFrames": {
-        "0": 12
-    }
+    "frameDurationsMs": [
+        83.33
+    ]
 }
 ```
 
@@ -92,8 +92,11 @@ Then add `sprite.png`, map the clip in `key-map.json`, and run `npm run clips`.
 | `framesPerRow`        | number        | yes      | Frames per row in sprite sheet                                                                       |
 | `playback`            | string        | no       | Playback mode: `once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub` (default: `loop`) |
 | `retrigger`           | boolean       | no       | Restart on re-trigger (default: `true`)                                                              |
-| `frameRatesForFrames` | object        | no       | FPS per frame index (e.g. `{ "0": 12 }`)                                                             |
-| `frameDurationBeats`  | number/array  | no       | BPM-synced timing in beats per frame (number or per-frame array)                                     |
+| `frameDurationsMs`    | array         | no       | Duration in ms per frame (e.g. `[83.33]`)                                                            |
+| `sync`                | string        | no       | Sync mode: `"free"` (default) or `"beat"` for BPM-synced clips                                       |
+| `syncLength`          | string        | no       | When `sync: "beat"`: preset like `"1 bar"` or `"custom"`                                             |
+| `syncBeats`           | number        | no       | When `syncLength: "custom"`: total beats for the clip                                                |
+| `beatsPerBar`         | number        | no       | Time signature numerator for bar presets (default: 4)                                                |
 | `bitDepth`            | number        | no       | For masks: 1, 2, 4, or 8                                                                             |
 | `role`                | string        | no       | `"bitmask"` for mixer mask clips                                                                     |
 | `triggerType`         | string        | no       | `momentary` (default), `latch`, or `one-shot`                                                        |

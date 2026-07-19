@@ -2,7 +2,7 @@ import '../scss/StagingPreview.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 import { computeFrameDrawRect, resolveScaleMode } from './frameFit.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
-import { fpsToMs } from './frameTiming.js';
+import { DEFAULT_FALLBACK_FPS } from './frameTiming.js';
 import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, resolvePlacement } from './clipSchema.js';
 import { resolveFrameBakeConfig } from './frameBake.js';
 
@@ -23,8 +23,7 @@ class StagingPreview extends HTMLElement {
 	#isScrubbing = false;
 	#targetWidth = 240;
 	#targetHeight = 135;
-	#frameRate = 12;
-	/** @type {number[]} Per-frame hold times in ms (UI timing); empty → fall back to `#frameRate`. */
+	/** @type {number[]} Per-frame hold times in ms (UI timing); empty → fall back to default. */
 	#frameDurationsMs = [];
 	#playbackMode = 'loop';
 	#scaleMode = 'fit';
@@ -63,17 +62,15 @@ class StagingPreview extends HTMLElement {
 	 * @param {File[]} files
 	 * @param {number} targetWidth - Clip cell width
 	 * @param {number} targetHeight - Clip cell height
-	 * @param {number} frameRate - Fallback FPS when a frame has no explicit duration
+	 * @param {number[]} frameDurationsMs - Per-frame hold times in ms (same shape as clip-frames)
 	 * @param {string} playbackMode
 	 * @param {string} [scaleMode='fit']
-	 * @param {number[]} [frameDurationsMs] - Per-frame hold times in ms (same shape as clip-frames)
 	 * @param {{ x?: number, y?: number }} [placement] - Runtime clip placement
 	 * @param {object[]} [bakeConfigs] - Per-frame bake composition (session-only)
 	 */
-	async loadFrames(files, targetWidth, targetHeight, frameRate, playbackMode, scaleMode, frameDurationsMs, placement, bakeConfigs) {
+	async loadFrames(files, targetWidth, targetHeight, frameDurationsMs, playbackMode, scaleMode, placement, bakeConfigs) {
 		this.#targetWidth = targetWidth || 240;
 		this.#targetHeight = targetHeight || 135;
-		this.#frameRate = frameRate || 12;
 		this.#frameDurationsMs = this.#normalizeDurationsMs(frameDurationsMs, files?.length ?? 0);
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
 		this.#scaleMode = resolveScaleMode(scaleMode);
@@ -362,7 +359,7 @@ class StagingPreview extends HTMLElement {
 	 * @returns {number[]}
 	 */
 	#normalizeDurationsMs(frameDurationsMs, frameCount) {
-		const fallbackMs = fpsToMs(this.#frameRate);
+		const fallbackMs = 1000 / DEFAULT_FALLBACK_FPS;
 		const normalized = [];
 		for (let i = 0; i < frameCount; i++) {
 			const raw = Array.isArray(frameDurationsMs) ? Number(frameDurationsMs[i]) : NaN;
@@ -372,7 +369,7 @@ class StagingPreview extends HTMLElement {
 	}
 
 	#getFrameInterval() {
-		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? fpsToMs(this.#frameRate);
+		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? (1000 / DEFAULT_FALLBACK_FPS);
 		return durationMs / this.#playbackSpeed;
 	}
 

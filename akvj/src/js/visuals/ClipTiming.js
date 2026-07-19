@@ -2,10 +2,14 @@
  * ClipTiming — frame interval calculation and clock sync.
  *
  * Handles two timing modes:
- * 1. frameRatesForFrames (FPS) — frame timing in frames-per-second (default)
- * 2. frameDurationBeats (BPM sync) — frame timing in beats, synced to current BPM
- *    When MIDI clock is active, uses real-time clock pulses (24 PPQN)
- *    When no clock, falls back to time-based BPM calculation
+ * 1. Free (FPS) — frame timing in frames-per-second (frameRatesForFrames), no sync
+ * 2. Beat (BPM sync) — the whole clip is scaled to fit `syncBeats` total beats as a unit,
+ *    preserving each frame's natural relative timing:
+ *    - Time-based (no MIDI clock): a speed multiplier scales every frame's natural
+ *      (FPS-derived) interval
+ *    - Clock-driven (MIDI clock active, 24 PPQN): a precomputed cumulative-proportion
+ *      table maps clock-pulse progress to a duration-weighted progress value passed to
+ *      PlaybackController.setLinearProgress() — BPM is irrelevant, pulses are the tempo
  *
  * BPM and clock sources are injected for testability.
  */
@@ -13,10 +17,9 @@
 import settings from '../core/settings.js';
 import appState, { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK, EVENT_MIDI_START } from '../core/AppState.js';
 import { MS_PER_MINUTE } from '../utils/timing.js';
+import { msToFps } from './timingConversion.js';
 
 const MS_PER_SECOND = 1000;
-const DEFAULT_FRAME_DURATION_BEATS = 0.25;
-const DEFAULT_PULSES_PER_FRAME = 6;
 
 /** @typedef {() => number} BpmProvider */
 /** @typedef {{ bpmSource: string, subscribe: (event: string, handler: () => void) => () => void }} ClockSource */
@@ -37,17 +40,23 @@ const defaultClockSource = {
 /**
  * @param {Object} options
  * @param {Object} options.frameRatesForFrames - Frame index → FPS mapping
- * @param {number|number[]|null} options.frameDurationBeats - Beats per frame (single or per-frame array)
+ * @param {Object|null} options.frameDurationsMs - Frame index → ms per frame (takes priority over FPS)
+ * @param {number|null} options.syncBeats - Resolved total clip duration in beats for
+ *   `sync: "beat"` clips (null for free/unsynced clips)
  * @param {number} options.frames - Total frame count
  * @param {BpmProvider} [options.bpmProvider] - Function returning current BPM
  * @param {ClockSource} [options.clockSource] - Object with bpmSource getter and subscribe method
  */
 class ClipTiming {
+	#numberOfFrames;
 	#frameRatesForFrames;
-	#frameDurationBeats;
+	#frameDurationsMs;
 	#defaultFrameRate;
+	#naturalDuration;
+	#cumulativeProportions;
 	#isUsingBPMSync = false;
-	#pulsesPerFrame = null;
+	#syncBeats = null;
+	#totalPulses = null;
 	#pulseCount = 0;
 	#lastTimestamp = null;
 	#unsubscribeFromClock = null;
@@ -55,15 +64,19 @@ class ClipTiming {
 	#clockSource;
 	#currentFrameIndex = 0;
 
-	constructor({ frameRatesForFrames, frameDurationBeats, frames, bpmProvider, clockSource }) {
+	constructor({ frameRatesForFrames, frameDurationsMs, syncBeats, frames, bpmProvider, clockSource }) {
 		this.#bpmProvider = bpmProvider ?? (() => appState.bpm);
 		this.#clockSource = clockSource ?? defaultClockSource;
+		this.#numberOfFrames = frames;
 
-		if (frameDurationBeats !== null && frameDurationBeats !== undefined) {
-			this.#initBPMSync(frameDurationBeats, frames);
-		}
-		this.#initFrameRates(frameRatesForFrames, frames);
+		this.#initFrameRates(frameRatesForFrames, frameDurationsMs, frames);
 		this.#initDefaultFrameRate();
+		this.#naturalDuration = this.#computeNaturalDuration(frames);
+		this.#cumulativeProportions = this.#computeCumulativeProportions(frames);
+
+		if (syncBeats !== null && syncBeats !== undefined) {
+			this.#initBPMSync(syncBeats);
+		}
 	}
 
 	/**
@@ -79,30 +92,38 @@ class ClipTiming {
 	 * @returns {boolean}
 	 */
 	get isClockDriven() {
-		return this.#isUsingBPMSync && this.#pulsesPerFrame !== null && this.#clockSource.bpmSource === BPM_SOURCE_CLOCK;
+		return this.#isUsingBPMSync && this.#clockSource.bpmSource === BPM_SOURCE_CLOCK;
 	}
 
 	/**
 	 * Calculate the interval (ms) for a given frame.
-	 * Uses BPM sync if frameDurationBeats is defined, otherwise uses frameRatesForFrames.
+	 * Uses ms values directly when available (frameDurationsMs), falling back to FPS conversion.
+	 * In beat mode, scales the frame's natural interval by the speed multiplier needed to fit
+	 * `syncBeats` total beats at the current BPM (the whole clip is stretched/compressed as a unit —
+	 * each frame keeps its relative speed).
 	 * @param {number} frameIndex - The frame index
 	 * @returns {number} - Interval in milliseconds
 	 */
 	getFrameInterval(frameIndex) {
-		if (this.#isUsingBPMSync && this.#frameDurationBeats) {
-			const beats = this.#frameDurationBeats[frameIndex] ?? this.#frameDurationBeats[0] ?? DEFAULT_FRAME_DURATION_BEATS;
-			const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
-			const bpm = Math.max(minBPM, this.#bpmProvider());
-			return (beats * MS_PER_MINUTE) / bpm;
+		// Use ms values directly when available (no FPS conversion needed)
+		const naturalInterval = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
+
+		if (!this.#isUsingBPMSync) {
+			return naturalInterval;
 		}
 
-		const framesPerSecond = this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate;
-		return MS_PER_SECOND / framesPerSecond;
+		const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
+		const bpm = Math.max(minBPM, this.#bpmProvider());
+		const targetDuration = (this.#syncBeats * MS_PER_MINUTE) / bpm;
+		const speedMultiplier = targetDuration / this.#naturalDuration;
+		return naturalInterval * speedMultiplier;
 	}
 
 	/**
 	 * Advance frames based on elapsed time.
 	 * Calls `onAdvance()` for each frame interval elapsed; stops if it returns false.
+	 * Used for free mode and time-based beat mode (unchanged for clock-driven — see
+	 * `subscribeToClock`).
 	 * @param {number} timestamp - Current performance.now() timestamp
 	 * @param {() => boolean} onAdvance - Callback returning true to continue, false to stop
 	 */
@@ -142,7 +163,9 @@ class ClipTiming {
 	 * Subscribe to MIDI clock events for BPM-synced playback.
 	 * Also listens for MIDI Start so residual pulse phase is cleared on DAW restart.
 	 * Only subscribes if this clip uses BPM sync. Does not reset on Continue.
-	 * @param {() => boolean} onAdvance - Callback for clock-driven frame advance
+	 * @param {(progress: number) => boolean} onAdvance - Callback for clock-driven
+	 *   progress advance; receives a 0.0-1.0 duration-weighted progress value and
+	 *   returns true to keep playing, false once playback is finished
 	 */
 	subscribeToClock(onAdvance) {
 		if (this.#isUsingBPMSync && !this.#unsubscribeFromClock) {
@@ -179,7 +202,9 @@ class ClipTiming {
 	}
 
 	/**
-	 * Reset timing state (lastTimestamp, pulseCount).
+	 * Reset timing state (lastTimestamp, pulseCount). Also runs on retrigger, so a
+	 * clock-driven clip starts its own independent pulse count from the trigger
+	 * moment, ignoring wherever the global MIDI clock currently is.
 	 */
 	reset() {
 		this.#lastTimestamp = null;
@@ -187,43 +212,59 @@ class ClipTiming {
 	}
 
 	/**
-	 * Initialize BPM sync mode from frameDurationBeats metadata.
-	 * @param {number|number[]} frameDurationBeats
-	 * @param {number} frames - Total frame count for array validation
+	 * Initialize BPM sync mode from the clip's resolved total sync duration in beats.
+	 * @param {number} syncBeats
 	 */
-	#initBPMSync(frameDurationBeats, frames) {
-		this.#isUsingBPMSync = true;
-		if (Array.isArray(frameDurationBeats)) {
-			if (frameDurationBeats.length !== frames) {
-				throw new Error(`Clip: frameDurationBeats array length (${frameDurationBeats.length}) must equal frames (${frames})`);
-			}
-			this.#frameDurationBeats = frameDurationBeats;
-			this.#pulsesPerFrame = frameDurationBeats.map(beats => Math.round(beats * settings.midi.ppqn));
-		} else if (typeof frameDurationBeats === 'number' && frameDurationBeats > 0) {
-			this.#frameDurationBeats = Array(frames).fill(frameDurationBeats);
-			this.#pulsesPerFrame = Array(frames).fill(Math.round(frameDurationBeats * settings.midi.ppqn));
-		} else {
-			throw new Error('Clip: invalid frameDurationBeats');
+	#initBPMSync(syncBeats) {
+		if (typeof syncBeats !== 'number' || syncBeats <= 0) {
+			throw new Error('ClipTiming: invalid syncBeats');
 		}
+		this.#isUsingBPMSync = true;
+		this.#syncBeats = syncBeats;
+		this.#totalPulses = Math.max(1, Math.round(syncBeats * settings.midi.ppqn));
 	}
 
 	/**
-	 * Validate and store frame rates, skipping invalid entries.
+	 * Validate and store frame timing, supporting both ms-based (priority) and FPS-based (fallback).
 	 * @param {Object} frameRatesForFrames - Frame index → FPS mapping
+	 * @param {Object|null} frameDurationsMs - Frame index → ms per frame mapping
 	 * @param {number} frames - Total frame count for bounds checking
 	 */
-	#initFrameRates(frameRatesForFrames, frames) {
+	#initFrameRates(frameRatesForFrames, frameDurationsMs, frames) {
+		this.#frameDurationsMs = {};
 		this.#frameRatesForFrames = {};
-		for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
-			const numericFrameIndex = Number(frameIndex);
-			if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
-				console.warn(`Clip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
-				continue;
+
+		// Priority: frameDurationsMs (ms-based timing)
+		if (frameDurationsMs && typeof frameDurationsMs === 'object') {
+			for (const [frameIndex, durationMs] of Object.entries(frameDurationsMs)) {
+				const numericFrameIndex = Number(frameIndex);
+				if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
+					console.warn(`Clip: frame duration key ${frameIndex} is not a valid frame index; skipping`);
+					continue;
+				}
+				if (typeof durationMs === 'number' && durationMs > 0) {
+					this.#frameDurationsMs[numericFrameIndex] = durationMs;
+					// Also compute FPS for backward compatibility using utility
+					this.#frameRatesForFrames[numericFrameIndex] = msToFps(durationMs);
+				} else {
+					console.warn(`Clip: invalid frame duration for frame ${frameIndex}: ${durationMs}; skipping`);
+				}
 			}
-			if (typeof frameRate === 'number' && frameRate > 0) {
-				this.#frameRatesForFrames[numericFrameIndex] = frameRate;
-			} else {
-				console.warn(`Clip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
+		}
+
+		// Fallback: frameRatesForFrames (FPS-based timing) - only if no ms values were stored
+		if (Object.keys(this.#frameDurationsMs).length === 0) {
+			for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames ?? {})) {
+				const numericFrameIndex = Number(frameIndex);
+				if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
+					console.warn(`Clip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
+					continue;
+				}
+				if (typeof frameRate === 'number' && frameRate > 0) {
+					this.#frameRatesForFrames[numericFrameIndex] = frameRate;
+				} else {
+					console.warn(`Clip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
+				}
 			}
 		}
 	}
@@ -238,8 +279,84 @@ class ClipTiming {
 	}
 
 	/**
-	 * Handle MIDI clock pulse for real-time sync mode.
-	 * @param {() => boolean} onAdvance - Callback for frame advance
+	 * Sum of natural frame intervals — the clip's unscaled duration.
+	 * Uses ms values directly when available, falling back to FPS conversion.
+	 * @param {number} frames
+	 * @returns {number} Duration in milliseconds
+	 */
+	#computeNaturalDuration(frames) {
+		let total = 0;
+		for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
+			// Use ms values directly when available
+			const interval = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
+			total += interval;
+		}
+		return total;
+	}
+
+	/**
+	 * Precompute cumulative natural-duration proportions per frame, static for the
+	 * clip's lifetime (frame timing is clip metadata, not live state).
+	 * `cumulativeProportions[i]` is the fraction of total natural duration elapsed
+	 * at the start of frame i.
+	 * @param {number} frames
+	 * @returns {number[]} Length `frames`; values from 0.0 (frame 0's start) up to <1.0
+	 */
+	#computeCumulativeProportions(frames) {
+		const proportions = [];
+		let elapsed = 0;
+		for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
+			proportions.push(this.#naturalDuration > 0 ? elapsed / this.#naturalDuration : 0);
+			// Use ms values directly when available
+			const interval = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
+			elapsed += interval;
+		}
+		return proportions;
+	}
+
+	/**
+	 * Find the frame whose natural-duration span contains the given progress, via
+	 * the precomputed cumulative-proportion table.
+	 * @param {number} progress - Clamped 0.0-1.0
+	 * @returns {number} Frame index
+	 */
+	#linearFrameIndexForProgress(progress) {
+		for (let frameIndex = this.#numberOfFrames - 1; frameIndex >= 0; frameIndex--) {
+			if (this.#cumulativeProportions[frameIndex] <= progress) {
+				return frameIndex;
+			}
+		}
+		return 0;
+	}
+
+	/**
+	 * Convert raw clock-pulse progress (pulseCount / totalPulses) into a
+	 * duration-weighted progress that PlaybackController.setLinearProgress() can
+	 * quantize uniformly — folding in the clip's non-uniform per-frame natural
+	 * durations via the cumulative-proportion table. PlaybackController owns
+	 * reinterpreting this per playback mode (loop/reverse/pingpong); this step is
+	 * only about timing.
+	 * @param {number} rawProgress - pulseCount / totalPulses
+	 * @returns {number} 0.0-1.0
+	 */
+	#toUniformProgress(rawProgress) {
+		if (rawProgress >= 1) {
+			return 1;
+		}
+		if (rawProgress <= 0) {
+			return 0;
+		}
+		const linearFrameIndex = this.#linearFrameIndexForProgress(rawProgress);
+		return (linearFrameIndex + 0.5) / this.#numberOfFrames;
+	}
+
+	/**
+	 * Handle a MIDI clock pulse for real-time sync mode. Advances pulseCount and
+	 * calls onAdvance with duration-weighted progress on every pulse. Once a full
+	 * cycle completes (progress reaches 1.0), wraps pulseCount only if onAdvance
+	 * signals playback continues (loop); otherwise leaves it — the caller is
+	 * expected to unsubscribe once finished.
+	 * @param {(progress: number) => boolean} onAdvance - Callback for progress advance
 	 */
 	#handleClockPulse(onAdvance) {
 		if (this.#clockSource.bpmSource !== BPM_SOURCE_CLOCK) {
@@ -247,11 +364,11 @@ class ClipTiming {
 		}
 
 		this.#pulseCount++;
-		const pulsesNeeded = this.#pulsesPerFrame[this.#currentFrameIndex] ?? this.#pulsesPerFrame[0] ?? DEFAULT_PULSES_PER_FRAME;
+		const rawProgress = this.#pulseCount / this.#totalPulses;
+		const continues = onAdvance(this.#toUniformProgress(rawProgress));
 
-		if (this.#pulseCount >= pulsesNeeded) {
-			this.#pulseCount = 0;
-			onAdvance();
+		if (rawProgress >= 1 && continues) {
+			this.#pulseCount %= this.#totalPulses;
 		}
 	}
 }

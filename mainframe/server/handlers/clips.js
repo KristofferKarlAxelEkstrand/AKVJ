@@ -5,7 +5,7 @@ import { clipDir, resolveSafeSpritePath, projectRawAssetsRoot, projectKeyMapPath
 import { createClipFromFrames, recompileClip, updateClipFromFrames } from '../spritesheet.js';
 import { loadClipFrameBuffers } from '../frameLoad.js';
 import { durationsMsToFrameRates } from '../../shared/frameTiming.js';
-import { readBody, sendJson } from '../httpUtils.js';
+import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { parseClipFramesBody } from '../clipFramesBody.js';
 import { listClips, activeProjectId, clipsRootFor } from '../clipCatalog.js';
 import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
@@ -53,7 +53,10 @@ export async function handleGetMapping(_req, res) {
 
 export async function handlePutMapping(req, res) {
 	try {
-		const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+		const body = await parseJsonBody(req, res);
+		if (body === null) {
+			return;
+		}
 		await writeMapping(body.mapping ?? body);
 		sendJson(res, 200, { ok: true, mapping: await readMapping() });
 	} catch (error) {
@@ -127,7 +130,10 @@ export async function handlePutClipFrames(req, res, url) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
 	}
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	const parsed = parseClipFramesBody(body);
 	if (!parsed.frameBuffers) {
 		sendJson(res, 400, { error: 'Cannot save with zero frames' });
@@ -168,7 +174,10 @@ export async function handlePutClipFrames(req, res, url) {
 }
 
 export async function handlePostClips(req, res) {
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	const clipId = typeof body.clipId === 'string' ? body.clipId.trim() : '';
 	if (!clipId) {
 		sendJson(res, 400, { error: 'clipId is required' });
@@ -230,7 +239,10 @@ export async function handleRecompileClip(req, res, url) {
 		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
 		return;
 	}
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	const { targetWidth, targetHeight, name, playback, frameRate, role, frameDurations } = body;
 	let { scaleMode } = body;
 	if (!scaleMode) {
@@ -307,7 +319,10 @@ export async function handlePutClipMeta(req, res, url) {
 		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
 		return;
 	}
-	const body = JSON.parse((await readBody(req)).toString('utf8') || '{}');
+	const body = await parseJsonBody(req, res);
+	if (body === null) {
+		return;
+	}
 	const currentMetaPath = path.join(targetDir, 'meta.json');
 	let currentMeta;
 	try {

@@ -76,7 +76,7 @@ describe('normalizeClipMetadata', () => {
 		expect(result.role).toBeNull();
 		expect(result.name).toBeNull();
 		expect(result.frameRatesForFrames).toBeNull();
-		expect(result.frameDurationBeats).toBeNull();
+		expect(result.syncBeats).toBeNull();
 	});
 
 	test('preserves provided optional fields', () => {
@@ -94,7 +94,9 @@ describe('normalizeClipMetadata', () => {
 			role: 'bitmask',
 			name: 'My Clip',
 			frameRatesForFrames: { 0: 12, 3: 24 },
-			frameDurationBeats: 0.5
+			sync: 'beat',
+			syncLength: 'custom',
+			syncBeats: 6
 		};
 		const result = normalizeClipMetadata(meta);
 		expect(result.png).toBe('custom.png');
@@ -108,7 +110,7 @@ describe('normalizeClipMetadata', () => {
 		expect(result.role).toBe('bitmask');
 		expect(result.name).toBe('My Clip');
 		expect(result.frameRatesForFrames).toEqual({ 0: 12, 3: 24 });
-		expect(result.frameDurationBeats).toBe(0.5);
+		expect(result.syncBeats).toBe(6);
 	});
 
 	test('does not mutate input object', () => {
@@ -144,16 +146,16 @@ describe('normalizeClipMetadata', () => {
 	});
 });
 
-describe('normalizeClipMetadata — sync expansion', () => {
-	test('sync: "free" (or absent) leaves frameDurationBeats null', () => {
+describe('normalizeClipMetadata — sync resolution', () => {
+	test('sync: "free" (or absent) leaves syncBeats null', () => {
 		const normalized = normalizeClipMetadata({ frames: 4, framesPerRow: 4, sync: 'free' });
-		expect(normalized.frameDurationBeats).toBeNull();
+		expect(normalized.syncBeats).toBeNull();
 
 		const omitted = normalizeClipMetadata({ frames: 4, framesPerRow: 4 });
-		expect(omitted.frameDurationBeats).toBeNull();
+		expect(omitted.syncBeats).toBeNull();
 	});
 
-	test('explicit frameDurationBeats takes precedence over sync fields', () => {
+	test('frameDurationBeats is never read or produced by this module', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
@@ -161,17 +163,19 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '1 bar',
 			frameDurationBeats: [0.1, 0.2, 0.3, 0.4]
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.1, 0.2, 0.3, 0.4]);
+		expect(normalized.frameDurationBeats).toBeUndefined();
+		expect('frameDurationBeats' in normalized).toBe(false);
+		expect(normalized.syncBeats).toBe(4);
 	});
 
-	test('1/4 beat preset → 0.25 total beats, equal weights', () => {
+	test('1/4 beat preset → 0.25 total beats', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
 			sync: 'beat',
 			syncLength: '1/4 beat'
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.0625, 0.0625, 0.0625, 0.0625]);
+		expect(normalized.syncBeats).toBe(0.25);
 	});
 
 	test('1/2 beat preset → 0.5 total beats', () => {
@@ -181,7 +185,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			sync: 'beat',
 			syncLength: '1/2 beat'
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.25, 0.25]);
+		expect(normalized.syncBeats).toBe(0.5);
 	});
 
 	test('1 beat preset → 1 total beat', () => {
@@ -191,7 +195,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			sync: 'beat',
 			syncLength: '1 beat'
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.25, 0.25, 0.25, 0.25]);
+		expect(normalized.syncBeats).toBe(1);
 	});
 
 	test('2 beats preset → 2 total beats', () => {
@@ -201,7 +205,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			sync: 'beat',
 			syncLength: '2 beats'
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.5, 0.5, 0.5, 0.5]);
+		expect(normalized.syncBeats).toBe(2);
 	});
 
 	test('1 bar preset @ beatsPerBar 4 → 4 total beats (spec sanity check)', () => {
@@ -212,7 +216,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '1 bar',
 			beatsPerBar: 4
 		});
-		expect(normalized.frameDurationBeats).toEqual([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]);
+		expect(normalized.syncBeats).toBe(4);
 	});
 
 	test('2 bars preset @ beatsPerBar 4 → 8 total beats', () => {
@@ -223,27 +227,27 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '2 bars',
 			beatsPerBar: 4
 		});
-		expect(normalized.frameDurationBeats).toEqual([2, 2, 2, 2]);
+		expect(normalized.syncBeats).toBe(8);
 	});
 
-	test('4 bars preset @ beatsPerBar 4 → 16 total beats', () => {
+	test('4 bars preset @ default beatsPerBar → 16 total beats', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
 			sync: 'beat',
 			syncLength: '4 bars'
 		});
-		expect(normalized.frameDurationBeats).toEqual([4, 4, 4, 4]);
+		expect(normalized.syncBeats).toBe(16);
 	});
 
-	test('8 bars preset @ beatsPerBar 4 → 32 total beats', () => {
+	test('8 bars preset @ default beatsPerBar → 32 total beats', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 8,
 			framesPerRow: 8,
 			sync: 'beat',
 			syncLength: '8 bars'
 		});
-		expect(normalized.frameDurationBeats).toEqual([4, 4, 4, 4, 4, 4, 4, 4]);
+		expect(normalized.syncBeats).toBe(32);
 	});
 
 	test('odd meter: 1 bar @ beatsPerBar 3 → 3 total beats', () => {
@@ -254,7 +258,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '1 bar',
 			beatsPerBar: 3
 		});
-		expect(normalized.frameDurationBeats).toEqual([1, 1, 1]);
+		expect(normalized.syncBeats).toBe(3);
 	});
 
 	test('odd meter: 2 bars @ beatsPerBar 5 → 10 total beats', () => {
@@ -265,7 +269,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '2 bars',
 			beatsPerBar: 5
 		});
-		expect(normalized.frameDurationBeats).toEqual([2, 2, 2, 2, 2]);
+		expect(normalized.syncBeats).toBe(10);
 	});
 
 	test('odd meter: 1 bar @ beatsPerBar 7 → 7 total beats', () => {
@@ -276,7 +280,7 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: '1 bar',
 			beatsPerBar: 7
 		});
-		expect(normalized.frameDurationBeats).toEqual([1, 1, 1, 1, 1, 1, 1]);
+		expect(normalized.syncBeats).toBe(7);
 	});
 
 	test('custom syncBeats → exact total beats', () => {
@@ -287,51 +291,38 @@ describe('normalizeClipMetadata — sync expansion', () => {
 			syncLength: 'custom',
 			syncBeats: 6
 		});
-		expect(normalized.frameDurationBeats).toEqual([1.5, 1.5, 1.5, 1.5]);
+		expect(normalized.syncBeats).toBe(6);
 	});
 
-	test('weighted frames: one frame double weight, rest shrink, sum stays totalBeats', () => {
-		// 4 frames, 1 bar @ beatsPerBar 4 → total 4 beats
-		// Frame 0 has fps=5 (weight 1/5 = 0.2), frames 1-3 have no fps (weight 1)
-		// Total weight = 0.2 + 1 + 1 + 1 = 3.2
-		// Frame 0: (0.2 / 3.2) * 4 = 0.25
-		// Frames 1-3: (1 / 3.2) * 4 = 1.25 each
-		const normalized = normalizeClipMetadata({
-			frames: 4,
-			framesPerRow: 4,
-			sync: 'beat',
-			syncLength: '1 bar',
-			beatsPerBar: 4,
-			frameRatesForFrames: { 0: 5 }
-		});
-		const beats = normalized.frameDurationBeats;
-		expect(beats).toHaveLength(4);
-		expect(beats[0]).toBeCloseTo(0.25, 10);
-		expect(beats[1]).toBeCloseTo(1.25, 10);
-		expect(beats[2]).toBeCloseTo(1.25, 10);
-		expect(beats[3]).toBeCloseTo(1.25, 10);
-		const sum = beats.reduce((acc, b) => acc + b, 0);
-		expect(sum).toBeCloseTo(4, 10);
-	});
-
-	test('invalid syncLength returns null frameDurationBeats', () => {
+	test('invalid syncLength returns null syncBeats', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
 			sync: 'beat',
 			syncLength: 'bogus'
 		});
-		expect(normalized.frameDurationBeats).toBeNull();
+		expect(normalized.syncBeats).toBeNull();
 	});
 
-	test('custom without syncBeats returns null frameDurationBeats', () => {
+	test('custom without syncBeats returns null syncBeats', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
 			sync: 'beat',
 			syncLength: 'custom'
 		});
-		expect(normalized.frameDurationBeats).toBeNull();
+		expect(normalized.syncBeats).toBeNull();
+	});
+
+	test('custom with a non-positive syncBeats returns null', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 4,
+			framesPerRow: 4,
+			sync: 'beat',
+			syncLength: 'custom',
+			syncBeats: 0
+		});
+		expect(normalized.syncBeats).toBeNull();
 	});
 
 	test('does not mutate input object', () => {
@@ -339,5 +330,82 @@ describe('normalizeClipMetadata — sync expansion', () => {
 		const snapshot = JSON.parse(JSON.stringify(raw));
 		normalizeClipMetadata(raw);
 		expect(raw).toEqual(snapshot);
+	});
+});
+
+describe('normalizeClipMetadata — frameDurationsMs conversion', () => {
+	test('frameDurationsMs converts to frameRatesForFrames (FPS = 1000 / durationMs)', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 4,
+			framesPerRow: 4,
+			frameDurationsMs: { 0: 50, 1: 100, 2: 33.33, 3: 25 }
+		});
+		expect(normalized.frameRatesForFrames[0]).toBe(20); // 1000 / 50
+		expect(normalized.frameRatesForFrames[1]).toBe(10); // 1000 / 100
+		expect(normalized.frameRatesForFrames[2]).toBeCloseTo(30.003, 3); // 1000 / 33.33 (approximate due to floating-point)
+		expect(normalized.frameRatesForFrames[3]).toBe(40); // 1000 / 25
+	});
+
+	test('frameDurationsMs with single frame converts correctly', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 1,
+			framesPerRow: 1,
+			frameDurationsMs: { 0: 16.67 }
+		});
+		expect(normalized.frameRatesForFrames[0]).toBeCloseTo(60, 1); // 1000 / 16.67 ≈ 60
+	});
+
+	test('frameRatesForFrames takes priority over frameDurationsMs', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2,
+			frameRatesForFrames: { 0: 30, 1: 60 },
+			frameDurationsMs: { 0: 100, 1: 50 }
+		});
+		expect(normalized.frameRatesForFrames).toEqual({ 0: 30, 1: 60 });
+	});
+
+	test('backward compatibility: frameRatesForFrames-only clips work unchanged', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 3,
+			framesPerRow: 3,
+			frameRatesForFrames: { 0: 12, 1: 24, 2: 30 }
+		});
+		expect(normalized.frameRatesForFrames).toEqual({ 0: 12, 1: 24, 2: 30 });
+	});
+
+	test('invalid frameDurationsMs (zero or negative) are skipped', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 3,
+			framesPerRow: 3,
+			frameDurationsMs: { 0: 50, 1: 0, 2: -10 }
+		});
+		expect(normalized.frameRatesForFrames).toEqual({ 0: 20 });
+	});
+
+	test('empty frameDurationsMs results in null frameRatesForFrames', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: {}
+		});
+		expect(normalized.frameRatesForFrames).toBeNull();
+	});
+
+	test('missing both frameRatesForFrames and frameDurationsMs results in null', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2
+		});
+		expect(normalized.frameRatesForFrames).toBeNull();
+	});
+
+	test('non-object frameDurationsMs is ignored', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: 'invalid'
+		});
+		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 });

@@ -259,7 +259,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		expect(clip2.triggerGroup).toBe('bg');
 	});
 
-	test('sync overrides on two placements expand to different frameDurationBeats', async () => {
+	test('sync overrides on two placements resolve to different syncBeats', async () => {
 		const { normalizeClipMetadata } = await import('../src/js/visuals/clipMetadata.js');
 		const baseMeta = {
 			png: 'sprite.png',
@@ -289,8 +289,34 @@ describe('ClipLoader - mapping edge cases', () => {
 		// Same shallow-merge + normalize path ClipLoader uses in #loadMappedClip / #createClip
 		const oneBar = normalizeClipMetadata({ ...baseMeta, sync: 'beat', syncLength: '1 bar', beatsPerBar: 4 });
 		const twoBars = normalizeClipMetadata({ ...baseMeta, sync: 'beat', syncLength: '2 bars', beatsPerBar: 4 });
-		expect(oneBar.frameDurationBeats).toEqual([1, 1, 1, 1]);
-		expect(twoBars.frameDurationBeats).toEqual([2, 2, 2, 2]);
+		expect(oneBar.syncBeats).toBe(4);
+		expect(twoBars.syncBeats).toBe(8);
+	});
+
+	test('loads clip successfully when frameRatesForFrames is omitted from metadata', async () => {
+		// This simulates clips that use BPM sync (sync/syncLength) and don't define frameRatesForFrames
+		const catalog = {
+			'bpm-sync-clip': {
+				png: 'sprite.png',
+				frames: 4,
+				framesPerRow: 4,
+				playback: 'loop',
+				sync: 'beat',
+				syncLength: '1 bar',
+				retrigger: true
+				// frameRatesForFrames is intentionally omitted
+			}
+		};
+		const keyMap = { 1: { 60: { 0: 'bpm-sync-clip' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage();
+
+		const loader = new ClipLoader({});
+		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+
+		// Clip should load successfully without throwing
+		expect(clips[0][60][0]).toBeDefined();
+		expect(clips[0][60][0]).toBeInstanceOf(Object);
 	});
 });
 

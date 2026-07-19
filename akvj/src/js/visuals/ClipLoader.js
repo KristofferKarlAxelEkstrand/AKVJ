@@ -26,11 +26,47 @@ class ClipLoader {
 
 	/**
 	 * Sanitize clip file name - prevents path traversal and ensures a safe filename.
+	 * Hardened against additional malicious patterns including null bytes,
+	 * consecutive dots, leading/trailing dots and spaces, and unicode attacks.
 	 */
 	#sanitizeFileName(filename) {
 		if (!filename || typeof filename !== 'string') {
 			return '';
 		}
+		
+		// Reject null bytes and other control characters
+		for (let i = 0; i < filename.length; i++) {
+			const charCode = filename.charCodeAt(i);
+			if (charCode <= 31 || charCode === 127) {
+				console.warn('ClipLoader: invalid file name (contains control characters)', filename);
+				return '';
+			}
+		}
+		
+		// Reject excessively long filenames (DoS protection)
+		if (filename.length > 255) {
+			console.warn('ClipLoader: invalid file name (exceeds maximum length)', filename);
+			return '';
+		}
+		
+		// Reject leading/trailing dots and spaces
+		if (/^[.\s]|[.\s]$/.test(filename)) {
+			console.warn('ClipLoader: invalid file name (has leading/trailing dots or spaces)', filename);
+			return '';
+		}
+		
+		// Reject consecutive dots (path traversal attempt)
+		if (/\.\./.test(filename)) {
+			console.warn('ClipLoader: invalid file name (contains consecutive dots)', filename);
+			return '';
+		}
+		
+		// Reject path separators
+		if (/[/\\]/.test(filename)) {
+			console.warn('ClipLoader: invalid file name (contains path separators)', filename);
+			return '';
+		}
+		
 		const filenameMatch = filename.match(/^([a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?\.(png|jpg|jpeg|gif))$/i);
 		if (!filenameMatch) {
 			console.warn('ClipLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
@@ -75,10 +111,39 @@ class ClipLoader {
 			if (crossOrigin !== null && crossOrigin !== undefined) {
 				image.crossOrigin = crossOrigin;
 			}
-			image.onload = () => resolve(image);
+			image.onload = () => {
+				if (!this.#validateImageDimensions(image)) {
+					reject(new Error(`Image dimensions exceed safe bounds: ${image.width}x${image.height}`));
+					return;
+				}
+				resolve(image);
+			};
 			image.onerror = () => reject(new Error(`Failed to load image: ${imageUrl}`));
 			image.src = imageUrl;
 		});
+	}
+
+	/**
+	 * Validate image dimensions against security limits
+	 * @param {HTMLImageElement} image
+	 * @returns {boolean}
+	 */
+	#validateImageDimensions(image) {
+		const { maxImageWidth, maxImageHeight, maxTotalPixels } = settings.performance;
+		const { width, height } = image;
+		
+		if (width > maxImageWidth || height > maxImageHeight) {
+			console.warn(`ClipLoader: image dimensions ${width}x${height} exceed maximum allowed ${maxImageWidth}x${maxImageHeight}`);
+			return false;
+		}
+		
+		const totalPixels = width * height;
+		if (totalPixels > maxTotalPixels) {
+			console.warn(`ClipLoader: image total pixels ${totalPixels} exceed maximum allowed ${maxTotalPixels}`);
+			return false;
+		}
+		
+		return true;
 	}
 
 	/**
@@ -93,8 +158,8 @@ class ClipLoader {
 				frames: normalized.frames,
 				framesPerRow: normalized.framesPerRow,
 				playback: normalized.playback,
-				frameRatesForFrames: normalized.frameRatesForFrames,
-				frameDurationBeats: normalized.frameDurationBeats,
+				frameRatesForFrames: normalized.frameRatesForFrames ?? undefined,
+				syncBeats: normalized.syncBeats,
 				retrigger: normalized.retrigger,
 				bitDepth: normalized.bitDepth,
 				triggerType: normalized.triggerType,
@@ -339,19 +404,34 @@ class ClipLoader {
 
 	/**
 	 * Build the nested clips object from successful load results.
+	 * Enforces maximum active clip limit to prevent resource exhaustion.
 	 * @param {Array} loadResults
 	 * @returns {Object}
 	 */
 	#buildClipsObject(loadResults) {
 		const clips = {};
+		let clipCount = 0;
+		const maxActiveClips = settings.performance?.maxActiveClips ?? 512;
+		
 		for (const loadResult of loadResults) {
 			if (loadResult) {
+				if (clipCount >= maxActiveClips) {
+					console.warn(`ClipLoader: reached maximum active clip limit (${maxActiveClips}), skipping remaining clips`);
+					break;
+				}
+				
 				const { channel, note, velocityThreshold, clip } = loadResult;
 				clips[channel] ??= {};
 				clips[channel][note] ??= {};
 				clips[channel][note][velocityThreshold] = clip;
+				clipCount++;
 			}
 		}
+		
+		if (clipCount >= maxActiveClips) {
+			console.warn(`ClipLoader: loaded ${clipCount} clips (at maximum limit)`);
+		}
+		
 		return clips;
 	}
 

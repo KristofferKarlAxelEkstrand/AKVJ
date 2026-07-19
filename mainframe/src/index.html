@@ -53,19 +53,6 @@
 							</label>
 							<button type="button" id="clip-frames-set-all-duration" title="Apply this duration to every frame">Set all</button>
 							<label>
-								FPS preset
-								<select id="clip-frames-fps-preset" title="Apply a uniform duration derived from FPS (ms = 1000/fps)">
-									<option value="">—</option>
-									<option value="6">6</option>
-									<option value="12" selected>12</option>
-									<option value="15">15</option>
-									<option value="24">24</option>
-									<option value="25">25</option>
-									<option value="30">30</option>
-								</select>
-							</label>
-							<button type="button" id="clip-frames-apply-fps-preset" title="Set every frame to 1000/fps milliseconds">Apply FPS</button>
-							<label>
 								Bake scale (all)
 								<select id="clip-frames-global-bake-scale" title="Apply this bake scale mode to every staged image">
 									<option value="">—</option>
@@ -88,7 +75,7 @@
 						<div class="clip-frames-toolbar" id="clip-editor-sync-toolbar">
 							<label>
 								Sync
-								<select id="clip-editor-sync" title="Free uses per-frame ms/FPS; Beat synced fits the clip into a musical length">
+								<select id="clip-editor-sync" title="Free uses per-frame ms; Beat synced fits the clip into a musical length">
 									<option value="free" selected>Free</option>
 									<option value="beat">Beat synced</option>
 								</select>
@@ -212,6 +199,13 @@
 					</div>
 					<p class="hint">Key-map for active project: <strong id="mapping-project-label">default</strong>. Channels use DAW numbering (1–16).</p>
 					<akvj-mapping-table id="mapping-table"></akvj-mapping-table>
+					<div class="panel-actions">
+						<sort-choices id="mapping-clip-sort"></sort-choices>
+						<role-choices id="mapping-clip-role-filter"></role-choices>
+						<input type="search" id="mapping-clip-search" class="clip-search" placeholder="Filter clips by name or role…" aria-label="Filter mapping clips" />
+						<button type="button" id="mapping-clear-filters" class="clear-filters" hidden>Clear filters</button>
+					</div>
+					<akvj-clip-list id="mapping-clip-list" class="clip-list"></akvj-clip-list>
 					<div class="mapping-add">
 						<label>Channel <input id="map-channel" type="number" min="1" max="16" value="1" /></label>
 						<label>Note <input id="map-note" type="number" min="0" max="127" value="0" /></label>
