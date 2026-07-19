@@ -70,7 +70,7 @@ core, mainframe editor/controller, mainframe server/pipeline, or the e2e/smoke t
   overrides messages or a more important gap.
 
 ### 3. Mail the team (your output)
-File findings into **`../inbox/`** as `[TEST]-<area>-coverage.md` so the Team Lead triages them into
+File findings into **`../mail/in/`** as `[TEST]-<area>-coverage.md` so the Team Lead triages them into
 `tasks/`.
 - Prefer **one batched ticket per sweep** with a checklist. Each item: the module/file, what's
   untested or wrong, the specific cases to add (e.g. "`PlaybackController`: pingpong, random,
@@ -88,8 +88,7 @@ File findings into **`../inbox/`** as `[TEST]-<area>-coverage.md` so the Team Le
 After completing your work cycle, run the following command in your terminal and wait for it to exit — it will wake you on new mail **or** on a random 20–40 minute timer for your next coverage sweep:
 
 ```bash
-node .agents/workflows/scripts/await-messages.js \
-  .agents/workflows/developer-team/slack/test-marshal
+node .agents/workflows/scripts/await-messages.js developer-team test-marshal
 ```
 
 When the script exits, immediately re-run your workflow loop from Step 1.

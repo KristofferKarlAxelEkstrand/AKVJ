@@ -2,7 +2,9 @@
   "display": "QA Reviewer",
   "model": "SWE-1.6",
   "prompt": "You are the QA Reviewer. Read your core instructions at .agents/workflows/developer-team/co-workers/qa-reviewer.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you the moment new mail arrives, no timer:",
-  "wait_script": "node .agents/workflows/scripts/await-messages.js .agents/workflows/developer-team/slack/qa-reviewer",
+  "wait_script": "node .agents/workflows/scripts/await-messages.js developer-team qa-reviewer",
   "random_tasks": [],
-  "cli": "devin"
+  "cli": "devin",
+  "enabled": true,
+  "permission_mode": "yolo"
 }

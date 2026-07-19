@@ -27,7 +27,7 @@ CLAUDE_BIN=$(command -v claude 2>/dev/null)
 [ -z "$DEVIN_BIN" ] && [ -z "$CLAUDE_BIN" ] && echo "Warning: neither devin nor claude found in PATH"
 
 # Change to AKVJ directory
-cd "$AKVJ_ROOT"
+cd "$AKVJ_ROOT" || { echo "Error: Cannot cd to $AKVJ_ROOT"; exit 1; }
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -119,11 +119,110 @@ discover_agents() {
         if [ -f "$config_file" ]; then
             local agent_name
             agent_name=$(basename "$config_file" .prompt.json)
+            local enabled
+            enabled=$(read_json "$config_file" '.enabled' 'true')
+            if [ "$enabled" != "true" ]; then
+                echo "Skipping disabled agent: $agent_name" >&2
+                continue
+            fi
             agents+=("$agent_name")
         fi
     done
 
     printf '%s\n' "${agents[@]}"
+}
+
+# ---------------------------------------------------------------------------
+# Pre-flight validation — abort before starting tmux if any config is broken
+# ---------------------------------------------------------------------------
+validate_all_agents() {
+    local workflow=$1
+    local config_dir="$WORKFLOWS_DIR/$workflow/co-workers"
+    local errors=()
+    local warnings=()
+
+    if [ ! -d "$config_dir" ]; then
+        echo "Error: No co-workers directory found for workflow '$workflow'"
+        exit 1
+    fi
+
+    for config_file in "$config_dir"/*.prompt.json; do
+        [ -f "$config_file" ] || continue
+
+        local agent_name
+        agent_name=$(basename "$config_file" .prompt.json)
+
+        local enabled
+        enabled=$(read_json "$config_file" '.enabled' 'true')
+        if [ "$enabled" != "true" ]; then
+            continue
+        fi
+
+        if ! jq -e . "$config_file" >/dev/null 2>&1; then
+            errors+=("[$agent_name] Config file is not valid JSON")
+            continue
+        fi
+
+        local startup_prompt cli wait_script
+        startup_prompt=$(read_json "$config_file" '.prompt' '')
+        cli=$(read_json "$config_file" '.cli' 'devin')
+        wait_script=$(read_json "$config_file" '.wait_script' '')
+
+        if [ -z "$startup_prompt" ]; then
+            errors+=("[$agent_name] prompt is empty")
+        fi
+
+        if [ "$cli" != "devin" ] && [ "$cli" != "claude" ]; then
+            errors+=("[$agent_name] cli must be 'devin' or 'claude', got '$cli'")
+            continue
+        fi
+
+        if [ "$cli" = "claude" ] && [ -z "$CLAUDE_BIN" ]; then
+            errors+=("[$agent_name] cli=$cli but claude binary not found in PATH")
+        fi
+        if [ "$cli" = "devin" ] && [ -z "$DEVIN_BIN" ]; then
+            errors+=("[$agent_name] cli=$cli but devin binary not found in ~/.devin-server/bin")
+        fi
+
+        local permission_mode
+        permission_mode=$(read_json "$config_file" '.permission_mode' '')
+        if [ -n "$permission_mode" ]; then
+            if [ "$cli" = "devin" ]; then
+                case "$permission_mode" in
+                    yolo|default) ;;
+                    *) errors+=("[$agent_name] unknown permission_mode '$permission_mode' for cli=devin (expected: yolo, default)") ;;
+                esac
+            elif [ "$cli" = "claude" ]; then
+                case "$permission_mode" in
+                    bypassPermissions|default|acceptEdits) ;;
+                    *) errors+=("[$agent_name] unknown permission_mode '$permission_mode' for cli=claude (expected: bypassPermissions, default, acceptEdits)") ;;
+                esac
+            fi
+        fi
+
+        if [ -z "$wait_script" ]; then
+            if [ "$cli" = "claude" ]; then
+                errors+=("[$agent_name] wait_script is empty — required for cli=claude (loop has no blocking step without it)")
+            else
+                warnings+=("[$agent_name] wait_script is empty")
+            fi
+        fi
+    done
+
+    if [ ${#warnings[@]} -gt 0 ]; then
+        for warning in "${warnings[@]}"; do
+            echo "Warning: $warning" >&2
+        done
+    fi
+
+    if [ ${#errors[@]} -gt 0 ]; then
+        echo "Pre-flight check failed — fix the following before starting:"
+        for error in "${errors[@]}"; do
+            echo "  $error"
+        done
+        echo "Aborting. No agents were started."
+        exit 1
+    fi
 }
 
 # Launch the right CLI in a tmux pane.
@@ -136,6 +235,7 @@ launch_agent_in_pane() {
     local model="$3"
     local prompt_file="$4"
     local wait_script="$5"
+    local permission_mode="$6"
 
     tmux send-keys -t "$pane_target" "cd $AKVJ_ROOT" C-m
 
@@ -146,7 +246,11 @@ launch_agent_in_pane() {
         fi
         # Claude loop: claude processes one turn then exits; wait script blocks until
         # new mail; shell loop restarts claude for the next cycle.
-        local loop_cmd="while true; do $CLAUDE_BIN --model $model --permission-mode $CLAUDE_PERMISSION_MODE < '$prompt_file'; $wait_script; done"
+        # printf %s prevents bash from interpreting shell metacharacters ($, backticks, \)
+        # in the variable values when building the command string.
+        local loop_cmd
+        printf -v loop_cmd "while true; do %s --model %s --permission-mode %s < '%s'; %s; done" \
+            "$CLAUDE_BIN" "$model" "$permission_mode" "$prompt_file" "$wait_script"
         tmux send-keys -t "$pane_target" "$loop_cmd" C-m
     else
         # Devin (default)
@@ -154,11 +258,11 @@ launch_agent_in_pane() {
             echo "Error: cli is 'devin' but devin binary not found in ~/.devin-server/bin" >&2
             return 1
         fi
-        tmux send-keys -t "$pane_target" "$DEVIN_BIN --model $model --permission-mode $DEVIN_PERMISSION_MODE --prompt-file $prompt_file" C-m
-        # Devin manages its own loop; wait_script is sent as the next command after
-        # Devin finishes its startup turn.
+        tmux send-keys -t "$pane_target" "$DEVIN_BIN --model $model --permission-mode $permission_mode --prompt-file $prompt_file" C-m
+        # Devin needs a moment to initialize; wait before sending the follow-up wait command.
+        # This is a pragmatic shell delay — the prompt is already loaded by the time the binary starts.
         if [ -n "$wait_script" ]; then
-            sleep 1
+            sleep 2
             tmux send-keys -t "$pane_target" "$wait_script" C-m
         fi
     fi
@@ -198,19 +302,24 @@ restart_agent() {
         return 1
     fi
 
-    local startup_prompt model wait_script cli
+    local startup_prompt model wait_script cli permission_mode
     startup_prompt=$(read_json "$config_file" '.prompt' '')
     model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
     wait_script=$(read_json "$config_file" '.wait_script' '')
     cli=$(read_json "$config_file" '.cli' 'devin')
+    local default_permission_mode
+    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
+    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
 
     if [ -z "$startup_prompt" ]; then
         echo "Error: No prompt found in $config_file"
         return 1
     fi
 
-    local prompt_file
-    prompt_file=$(mktemp)
+    mkdir -p "$WORKFLOWS_DIR/$workflow/.temp"
+
+    # Stable path so the Claude loop can re-read on every iteration
+    local prompt_file="$WORKFLOWS_DIR/$workflow/.temp/prompt-${agent_name}.txt"
     echo "$startup_prompt" > "$prompt_file"
 
     echo "Restarting agent: $agent_name (cli=$cli) in pane $pane_index..."
@@ -219,9 +328,12 @@ restart_agent() {
     tmux send-keys -t "$session_name:0.$pane_index" C-c
     sleep 2
 
-    launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+    launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode"
 
-    rm -f "$prompt_file"
+    local display_name
+    display_name=$(read_json "$config_file" '.display' "$agent_name")
+    tmux select-pane -t "$session_name:0.$pane_index" -T "$display_name"
+
     echo "Agent $agent_name restarted successfully"
 }
 
@@ -257,23 +369,31 @@ monitor_workflow() {
                 pane_index=$(jq -r '.pane_index' "$pane_tracking_file")
                 if [ -n "$pane_index" ] && [ "$pane_index" != "null" ]; then
                     local config_file="$config_dir/${agent_to_restart}.prompt.json"
-                    local startup_prompt model wait_script cli
+                    local startup_prompt model wait_script cli permission_mode
                     startup_prompt=$(read_json "$config_file" '.prompt' '')
                     model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
                     wait_script=$(read_json "$config_file" '.wait_script' '')
                     cli=$(read_json "$config_file" '.cli' 'devin')
+                    local default_permission_mode
+                    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
+                    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
 
                     if [ -n "$startup_prompt" ]; then
-                        local prompt_file
-                        prompt_file=$(mktemp)
+                        mkdir -p "$WORKFLOWS_DIR/$workflow/.temp"
+
+                        # Stable path so the Claude loop can re-read on every iteration
+                        local prompt_file="$WORKFLOWS_DIR/$workflow/.temp/prompt-${agent_to_restart}.txt"
                         echo "$startup_prompt" > "$prompt_file"
 
                         echo "Restarting $agent_to_restart (cli=$cli) in pane $pane_index..."
                         tmux send-keys -t "$session_name:0.$pane_index" C-c
                         sleep 2
-                        launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+                        launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode"
 
-                        rm -f "$prompt_file"
+                        local display_name
+                        display_name=$(read_json "$config_file" '.display' "$agent_to_restart")
+                        tmux select-pane -t "$session_name:0.$pane_index" -T "$display_name"
+
                         echo "Agent $agent_to_restart restarted"
                     fi
                 fi
@@ -307,8 +427,6 @@ monitor_workflow() {
 # Parse command line arguments
 # ---------------------------------------------------------------------------
 WORKFLOW=""
-RESTART_AGENT=""
-MONITOR_MODE=false
 
 if [ "$1" = "--list" ] || [ "$1" = "-l" ]; then
     list_running_teams
@@ -372,6 +490,9 @@ if [ ${#AGENTS[@]} -eq 0 ]; then
     exit 1
 fi
 
+# Validate all agent configs before touching tmux
+validate_all_agents "$WORKFLOW"
+
 echo "Starting workflow: $WORKFLOW"
 echo "Found ${#AGENTS[@]} agents: ${AGENTS[*]}"
 echo ""
@@ -380,99 +501,93 @@ SESSION_NAME="${WORKFLOW}-agents"
 CONFIG_DIR="$WORKFLOWS_DIR/$WORKFLOW/co-workers"
 HEALTH_DIR="$WORKFLOWS_DIR/$WORKFLOW/health"
 
-mkdir -p "$HEALTH_DIR"
-
-# Cleanup temp prompt files on exit
-TEMP_FILES=()
-cleanup() {
-    for temp_file in "${TEMP_FILES[@]}"; do
-        rm -f "$temp_file" 2>/dev/null
-    done
-}
-trap cleanup EXIT
+mkdir -p "$HEALTH_DIR" "$HEALTH_DIR/heartbeats" "$HEALTH_DIR/restart-requests"
+mkdir -p "$WORKFLOWS_DIR/$WORKFLOW/.temp"
 
 # Kill any existing session and start fresh
 tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 tmux new-session -d -s "$SESSION_NAME" -n agents
 
-add_agent() {
+# Show agent names in pane borders
+tmux set-option -t "$SESSION_NAME" pane-border-status top
+tmux set-option -t "$SESSION_NAME" pane-border-format " #{pane_title} "
+
+launch_agent() {
     local name="$1"
+    local pane_index="$2"
     local config_file="${CONFIG_DIR}/${name}.prompt.json"
 
-    local startup_prompt model wait_script cli
+    local startup_prompt model wait_script cli permission_mode
     startup_prompt=$(read_json "$config_file" '.prompt' '')
     model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
     wait_script=$(read_json "$config_file" '.wait_script' '')
     cli=$(read_json "$config_file" '.cli' 'devin')
+    local default_permission_mode
+    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
+    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
 
     if [ -z "$startup_prompt" ]; then
         echo "Error: No prompt found in $config_file" >&2
         return 1
     fi
 
-    local prompt_file
-    prompt_file=$(mktemp)
+    # Stable path so the chosen CLI can re-read the prompt on every restart
+    local prompt_file="$WORKFLOWS_DIR/$WORKFLOW/.temp/prompt-${name}.txt"
     echo "$startup_prompt" > "$prompt_file"
-    TEMP_FILES+=("$prompt_file")
 
-    tmux split-window -h -t "$SESSION_NAME"
+    launch_agent_in_pane "$SESSION_NAME:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode"
+
+    local display_name
+    display_name=$(read_json "$config_file" '.display' "$name")
+    tmux select-pane -t "$SESSION_NAME:0.$pane_index" -T "$display_name"
+
+    echo "{\"agent\":\"$name\",\"pane_index\":$pane_index,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
+}
+
+add_agent() {
+    local name="$1"
+
+    # Capture the new pane index directly from the split command
     local pane_index
-    pane_index=$(tmux display-message -p -t "$SESSION_NAME" '#{pane_index}')
+    pane_index=$(tmux split-window -h -t "$SESSION_NAME" -P -F '#{pane_index}')
     if [ -z "$pane_index" ]; then
         echo "Error: Could not determine pane index for agent $name" >&2
         return 1
     fi
 
-    launch_agent_in_pane "$SESSION_NAME:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script"
+    launch_agent "$name" "$pane_index"
     tmux select-layout -t "$SESSION_NAME" even-horizontal
-
-    echo "{\"agent\":\"$name\",\"pane_index\":$pane_index,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
-}
-
-setup_first_agent() {
-    local name="$1"
-    local config_file="${CONFIG_DIR}/${name}.prompt.json"
-
-    local startup_prompt model wait_script cli
-    startup_prompt=$(read_json "$config_file" '.prompt' '')
-    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
-    wait_script=$(read_json "$config_file" '.wait_script' '')
-    cli=$(read_json "$config_file" '.cli' 'devin')
-
-    if [ -z "$startup_prompt" ]; then
-        echo "Error: No prompt found in $config_file" >&2
-        return 1
-    fi
-
-    local prompt_file
-    prompt_file=$(mktemp)
-    echo "$startup_prompt" > "$prompt_file"
-    TEMP_FILES+=("$prompt_file")
-
-    launch_agent_in_pane "$SESSION_NAME:0.0" "$cli" "$model" "$prompt_file" "$wait_script"
-
-    echo "{\"agent\":\"$name\",\"pane_index\":0,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
 }
 
 # Launch all agents
-setup_first_agent "${AGENTS[0]}"
+launch_agent "${AGENTS[0]}" 0
 for i in "${!AGENTS[@]}"; do
     [ $i -gt 0 ] && add_agent "${AGENTS[$i]}"
 done
 
 tmux select-layout -t "$SESSION_NAME" even-horizontal
 
-echo "Started tmux session '$SESSION_NAME' with ${#AGENTS[@]} agents"
+# Start the health monitor in a dedicated window so it is always running with the team
+tmux new-window -d -t "$SESSION_NAME" -n monitor "$(realpath "$0") --monitor '$WORKFLOW'"
+tmux select-pane -t "$SESSION_NAME:monitor" -T " Health Monitor "
+
+echo "Started tmux session '$SESSION_NAME' with ${#AGENTS[@]} agents (+ monitor window)"
 echo "Agents: ${AGENTS[*]}"
 echo ""
 echo "Each agent will start with its startup prompt and begin its workflow loop."
 echo "Agents communicate via file-based IPC in $WORKFLOWS_DIR/$WORKFLOW/"
 echo ""
 echo "Tmux controls:"
-echo "  Ctrl+B then Arrow keys - Switch between agent panes"
-echo "  Ctrl+B then d          - Detach (leave agents running)"
+echo "  Ctrl+B then 0       - Agent panes"
+echo "  Ctrl+B then 1       - Health monitor"
+echo "  Ctrl+B then Arrow   - Switch between panes"
+echo "  Ctrl+B then d       - Detach (leave agents running)"
 echo "  tmux attach -t $SESSION_NAME - Reattach"
 echo "  tmux kill-session -t $SESSION_NAME - Stop all agents"
 echo ""
-list_running_teams
-echo "To attach: tmux attach -t $SESSION_NAME"
+# If already inside a tmux session use switch-client, otherwise attach
+if [ -n "$TMUX" ]; then
+    tmux switch-client -t "$SESSION_NAME"
+else
+    tmux attach -t "$SESSION_NAME"
+fi

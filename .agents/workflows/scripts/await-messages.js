@@ -1,12 +1,81 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { REPO_ROOT, DEFAULT_WORKFLOW } from './root.js';
 
-const dirs = process.argv.slice(2);
-if (dirs.length === 0) {
+const rawArgs = process.argv.slice(2);
+
+/**
+ * Determine whether a token is intended as a file path.
+ *
+ * @param {string} arg
+ * @returns {boolean}
+ */
+function looksLikePath(arg) {
+    return arg.includes('/') || arg.includes('\\') || path.isAbsolute(arg);
+}
+
+/**
+ * Derive the workflow directory name from a watched directory path.
+ *
+ * @param {string[]} watchedDirs
+ * @returns {string}
+ */
+function resolveWorkflowFromDirs(watchedDirs) {
+    const absDir = path.resolve(watchedDirs[0]);
+    const parts = absDir.split(path.sep);
+    const workflowsIndex = parts.lastIndexOf('workflows');
+    if (workflowsIndex > 0 && parts[workflowsIndex + 1]) {
+        return parts[workflowsIndex + 1];
+    }
+    return DEFAULT_WORKFLOW;
+}
+
+/**
+ * Convert command line arguments to watched directory paths.
+ *
+ * Supports two call styles:
+ * 1. Full paths (legacy):
+ *    node await-messages.js .agents/workflows/team/slack/agent .agents/workflows/team/inbox
+ * 2. Shorthand tokens:
+ *    node await-messages.js <workflow> <agent> [extra-dir1] [extra-dir2]
+ *    e.g. node await-messages.js developer-team team-lead inbox
+ *
+ * @param {string[]} args
+ * @returns {{dirs: string[], workflow: string, agent: string} | null}
+ */
+function resolveArgs(args) {
+    if (args.length === 0) {
+        return null;
+    }
+
+    // Legacy full-path mode: first argument looks like a path.
+    if (looksLikePath(args[0])) {
+        return { dirs: args, workflow: resolveWorkflowFromDirs(args), agent: '' };
+    }
+
+    const workflow = args[0];
+    const agent = args[1];
+    if (!agent) {
+        return null;
+    }
+
+    const workflowRoot = path.join(REPO_ROOT, '.agents/workflows', workflow);
+    const dirs = [path.join(workflowRoot, 'slack', agent)];
+    for (const extra of args.slice(2)) {
+        dirs.push(path.join(workflowRoot, extra));
+    }
+
+    return { dirs, workflow, agent };
+}
+
+const argInfo = resolveArgs(rawArgs);
+if (argInfo === null) {
     console.error('Usage: node await-messages.js <dir1> [dir2...]');
-    console.error('Configuration is read from the agent\'s JSON config file in .agents/workflows/developer-team/co-workers/');
+    console.error('       node await-messages.js <workflow> <agent> [extra-dir1] [extra-dir2...]');
     process.exit(1);
 }
+
+const { dirs, workflow: workflowName, agent: shorthandAgent } = argInfo;
 
 // Validate directories exist
 for (const dir of dirs) {
@@ -39,11 +108,15 @@ const MINUTE = 60 * 1000;
  */
 
 /**
- * Derive the agent name from watched dirs
+ * Derive the agent name from watched dirs or the shorthand agent token.
  * @param {string[]} watchedDirs
+ * @param {string} shorthandAgent
  * @returns {string} Agent name (e.g., 'overseer', 'nitpicker')
  */
-function resolveAgentName(watchedDirs) {
+function resolveAgentName(watchedDirs, shorthandAgent) {
+    if (shorthandAgent) {
+        return shorthandAgent;
+    }
     for (const dir of watchedDirs) {
         const absDir = path.resolve(dir);
         const base = path.basename(absDir);
@@ -56,14 +129,15 @@ function resolveAgentName(watchedDirs) {
     return path.basename(watchedDirs[0]);
 }
 
-const agentName = resolveAgentName(dirs);
+const agentName = resolveAgentName(dirs, shorthandAgent);
 
 /**
  * Read complete role configuration from the agent's JSON config file
  * @param {string} agentName - The agent name (e.g., 'overseer', 'nitpicker')
+ * @param {string} workflow - The workflow directory name (e.g., 'developer-team')
  * @returns {RoleConfig} Role configuration with defaults
  */
-function readRoleConfig(agentName) {
+function readRoleConfig(agentName, workflow) {
     const defaultConfig = {
         display: `The ${agentName}`,
         sweep: 'sweep',
@@ -75,7 +149,8 @@ function readRoleConfig(agentName) {
     };
 
     try {
-        const configPath = path.resolve('.agents/workflows/developer-team/co-workers', `${agentName}.prompt.json`);
+        const workflowDir = workflow || resolveWorkflowFromDirs(dirs);
+        const configPath = path.join(REPO_ROOT, '.agents/workflows', workflowDir, 'co-workers', `${agentName}.prompt.json`);
         if (!fs.existsSync(configPath)) {
             console.log(`Config file not found for ${agentName}, using defaults`);
             return defaultConfig;
@@ -91,25 +166,31 @@ function readRoleConfig(agentName) {
             randomWake = true;
         }
 
-        // Validate and normalize numeric values
-        const minWaitMinutes = Number(config.min_wait_minutes) || defaultConfig.min_wait_minutes;
-        const maxWaitMinutes = Number(config.max_wait_minutes) || defaultConfig.max_wait_minutes;
-        const missionChance = config.mission_chance !== null && config.mission_chance !== undefined
+        // Validate and normalize numeric values — keep the rest of the config even if one number is off.
+        // Only validate min/max_wait_minutes when explicitly set; absent means random wake is disabled.
+        let minWaitMinutes = config.min_wait_minutes !== undefined
+            ? Number(config.min_wait_minutes)
+            : defaultConfig.min_wait_minutes;
+        let maxWaitMinutes = config.max_wait_minutes !== undefined
+            ? Number(config.max_wait_minutes)
+            : defaultConfig.max_wait_minutes;
+        let missionChance = config.mission_chance !== null && config.mission_chance !== undefined
             ? Number(config.mission_chance)
             : defaultConfig.mission_chance;
 
-        // Validate ranges
-        if (minWaitMinutes < 0) {
-            console.warn(`Invalid min_wait_minutes (${minWaitMinutes}) for ${agentName}, using default`);
-            return defaultConfig;
+        if (config.min_wait_minutes !== undefined && (!Number.isFinite(minWaitMinutes) || minWaitMinutes < 0)) {
+            console.warn(`Invalid min_wait_minutes (${config.min_wait_minutes}) for ${agentName}, using default`);
+            minWaitMinutes = defaultConfig.min_wait_minutes;
         }
-        if (maxWaitMinutes < minWaitMinutes) {
-            console.warn(`max_wait_minutes (${maxWaitMinutes}) < min_wait_minutes (${minWaitMinutes}) for ${agentName}, using defaults`);
-            return defaultConfig;
+        if (config.max_wait_minutes !== undefined && (!Number.isFinite(maxWaitMinutes) || maxWaitMinutes < minWaitMinutes)) {
+            console.warn(`Invalid max_wait_minutes (${config.max_wait_minutes}) for ${agentName}, using default`);
+            maxWaitMinutes = defaultConfig.max_wait_minutes;
+            // Also reset min to default so the pair stays valid
+            minWaitMinutes = defaultConfig.min_wait_minutes;
         }
         if (!Number.isFinite(missionChance) || missionChance < 0 || missionChance > 1) {
-            console.warn(`Invalid mission_chance (${missionChance}) for ${agentName}, using default`);
-            return defaultConfig;
+            console.warn(`Invalid mission_chance (${config.mission_chance}) for ${agentName}, using default`);
+            missionChance = defaultConfig.mission_chance;
         }
 
         // Validate random_tasks is array of strings
@@ -136,7 +217,7 @@ function readRoleConfig(agentName) {
     }
 }
 
-const role = readRoleConfig(agentName);
+const role = readRoleConfig(agentName, workflowName);
 
 function pickMission() {
     if (role.random_tasks.length === 0 || Math.random() >= role.mission_chance) {
@@ -150,7 +231,8 @@ function pickMission() {
 // so concurrent agents don't share the same file
 // (e.g. team-lead watches slack/team-lead + inbox → .await-state-team-lead-inbox.json).
 const stateSlug = dirs.map(d => path.basename(d)).join('-');
-const stateFile = path.resolve(`.agents/workflows/developer-team/.temp/.await-state-${stateSlug}.json`);
+const stateWorkflow = workflowName || resolveWorkflowFromDirs(dirs);
+const stateFile = path.join(REPO_ROOT, '.agents/workflows', stateWorkflow, '.temp', `.await-state-${stateSlug}.json`);
 fs.mkdirSync(path.dirname(stateFile), { recursive: true });
 let seenFiles = new Map();
 let needsBaseline = false;

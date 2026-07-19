@@ -80,7 +80,7 @@ version-skew/lockfile, or config/scripts/engines health.
   overrides messages or a high-severity advisory.
 
 ### 3. Mail the team (your output)
-File findings into **`../inbox/`** as `[DEPS]-<focus>.md` so the Team Lead triages into `tasks/`.
+File findings into **`../mail/in/`** as `[DEPS]-<focus>.md` so the Team Lead triages into `tasks/`.
 - One batched ticket per sweep is usually right (a checklist of updates/fixes with current →
   proposed, and a one-line risk note each). Flag anything that needs a `[LOCK]` or `[NPM-REQUEST]`
   so the Team Lead sequences it safely.
@@ -96,8 +96,7 @@ File findings into **`../inbox/`** as `[DEPS]-<focus>.md` so the Team Lead triag
 After completing your work cycle, run the following command in your terminal and wait for it to exit — it will wake you on new mail **or** on a random 30–60 minute timer for your next supply sweep:
 
 ```bash
-node .agents/workflows/scripts/await-messages.js \
-  .agents/workflows/developer-team/slack/quartermaster
+node .agents/workflows/scripts/await-messages.js developer-team quartermaster
 ```
 
 When the script exits, immediately re-run your workflow loop from Step 1.

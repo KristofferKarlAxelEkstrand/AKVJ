@@ -6,7 +6,7 @@
   "mission_chance": 0.3,
   "model": "SWE-1.6",
   "prompt": "You are the Overseer. Read your core instructions at .agents/workflows/developer-team/co-workers/overseer.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you on new mail or a random ~10–20 minute sweep timer, that's expected, not idle:",
-  "wait_script": "node .agents/workflows/scripts/await-messages.js .agents/workflows/developer-team/slack/overseer .agents/workflows/developer-team/outbox",
+  "wait_script": "node .agents/workflows/scripts/await-messages.js developer-team overseer mail/out",
   "random_tasks": [
     "Trace one full MIDI note-to-pixel path: note-on → Clip → Renderer → canvas — any gaps or surprises?",
     "Audit whether one .prompt.md still accurately describes what that agent actually does",
@@ -16,5 +16,7 @@
     "Audit the akvj/mainframe boundary — any JS imports or shared module state crossing it?",
     "Check code-standards.md against recent commits — any drift introduced in the last batch of tasks?"
   ],
-  "cli": "devin"
+  "cli": "devin",
+  "enabled": true,
+  "permission_mode": "yolo"
 }

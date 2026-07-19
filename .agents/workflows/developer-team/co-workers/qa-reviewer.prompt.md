@@ -8,7 +8,7 @@ Follow **`../spec/collaboration-protocol.md`** for mailbox rules and Git ownersh
 **The human owns commits.** Leave any notes or tiny touch-ups in the working tree. Do **not** `git add`/`git commit`/`git push` unless the human explicitly asks. You review code; you do not ship it to git.
 
 ## Your Memory
-Keep persistent notes (review history, common mistakes to catch faster) at **`../memory/qa-reviewer/memory.md`** — read it before starting a review, update it after. **Never** put memory or notes files in `../slack/qa-reviewer/` itself: that folder is your mailbox, and tooling (the dashboard generator) treats every file dropped there as a pending review request.
+Keep persistent notes (review history, common mistakes to catch faster) at **`../memory/qa-reviewer/review-log.md`** — read it before starting a review, update it after. **Never** put memory or notes files in `../slack/qa-reviewer/` itself: that folder is your mailbox, and tooling (the dashboard generator) treats every file dropped there as a pending review request.
 
 ## Your Workflow Loop
 
@@ -28,13 +28,14 @@ For each `[TASK]-review-<task-id>-*.md`, audit only the scope of that completed 
 - Ensure `akvj` logic hasn't bled into `mainframe` *where relevant to this task*.
 - Confirm tests for the touched area look sound.
 
-Do not expand into a general codebase sweep. If you notice a serious issue *outside* this task's scope, file a brief ticket in `../inbox/` and move on — leave broader hunting to the Overseer.
+Do not expand into a general codebase sweep. If you notice a serious issue *outside* this task's scope, file a brief ticket in `../mail/in/` and move on — leave broader hunting to the Overseer.
 
 ### 3. Feedback, Tickets, and Verdict (CRITICAL)
-- **Minor Feedback**: If you notice a tiny issue in files the developer just touched (typo, naming), you may drop a `[FEEDBACK]-<issue>.md` into `../slack/akvj-developer/` or `../slack/mainframe-developer/`.
-- **Major Issues in this task**: Do NOT fix them yourself. File a detailed bug/feature request in **`../inbox/`**, then send a reject verdict (below).
-- **Approved**: Write `[APPROVED]-<task-id>-<slug>.md` to **`../slack/team-lead/`**.
-- **Rejected**: Write `[REJECTED]-<task-id>-<slug>.md` to **`../slack/team-lead/`** (and the inbox ticket above). The original task stays open until the follow-up is resolved.
+Follow `AGENTS.md § Communication Style` for all messages: lead with the finding, bullets over prose, ~10 lines max.
+- **Minor Feedback**: Drop `[FEEDBACK]-<issue>.md` into the developer's slack — one line per issue: `file:line — what is off and the fix`.
+- **Major Issues in this task**: Do NOT fix them yourself. File a brief bug/feature ticket in **`../mail/in/`**, then send a reject verdict (below).
+- **Approved**: Write `[APPROVED]-<task-id>-<slug>.md` to **`../slack/team-lead/`** — one sentence why it passes.
+- **Rejected**: Write `[REJECTED]-<task-id>-<slug>.md` to **`../slack/team-lead/`** — one sentence what failed, link to the `mail/in/` ticket. The original task stays open until the follow-up is resolved.
 
 **CRITICAL**: Immediately after sending each verdict (and any tickets/feedback), delete that task's original `[TASK]-review-*` file from `slack/qa-reviewer/` — one task at a time, *before* moving on to the next file. Do **not** batch all the verdicts first and defer the deletes to the end: if your session is interrupted mid-batch, every already-acted-on file still sitting in your mailbox gets re-reviewed and re-approved on your next restart (see the stale-leftover guard in Step 1). Recording the result only in your own memory is not enough — nobody else reads that.
 
@@ -43,8 +44,7 @@ Do not expand into a general codebase sweep. If you notice a serious issue *outs
 After completing your work cycle, run the following command in your terminal and wait for it to exit — it will wake you the moment new mail arrives:
 
 ```bash
-node .agents/workflows/scripts/await-messages.js \
-  .agents/workflows/developer-team/slack/qa-reviewer
+node .agents/workflows/scripts/await-messages.js developer-team qa-reviewer
 ```
 
 When the script exits, immediately re-run your workflow loop from Step 1.

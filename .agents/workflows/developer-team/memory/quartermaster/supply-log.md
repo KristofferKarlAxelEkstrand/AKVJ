@@ -4,7 +4,7 @@ Running record of dependency/config checks so I don't re-report. One line per fi
 `YYYY-MM-DD | focus | finding | ticket filed / deferred (why)`. Track sweep rotation too.
 
 ## Next sweep focus
-npm audit
+outdated deps
 
 ## Known items from the Wave 2 review (verify current, then file if still open)
 - ~~`vite` version skew: `akvj` `^8.1.4` vs `mainframe` `^8.1.5` — align.~~ **FIXED** (both now ^8.1.5)
@@ -21,6 +21,10 @@ npm audit
 - UNMET OPTIONAL DEPENDENCY entries (fsevents, bufferutil, utf-8-validate, msw) — expected on Linux or truly optional
 
 ## Sweeps
+- 2026-07-19 | npm audit | 0 vulnerabilities found. No ticket needed. Repo supply-chain health is clean.
+- 2026-07-19 | outdated deps | npm outdated returns {} — all dependencies current within semver ranges. No ticket needed.
+- 2026-07-19 | outdated deps | npm outdated returns {} — all dependencies current within semver ranges. No ticket needed.
+- 2026-07-19 | npm audit | 0 vulnerabilities found. No ticket needed. Repo supply-chain health is clean.
 - 2026-07-18 | version-skew / lockfile hygiene | Verified all 6 Wave 2 known items still open. Vite skew (^8.1.4 vs ^8.1.5), midi-mcp extraneous in lockfile, CONTRIBUTING says Node 18 vs engines/CI Node 20, knip.json dead midi-mcp + akvj/scripts paths, eslint.config.js dead midi-mcp refs, duplicate root scripts (sort-package-json vs format:sort-package-json). Root clips:* vs mainframe clips:* are workspace-relative proxies, not true duplicates — did not flag. | Filed [DEPS]-version-skew-lockfile-config-cleanup.md
 
 ## Filed tickets
@@ -46,3 +50,4 @@ npm audit
 - 2026-07-18 | outdated deps | npm outdated returns {} — all current. No ticket needed.
 - 2026-07-18 | config/scripts/engines health | root/akvj/mainframe engines aligned (Node 20+), CONTRIBUTING/devcontainer/CI consistent. knip.json clean, no dead midi-mcp/akvj-scripts refs. eslint.config.js ignores clean. test:smoke → mainframe/test/smoke/startup.smoke.js exists (fix from task 173 holding). No duplicate scripts in root/akvj/mainframe. CI workflow script refs all resolve. akvj/test/smoke/akvj-startup.smoke.js remains unreferenced by any script (knip dead-code territory, not my lane). midi-mcp extraneous still in lockfile (already filed, pending [LOCK]). No new findings.
 - 2026-07-18 | version-skew / lockfile hygiene | No version skew across root/akvj/mainframe. Lockfile packages.extraneous: only `midi-mcp` (already filed, pending [LOCK]). npm ls: sharp WASM extraneous + expected UNMET OPTIONAL deps (deferred). Workspaces: akvj, mainframe. No new ticket.
+- 2026-07-19 | npm audit | 0 vulnerabilities found. npm outdated returns {} — all deps current within semver ranges. No new findings. midi-mcp extraneous still in lockfile (already filed, pending [LOCK]). No ticket needed.

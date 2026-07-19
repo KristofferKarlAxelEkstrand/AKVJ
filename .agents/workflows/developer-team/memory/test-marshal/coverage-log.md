@@ -4,7 +4,14 @@ Running record of coverage assessments so I don't re-report the same gap. One li
 `YYYY-MM-DD | area | module | gap | ticket filed`. Also track sweep rotation.
 
 ## Next sweep area
-2026-07-19 sweep complete. Tasks 197 and 198 now in `done/` (RESOLVED). Utils/e2e/smoke/shared/handlers/visuals/mainframe-src/monorepo-scripts sweep: KeyBed.js has zero coverage (ticket filed). scripts/clips has one known gap (fsUtils.js EPERM/ENOSYS fallback, filed in Task 197). monorepo-scripts all clean (5 modules, 18 tests). Next wake: rotate to **akvj core** (AppState, AdventureKidVideoJockey, settings) or **e2e** if akvj core is clean.
+2026-07-19 sweep complete. Swept akvj/src/js/core/, akvj/src/js/visuals/, mainframe/src/js/ (UI components), mainframe/server/ (gifExpand, frameLoad, spritesheet, migrateClipsToProjects, clipCatalog), akvj/src/tools/clip-preview/. All clean. Next wake: rotate to **mainframe/shared/** or **akvj/src/js/ui/** (AkvjLoadingOverlay, UserMessages already verified clean).
+
+## Sweeps
+- 2026-07-19 | akvj/src/js/core/ | AppState.js, AdventureKidVideoJockey.js | Previously filed gaps RESOLVED — AppState.test.js (423 lines) covers BPM clock sync, CC-to-BPM, transport messages, project lifecycle, all setters/getters, rate limiting, clock timeout, reset. AdventureKidVideoJockey.test.js (459 lines) covers project switching (projectId + note-based), CC routing, setupClips error path, MIDI event routing during/after switches, all cleanup paths. | (clean)
+- 2026-07-19 | akvj/src/js/visuals/ | clipDrawRect.js, timingConversion.js, effects/index.js | All well covered: clipDrawRect.js (138 lines) tested indirectly via Clip.test.js scaleMode+placement (12+ tests). timingConversion.js has direct tests (timingConversion.test.js, 148 lines, 4 functions). effects/index.js is a trivial re-export registry. | (clean)
+- 2026-07-19 | mainframe/src/js/ | ClipCategory, ClipInstance, ClipFrame, ClipFrames, UserMessage, RoleChoice, SortChoice, acceptedImageFiles, shellUserFeedback | All well covered via parent component tests: ClipCategory/ClipInstance via ClipList.test.js (249 lines, 6+ tests for each). ClipFrame/ClipFrames via ClipFrames.test.js (443 lines, 12+ tests). UserMessage via UserMessages.test.js (8 tests). RoleChoice via RoleChoices.test.js (12 tests). SortChoice via SortChoices.test.js (12 tests). acceptedImageFiles via acceptedImageFiles.test.js (7 tests). shellUserFeedback via shellUserFeedback.test.js (3 tests). | (clean)
+- 2026-07-19 | mainframe/server/ | gifExpand, frameLoad, spritesheet, migrateClipsToProjects, clipCatalog | All well covered: gifExpand.test.js (2 tests), frameLoad.test.js (6 tests), spritesheet.test.js (347 lines, 20+ tests), migrateClipsToProjects.test.js (163 lines, 10+ tests), clipCatalog.test.js (7 tests). | (clean)
+- 2026-07-19 | akvj/src/tools/clip-preview/ | ClipPreview.js (315 lines) | Standalone dev tool, zero tests, but low priority (browser-only clip preview utility, not production code). No ticket filed. | (clean)
 
 ## Known gaps from the Wave 2 review (verify, then file if still open)
 - akvj `ClipTiming.js` — no direct unit test (only exercised indirectly via `Clip.test.js`).
@@ -15,6 +22,7 @@ Running record of coverage assessments so I don't re-report the same gap. One li
 - Duplication: `createMockClip`, mock 2D-context factories, smoke helpers; orphan `server/health.test.js`.
 
 ## Sweeps
+- 2026-07-19 | mainframe/scripts/clips/ | 13 modules (Pipeline, index, new, spritesheet, lib/hash, lib/optimize, lib/generate, lib/copy, lib/fsUtils, lib/validate, lib/validateMapping, lib/spritesheet-core) | All well covered except lib/hash.js (47 lines) — zero direct tests for hashFile, writeHashFile, isCacheValid error paths. Indirectly tested via optimize.test.js. Ticket filed. | [TEST]-mainframe-scripts-clips-hash-coverage.md
 - 2026-07-19 | akvj/src/js/utils/ | timing.js, velocitySelection.js, snapToPixel.js, DebugOverlay.js, Fullscreen.js | All well covered: velocitySelection.test.js (8 tests), DebugOverlay.test.js (18 tests), Fullscreen.test.js (11 tests), timing/snapToPixel trivial | (clean)
 - 2026-07-19 | mainframe/server/handlers/ | clips.js, projects.js, misc.js | Well covered via server.test.js (792 lines, real HTTP server). All endpoints tested including error paths. | (clean)
 - 2026-07-19 | mainframe/shared/ | clipId.js, clipSchema.js, frameBake.js, frameFit.js, frameTiming.js, mappingLeaf.js | All well covered: clipId (via generateClipId.test.js), clipSchema (clipSchema.test.js + clipSchema.syncParity.test.js), frameBake (frameBake.test.js), frameFit (frameFit.test.js), frameTiming (frameTiming.test.js), mappingLeaf (indirectly via mappingService.test.js) | (clean)

@@ -9,24 +9,27 @@
 - *No tasks assigned in frontmatter*
 
 ### mainframe-developer
-- *No tasks assigned in frontmatter*
+- **251-cross-cutting-integration-verification.md**: Task 251: Cross-cutting integration verification
+
+**Slack / Active Files:**
+- [TASK]-251-cross-cutting-integration-verification.md
 
 ## 🔍 Pending QA Audit
 - *No tasks pending review*
 
 ## ✅ Done (Recent 15)
-- **252-appstate-double-increment-fix.md**: Task 252: Fix AppState.js double-increment bug in MIDI clock rate limiting
-- **249-mapping-clip-list-trim-actions.md**: Task 249: Trim Redundant Action Buttons on the Mapping-Page Clip List
-- **246-midi-setup-initialize-naming-split-brain.md**: Task 246: `Midi.js` — `initialize*`/`setup*` Naming Split-Brain + Shadowed `error`
-- **250-pianokey-dblclick-remove-region.md**: Task 250: Double-Click a Velocity Region to Remove It (`PianoKey.js`)
-- **251-mapping-epic-integration-verification.md**: Task 251: Mapping Clip-Library Panel — Cross-Cutting Integration Verification
-- **245-migrate-clips-off-framedurationbeats.md**: Task 245: Migrate the 5 Existing Clips Off `frameDurationBeats`
-- **[TEST]-mainframe-keybed-coverage.md**: Task: mainframe KeyBed.js Test Coverage Gap
-- **261-fix-clipeditorcontroller-parameter-naming.md**: Fix ClipEditorController parameter naming
-- **259-timing-alignment-qa-review.md**: Task 259: Review Timing Alignment Implementation
-- **253-akvj-framedurationsms-metadata-normalization.md**: Task 253: Add `frameDurationsMs` to AKVJ Metadata Normalization
-- **254-akvj-timing-engine-ms-support.md**: Task 254: Update AKVJ Timing Engine for ms Support
-- **255-akvj-ms-fps-conversion-utilities.md**: Task 255: Implement ms ↔ FPS Conversion Utilities in AKVJ
-- **256-mainframe-framedurationsms-persistence.md**: Task 256: Save `frameDurationsMs` to Clip Metadata in Mainframe
-- **257-mainframe-ui-ms-based-timing.md**: Task 257: Update Mainframe UI for ms-Based Timing
+- **263-mainframe-scripts-clips-hash-coverage.md**: Task 263: Add unit test coverage for mainframe/scripts/clips/lib/hash.js
+- **264-spec-terminology-consistency.md**: Task 264: Spec terminology consistency fixes
+- **250-double-click-to-remove-velocity-region.md**: Task 250: Double-click a velocity region to remove it
+- **248-mount-clip-list-on-mapping-panel.md**: Task 248: Mount `<akvj-clip-list>` on the Mapping panel
+- **262-mainframe-scripts-dry-violation-fix.md**: Task 262: Fix DRY violation in mainframe/scripts/clips/lib/optimize.js
 - **258-migrate-clips-to-ms-based-timing.md**: Task 258: Migrate Existing Clips to ms-Based Timing
+- **257-mainframe-ui-ms-based-timing.md**: Task 257: Update Mainframe UI for ms-Based Timing
+- **256-mainframe-framedurationsms-persistence.md**: Task 256: Save `frameDurationsMs` to Clip Metadata in Mainframe
+- **255-akvj-ms-fps-conversion-utilities.md**: Task 255: Implement ms ↔ FPS Conversion Utilities in AKVJ
+- **254-akvj-timing-engine-ms-support.md**: Task 254: Update AKVJ Timing Engine for ms Support
+- **253-akvj-framedurationsms-metadata-normalization.md**: Task 253: Add `frameDurationsMs` to AKVJ Metadata Normalization
+- **259-timing-alignment-qa-review.md**: Task 259: Review Timing Alignment Implementation
+- **261-fix-clipeditorcontroller-parameter-naming.md**: Fix ClipEditorController parameter naming
+- **[TEST]-mainframe-keybed-coverage.md**: Task: mainframe KeyBed.js Test Coverage Gap
+- **245-migrate-clips-off-framedurationbeats.md**: Task 245: Migrate the 5 Existing Clips Off `frameDurationBeats`

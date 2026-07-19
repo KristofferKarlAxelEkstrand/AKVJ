@@ -6,7 +6,7 @@
   "mission_chance": 0.4,
   "model": "SWE-1.6",
   "prompt": "You are the Nitpicker. Read your core instructions at .agents/workflows/developer-team/co-workers/nitpicker.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you on new mail or a random ~15–30 minute sweep timer, that's expected, not idle:",
-  "wait_script": "node .agents/workflows/scripts/await-messages.js .agents/workflows/developer-team/slack/nitpicker",
+  "wait_script": "node .agents/workflows/scripts/await-messages.js developer-team nitpicker",
   "random_tasks": [
     "Rename bounty: find the single vaguest identifier in the codebase and ticket it",
     "Comment cull: hunt narrating or stale comments ('// increment counter', dead TODOs, obvious narration)",
@@ -17,5 +17,7 @@
     "File ↔ class check: verify every PascalCase file exports a class or element with a matching name",
     "Celebrate the best-named thing you find this sweep — and still file at least one nit while you're there"
   ],
-  "cli": "devin"
+  "cli": "devin",
+  "enabled": true,
+  "permission_mode": "yolo"
 }

@@ -24,7 +24,7 @@ The engine already has two timing modes (see `akvj/src/js/visuals/ClipTiming.js`
 
 | Mode | Source field | Meaning |
 | ---- | ------------ | ------- |
-| **Free / FPS** | `frameRatesForFrames` (frame index → FPS) | Wall-clock timing, not musical. Default. |
+| **Free** | `frameRatesForFrames` (frame index → FPS) | Wall-clock timing, not musical. Default. |
 | **Beat-synced** | `frameDurationBeats` (number or per-frame array of beats) | Each frame lasts N beats; converted to ms via current BPM, or to MIDI-clock pulses at 24 PPQN when a clock is present. |
 
 So the plumbing for beat-synced playback is already there — frames can each be a number of

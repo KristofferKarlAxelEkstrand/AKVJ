@@ -1,6 +1,6 @@
 # Collaboration Protocol (Ways of Working)
 
-This is the canonical reference for *how* the developer team collaborates through the file-based system — the message conventions, mailbox rules, and hygiene that keep the asynchronous agents (six core + two optional specialists) from stepping on each other. It is owned and kept current by the **Overseer**; every other agent should follow it, but only the Overseer edits it (propose changes via an `outbox/` question or by flagging process friction in `slack/overseer/`).
+This is the canonical reference for *how* the developer team collaborates through the file-based system — the message conventions, mailbox rules, and hygiene that keep the asynchronous agents (six core + two optional specialists) from stepping on each other. It is owned and kept current by the **Overseer**; every other agent should follow it, but only the Overseer edits it (propose changes via a `mail/out/` question or by flagging process friction in `slack/overseer/`).
 
 This file is about *process*. Product vision and architecture live in `goal.md`, `code-standards.md`, `aesthetics.md`, and `clip-schema.md` — those are also Overseer-owned product specs, separate from this protocol.
 
@@ -8,11 +8,13 @@ This file is about *process*. Product vision and architecture live in `goal.md`,
 
 | Folder | Who writes | Who reads | Purpose |
 | --- | --- | --- | --- |
-| `inbox/` | Human, Overseer (bug/architecture tickets from sweeps) | Team Lead | New feature requests / bug reports. Moved to `inbox/read/` once triaged. |
-| `drafts/` | Human | Human | Staging area for feature specs still being written (may have an open "Open Questions" section). Not yet ready for Team Lead triage — nothing should move a file out of here into `inbox/` except the human. |
-| `outbox/` | Any agent | Human | Questions that need a human decision. Strict `Question:` / `Answer:` format; delete once the answer is internalized. |
-| `tasks/` | Team Lead | Team Lead | The shared backlog. Completed tasks move to `tasks/done/`. |
-| `epics/` | Team Lead | Team Lead, developers (when assigned a related task) | Living record of large, multi-task initiatives (e.g. `refactor-for-greateness.md`) — status, rationale, and a "check before re-proposing" list so future audits don't rediscover already-shipped work. Team Lead's planning artifact, same ownership model as `tasks/`. |
+| `mail/in/` | Human, Overseer (bug/architecture tickets from sweeps) | Team Lead | New feature requests / bug reports. Moved to `mail/in/read/` once triaged. |
+| `drafts/` | Human (agents when invited) | Human | Human scratchpad for feature specs still being written. Not yet ready for Team Lead triage — nothing moves out of here into `mail/in/` except the human. Agents may help here if the human explicitly directs them to. |
+| `mail/out/` | Any agent | Human | Questions that need a human decision. Strict `Question:` / `Answer:` format; delete once the answer is internalized. |
+| `tasks/todo/` | Team Lead | Team Lead | Filed backlog — tasks not yet picked up. |
+| `tasks/working-on/` | Team Lead | Team Lead, developers | Actively in-progress tasks. Moved here from `tasks/todo/` when assigned. |
+| `tasks/done/` | archive-task.js | — | Completed and QA-approved tasks. |
+| `epics/` | Team Lead, Overseer | Team Lead, developers (when assigned a related task) | Large, multi-task initiatives with a three-stage lifecycle: `epics/drafts/` (idea dumps and WIP epics the team is shaping), `epics/todo/` (ready-to-implement epics broken into tasks), `epics/done/` (completed or retired). Agents work freely in all three subdirs. |
 | `slack/<agent-name>/` | Any agent | That agent only | A personal mailbox/PM inbox. This is where `[TASK]`, `[REPORT]`, `[BLOCKED]`, `[FEEDBACK]`, `[APPROVED]`, `[REJECTED]`, and `[PROMPT-UPDATED]` files are dropped for a specific recipient. |
 | `slack/quarantine/` | Any agent | Overseer / Human | The dead-letter queue. If an agent crashes or hits an unrecoverable error reading a file, they move the file here to avoid infinite loops. |
 | `slack/general/` | Any agent | Everyone (by convention, not automatic) | Shared artifacts: the team dashboard, team-wide guideline notes, and `[LOCK]` files for exclusive access to global commands (`npm install`, root `package.json` edits). |
@@ -23,17 +25,17 @@ This file is about *process*. Product vision and architecture live in `goal.md`,
 | --- | --- | --- |
 | `[TASK]` | Team Lead → a developer | An assigned unit of work. |
 | `[FEEDBACK]` | QA Reviewer → a developer | A small, non-blocking fix noticed in passing. |
-| `[NIT]` | Nitpicker → `inbox/` | A naming/semantics/readability finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
-| `[TEST]` | Test Marshal → `inbox/` | A test-coverage gap / flaky / stale-test finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
-| `[DEPS]` | Quartermaster → `inbox/` | A dependency / lockfile / version-skew / config-hygiene finding for the Team Lead to triage (flag anything needing `[NPM-REQUEST]` / `[LOCK]`). |
+| `[NIT]` | Nitpicker → `mail/in/` | A naming/semantics/readability finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
+| `[TEST]` | Test Marshal → `mail/in/` | A test-coverage gap / flaky / stale-test finding (usually one batched checklist per sweep) for the Team Lead to triage into a task. |
+| `[DEPS]` | Quartermaster → `mail/in/` | A dependency / lockfile / version-skew / config-hygiene finding for the Team Lead to triage (flag anything needing `[NPM-REQUEST]` / `[LOCK]`). |
 | `[REPORT]` | Developer → Team Lead | Work finished, self-verified, ready for QA. |
 | `[BLOCKED]` | Developer → Team Lead | Self-healing attempts exhausted; needs help. |
 | `[APPROVED]-<task-id>` | QA Reviewer → Team Lead | Task verified; safe to move to `tasks/done/`. |
-| `[REJECTED]-<task-id>` | QA Reviewer → Team Lead | Task failed audit; stays open, follow-up ticket filed in `inbox/`. |
+| `[REJECTED]-<task-id>` | QA Reviewer → Team Lead | Task failed audit; moved back to `tasks/todo/`, follow-up ticket filed in `mail/in/`. |
 | `[NPM-REQUEST]` | Developer → Team Lead | Only the Team Lead runs `npm install`; developers request it here. |
 | `[LOCK]` | Developer → `slack/general/` | Exclusive claim on a destructive/global command (e.g. root `package.json` edits, global builds). **Not** for `npm install` — use `[NPM-REQUEST]` for that. Delete when done. |
-| `[PROMPT-UPDATED]-<slug>` | Overseer → any agent | A `prompts/*.prompt.md` (or other file that agent depends on) changed on disk. See below. |
-| `[AWAITING-APPROVAL]-<task-id>` | Developer → Team Lead | A task explicitly required human plan-approval before implementation; the developer submitted its plan to `outbox/` and is correctly blocked, not implementing. See "Plan-Approval Gate" below. |
+| `[PROMPT-UPDATED]-<slug>` | Overseer → any agent | A `co-workers/*.prompt.md` (or other file that agent depends on) changed on disk. See below. |
+| `[AWAITING-APPROVAL]-<task-id>` | Developer → Team Lead | A task explicitly required human plan-approval before implementation; the developer submitted its plan to `mail/out/` and is correctly blocked, not implementing. See "Plan-Approval Gate" below. |
 
 ## The Golden Hygiene Rule
 
@@ -63,13 +65,13 @@ Restarting an agent chat does **not** automatically kill that role's previous `a
 
 ## Workflow retention / idle cleanup
 
-Processed mail piles up (`inbox/read/`, answered `outbox/`, stuck slack files). Durable truth belongs in `spec/`; ephemeral files should not live forever. Full playbook: **`routine-maintenance.md`** (Workflow hygiene). The **Overseer** runs this on process/idle wakes when the team is quiet — promote lasting facts into specs, then delete leftovers (no second archive tree).
+Processed mail piles up (`mail/in/read/`, answered `mail/out/`, stuck slack files). Durable truth belongs in `spec/`; ephemeral files should not live forever. Full playbook: **`routine-maintenance.md`** (Workflow hygiene). The **Overseer** runs this on process/idle wakes when the team is quiet — promote lasting facts into specs, then delete leftovers (no second archive tree).
 
 | Area | Rule |
 | --- | --- |
-| `inbox/` | Active only; after triage → `inbox/read/`. |
-| `inbox/read/` | Cold. On idle cleanup: promote lasting intent to `spec/` if missing, then delete older read mail (keep roughly the newest ~20). |
-| `outbox/` | Delete once answered and internalized; obsolete status dumps → delete or one-line note to human. |
+| `mail/in/` | Active only; after triage → `mail/in/read/`. |
+| `mail/in/read/` | Cold. On idle cleanup: promote lasting intent to `spec/` if missing, then delete older read mail (keep roughly the newest ~20). |
+| `mail/out/` | Delete once answered and internalized; obsolete status dumps → delete or one-line note to human. |
 | `slack/*/` | Empty after act; purge stale files; remove dead role folders. |
 | `slack/general/` | Only `team-dashboard.md`, `team-guidelines.md`, active `[LOCK]`. |
 | `memory/*/` | Logs OK; summarize/trim when huge; archive folders are historical — do not re-read every sweep. |
@@ -77,9 +79,9 @@ Processed mail piles up (`inbox/read/`, answered `outbox/`, stuck slack files). 
 
 ## The Prompt-Drift Problem (why the Overseer watches process)
 
-Every agent's workflow loop re-checks its mailbox on each wakeup, but it does **not** re-read its own `prompts/*.prompt.md` file from disk unless told to. A prompt file can be edited mid-flight and the running agent will keep following the stale version it already has in context, silently drifting out of sync with the process.
+Every agent's workflow loop re-checks its mailbox on each wakeup, but it does **not** re-read its own `co-workers/*.prompt.md` file from disk unless told to. A prompt file can be edited mid-flight and the running agent will keep following the stale version it already has in context, silently drifting out of sync with the process.
 
-**Rule**: any time a `prompts/*.prompt.md` file (or another file an agent's loop depends on, e.g. this protocol doc or `slack/general/team-guidelines.md`) is edited:
+**Rule**: any time a `co-workers/*.prompt.md` file (or another file an agent's loop depends on, e.g. this protocol doc or `slack/general/team-guidelines.md`) is edited:
 1. The editor drops a `[PROMPT-UPDATED]-<slug>.md` file into the affected agent's personal `slack/<agent-name>/` folder.
 2. The notice must name the exact file that changed and summarize what changed and why.
 3. If the change affects a *shared* file (this protocol doc, `team-guidelines.md`), the same notice goes to **every other** agent's personal slack folder (`team-lead`, `akvj-developer`, `mainframe-developer`, `qa-reviewer`, `nitpicker`, `test-marshal`, `quartermaster`) — not the Overseer's own folder. (The last three are timer-driven specialists; the Test Marshal and Quartermaster are optional and may not be running — dropping the notice is harmless either way.)
@@ -89,11 +91,11 @@ Every agent's workflow loop re-checks its mailbox on each wakeup, but it does **
 
 Some tasks explicitly ask a developer to share a plan and wait for the human's approval before writing code (e.g. "please share a brief plan before building so we can align"). The human has confirmed (2026-07-17): when a task asks for this, **the team must actually wait** — not proceed after some elapsed time with a best guess. This happened once (Task 92 shipped ~42 minutes after its plan was submitted, with no answer ever received) and produced a real rework cost, so this is now a hard rule, not a judgment call.
 
-Neither Team Lead nor the developers read `outbox/` — only the Overseer polls it. So the gate is enforced via the normal mailbox path instead of an outbox read:
+Neither Team Lead nor the developers read `mail/out/` — only the Overseer polls it. So the gate is enforced via the normal mailbox path instead of an outbox read:
 
-1. **Developer**: if a task's own text explicitly asks you to get approval on a plan before implementing, do not implement. Write the plan to `outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `slack/team-lead/` and go to sleep. Do not touch the code for that task until you receive a fresh `[TASK]` reassignment for it.
+1. **Developer**: if a task's own text explicitly asks you to get approval on a plan before implementing, do not implement. Write the plan to `mail/out/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `slack/team-lead/` and go to sleep. Do not touch the code for that task until you receive a fresh `[TASK]` reassignment for it.
 2. **Team Lead**: on receiving `[AWAITING-APPROVAL]-<task-id>`, do **not** reassign or re-dispatch that task — leave it blocked. Delete the notice only once you send a genuinely fresh `[TASK]` for it (which will only happen after the plan was actually approved).
-3. **Overseer**: since I'm the one who actually sees `outbox/` answers, once a gated plan gets an `## Answer`, I file the approved direction as a normal ticket into `inbox/` (same as any other finding) so Team Lead's regular loop picks it up and dispatches a real, approved `[TASK]`. I do not reassign work directly — that stays Team Lead's job.
+3. **Overseer**: since I'm the one who actually sees `mail/out/` answers, once a gated plan gets an `## Answer`, I file the approved direction as a normal ticket into `mail/in/` (same as any other finding) so Team Lead's regular loop picks it up and dispatches a real, approved `[TASK]`. I do not reassign work directly — that stays Team Lead's job.
 
 ## Git & Commits (the human owns commits)
 
@@ -101,21 +103,23 @@ The human owns commits. Agents change files and **leave them in the working tree
 
 - **Do not `git add`/`git commit`/`git push`** as part of finishing a task. Default to leaving your edits uncommitted. Only stage/commit when the human explicitly asks in the current request, and even then keep it surgical (`git add <specific paths>`, never `-A`/`.`).
 - **Never** stage or commit binary assets (e.g. PNG sprite sheets) or tracking-/history-altering operations (retiring tracked directories, large migrations/renames, `.gitignore` policy changes) on your own — these always wait for the human.
-- If a change only becomes durable once committed (e.g. a migration a fresh clone depends on), **escalate via `outbox/`**: state exactly what would be staged/removed and let the human commit it. Do not silently delegate the commit to another agent.
+- If a change only becomes durable once committed (e.g. a migration a fresh clone depends on), **escalate via `mail/out/`**: state exactly what would be staged/removed and let the human commit it. Do not silently delegate the commit to another agent.
 - Read-only git (`git status`, `git diff`, `git log`, `git ls-files`) is always fine for gathering evidence. Full rules live in the `git-safety` skill.
 
 ## Scope Boundaries
 
-- The Overseer edits *process* files: `prompts/*.prompt.md` (with the notify rule above), this file, `slack/general/team-guidelines.md`.
+- The Overseer edits *process* files: `co-workers/*.prompt.md` (with the notify rule above), this file, `slack/general/team-guidelines.md`.
 - The Overseer also edits *product specs*: `goal.md`, `code-standards.md`, `aesthetics.md`, `clip-schema.md`.
 - The Overseer does **not** edit product source code, `tasks/*`, or `slack/general/team-dashboard.md` — those belong to the Team Lead, developers, and QA Reviewer.
-- The **Nitpicker** is a proactive, timer-driven role (like the Overseer) but scoped to *how the code reads*: naming conventions, semantics, terminology consistency, and small code-quality/readability nits. It **files `[NIT]` tickets into `inbox/`** and never edits product source, `tasks/*`, the dashboard, prompts, or the specs. Bugs/perf/architecture stay with the Overseer; task verification stays with QA. The Nitpicker is not on the auto-generated dashboard (same as the Overseer).
-- The **Test Marshal** (Coverage Hawk) and the **Quartermaster** are **optional**, timer-driven, report-only specialists that may not always be running. Both **file tickets into `inbox/`** and never edit product source, tests, config, `tasks/*`, the dashboard, prompts, or specs; neither is on the auto-generated dashboard.
+- The **Nitpicker** is a proactive, timer-driven role (like the Overseer) but scoped to *how the code reads*: naming conventions, semantics, terminology consistency, and small code-quality/readability nits. It **files `[NIT]` tickets into `mail/in/`** and never edits product source, `tasks/*`, the dashboard, prompts, or the specs. Bugs/perf/architecture stay with the Overseer; task verification stays with QA. The Nitpicker is not on the auto-generated dashboard (same as the Overseer).
+- The **Test Marshal** (Coverage Hawk) and the **Quartermaster** are **optional**, timer-driven, report-only specialists that may not always be running. Both **file tickets into `mail/in/`** and never edit product source, tests, config, `tasks/*`, the dashboard, prompts, or specs; neither is on the auto-generated dashboard.
   - **Test Marshal** owns systemic test health: coverage gaps, untested modules, flaky/stale tests, test duplication (`[TEST]` tickets). This is distinct from QA, which verifies specific assigned `[TASK]-review-*` work — the Test Marshal is proactive and systemic, QA is per-task and event-driven.
   - **Quartermaster** owns the supply lines: outdated deps, `npm audit`, version skew, lockfile hygiene, and config/script/`engines` health (`[DEPS]` tickets). It runs only **read-only** diagnostics (`npm outdated`, `npm audit`, `npm ls`) and never runs `npm install`/`audit fix` or edits `package.json`/the lockfile — those changes go through a Team-Lead-sequenced task (via `[NPM-REQUEST]` / `[LOCK]`). Config overlaps with the Overseer; deps/lockfile are the Quartermaster's.
-- Disagreements about process (e.g. "should old `[REPORT]` files in `slack/general/` be deleted or kept as an archive?") are a good candidate for an `outbox/` question rather than a unilateral rewrite.
+- Disagreements about process (e.g. "should old `[REPORT]` files in `slack/general/` be deleted or kept as an archive?") are a good candidate for a `mail/out/` question rather than a unilateral rewrite.
 
 ## Changelog
+
+- 2026-07-19 — **`inbox/` → `mail/in/`, `outbox/` → `mail/out/`** across all prompts, scripts, and this protocol. **`tasks/`** flat list replaced with kanban folders: `tasks/todo/` (backlog), `tasks/working-on/` (in-progress), `tasks/done/` (complete). `generate-dashboard.js` and `archive-task.js` updated to use the new paths. Team Lead prompt updated: pulls from `todo/`, moves to `working-on/` on assign, `archive-task.js` handles `working-on/` → `done/`; rejected tasks return to `todo/`.
 
 - 2026-07-18 — Sleep Step recovery rule now explicitly covers harness **`aborted`** results (not only error/kill/timeout): Cursor can abort a correctly backgrounded sleep after a few seconds with no message; agents must re-invoke + end turn and must not abandon the await loop. Prompted by human report that agents "do not go to the sleep / await state."
 - 2026-07-18 — Added **Agent restart hygiene (duplicate pollers)** under The Sleep Step: restarting a chat does not kill the old `await-messages*.js`; humans should clear orphaned pollers so each mailbox has exactly one watcher. Prompted by live duplicates on team-lead / akvj-developer / mainframe-developer the same day as the sleep-step fix.
@@ -123,7 +127,7 @@ The human owns commits. Agents change files and **leave them in the working tree
 - 2026-07-18 — Documented the `drafts/` folder (human-only staging area for in-progress feature specs, not ready for Team Lead triage until promoted to `inbox/`) and clarified that the Overseer, not just the human, writes into `inbox/` (bug/architecture tickets from sweeps — already true in practice, just undocumented).
 - 2026-07-18 — Added the **Git & Commits** section: the human owns commits. Agents leave edits in the working tree and do not `git add`/`commit`/`push` unless the human explicitly asks; binary assets and tracking-/history-altering operations always wait for the human; durable-only-if-committed changes are escalated via `outbox/`. Mirrors the updated `git-safety` skill.
 - 2026-07-18 — Added two **optional** timer-driven specialists: the **Test Marshal** (Coverage Hawk; `[TEST]` tickets — systemic test coverage/flaky/stale, distinct from QA's per-task reviews) and the **Quartermaster** (`[DEPS]` tickets — deps/lockfile/version-skew/config, read-only diagnostics only, never installs/edits). Both report-only, both file into `inbox/`, neither on the dashboard; added to the shared-file notify list.
-- 2026-07-18 — Added the **Nitpicker** role (naming/semantics/readability steward). Team is now six agents. Proactive/timer-driven like the Overseer but scoped to how code reads; files `[NIT]` tickets into `inbox/`, never edits product source/tasks/dashboard/specs. Added to the shared-file `[PROMPT-UPDATED]` notify list.
+- 2026-07-18 — Added the **Nitpicker** role (naming/semantics/readability steward). Team is now six agents. Proactive/timer-driven like the Overseer but scoped to how code reads; files `[NIT]` tickets into `mail/in/` (was `inbox/` at the time), never edits product source/tasks/dashboard/specs. Added to the shared-file `[PROMPT-UPDATED]` notify list.
 - 2026-07-17 — Added the Plan-Approval Gate (`[AWAITING-APPROVAL]`) after a task shipped without the human's requested approval — human confirmed the team must actually wait, not proceed after a timeout.
 - 2026-07-17 — Added workflow retention / idle cleanup (Overseer promote-then-purge; see `routine-maintenance.md`).
 - 2026-07-17 — Time Study Man role merged into Overseer; team is five agents; Overseer owns both process protocol and product specs.

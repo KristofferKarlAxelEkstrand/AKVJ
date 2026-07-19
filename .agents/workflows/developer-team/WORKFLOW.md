@@ -26,7 +26,7 @@ Run multiple AI agents in tmux panes with JSON configuration and file-based IPC.
 ## Architecture
 
 **Components:**
-- `run-team` - Main script for starting/managing agents
+- `run-team` - Main script for starting/managing agents; runs pre-flight config validation before launching any tmux session
 - Agent JSON configs - Configuration per agent
 - `await-messages.js` - Message wake cycle (random wake enabled by agent config `min_wait_minutes`/`max_wait_minutes`)
 - File-based IPC - Slack-like directory structure
@@ -35,7 +35,10 @@ Run multiple AI agents in tmux panes with JSON configuration and file-based IPC.
 ```json
 {
   "display": "Human Readable Name",
+  "enabled": true,               // Optional: set false to skip this agent without deleting the config
   "model": "SWE-1.6",
+  "cli": "devin",                // Optional: CLI to launch (devin or claude; default devin)
+  "permission_mode": "yolo",     // Optional: permission mode passed to the CLI (default: yolo for devin, bypassPermissions for claude)
   "prompt": "Startup prompt",
   "wait_script": "node .../await-messages.js ...",
   "random_tasks": ["Optional task"],
@@ -89,20 +92,30 @@ echo '{"reason":"stuck"}' > .agents/workflows/developer-team/health/restart-requ
 └── developer-team/
     ├── co-workers/
     │   └── *.prompt.json         # Agent configs
+    ├── drafts/                  # Human scratchpad for in-progress specs
     ├── epics/                   # Multi-task initiatives
     │   ├── drafts/              # Work-in-progress epics
     │   ├── todo/                # Ready-to-implement epics
     │   └── done/                # Completed/retired epics
+    ├── mail/
+    │   ├── in/                  # Team Lead input (replaces inbox/)
+    │   └── out/                 # Overseer output (replaces outbox/)
     ├── slack/{agent}/            # Agent communication
     ├── health/                  # Health monitoring
     ├── .temp/                   # Temporary files (gitignored)
-    ├── inbox/                   # Team Lead input
-    └── outbox/                  # Overseer output
+    ├── tasks/                   # Task kanban
+    │   ├── todo/                # Filed, not yet picked up
+    │   ├── working-on/          # Actively in progress
+    │   └── done/                # Completed and QA-approved
 ```
 
-## Tmux Controls
+## Health Monitoring
 
-- `Ctrl+B` then Arrow keys - Switch panes
+`run-team` automatically creates a second tmux window named `monitor` running the health loop. The `--monitor` flag still works for standalone use, but the monitor is always started with the team.
+
+- `Ctrl+B` then `0` - Switch to agent panes window
+- `Ctrl+B` then `1` - Switch to health monitor window
+- `Ctrl+B` then Arrow keys - Switch panes within a window
 - `Ctrl+B` then `d` - Detach (leave running)
 - `tmux attach -t {workflow}-agents` - Reattach
 - `tmux kill-session -t {workflow}-agents` - Stop all

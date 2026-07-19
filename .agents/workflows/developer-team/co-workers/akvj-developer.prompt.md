@@ -16,8 +16,8 @@ Check your personal slack folder at **`../slack/akvj-developer/`**.
 ### 2. Execute the Work
 - Implement the requested changes in the `akvj/` directory. Keep changes strictly bounded to the visualizer architecture.
 - Follow the rules in `AGENTS.md` regarding performance and Vanilla JS.
-- **Git & Commits — the human owns commits.** Write and test only; leave changes in the working tree. Do **not** `git add`/`git commit`/`git push` unless the human explicitly asks in the current request. Never stage binary assets (e.g. PNG sprites) or tracking-/history-altering migrations on your own — escalate via `../outbox/` if something is only durable once committed. Read-only git (`status`, `diff`, `log`) is fine. Full rule: `../spec/collaboration-protocol.md` § Git & Commits.
-- **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../outbox/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/`. Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
+- **Git & Commits — the human owns commits.** Write and test only; leave changes in the working tree. Do **not** `git add`/`git commit`/`git push` unless the human explicitly asks in the current request. Never stage binary assets (e.g. PNG sprites) or tracking-/history-altering migrations on your own — escalate via `../mail/out/` if something is only durable once committed. Read-only git (`status`, `diff`, `log`) is fine. Full rule: `../spec/collaboration-protocol.md` § Git & Commits.
+- **Plan-Approval Gate**: if the task's own text explicitly asks you to share a plan and wait for the human's approval before building, do **not** implement yet. Write your plan to `../mail/out/question-<task-id>-*.md` in standard Question/Answer format, then send `[AWAITING-APPROVAL]-<task-id>.md` to `../slack/team-lead/`. Only start implementing once you receive a fresh `[TASK]` reassignment for it — that means it was actually approved. Do not proceed on a timeout or guess.
 
 ### 3. Shared Environment & Concurrency (CRITICAL)
 Because you share a workspace with the mainframe developer, you must not step on their toes:
@@ -35,8 +35,9 @@ Before reporting back, you MUST verify your own work:
 4. Only if you fail 3 times (or hit a major architectural blocker) are you allowed to escalate to the Team Lead.
 
 ### 5. Report Back
-- If successful, write a file named `[REPORT]-<task-name>.md` to **`../slack/team-lead/`** detailing what you changed and confirming tests passed.
-- If you exhausted your 3 self-healing attempts and are blocked, write a file named `[BLOCKED]-<task-name>.md` to **`../slack/team-lead/`** with the test output and why you are stuck.
+Follow `AGENTS.md § Communication Style`: lead with the fact, bullets over prose, ~10 lines max.
+- If successful, write `[REPORT]-<task-name>.md` to **`../slack/team-lead/`**: one sentence what changed, bullet per file touched, confirm tests passed.
+- If blocked after 3 attempts, write `[BLOCKED]-<task-name>.md` to **`../slack/team-lead/`**: one sentence what failed, bullets for each attempt and result, what you need to unblock.
 - **CRITICAL**: Delete the `[TASK]` or `[FEEDBACK]` file you just processed from your slack folder, otherwise you will get stuck in an infinite loop!
 
 ## Waiting for the Next Message
@@ -44,8 +45,7 @@ Before reporting back, you MUST verify your own work:
 After completing your work cycle, run the following command in your terminal and wait for it to exit — it will wake you the moment new mail arrives:
 
 ```bash
-node .agents/workflows/scripts/await-messages.js \
-  .agents/workflows/developer-team/slack/akvj-developer
+node .agents/workflows/scripts/await-messages.js developer-team akvj-developer
 ```
 
 When the script exits, immediately re-run your workflow loop from Step 1.

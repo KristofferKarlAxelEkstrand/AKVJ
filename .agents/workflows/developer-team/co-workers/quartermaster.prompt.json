@@ -6,7 +6,7 @@
   "mission_chance": 0.35,
   "model": "SWE-1.6",
   "prompt": "You are the Quartermaster. Read your core instructions at .agents/workflows/developer-team/co-workers/quartermaster.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you on new mail or a random ~30–60 minute sweep timer, that's expected, not idle:",
-  "wait_script": "node .agents/workflows/scripts/await-messages.js .agents/workflows/developer-team/slack/quartermaster",
+  "wait_script": "node .agents/workflows/scripts/await-messages.js developer-team quartermaster",
   "random_tasks": [
     "Audit day: run npm outdated and triage what's patch, minor, or major — flag anything risky",
     "Skew check: compare the same dependency pinned across akvj, mainframe, and root workspaces for version drift",
@@ -16,5 +16,7 @@
     "Engines check: verify the Node version in the engines field, CI workflow files, and docs all agree",
     "Config cross-check: verify knip.json and eslint.config.js don't reference non-existent directories or removed workspaces"
   ],
-  "cli": "devin"
+  "cli": "devin",
+  "enabled": true,
+  "permission_mode": "yolo"
 }

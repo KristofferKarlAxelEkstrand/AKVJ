@@ -2,12 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { hashFile, writeHashFile, isCacheValid } from './hash.js';
 import { copyFileWithFallback } from './fsUtils.js';
-
-/**
- * Valid bit depth values for grayscale conversion.
- * @type {Set<number>}
- */
-const VALID_BIT_DEPTHS = new Set([1, 2, 4, 8]);
+import { VALID_BIT_DEPTHS } from '../../../shared/clipSchema.js';
 
 /**
  * Optimization result for a single file.
@@ -48,7 +43,7 @@ async function loadSharp() {
 function getTargetBitDepth(clipId, meta) {
 	if (meta?.bitDepth !== undefined) {
 		const depth = meta.bitDepth;
-		if (VALID_BIT_DEPTHS.has(depth)) {
+		if (VALID_BIT_DEPTHS.includes(depth)) {
 			return depth;
 		}
 		console.warn(`Invalid bitDepth ${depth} in ${clipId}/meta.json, ignoring`);

@@ -9,21 +9,21 @@ The `scripts/` directory contains shared utilities used across workflows:
 - `await-messages.js` - Message wake cycle for agents; random wake enabled by `min_wait_minutes` / `max_wait_minutes` in the agent config
 - `generate-dashboard.js` - Dashboard generation for task tracking
 - `archive-task.js` - Task archiving utility
-- `state/` - Await state files (gitignored)
+- Each workflow's `.temp/` - Await state files (gitignored, auto-created)
 
 ## How Workflows Operate
 
 Each workflow has its own dedicated folder containing:
 1. **Co-workers**: Agent configuration files (`*.prompt.json`)
-2. **Inbox**: Drop zone for feature requests and bug reports
-3. **Tasks**: Agent's generated queue of prioritized work
+2. **Mail**: `mail/in/` for incoming requests; `mail/out/` for human decision queue
+3. **Tasks**: Kanban queue with `todo/`, `working-on/`, and `done/` lifecycle
 4. **Epics**: Multi-task initiatives with `drafts/`, `todo/`, and `done/` lifecycle
 5. **Spec**: Overarching goals that agents must adhere to
 6. **Memory**: Persistent ledger tracking agent progress across sessions
 7. **Slack**: File-based IPC for agent communication
 8. **Health**: Health monitoring and restart tracking
 
-To use a workflow, use the `run-team` script to start agents, then drop work into the `inbox/` directory.
+To use a workflow, use the `run-team` script to start agents, then drop work into the `mail/in/` directory.
 
 ---
 
