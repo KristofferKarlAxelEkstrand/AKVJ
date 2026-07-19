@@ -1,6 +1,6 @@
 ---
-status: backlog
-assignee: none
+status: done
+assignee: akvj-developer
 priority: medium
 ---
 

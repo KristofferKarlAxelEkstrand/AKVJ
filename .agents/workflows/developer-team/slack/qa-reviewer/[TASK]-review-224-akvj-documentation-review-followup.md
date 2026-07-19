@@ -1,15 +1,9 @@
----
-status: backlog
-assignee: none
-priority: low
----
+# [TASK] Task 224: Address Documentation Gaps in Core Components
 
-# Task 224: Address Documentation Gaps in Core Components
+## Task File
+`.agents/workflows/developer-team/tasks/224-akvj-documentation-review-followup.md`
 
-## Source
-Finding report: `.agents/workflows/developer-team/inbox/read/documentation-review-findings.md`
-
-## Affected Files
+## Files to Review
 - `akvj/src/js/core/AdventureKidVideoJockey.js`
 - `akvj/src/js/core/AppState.js`
 - `akvj/src/js/visuals/Renderer.js`

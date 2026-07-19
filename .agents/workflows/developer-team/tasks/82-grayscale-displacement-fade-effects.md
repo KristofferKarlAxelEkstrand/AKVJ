@@ -1,6 +1,6 @@
 ---
-status: backlog
-assignee: none
+status: pending-design
+assignee: akvj-developer
 priority: low
 ---
 

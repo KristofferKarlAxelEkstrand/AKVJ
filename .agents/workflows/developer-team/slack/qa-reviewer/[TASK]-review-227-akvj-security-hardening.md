@@ -1,15 +1,9 @@
----
-status: backlog
-assignee: none
-priority: medium
----
+# [TASK] Task 227: Harden Security in Clip Loading and MIDI Input
 
-# Task 227: Harden Security in Clip Loading and MIDI Input
+## Task File
+`.agents/workflows/developer-team/tasks/227-akvj-security-hardening.md`
 
-## Source
-Finding report: `.agents/workflows/developer-team/inbox/read/security-review-findings.md`
-
-## Affected Files
+## Files to Review
 - `akvj/src/js/visuals/ClipLoader.js`
 - `akvj/src/js/core/AppState.js`
 - `akvj/src/js/midi-input/Midi.js`
