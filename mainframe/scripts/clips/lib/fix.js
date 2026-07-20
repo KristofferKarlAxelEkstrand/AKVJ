@@ -39,7 +39,7 @@ function migrateLoopToPlayback(meta, changes) {
  * @param {string[]} changes
  * @param {string[]} skipped
  */
-function migrateMissingPng(meta, pngFiles, changes, skipped) {
+function repointMissingPng(meta, pngFiles, changes, skipped) {
 	if (typeof meta.png !== 'string' || pngFiles.includes(meta.png)) {
 		return;
 	}
@@ -73,7 +73,7 @@ export async function fixClip(clipDir) {
 	}
 
 	migrateLoopToPlayback(meta, changes);
-	migrateMissingPng(meta, await getFilesWithExtension(clipDir, '.png'), changes, skipped);
+	repointMissingPng(meta, await getFilesWithExtension(clipDir, '.png'), changes, skipped);
 
 	if (changes.length > 0) {
 		await writeJsonAtomic(metaPath, meta);

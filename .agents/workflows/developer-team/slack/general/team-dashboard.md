@@ -6,42 +6,52 @@
 
 All 10 agents up.
 
-## 📋 Backlog (8)
+## 📋 Backlog (10)
 - **414-mainframe-dead-code-sweep.md**: 414 — Dead-code sweep: mainframe and monorepo-scripts (Priority: medium)
 - **415-akvj-renderer-compositor-nits.md**: 415 — Renderer / Compositor naming and JSDoc nits (Priority: low)
-- **418-await-messages-mail-out-answer-gate.md**: 418 — `await-messages.js` wakes on any `mail/out/` edit, not just an answer (Priority: medium)
-- **419-mainframe-piano-roll-play-mode-completion.md**: 419 — Piano roll Play mode: velocity control, animation preview, playback indicator (Priority: high)
 - **420-mainframe-piano-roll-edit-mode-polish.md**: 420 — Piano roll Edit mode: undo/redo, batch cell selection, drag-and-drop reorder (Priority: medium)
 - **421-mainframe-piano-roll-filter-state-persistence.md**: 421 — Piano roll Filter mode: persistent filter state via localStorage (Priority: medium)
 - **422-mainframe-piano-roll-keyboard-shortcuts-bpm-indicator.md**: 422 — Piano roll Play mode: keyboard shortcuts + BPM sync indicator (Priority: low)
 - **423-mainframe-piano-roll-lazy-rendering.md**: 423 — Piano roll: lazy rendering for large grids (Priority: low)
+- **424-mainframe-nit-sweep-new-files-honesty.md**: 424 — NIT sweep: new modules honesty and readability (Priority: low)
+- **425-mainframe-nit-sweep-pianoroll-staging-cliplist.md**: 425 — NIT sweep: PianoRoll / StagingPreview / ClipList readability (Priority: low)
+- **426-mainframe-pianoroll-tooltip-innerhtml-xss.md**: 426 — PianoRoll tooltip uses innerHTML with user-authored data (Priority: medium)
+- **428-mainframe-pipeline-fix-integration-tests.md**: 428 — Pipeline `--fix` integration untested (Priority: medium)
 
 ## 🚀 In Progress
 ### akvj-developer
-- **408-akvj-event-hygiene-appstate.md**: 408 — Event hygiene: AppState
 - **411-akvj-grayscale-per-frame-allocation.md**: 411 — grayscale effects allocate in the 60fps render loop
 - **413-akvj-dead-code-sweep.md**: 413 — Dead-code sweep: akvj
+- **427-akvj-midi-security-unsupported-tests.md**: 427 — Midi.js security paths and unsupported-browser path untested
 
 **Slack / Active Files:**
-- [TASK]-413-akvj-dead-code-sweep.md
+- [TASK]-427-akvj-midi-security-unsupported-tests.md
 
 ### mainframe-developer
 - **410-mainframe-shared-module-extraction.md**: 410 — Mainframe layering: shared module extraction
 - **412-mainframe-clip-format-validation-defaults.md**: 412 — Clip format: validation honesty and single-source defaults
+- **419-mainframe-piano-roll-play-mode-completion.md**: 419 — Piano roll Play mode: velocity control, animation preview, playback indicator
+
+**Slack / Active Files:**
+- [TASK]-419-mainframe-piano-roll-play-mode-completion.md
 
 ### utility-developer
-- **403-docs-config-projects-layout-sweep.md**: 403 — Docs & config sweep for the projects layout
-- **405-run-team-pane-id-fallback.md**: 405 — run-team: dead-pane fallback restarts the wrong agent
-- **407-check-references-generated-paths.md**: 407 — check-references flags generated/gitignored paths as dangling
+- **418-await-messages-mail-out-answer-gate.md**: 418 — `await-messages.js` wakes on any `mail/out/` edit, not just an answer
+
+**Slack / Active Files:**
+- [TASK]-418-await-messages-mail-out-answer-gate.md
 
 ## 🔍 Pending QA Audit
-- [TASK]-review-405-run-team-pane-id-fallback.md
-- [TASK]-review-407-check-references-generated-paths.md
-- [TASK]-review-408-akvj-event-hygiene-appstate.md
-- [TASK]-review-410-shared-module-extraction.md
 - [TASK]-review-411-grayscale-per-frame-allocation.md
+- [TASK]-review-412-mainframe-clip-format-validation-defaults.md
+- [TASK]-review-413-akvj-dead-code-sweep.md
+- [TASK]-review-417-build-silently-ships-clipless-dist.md
 
 ## ✅ Done (Recent 15)
+- **408-akvj-event-hygiene-appstate.md**: 408 — Event hygiene: AppState
+- **407-check-references-generated-paths.md**: 407 — check-references flags generated/gitignored paths as dangling
+- **405-run-team-pane-id-fallback.md**: 405 — run-team: dead-pane fallback restarts the wrong agent
+- **403-docs-config-projects-layout-sweep.md**: 403 — Docs & config sweep for the projects layout
 - **417-build-silently-ships-clipless-dist.md**: 417 — `npm run build` exits 0 while producing a clip-less `dist/`
 - **416-fresh-clone-durability-audit.md**: 416 — Fresh-clone durability audit
 - **409-akvj-effectsmanager-reserved-leftover.md**: 409 — EffectsManager: dead `reserved` guard removed
@@ -53,7 +63,3 @@ All 10 agents up.
 - **399-project-spec-near-zero-ui-wording.md**: Task 399: PROJECT-SPEC near-zero UI wording
 - **398-akvj-layerManager-channel13-header-honesty.md**: Task 398: LayerManager channel-13 header honesty + mixer name
 - **382-mainframe-optimize-clipPath-rename.md**: Task 382: Rename optimize `clipPath` → `clipId`
-- **380-mainframe-validate-jsdoc-result-shapes.md**: Task 380: Fix validate/ JSDoc result shapes
-- **374-mainframe-resolveScaleMode-jsdoc-pattern.md**: Task 374: `resolveScaleMode` JSDoc include `pattern`
-- **396-mainframe-generate-edge-paths.md**: Task 396: generate.js skip / corrupt-meta edge tests
-- **397-e2e-stale-vite-clip-frames-panel-rename.md**: Task 397: Stale Vite after ClipFramesPanel rename breaks clip-editor e2e

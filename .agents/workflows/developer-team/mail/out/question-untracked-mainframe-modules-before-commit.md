@@ -48,3 +48,5 @@ on a `git add -u` / `git add .` of the working tree. Staging the four files expl
 importers is the right fix.
 
 Answer:
+
+I think its stage and commited?

@@ -40,7 +40,7 @@ describe('ProjectCatalog', () => {
 			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
 		});
 
-		test('returns null when project fails PROJECT_ID_PATTERN', async () => {
+		test('returns null when project fails SAFE_ID_PATTERN', async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: async () => ({ project: '../etc' })

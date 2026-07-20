@@ -77,13 +77,13 @@ class PlaybackController {
 	 * @throws {Error} If playback mode is 'random' or 'shuffle'
 	 */
 	setLinearProgress(progress) {
-		if (this.#playbackMode === 'random' || this.#playbackMode === 'shuffle') {
+		if (this.#playbackMode === PLAYBACK_MODE.RANDOM || this.#playbackMode === PLAYBACK_MODE.SHUFFLE) {
 			throw new Error(`setLinearProgress() does not apply to '${this.#playbackMode}' playback mode`);
 		}
 
 		const clamped = Math.max(0, Math.min(1, progress));
-		this.#frame = this.#playbackMode === 'pingpong' ? this.#pingpongFrameFromProgress(clamped) : this.#linearFrameFromProgress(clamped);
-		this.#isFinished = clamped >= 1 && this.#playbackMode !== 'loop';
+		this.#frame = this.#playbackMode === PLAYBACK_MODE.PINGPONG ? this.#pingpongFrameFromProgress(clamped) : this.#linearFrameFromProgress(clamped);
+		this.#isFinished = clamped >= 1 && this.#playbackMode !== PLAYBACK_MODE.LOOP;
 	}
 
 	/**
@@ -102,17 +102,17 @@ class PlaybackController {
 			return true;
 		}
 
-		if (this.#playbackMode === 'random') {
+		if (this.#playbackMode === PLAYBACK_MODE.RANDOM) {
 			this.#frame = Math.floor(Math.random() * this.#frameCount);
 			return true;
 		}
 
-		if (this.#playbackMode === 'shuffle') {
+		if (this.#playbackMode === PLAYBACK_MODE.SHUFFLE) {
 			this.#frame = this.#drawNextShuffleFrame();
 			return true;
 		}
 
-		if (this.#playbackMode === 'reverse') {
+		if (this.#playbackMode === PLAYBACK_MODE.REVERSE) {
 			this.#frame--;
 			if (this.#frame < 0) {
 				this.#frame = this.#frameCount - 1;
@@ -120,7 +120,7 @@ class PlaybackController {
 			return true;
 		}
 
-		if (this.#playbackMode === 'pingpong') {
+		if (this.#playbackMode === PLAYBACK_MODE.PINGPONG) {
 			this.#frame += this.#pingpongDirection;
 			if (this.#frame >= this.#frameCount - 1) {
 				this.#frame = this.#frameCount - 1;
@@ -138,7 +138,7 @@ class PlaybackController {
 			return true;
 		}
 
-		if (this.#playbackMode === 'loop') {
+		if (this.#playbackMode === PLAYBACK_MODE.LOOP) {
 			this.#frame %= this.#frameCount;
 			return true;
 		}
@@ -150,7 +150,7 @@ class PlaybackController {
 	}
 
 	#resetState() {
-		this.#frame = this.#playbackMode === 'reverse' ? this.#frameCount - 1 : 0;
+		this.#frame = this.#playbackMode === PLAYBACK_MODE.REVERSE ? this.#frameCount - 1 : 0;
 		this.#isFinished = false;
 		this.#pingpongDirection = 1;
 		this.#lastShuffleFrame = -1;
@@ -164,7 +164,7 @@ class PlaybackController {
 	 */
 	#linearFrameFromProgress(progress) {
 		const linearIndex = Math.min(this.#frameCount - 1, Math.floor(progress * this.#frameCount));
-		return this.#playbackMode === 'reverse' ? this.#frameCount - 1 - linearIndex : linearIndex;
+		return this.#playbackMode === PLAYBACK_MODE.REVERSE ? this.#frameCount - 1 - linearIndex : linearIndex;
 	}
 
 	/**

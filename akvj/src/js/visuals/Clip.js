@@ -8,7 +8,7 @@ import settings from '../core/settings.js';
 import ClipTiming from './ClipTiming.js';
 import PlaybackController from './PlaybackController.js';
 import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawStretch, drawWithScaleMode } from './clipDrawRect.js';
-import { DEFAULT_SCALING, SCALING_MODES } from './clipMetadata.js';
+import { DEFAULT_SCALING, SCALING_MODES, DEFAULT_PLAYBACK, PLAYBACK_MODE } from './clipMetadata.js';
 
 export { MAX_PATTERN_TILES_PER_FRAME };
 
@@ -58,7 +58,7 @@ class Clip {
 	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
 	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
 	 */
-	constructor({ image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
+	constructor({ image, frames, framesPerRow, playback = DEFAULT_PLAYBACK, frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
 		this.#validateConstructorParams(frames, framesPerRow);
 		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
 		this.#initDimensions(image, frames, framesPerRow);
@@ -73,7 +73,7 @@ class Clip {
 
 		// Sync does not apply to non-deterministic playback modes — never engage
 		// clock-driven progress tracking for them, regardless of clip metadata.
-		const isNonDeterministic = playback === 'random' || playback === 'shuffle';
+		const isNonDeterministic = playback === PLAYBACK_MODE.RANDOM || playback === PLAYBACK_MODE.SHUFFLE;
 		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationsMs, syncBeats: isNonDeterministic ? null : syncBeats, frames, bpmProvider, clockSource });
 		this.#playback = new PlaybackController({ frames, playback });
 	}

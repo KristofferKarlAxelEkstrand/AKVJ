@@ -25,7 +25,7 @@ class PreviewClip extends HTMLElement {
 	#isPlaying = false;
 	#currentFrame = 0;
 	#totalFrames = 0;
-	#frames = [];
+	#frameImages = [];
 	#durationsMs = [];
 	#speed = 1;
 	#animationId = null;
@@ -33,7 +33,7 @@ class PreviewClip extends HTMLElement {
 	#shuffleState = null;
 	#pingpongState = null;
 	#isLoading = false;
-	#updatingAttribute = false;
+	#isUpdatingAttribute = false;
 
 	#canvas = null;
 	#ctx = null;
@@ -55,7 +55,7 @@ class PreviewClip extends HTMLElement {
 	}
 
 	attributeChangedCallback(name, oldValue, newValue) {
-		if (this.#updatingAttribute) {
+		if (this.#isUpdatingAttribute) {
 			return;
 		}
 		const value = newValue ?? '';
@@ -198,7 +198,7 @@ class PreviewClip extends HTMLElement {
 		this.#playButton.type = 'button';
 		this.#playButton.className = 'preview-clip-play';
 		this.#playButton.textContent = 'Play';
-		this.#playButton.disabled = this.#frames.length === 0;
+		this.#playButton.disabled = this.#frameImages.length === 0;
 		this.#playButton.addEventListener('click', () => {
 			this.isPlaying = !this.#isPlaying;
 		});
@@ -238,7 +238,7 @@ class PreviewClip extends HTMLElement {
 		}
 		this.#isLoading = true;
 		this.#stopLoop();
-		this.#frames = [];
+		this.#frameImages = [];
 		this.#durationsMs = [];
 		this.#totalFrames = 0;
 		this.#currentFrame = 0;
@@ -253,7 +253,7 @@ class PreviewClip extends HTMLElement {
 			const frames = Array.isArray(clipData.frames) ? clipData.frames : [];
 			const durationsMs = Array.isArray(clipData.durationsMs) ? clipData.durationsMs : [];
 			const loaded = await this.#loadImages(frames);
-			this.#frames = loaded;
+			this.#frameImages = loaded;
 			this.#durationsMs = this.#normalizeDurationsMs(durationsMs, loaded.length);
 			this.#totalFrames = loaded.length;
 			this.#currentFrame = 0;
@@ -378,10 +378,10 @@ class PreviewClip extends HTMLElement {
 	#draw() {
 		this.#updateFrameLabel();
 		this.#updateProgress();
-		if (!this.#ctx || this.#frames.length === 0) {
+		if (!this.#ctx || this.#frameImages.length === 0) {
 			return;
 		}
-		const img = this.#frames[this.#currentFrame];
+		const img = this.#frameImages[this.#currentFrame];
 		if (!img) {
 			return;
 		}
@@ -441,9 +441,9 @@ class PreviewClip extends HTMLElement {
 		if (this.getAttribute(name) === value) {
 			return;
 		}
-		this.#updatingAttribute = true;
+		this.#isUpdatingAttribute = true;
 		this.setAttribute(name, value);
-		this.#updatingAttribute = false;
+		this.#isUpdatingAttribute = false;
 	}
 
 	#toggleAttributeIfChanged(name, shouldExist) {
@@ -451,13 +451,13 @@ class PreviewClip extends HTMLElement {
 		if (shouldExist === exists) {
 			return;
 		}
-		this.#updatingAttribute = true;
+		this.#isUpdatingAttribute = true;
 		if (shouldExist) {
 			this.setAttribute(name, '');
 		} else {
 			this.removeAttribute(name);
 		}
-		this.#updatingAttribute = false;
+		this.#isUpdatingAttribute = false;
 	}
 }
 

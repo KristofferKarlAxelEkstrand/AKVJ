@@ -130,6 +130,88 @@ describe('Pipeline full build', () => {
 	});
 });
 
+describe('Pipeline --fix integration', () => {
+	let root;
+	let sourceDir;
+	let cacheDir;
+	let publicDir;
+
+	beforeEach(async () => {
+		root = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-pipeline-fix-'));
+		sourceDir = path.join(root, 'clips');
+		cacheDir = path.join(root, 'cache');
+		publicDir = path.join(root, 'public');
+		await fs.mkdir(sourceDir, { recursive: true });
+		await fs.writeFile(path.join(sourceDir, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: 'fix-clip' } } }, null, '\t'));
+	});
+
+	afterEach(async () => {
+		if (root) {
+			await fs.rm(root, { recursive: true, force: true });
+		}
+	});
+
+	function createPipeline() {
+		return new Pipeline({ sourceDir, cacheDir, publicDir });
+	}
+
+	test('run({ fix: true }) migrates a loop:true clip and the build succeeds', async () => {
+		await writeClip(sourceDir, 'fix-clip', { meta: { png: 'sprite.png', frames: 1, framesPerRow: 1, loop: true } });
+		const metaPath = path.join(sourceDir, 'fix-clip', 'meta.json');
+
+		await createPipeline().run({ fix: true });
+
+		const migrated = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		expect(migrated.playback).toBe('loop');
+		expect(migrated.loop).toBeUndefined();
+		// Build output exists — validate passed and build ran.
+		await expect(fs.access(path.join(publicDir, 'clips.json'))).resolves.toBeUndefined();
+		const clipsJson = JSON.parse(await fs.readFile(path.join(publicDir, 'clips.json'), 'utf8'));
+		expect(clipsJson['fix-clip']).toBeDefined();
+	});
+
+	test('run({ fix: true }) repoints a stale png filename at the only on-disk sprite and builds', async () => {
+		await writeClip(sourceDir, 'fix-clip', { meta: { png: 'old.png', frames: 1, framesPerRow: 1, playback: 'loop' } });
+		const metaPath = path.join(sourceDir, 'fix-clip', 'meta.json');
+
+		await createPipeline().run({ fix: true });
+
+		const migrated = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		expect(migrated.png).toBe('sprite.png');
+		await expect(fs.access(path.join(publicDir, 'fix-clip', 'sprite.png'))).resolves.toBeUndefined();
+	});
+
+	test('run({ fix: true }) on clean clips is a no-op — source meta survives byte-for-byte', async () => {
+		// Deliberately idiosyncratic formatting; --fix must not rewrite a clean file.
+		const handWritten = '{\n    "png": "sprite.png",\n    "frames": 1,\n    "framesPerRow": 1,\n    "playback": "loop"\n}';
+		const clipDir = path.join(sourceDir, 'fix-clip');
+		await fs.mkdir(clipDir, { recursive: true });
+		await fs.writeFile(path.join(clipDir, 'meta.json'), handWritten);
+		await fs.writeFile(path.join(clipDir, 'sprite.png'), PNG_1x1);
+		const metaPath = path.join(clipDir, 'meta.json');
+
+		await createPipeline().run({ fix: true });
+
+		expect(await fs.readFile(metaPath, 'utf8')).toBe(handWritten);
+		await expect(fs.access(path.join(publicDir, 'clips.json'))).resolves.toBeUndefined();
+	});
+
+	test('run({ fix: true, validateOnly: true }) migrates then validates-only (no build output)', async () => {
+		await writeClip(sourceDir, 'fix-clip', { meta: { png: 'sprite.png', frames: 1, framesPerRow: 1, loop: true } });
+		const metaPath = path.join(sourceDir, 'fix-clip', 'meta.json');
+
+		await createPipeline().run({ fix: true, validateOnly: true });
+
+		// Migration happened.
+		const migrated = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		expect(migrated.playback).toBe('loop');
+		expect(migrated.loop).toBeUndefined();
+		// No build output.
+		await expect(fs.access(path.join(cacheDir, 'clips.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+		await expect(fs.access(path.join(publicDir, 'clips.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+	});
+});
+
 describe('Pipeline sharp-unavailable fallback', () => {
 	test('build succeeds when optimize reports sharp unavailable (copy fallback)', async () => {
 		vi.resetModules();

@@ -5,12 +5,11 @@
  */
 import Clip from './Clip.js';
 import settings from '../core/settings.js';
-import { normalizeClipMetadata } from './clipMetadata.js';
+import { normalizeClipMetadata, SAFE_ID_PATTERN } from './clipMetadata.js';
 import ProjectCatalog from './ProjectCatalog.js';
 
 const DEFAULT_MAX_CONCURRENT_LOADS = 8;
 const DEFAULT_PROJECT_ID = 'default';
-const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 
 /** Allowed key-map leaf override keys (mirrors mainframe/shared/mappingLeaf.js — no cross-package import). */
 const MAPPING_OVERRIDE_KEYS = Object.freeze(['triggerType', 'triggerGroup', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
@@ -81,7 +80,7 @@ class ClipLoader {
 	 * @returns {string}
 	 */
 	#sanitizeClipId(clipId) {
-		if (!clipId || typeof clipId !== 'string' || !CLIP_ID_PATTERN.test(clipId) || /^\d+$/.test(clipId)) {
+		if (!clipId || typeof clipId !== 'string' || !SAFE_ID_PATTERN.test(clipId) || /^\d+$/.test(clipId)) {
 			console.warn('ClipLoader: invalid clipId', clipId);
 			return '';
 		}

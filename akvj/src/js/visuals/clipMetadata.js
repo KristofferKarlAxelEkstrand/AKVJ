@@ -28,6 +28,12 @@ export const PLAYBACK_MODE = Object.freeze({
 export const PLAYBACK_MODES = Object.freeze(Object.values(PLAYBACK_MODE));
 
 /**
+ * Safe-id pattern shared by clip ids and project ids.
+ * Same rule as `mainframe/shared/clipId.js` (no cross-package import).
+ */
+export const SAFE_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+
+/**
  * Default clip frame dimensions (AKVJ canvas resolution).
  */
 export const DEFAULT_FRAME_WIDTH = 240;
@@ -142,7 +148,7 @@ function resolvePlayback(rawMeta) {
 		return rawMeta.playback;
 	}
 	if (rawMeta.loop === false) {
-		return 'once';
+		return PLAYBACK_MODE.ONCE;
 	}
 	return DEFAULT_PLAYBACK;
 }

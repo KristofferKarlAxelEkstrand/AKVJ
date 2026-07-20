@@ -74,13 +74,9 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 15:32 — Approved 364 (KeyBed/PianoRoll naming + pianoroll:* events); filed bug for draft mapping.md stale event names — Area: `mainframe/src/js/PianoRoll.js,spec/mapping.md`
 - 2026-07-20 15:32 — Wake on slack/all PROMPT-UPDATED mapping-events (draft event table); no reviews; resuming await — Area: `slack/all`
 - 2026-07-20 15:37 — Approved 387 (ClipFramesUploadPanel→ClipFramesPanel rename); no leftover refs; lint/test/build pass — Area: `mainframe/src/js/ClipFramesPanel.js`
+- 2026-07-20 15:43 — Approved 389 (PianoKey pianoroll:*-request events); no leftover compact request names; lint/build pass — Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
 
 ## Recent
-
-### 2026-07-20 15:43 — Approved 389 (PianoKey pianoroll:*-request events); no leftover compact request names; lint/build pass
-
-- Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
-- Refs: 389
 
 ### 2026-07-20 15:43 — Wake on slack/all PROMPT-UPDATED mapping-request-events; no reviews; resuming await
 
@@ -129,3 +125,8 @@ One line per past finding — read this in full before a sweep.
 
 - Area: `akvj/src/js/visuals`
 - Refs: 409
+
+### 2026-07-20 18:05 — Approved 403 (docs/config projects-layout sweep), 405 (run-team dead-pane fallback fix), 407 (check-references generated-path filter), 408 (AppState event hygiene split), 410 (mainframe shared module extraction), 411 (grayscale per-frame allocation fix), 412 (clip format validation honesty + single-source defaults), 413 (akvj dead-code sweep). Deleted stale 417 (already in done/). All lint/test/build/clips green across both workspaces.
+
+- Area: `akvj/src/js,mainframe,.agents/workflows/scripts,docs`
+- Refs: 403,405,407,408,410,411,412,413,417

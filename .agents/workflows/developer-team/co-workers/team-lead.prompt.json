@@ -1,6 +1,7 @@
 {
   "display": "Team Lead",
-  "cli": "claude",
+  "model": "GLM-5.2 High",
+  "cli": "devin",
   "permission_mode": "bypassPermissions",
   "watch_folders": [
     "slack/team-lead",

@@ -10,8 +10,7 @@
  */
 
 import settings from '../core/settings.js';
-
-const PROJECT_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+import { SAFE_ID_PATTERN } from './clipMetadata.js';
 
 class ProjectCatalog {
 	/**
@@ -36,7 +35,7 @@ class ProjectCatalog {
 	async fetchActiveProjectId() {
 		try {
 			const activeProject = await this.#loadJson(settings.performance.activeProjectUrl);
-			if (activeProject && typeof activeProject.project === 'string' && PROJECT_ID_PATTERN.test(activeProject.project)) {
+			if (activeProject && typeof activeProject.project === 'string' && SAFE_ID_PATTERN.test(activeProject.project)) {
 				return activeProject.project;
 			}
 		} catch {
@@ -53,7 +52,7 @@ class ProjectCatalog {
 		try {
 			const index = await this.#loadJson(settings.performance.projectsIndexUrl);
 			if (Array.isArray(index)) {
-				return index.filter(entry => entry && typeof entry.id === 'string' && PROJECT_ID_PATTERN.test(entry.id));
+				return index.filter(entry => entry && typeof entry.id === 'string' && SAFE_ID_PATTERN.test(entry.id));
 			}
 		} catch {
 			// No projects index — return empty
@@ -67,7 +66,7 @@ class ProjectCatalog {
 	 * @returns {string}
 	 */
 	buildProjectKeyMapUrl(projectId) {
-		if (!PROJECT_ID_PATTERN.test(projectId)) {
+		if (!SAFE_ID_PATTERN.test(projectId)) {
 			throw new Error(`Invalid project ID: ${projectId}`);
 		}
 		return settings.performance.projectKeyMapUrlTemplate.replace('{projectId}', projectId);
@@ -79,7 +78,7 @@ class ProjectCatalog {
 	 * @returns {string}
 	 */
 	buildProjectClipsJsonUrl(projectId) {
-		if (!PROJECT_ID_PATTERN.test(projectId)) {
+		if (!SAFE_ID_PATTERN.test(projectId)) {
 			throw new Error(`Invalid project ID: ${projectId}`);
 		}
 		return settings.performance.projectClipsJsonUrlTemplate.replace('{projectId}', projectId);

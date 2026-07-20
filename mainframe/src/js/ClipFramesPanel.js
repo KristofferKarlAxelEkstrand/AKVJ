@@ -19,7 +19,7 @@ class ClipFramesPanel extends HTMLElement {
 
 	/**
 	 * Expose the inner <clip-frames> element so consumers can coordinate
-	 * without reaching through the shadow tree or racing connectedCallback.
+	 * without reaching into the rendered children or racing connectedCallback.
 	 * @returns {HTMLElement|null}
 	 */
 	get clipFramesElement() {

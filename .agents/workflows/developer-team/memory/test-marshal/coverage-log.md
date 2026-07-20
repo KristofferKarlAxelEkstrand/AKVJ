@@ -1,7 +1,5 @@
 # The Test Marshal — Coverage Log
 
-### 2026-07-20 17:52 — Swept mainframe/scripts/clips + shared after tasks 410/412. Filed [TEST]-mainframe-pipeline-fix-integration: Pipeline --fix→validate→build chain untested (fixClips well-tested but Pipeline.run({fix:true}) never called). New modules (fix, slugify, writeJsonAtomic, spritesheetCore, ClipFramesPanel) all have solid direct tests.
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -198,10 +196,9 @@ One line per past finding — read this in full before a sweep.
 - Refs: TEST-mainframe-validate-image-slots-mock
 - Area: `mainframe/scripts/clips/lib/generate.js`
 - Refs: TEST-mainframe-generate-edge-paths
+- Area: `akvj/test/AdventureKidVideoJockey.test.js`
 
 ## Recent
-
-- Area: `akvj/test/AdventureKidVideoJockey.test.js`
 
 - Refs: TEST-akvj-switchproject-destroyclips-mock
 
@@ -223,7 +220,6 @@ One line per past finding — read this in full before a sweep.
 
 - Refs: TEST-mainframe-pipeline-fix-integration
 
-### 2026-07-20 17:55 — Swept akvj/src/js/midi-input + core. Filed [TEST]-akvj-midi-security-and-unsupported: Midi.js max device limit, invalid byte validation, WebMIDI-unsupported path, getConnectedDevices name fallback all untested. AppState + AdventureKidVideoJockey well covered.
-
 - Area: `akvj/src/js/midi-input,akvj/src/js/core`
+
 - Refs: TEST-akvj-midi-security-and-unsupported

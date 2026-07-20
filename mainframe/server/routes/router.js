@@ -47,6 +47,7 @@ export async function routeRequest(req, res, url) {
 		await handlePutClipFrames(req, res, url);
 		return;
 	}
+	// /frames PUT returned above; /sprite is GET-only (no PUT handler), so exclude it from the generic clip-meta PUT.
 	if (req.method === 'PUT' && url.pathname.startsWith('/api/clips/') && !url.pathname.endsWith('/sprite')) {
 		await handlePutClipMeta(req, res, url);
 		return;

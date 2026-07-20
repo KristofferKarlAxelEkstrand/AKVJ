@@ -1,7 +1,5 @@
 # The Quartermaster — Supply Log
 
-### 2026-07-20 17:17 — Mail wake: [PROMPT-UPDATED]-mail-out-answer-block.md in slack/all (bare 'Answer:' line must end mail/out questions) — noted, file left for others. Version-skew sweep: 18 shared deps across root/akvj/mainframe, zero skew. No ticket.
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.
