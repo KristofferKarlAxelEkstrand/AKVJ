@@ -36,6 +36,14 @@ Keep the `[PREFIX]-` filename convention too — that is how a human scans a fol
 | `prompt-updated` | Overseer → `slack/all/` (shared) or `slack/<agent>/` (one prompt) | A file agents depend on changed | `[PROMPT-UPDATED]-<slug>.md` |
 | `bug` / `feature` | Anyone → `mail/in/` | New work request | `[BUG]-` / `[FEATURE]-<slug>.md` |
 
+### Asking the human (`mail/out/`)
+
+End the file with a bare `Answer:` line and **nothing after it**. That block belongs to the human —
+it is how they reply, and how the tooling and every agent tell an answered question from a waiting
+one. Putting your own text under `Answer:` makes a waiting question look answered and buries it.
+
+Everything you want to say goes *above* the `Answer:` line.
+
 ## Talking to Each Other
 
 **You may message any agent directly.** If you need context another implementer has, ask them —

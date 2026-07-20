@@ -6,36 +6,43 @@
 
 All 10 agents up.
 
-## 📋 Backlog (2)
-- **407-check-references-generated-paths.md**: 407 — check-references flags generated/gitignored paths as dangling (Priority: high)
-- **411-akvj-grayscale-per-frame-allocation.md**: 411 — grayscale effects allocate in the 60fps render loop (Priority: high)
+## 📋 Backlog (3)
+- **414-mainframe-dead-code-sweep.md**: 414 — Dead-code sweep: mainframe and monorepo-scripts (Priority: medium)
+- **415-akvj-renderer-compositor-nits.md**: 415 — Renderer / Compositor naming and JSDoc nits (Priority: low)
+- **418-await-messages-mail-out-answer-gate.md**: 418 — `await-messages.js` wakes on any `mail/out/` edit, not just an answer (Priority: medium)
 
 ## 🚀 In Progress
 ### akvj-developer
 - **408-akvj-event-hygiene-appstate.md**: 408 — Event hygiene: AppState
-- **409-akvj-effectsmanager-reserved-leftover.md**: 409 — EffectsManager: dead `reserved` guard removed
+- **411-akvj-grayscale-per-frame-allocation.md**: 411 — grayscale effects allocate in the 60fps render loop
+- **413-akvj-dead-code-sweep.md**: 413 — Dead-code sweep: akvj
 
 **Slack / Active Files:**
-- [TASK]-408-akvj-event-hygiene-appstate.md
+- [TASK]-413-akvj-dead-code-sweep.md
 
 ### mainframe-developer
-- **402-mainframe-editable-meta-frameDurationsMs.md**: Task 402: clips handler EDITABLE_META + frameDurationsMs
 - **410-mainframe-shared-module-extraction.md**: 410 — Mainframe layering: shared module extraction
+- **412-mainframe-clip-format-validation-defaults.md**: 412 — Clip format: validation honesty and single-source defaults
 
 **Slack / Active Files:**
-- [TASK]-410-mainframe-shared-module-extraction.md
+- [TASK]-412-mainframe-clip-format-validation-defaults.md
 
 ### utility-developer
 - **403-docs-config-projects-layout-sweep.md**: 403 — Docs & config sweep for the projects layout
 - **405-run-team-pane-id-fallback.md**: 405 — run-team: dead-pane fallback restarts the wrong agent
+- **407-check-references-generated-paths.md**: 407 — check-references flags generated/gitignored paths as dangling
+- **417-build-silently-ships-clipless-dist.md**: 417 — `npm run build` exits 0 while producing a clip-less `dist/`
 
 **Slack / Active Files:**
-- [TASK]-405-run-team-pane-id-fallback.md
+- [TASK]-417-build-silently-ships-clipless-dist.md
 
 ## 🔍 Pending QA Audit
 - *No tasks pending review*
 
 ## ✅ Done (Recent 15)
+- **416-fresh-clone-durability-audit.md**: 416 — Fresh-clone durability audit
+- **409-akvj-effectsmanager-reserved-leftover.md**: 409 — EffectsManager: dead `reserved` guard removed
+- **402-mainframe-editable-meta-frameDurationsMs.md**: Task 402: clips handler EDITABLE_META + frameDurationsMs
 - **406-akvj-renderer-lifecycle-tests.md**: 406 — Renderer lifecycle test coverage
 - **404-akvj-mask-effects-nits.md**: 404 — MaskManager / EffectsManager readability nits
 - **401-mainframe-mapping-table-visual-refs.md**: Task 401: Refresh MappingTable visual refs after “mapping(s)” copy
@@ -48,6 +55,3 @@ All 10 agents up.
 - **396-mainframe-generate-edge-paths.md**: Task 396: generate.js skip / corrupt-meta edge tests
 - **397-e2e-stale-vite-clip-frames-panel-rename.md**: Task 397: Stale Vite after ClipFramesPanel rename breaks clip-editor e2e
 - **395-mainframe-validate-image-dead-slots-check.md**: Task 395: Delete dead validateFrameHeight slots check
-- **394-mainframe-validate-image-slots-mock.md**: Task 394: Remove vacuous validate-image slots `Math.floor` mock
-- **370-mainframe-writeJsonAtomic-param-rename.md**: Task 370: Rename `writeJsonAtomic` param `data` → `value`
-- **393-akvj-clipTiming-free-mode-ms-honesty.md**: Task 393: ClipTiming free-mode naming honesty (ms-first)

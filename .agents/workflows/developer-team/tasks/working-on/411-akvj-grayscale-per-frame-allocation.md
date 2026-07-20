@@ -1,6 +1,6 @@
 ---
-status: backlog
-assignee: none
+status: review-pending
+assignee: akvj-developer
 priority: high
 ---
 

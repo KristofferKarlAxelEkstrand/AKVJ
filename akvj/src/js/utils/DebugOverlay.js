@@ -2,19 +2,7 @@
  * DebugOverlay - Displays real-time MIDI and timing information
  * Toggle visibility with 'D' key
  */
-import appState, {
-	EVENT_BPM_CHANGED,
-	EVENT_BPM_SOURCE_CHANGED,
-	EVENT_MIDI_CONNECTION_CHANGED,
-	EVENT_MIDI_NOTE_ON,
-	EVENT_MIDI_NOTE_OFF,
-	EVENT_MIDI_CONTROL_CHANGE,
-	EVENT_MIDI_START,
-	EVENT_MIDI_CONTINUE,
-	EVENT_MIDI_STOP,
-	EVENT_PROJECT_CHANGED,
-	EVENT_CLIP_LOAD_ERROR
-} from '../core/AppState.js';
+import appState, { EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONNECTION_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_PROJECT_CHANGED, EVENT_CLIP_LOAD_ERROR } from '../core/AppState.js';
 
 const MAX_LOG_ENTRIES = 8;
 const NOTES_PER_OCTAVE = 12;
@@ -101,9 +89,7 @@ class DebugOverlay {
 		if (this.#bpmElement) {
 			this.#bpmElement.textContent = bpm.toFixed(1);
 		}
-		if (this.#bpmSourceElement) {
-			this.#bpmSourceElement.textContent = source;
-		}
+		this.#updateBPMSource(source);
 	}
 
 	#updateBPMSource(source) {

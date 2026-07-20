@@ -170,10 +170,9 @@ One line per past finding — read this in full before a sweep.
 - Area: `mainframe/src/js/ClipFramesUploadPanel.js`
 - Refs: 7,11,33,39,69
 - Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
+- Refs: 250,331,574,600,282,285
 
 ## Recent
-
-- Refs: 250,331,574,600,282,285
 
 - Area: `mainframe/server/spritesheet.js`
 
@@ -195,6 +194,6 @@ One line per past finding — read this in full before a sweep.
 
 - Refs: 248,295,407
 
-### 2026-07-20 16:45 — Swept MaskManager.js + EffectsManager.js. Filed [NIT]-mask-effects-managers-2026-07-20 (PLAYBACK_MODE constant for 4x 'scrub' literal; EffectsManager header channel 9/12 -> DAW 10/13; EffectType typedef drops 'reserved'; getBitDepth -> getCurrentBitDepth). Next: Renderer.js or Compositor.js deep pass.
+- Area: `akvj/src/js/visuals`
 
 - Area: `akvj/src/js/visuals`

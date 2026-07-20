@@ -40,7 +40,6 @@ class Clip {
 
 	/**
 	 * @param {Object} options
-	 * @param {CanvasRenderingContext2D} options.displayContext - Unused (kept for API compat)
 	 * @param {HTMLImageElement} options.image
 	 * @param {number} options.frames
 	 * @param {number} options.framesPerRow
@@ -59,7 +58,7 @@ class Clip {
 	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
 	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
 	 */
-	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
+	constructor({ image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
 		this.#validateConstructorParams(frames, framesPerRow);
 		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
 		this.#initDimensions(image, frames, framesPerRow);

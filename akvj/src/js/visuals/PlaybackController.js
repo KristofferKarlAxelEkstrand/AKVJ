@@ -149,20 +149,6 @@ class PlaybackController {
 		return false;
 	}
 
-	/**
-	 * Mark as finished and stop playback.
-	 */
-	finish() {
-		this.#isFinished = true;
-	}
-
-	/**
-	 * Clear finished state.
-	 */
-	clearFinished() {
-		this.#isFinished = false;
-	}
-
 	#resetState() {
 		this.#frame = this.#playbackMode === 'reverse' ? this.#frameCount - 1 : 0;
 		this.#isFinished = false;

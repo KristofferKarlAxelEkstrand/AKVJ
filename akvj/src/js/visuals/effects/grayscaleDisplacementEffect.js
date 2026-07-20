@@ -34,13 +34,14 @@ export default {
 		const { isVariantA } = getEffectVariant(effect.note, effectRanges.grayscaleDisplacement, effectVariantThreshold);
 		const intensity = effect.velocity / MAX_MIDI_VELOCITY;
 
-		const original = !scratchBuffer || scratchBuffer.length < pixels.length ? new Uint8ClampedArray(pixels.length) : scratchBuffer;
-		original.set(pixels);
-
+		// Bail out before copying the frame — low velocities would otherwise copy and discard it every frame.
 		const maxShift = Math.floor(intensity * grayscaleDisplacementMaxShift);
 		if (maxShift === 0) {
 			return false;
 		}
+
+		const original = !scratchBuffer || scratchBuffer.length < pixels.length ? new Uint8ClampedArray(pixels.length) : scratchBuffer;
+		original.set(pixels);
 
 		return isVariantA ? applyHorizontalDisplacement(pixels, original, width, height, maxShift) : applyVerticalDisplacement(pixels, original, width, height, maxShift);
 	},
@@ -67,10 +68,7 @@ function applyHorizontalDisplacement(pixels, original, width, height, maxShift) 
 
 			// Displacement: mid-gray = no shift, darker = left, brighter = right
 			// Lo-fi: use integer math with stepped values, scaled by maxShift
-			const displacement =
-				luminance > MID_GRAY_LUMINANCE
-					? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift)
-					: -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
+			const displacement = luminance > MID_GRAY_LUMINANCE ? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift) : -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
 			if (shiftAmount === 0) {
@@ -107,10 +105,7 @@ function applyVerticalDisplacement(pixels, original, width, height, maxShift) {
 
 			// Displacement: mid-gray = no shift, darker = up, brighter = down
 			// Lo-fi: use integer math with stepped values, scaled by maxShift
-			const displacement =
-				luminance > MID_GRAY_LUMINANCE
-					? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift)
-					: -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
+			const displacement = luminance > MID_GRAY_LUMINANCE ? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift) : -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
 			if (shiftAmount === 0) {

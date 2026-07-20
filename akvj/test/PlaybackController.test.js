@@ -178,16 +178,7 @@ describe('PlaybackController', () => {
 		});
 	});
 
-	describe('finish / clearFinished / playbackMode', () => {
-		test('finish and clearFinished toggle isFinished', () => {
-			const playback = new PlaybackController({ frames: 3, playback: 'loop' });
-			expect(playback.isFinished).toBe(false);
-			playback.finish();
-			expect(playback.isFinished).toBe(true);
-			playback.clearFinished();
-			expect(playback.isFinished).toBe(false);
-		});
-
+	describe('playbackMode', () => {
 		test('playbackMode getter returns constructor mode', () => {
 			expect(new PlaybackController({ frames: 2, playback: 'shuffle' }).playbackMode).toBe('shuffle');
 		});

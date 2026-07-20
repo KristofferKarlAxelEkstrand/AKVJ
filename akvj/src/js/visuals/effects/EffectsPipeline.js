@@ -6,18 +6,22 @@ import effectRegistry from './index.js';
  * Each effect module implements:
  *   apply(imageData, effect, timestamp, effectContext) => boolean
  *
- * effectContext contains: width, height, effectParams, effectRanges, bpm, scratchBuffer
+ * effectContext contains: width, height, effectParams, effectRanges, bpm, scratchBuffer,
+ * secondaryScratchBuffer
  *
  * Scratch buffer ownership contract:
- * - The pipeline owns the scratch buffer (a Uint8ClampedArray) and allocates it once,
- *   reusing it across frames and effects.
- * - The scratch buffer is passed to each effect via effectContext.scratchBuffer.
- * - Effects may read from and write to the scratch buffer during their apply() call,
- *   but must NOT retain references to it after returning.
- * - The scratch buffer is shared across all effects in a single frame. An effect that
- *   needs a pristine copy of the input pixels should copy from imageData.data into the
- *   scratch buffer before reading from it (e.g., glitch, offset, split effects).
- * - The pipeline guarantees the scratch buffer is at least as large as imageData.data.
+ * - The pipeline owns both scratch buffers (Uint8ClampedArray) and allocates them once,
+ *   reusing them across frames and effects. Effects must never allocate per frame — that
+ *   is garbage in the 60fps render loop.
+ * - They are passed to each effect via effectContext.scratchBuffer and
+ *   effectContext.secondaryScratchBuffer. Use the secondary one only when an effect needs
+ *   two working buffers at once (e.g., grayscale blend: original + modified).
+ * - Effects may read from and write to both buffers during their apply() call,
+ *   but must NOT retain references to them after returning.
+ * - Both buffers are shared across all effects in a single frame, and their contents are
+ *   undefined on entry. An effect that needs a pristine copy of the input pixels must copy
+ *   from imageData.data into a buffer before reading from it (e.g., glitch, offset, split).
+ * - The pipeline guarantees both buffers are at least as large as imageData.data.
  */
 const FALLBACK_BPM_MIN = 1;
 const FALLBACK_BPM = 120;
@@ -25,6 +29,9 @@ const FALLBACK_BPM = 120;
 class EffectsPipeline {
 	/** @type {Uint8ClampedArray|null} */
 	#scratchBuffer = null;
+
+	/** @type {Uint8ClampedArray|null} Second working buffer for effects that need two */
+	#secondaryScratchBuffer = null;
 
 	/** @type {Object} Reused across apply() calls to avoid per-frame allocation */
 	#effectContext;
@@ -42,7 +49,8 @@ class EffectsPipeline {
 			bpm: 0,
 			bpmMin: FALLBACK_BPM_MIN,
 			bpmDefault: FALLBACK_BPM,
-			scratchBuffer: null
+			scratchBuffer: null,
+			secondaryScratchBuffer: null
 		};
 	}
 
@@ -63,7 +71,7 @@ class EffectsPipeline {
 
 		const { width, height, bpm, bpmMin = FALLBACK_BPM_MIN, bpmDefault = FALLBACK_BPM } = renderContext;
 		const imageData = ctx.getImageData(0, 0, width, height);
-		this.#ensureScratchBuffer(imageData.data.length);
+		this.#ensureScratchBuffers(imageData.data.length);
 		this.#prepareEffectContext(width, height, bpm, bpmMin, bpmDefault);
 
 		const isModified = this.#applyEffects(activeEffects, imageData, timestamp);
@@ -72,9 +80,12 @@ class EffectsPipeline {
 		}
 	}
 
-	#ensureScratchBuffer(pixelsLength) {
+	#ensureScratchBuffers(pixelsLength) {
 		if (!this.#scratchBuffer || this.#scratchBuffer.length < pixelsLength) {
 			this.#scratchBuffer = new Uint8ClampedArray(pixelsLength);
+		}
+		if (!this.#secondaryScratchBuffer || this.#secondaryScratchBuffer.length < pixelsLength) {
+			this.#secondaryScratchBuffer = new Uint8ClampedArray(pixelsLength);
 		}
 	}
 
@@ -86,6 +97,7 @@ class EffectsPipeline {
 		effectContext.bpmMin = bpmMin;
 		effectContext.bpmDefault = bpmDefault;
 		effectContext.scratchBuffer = this.#scratchBuffer;
+		effectContext.secondaryScratchBuffer = this.#secondaryScratchBuffer;
 	}
 
 	#applyEffects(activeEffects, imageData, timestamp) {
@@ -106,8 +118,9 @@ class EffectsPipeline {
 	destroy() {
 		try {
 			this.#scratchBuffer = null;
+			this.#secondaryScratchBuffer = null;
 		} catch (error) {
-			console.error('Error releasing scratchBuffer in EffectsPipeline:', error);
+			console.error('Error releasing scratch buffers in EffectsPipeline:', error);
 		}
 		try {
 			this.#effectContext = null;

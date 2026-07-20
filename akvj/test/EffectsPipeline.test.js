@@ -186,6 +186,100 @@ describe('EffectsPipeline', () => {
 		expect(mockCtx.putImageData).not.toHaveBeenCalled();
 	});
 
+	describe('pipeline-owned scratch buffers', () => {
+		const WIDTH = 8;
+		const HEIGHT = 4;
+		const BLEND_EFFECT = { type: 'grayscaleBlend', note: settings.effectRanges.grayscaleBlend.min, velocity: 127 };
+		const DISPLACEMENT_EFFECT = { type: 'grayscaleDisplacement', note: settings.effectRanges.grayscaleDisplacement.min, velocity: 127 };
+
+		/**
+		 * Deterministic, varied pixel data — flat pixels would hide displacement.
+		 * @returns {Uint8ClampedArray}
+		 */
+		function createPixels() {
+			const pixels = new Uint8ClampedArray(WIDTH * HEIGHT * 4);
+			for (let i = 0; i < pixels.length; i += 4) {
+				const index = i / 4;
+				pixels[i] = (index * 37) % 256;
+				pixels[i + 1] = (index * 11) % 256;
+				pixels[i + 2] = (index * 91) % 256;
+				pixels[i + 3] = 255;
+			}
+			return pixels;
+		}
+
+		/**
+		 * Canvas context stub over a single persistent ImageData, so the only
+		 * allocations during apply() are the ones the effects make.
+		 */
+		function createStubContext(pixels) {
+			const imageData = { width: WIDTH, height: HEIGHT, data: pixels };
+			return {
+				imageData,
+				getImageData: vi.fn(() => imageData),
+				putImageData: vi.fn()
+			};
+		}
+
+		test('stacked blend + displacement matches applying both with private buffers', async () => {
+			const blendEffect = (await import('../src/js/visuals/effects/grayscaleBlendEffect.js')).default;
+			const displacementEffect = (await import('../src/js/visuals/effects/grayscaleDisplacementEffect.js')).default;
+
+			const shared = createStubContext(createPixels());
+			pipeline.apply(shared, [BLEND_EFFECT, DISPLACEMENT_EFFECT], 1000, { width: WIDTH, height: HEIGHT, bpm: 120 });
+
+			// Reference: same two effects in the same order, but each allocating its
+			// own buffers (null scratch buffers force the fallback path).
+			const referenceImageData = { width: WIDTH, height: HEIGHT, data: createPixels() };
+			const privateContext = {
+				width: WIDTH,
+				height: HEIGHT,
+				effectParams: settings.effectParams,
+				effectRanges: settings.effectRanges,
+				bpm: 120,
+				scratchBuffer: null,
+				secondaryScratchBuffer: null
+			};
+			blendEffect.apply(referenceImageData, BLEND_EFFECT, 1000, privateContext);
+			displacementEffect.apply(referenceImageData, DISPLACEMENT_EFFECT, 1000, privateContext);
+
+			expect(Array.from(shared.imageData.data)).toEqual(Array.from(referenceImageData.data));
+		});
+
+		test('a warmed-up pipeline allocates nothing on later frames', () => {
+			const ctx = createStubContext(createPixels());
+			const renderContext = { width: WIDTH, height: HEIGHT, bpm: 120 };
+			pipeline.apply(ctx, [BLEND_EFFECT, DISPLACEMENT_EFFECT], 1000, renderContext);
+
+			const RealUint8ClampedArray = globalThis.Uint8ClampedArray;
+			let allocations = 0;
+			class CountingUint8ClampedArray extends RealUint8ClampedArray {
+				constructor(...args) {
+					super(...args);
+					allocations++;
+				}
+			}
+			globalThis.Uint8ClampedArray = CountingUint8ClampedArray;
+			try {
+				pipeline.apply(ctx, [BLEND_EFFECT, DISPLACEMENT_EFFECT], 2000, renderContext);
+			} finally {
+				globalThis.Uint8ClampedArray = RealUint8ClampedArray;
+			}
+
+			expect(allocations).toBe(0);
+		});
+
+		test('displacement returns early without copying when maxShift is 0', () => {
+			const ctx = createStubContext(createPixels());
+			const before = Array.from(ctx.imageData.data);
+
+			pipeline.apply(ctx, [{ ...DISPLACEMENT_EFFECT, velocity: 1 }], 1000, { width: WIDTH, height: HEIGHT, bpm: 120 });
+
+			expect(ctx.putImageData).not.toHaveBeenCalled();
+			expect(Array.from(ctx.imageData.data)).toEqual(before);
+		});
+	});
+
 	test('destroy leaves subsequent apply safe (does not throw)', () => {
 		pipeline.destroy();
 		expect(() =>

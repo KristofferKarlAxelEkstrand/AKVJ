@@ -1,5 +1,5 @@
 ---
-status: review-pending
+status: done
 assignee: akvj-developer
 priority: low
 ---

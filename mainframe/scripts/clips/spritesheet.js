@@ -20,7 +20,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { writeJsonAtomic } from '../../server/writeJsonAtomic.js';
-import { renderSpriteSheet, DEFAULT_FRAME_RATE } from '../../shared/spritesheetCore.js';
+import { renderSpriteSheet, DEFAULT_FRAME_RATE, DEFAULT_FRAMES_PER_ROW } from '../../shared/spritesheetCore.js';
 
 /**
  * Parse command line arguments.
@@ -30,7 +30,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 	const options = {
 		inputDir: null,
 		outputDir: null,
-		framesPerRow: 8,
+		framesPerRow: DEFAULT_FRAMES_PER_ROW,
 		frameRate: DEFAULT_FRAME_RATE
 	};
 
@@ -53,7 +53,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 }
 
 export async function createSpriteSheet(inputDir, outputDir, options = {}) {
-	const { framesPerRow = 8, frameRate = DEFAULT_FRAME_RATE } = options;
+	const { framesPerRow = DEFAULT_FRAMES_PER_ROW, frameRate = DEFAULT_FRAME_RATE } = options;
 	const sharp = await importSharp();
 
 	const files = await loadFrameFiles(inputDir);

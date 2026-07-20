@@ -78,6 +78,22 @@ export class WorkflowTree {
         }
     }
 
+    /**
+     * Make the tree a real git repo with the given ignore rules.
+     *
+     * `check-references.js` asks `git check-ignore` whether a reference target
+     * is generated output, so exercising that path needs an actual work tree
+     * rather than a plain temp directory.
+     *
+     * @param {string} gitignore
+     */
+    initGit(gitignore = '') {
+        fs.writeFileSync(path.join(this.rootDir, '.gitignore'), gitignore);
+        for (const args of [['init', '-q'], ['config', 'user.email', 'test@example.com'], ['config', 'user.name', 'Test']]) {
+            execFileSync('git', args, { cwd: this.rootDir, stdio: 'ignore' });
+        }
+    }
+
     /** Backdate a file so age-based logic sees it as old. */
     age(relativePath, minutes) {
         const when = new Date(Date.now() - minutes * 60_000);

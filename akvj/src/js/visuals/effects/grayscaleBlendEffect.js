@@ -30,25 +30,26 @@ export default {
 	 * @param {ImageData} imageData
 	 * @param {{note: number, velocity: number}} effect
 	 * @param {number} _timestamp
-	 * @param {{width: number, height: number, scratchBuffer: Uint8ClampedArray|null, effectParams: Object, effectRanges: Object}} effectContext
+	 * @param {{width: number, height: number, scratchBuffer: Uint8ClampedArray|null, secondaryScratchBuffer: Uint8ClampedArray|null, effectParams: Object, effectRanges: Object}} effectContext
 	 * @returns {boolean} True if pixels were modified
 	 *
-	 * Scratch buffer usage: Copies imageData.data into the scratch buffer to preserve
-	 * original pixel values for blending. Does not retain the scratch buffer reference
+	 * Scratch buffer usage: needs two working buffers — the primary holds a pristine copy
+	 * of imageData.data to blend from, the secondary holds the modified version. Both are
+	 * pipeline-owned and fully overwritten before being read; neither reference is retained
 	 * after returning.
 	 */
 	apply(imageData, effect, _timestamp, effectContext) {
 		const pixels = imageData.data;
-		const { width, height, scratchBuffer, effectParams, effectRanges } = effectContext;
+		const { width, height, scratchBuffer, secondaryScratchBuffer, effectParams, effectRanges } = effectContext;
 		const { effectVariantThreshold, grayscaleBlendBitDepth } = effectParams;
 		const { isVariantA } = getEffectVariant(effect.note, effectRanges.grayscaleBlend, effectVariantThreshold);
 		const intensity = effect.velocity / MAX_MIDI_VELOCITY;
 
-		const original = !scratchBuffer || scratchBuffer.length < pixels.length ? new Uint8ClampedArray(pixels.length) : scratchBuffer;
+		const original = usableBuffer(scratchBuffer, pixels.length);
 		original.set(pixels);
 
-		// Create modified version based on variant
-		const modified = new Uint8ClampedArray(pixels.length);
+		// Create modified version based on variant (written in full before it is read)
+		const modified = usableBuffer(secondaryScratchBuffer, pixels.length);
 		if (isVariantA) {
 			createInvertedVersion(pixels, modified, intensity);
 		} else {
@@ -64,6 +65,17 @@ export default {
 	type: 'grayscaleBlend',
 	requiresNote: true
 };
+
+/**
+ * Return the pipeline-owned buffer when it is big enough, otherwise allocate a
+ * fallback. Standalone callers (tests) may not supply pipeline buffers.
+ * @param {Uint8ClampedArray|null|undefined} buffer
+ * @param {number} requiredLength
+ * @returns {Uint8ClampedArray}
+ */
+function usableBuffer(buffer, requiredLength) {
+	return !buffer || buffer.length < requiredLength ? new Uint8ClampedArray(requiredLength) : buffer;
+}
 
 /**
  * Create inverted color version with intensity scaling.

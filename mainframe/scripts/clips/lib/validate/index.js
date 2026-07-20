@@ -61,12 +61,9 @@ async function resolvePngPath(clipDir, meta, errors) {
 		if (pngFiles.includes(meta.png)) {
 			return path.join(clipDir, meta.png);
 		}
-		errors.push(`meta.json specifies png "${meta.png}" but file not found`);
-		const fallback = pngFiles[0];
-		if (meta) {
-			meta.png = fallback;
-		}
-		return path.join(clipDir, fallback);
+		// Report only — never rewrite the author's meta. `--fix` migrates this.
+		errors.push(`meta.json specifies png "${meta.png}" but file not found (run with --fix to point it at "${pngFiles[0]}")`);
+		return path.join(clipDir, pngFiles[0]);
 	}
 	return path.join(clipDir, pngFiles[0]);
 }

@@ -1,5 +1,7 @@
 # The Quartermaster — Supply Log
 
+### 2026-07-20 17:17 — Mail wake: [PROMPT-UPDATED]-mail-out-answer-block.md in slack/all (bare 'Answer:' line must end mail/out questions) — noted, file left for others. Version-skew sweep: 18 shared deps across root/akvj/mainframe, zero skew. No ticket.
+
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -64,10 +66,9 @@ One line per past finding — read this in full before a sweep.
 - Refs: 357,356
 - Area: `supply-chain`
 - Area: `supply-chain`
+- Area: `supply-chain`
 
 ## Recent
-
-- Area: `supply-chain`
 
 - Area: `config/scripts/engines`
 
@@ -89,6 +90,6 @@ One line per past finding — read this in full before a sweep.
 
 - Area: `config/scripts/engines`
 
-### 2026-07-20 16:44 — supply-chain sweep: npm outdated {} (prior stylelint 17.14.0→17.14.1 patch now resolved), npm audit 0 vulns, npm ls --all shows only the 6 deferred sharp WASM extraneous entries — no invalid/missing. Mailbox empty. No ticket filed.
+- Area: `supply-chain`
 
 - Area: `supply-chain`

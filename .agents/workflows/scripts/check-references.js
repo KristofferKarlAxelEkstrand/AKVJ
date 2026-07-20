@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { REPO_ROOT, DEFAULT_WORKFLOW } from './root.js';
 
 /**
@@ -16,6 +17,11 @@ import { REPO_ROOT, DEFAULT_WORKFLOW } from './root.js';
  * been swept away. Both were invisible until someone went looking.
  *
  * Exits non-zero when a reference dangles, so it can gate a test run.
+ *
+ * What counts as rot is narrower than "not on disk right now". Generated output
+ * is absent until it is built, and a task or epic names the destination of work
+ * that has not landed yet. Neither is a broken pointer, and failing the gate on
+ * them trains the team to ignore it — see `isGenerated` and `isPlannedProductPath`.
  */
 
 const workflow = process.argv[2] || DEFAULT_WORKFLOW;
@@ -136,21 +142,81 @@ function resolves(reference, docPath) {
 }
 
 /**
- * An epic proposes work, so it legitimately names product files that do not
- * exist yet (`mainframe/shared/mappingService.js` for a module still to be
- * extracted). Its pointers into `.agents/` are a different matter — those cite
- * specs, tasks, and sibling epics that exist now, and go stale silently.
+ * A task or an epic proposes work, so it legitimately names product files that
+ * do not exist yet — an epic naming `mainframe/shared/mappingService.js` for a
+ * module still to be extracted, or a move task naming its own destination. That
+ * path appearing is the point of the document; it is absent because the work is
+ * pending, not because a pointer rotted.
+ *
+ * Their pointers into `.agents/` are a different matter and stay checked
+ * everywhere — those cite specs, sibling tasks, and mail that exist *now*, and
+ * are exactly what goes stale silently when triage moves a file.
  *
  * @param {string} docPath
  * @param {string} reference
  * @returns {boolean}
  */
 function isPlannedProductPath(docPath, reference) {
-    const inEpic = docPath.startsWith(path.join(workflowRoot, 'epics') + path.sep);
-    return inEpic && !reference.includes('.agents/');
+    const proposesWork = ['epics', 'tasks'].some(dir => docPath.startsWith(path.join(workflowRoot, dir) + path.sep));
+    return proposesWork && !reference.includes('.agents/');
 }
 
-const problems = [];
+/**
+ * Every in-repo absolute path a reference could have meant, repo-root-relative.
+ *
+ * @param {{reference: string, docPath: string}} entry
+ * @returns {string[]}
+ */
+function candidatePaths({ reference, docPath }) {
+    return [path.dirname(docPath), REPO_ROOT, workflowRoot, ...DOC_ROOTS]
+        .map(base => path.resolve(base, reference))
+        .filter(absolute => absolute.startsWith(REPO_ROOT + path.sep))
+        .map(absolute => path.relative(REPO_ROOT, absolute));
+}
+
+/**
+ * Drop references whose target is generated output.
+ *
+ * `akvj/src/public/projects/**` does not exist until `npm run clips` runs, so a
+ * doc naming it is correct and the file is simply unbuilt. Asking git rather
+ * than hardcoding prefixes keeps this tracking `.gitignore` instead of drifting
+ * from it as the generated trees move.
+ *
+ * When git cannot answer — not installed, not a work tree — nothing is dropped.
+ * Failing closed keeps the check honest: better a false red we can explain than
+ * a silent pass over every reference in the repo.
+ *
+ * @param {{reference: string, docPath: string, line: number}[]} dangling
+ * @returns {{reference: string, docPath: string, line: number}[]}
+ */
+function withoutGeneratedTargets(dangling) {
+    if (dangling.length === 0) {
+        return dangling;
+    }
+
+    const queries = [...new Set(dangling.flatMap(candidatePaths))];
+    let ignored;
+    try {
+        const stdout = execFileSync('git', ['check-ignore', '--stdin'], {
+            cwd: REPO_ROOT,
+            input: queries.join('\n'),
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'ignore']
+        });
+        ignored = new Set(stdout.split('\n').filter(Boolean));
+    } catch (error) {
+        // Exit 1 is git's normal "none of these are ignored" answer, not a
+        // failure. Anything else means we could not ask, so keep every finding.
+        if (error.status !== 1) {
+            return dangling;
+        }
+        ignored = new Set();
+    }
+
+    return dangling.filter(entry => !candidatePaths(entry).some(candidate => ignored.has(candidate)));
+}
+
+const dangling = [];
 let checked = 0;
 
 for (const docPath of collectDocs()) {
@@ -165,16 +231,18 @@ for (const docPath of collectDocs()) {
             }
             checked += 1;
             if (!resolves(reference, docPath)) {
-                problems.push(`${path.relative(REPO_ROOT, docPath)}:${index + 1} → ${reference}`);
+                dangling.push({ reference, docPath, line: index + 1 });
             }
         }
     });
 }
 
+const problems = withoutGeneratedTargets(dangling);
+
 if (problems.length > 0) {
     console.error(`Dangling references (${problems.length} of ${checked} checked):`);
-    for (const problem of problems) {
-        console.error(`  ${problem}`);
+    for (const { docPath, line, reference } of problems) {
+        console.error(`  ${path.relative(REPO_ROOT, docPath)}:${line} → ${reference}`);
     }
     process.exit(1);
 }

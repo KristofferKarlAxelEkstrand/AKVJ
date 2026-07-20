@@ -1,5 +1,7 @@
 # The Test Marshal — Coverage Log
 
+### 2026-07-20 17:18 — Broadcast [PROMPT-UPDATED]-mail-out-answer-block.md (left in slack/all): mail/out questions must end with a bare 'Answer:' line — no test action. Quick new-module check across akvj/src/js, mainframe/src/js, mainframe/server, mainframe/shared: only mappingLeaf.js, ChoiceItem.js, ChoiceList.js lack direct test-file name refs, all three already confirmed indirectly covered in digest. No new untested modules.
+
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -188,18 +190,13 @@ One line per past finding — read this in full before a sweep.
 - Refs: TEST-mainframe-gifexpand-edge-paths
 - Area: `mainframe/src/js/ClipEditorController.js`
 - Refs: TEST-mainframe-clipeditor-gif-batch
+- Area: `mainframe/server/frameLoad.js`
+- Refs: TEST-mainframe-frameload-error-paths
+- Area: `mainframe/scripts/clips/lib/validate/image.js`
+- Refs: TEST-mainframe-validate-image-dimensions,389
+- Area: `mainframe/test/validate-image.test.js`
 
 ## Recent
-
-- Area: `mainframe/server/frameLoad.js`
-
-- Refs: TEST-mainframe-frameload-error-paths
-
-- Area: `mainframe/scripts/clips/lib/validate/image.js`
-
-- Refs: TEST-mainframe-validate-image-dimensions,389
-
-- Area: `mainframe/test/validate-image.test.js`
 
 - Refs: TEST-mainframe-validate-image-slots-mock
 
@@ -213,7 +210,14 @@ One line per past finding — read this in full before a sweep.
 
 - Refs: PROMPT-UPDATED-goal-near-zero-ui
 
-### 2026-07-20 16:45 — Swept akvj/src/js/visuals lifecycle: all 27 modules have test files; found Renderer freeze/unfreeze/stop/start-idempotency/warmup all untested (AKVJ tests only spy that freeze was called, never its effect). Filed [TEST]-akvj-renderer-lifecycle-coverage.md. Broadcast [PROMPT-UPDATED]-goal-near-zero-ui left in slack/all, no test action.
-
 - Area: `akvj/src/js/visuals`
+
 - Refs: TEST-akvj-renderer-lifecycle-coverage
+
+- Area: `mainframe/test/server.test.js`
+
+- Refs: ANSWER-mainframe-playback-pingpong-flake
+
+- Area: `akvj/src/js, mainframe/src/js, mainframe/server, mainframe/shared`
+
+- Refs: PROMPT-UPDATED-mail-out-answer-block

@@ -105,6 +105,72 @@ describe('check-references', () => {
 		expect(stdout).toContain('All 1 file references resolve.');
 	});
 
+	describe('generated output', () => {
+		// The gate went red because docs correctly named clip output that only
+		// exists after `npm run clips`, and that red made machine-review reject
+		// sound work. Absent-because-unbuilt is not a rotted pointer.
+		it('does not flag a reference to a gitignored path', () => {
+			tree.initGit('akvj/src/public/projects/\n');
+			tree.write('spec/generated.md', '# Generated\nRuntime clips land in `akvj/src/public/projects/default/clips/clips.json`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(0);
+			expect(stdout).toContain('All 1 file references resolve.');
+		});
+
+		it('still flags a genuinely missing, non-ignored path', () => {
+			tree.initGit('akvj/src/public/projects/\n');
+			tree.write('spec/dangle.md', '# Dangle\nSee `co-workers/missing.md`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(1);
+			expect(stdout).toContain('spec/dangle.md:2 → co-workers/missing.md');
+		});
+
+		it('flags everything when git cannot answer', () => {
+			// No `initGit` — a plain temp dir is not a work tree. Failing closed
+			// beats silently passing every reference in the repo.
+			tree.write('spec/dangle.md', '# Dangle\nSee `co-workers/missing.md`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(1);
+			expect(stdout).toContain('spec/dangle.md:2 → co-workers/missing.md');
+		});
+	});
+
+	describe('paths the work has not created yet', () => {
+		it('does not flag a product path a task names as its destination', () => {
+			tree.write('tasks/working-on/410-extract.md', '# 410\nMove the loader to `mainframe/shared/mappingService.js`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(0);
+			expect(stdout).toContain('All 0 file references resolve.');
+		});
+
+		it('still flags a task citing a missing .agents/ path', () => {
+			tree.write('tasks/working-on/411-cite.md', '# 411\nFrom `.agents/workflows/developer-team/mail/in/gone.md`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(1);
+			expect(stdout).toContain('411-cite.md:2 → .agents/workflows/developer-team/mail/in/gone.md');
+		});
+
+		it('still flags a spec citing a missing product path', () => {
+			tree.initGit('');
+			tree.write('spec/rot.md', '# Rot\nSee `mainframe/shared/mappingService.js`.\n');
+
+			const { stdout, status } = run();
+
+			expect(status).toBe(1);
+			expect(stdout).toContain('spec/rot.md:2 → mainframe/shared/mappingService.js');
+		});
+	});
+
 	it('switches workflow root via the first CLI argument', () => {
 		const other = new WorkflowTree('other-workflow');
 		try {

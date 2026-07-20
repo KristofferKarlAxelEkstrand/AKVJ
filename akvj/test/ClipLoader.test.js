@@ -73,7 +73,7 @@ describe('ClipLoader', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(clips).toBeTruthy();
 		// DAW channel 1 → code channel 0
@@ -103,7 +103,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '../secret.png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
@@ -118,7 +118,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(clips[0][60][0]).toBeDefined();
 	});
@@ -132,7 +132,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '....png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
@@ -148,7 +148,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring clip with non-numeric path keys'), expect.any(Object));
 		expect(Object.keys(clips).length).toBe(0);
@@ -177,7 +177,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(clips[4][0][0]).toBeDefined();
 		expect(clips[5]).toBeUndefined();
@@ -190,7 +190,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: key-map references unknown clipId', 'missing-clip');
 		expect(Object.keys(clips).length).toBe(0);
@@ -200,7 +200,7 @@ describe('ClipLoader - mapping edge cases', () => {
 	test('throws when mapping is not an array', async () => {
 		mockFetchCatalogAndLayout({ ok: { png: 'sprite.png', frames: 1, framesPerRow: 1 } }, 'not-an-object');
 		installMockImage();
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		await expect(loader.loadClips()).rejects.toThrow(/must be a JSON object/);
 	});
 
@@ -212,7 +212,7 @@ describe('ClipLoader - mapping edge cases', () => {
 			return { ok: true, json: async () => ({}) };
 		});
 		installMockImage();
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		await expect(loader.loadClips()).rejects.toThrow(/status: 404/);
 	});
 
@@ -225,7 +225,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: invalid clipId', '5');
 		expect(Object.keys(clips).length).toBe(0);
@@ -245,7 +245,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 
 		// String mapping: default triggerType
@@ -279,7 +279,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 
 		expect(clips[0][60][0]).toBeTruthy();
@@ -311,7 +311,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 
 		// Clip should load successfully without throwing
@@ -334,7 +334,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		const clip = clips[0][60][0];
 
@@ -369,7 +369,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage();
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips();
 		const ctx = { drawImage: vi.fn() };
 
@@ -408,7 +408,7 @@ describe('ClipLoader - project load path', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage(loadedSrcs);
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClipsFromProject('demo');
 
 		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
@@ -420,7 +420,7 @@ describe('ClipLoader - project load path', () => {
 	});
 
 	test('loadClipsFromProject throws on invalid projectId', async () => {
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		await expect(loader.loadClipsFromProject('../etc')).rejects.toThrow(/Invalid project ID/);
 	});
 
@@ -433,7 +433,7 @@ describe('ClipLoader - project load path', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap, { activeProject: 'live-set' });
 		installMockImage(loadedSrcs);
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClips('/clips/clips.json', '/clips/key-map.json');
 
 		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
@@ -459,7 +459,7 @@ describe('ClipLoader - project load path', () => {
 		mockFetchCatalogAndLayout(catalog, keyMap);
 		installMockImage(loadedSrcs);
 
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		const clips = await loader.loadClipsFromProject('demo');
 
 		expect(loadedSrcs.filter(src => src.includes('/projects/demo/clips/shared/sprite.png'))).toHaveLength(1);
@@ -482,14 +482,14 @@ describe('ClipLoader - destroyClips()', () => {
 			0: { 60: { 0: a } },
 			1: { 61: { 0: b } }
 		};
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		loader.destroyClips(clips);
 		expect(a.destroy).toHaveBeenCalledTimes(1);
 		expect(b.destroy).toHaveBeenCalledTimes(1);
 	});
 
 	test('destroyClips(null) and destroyClips(undefined) do not throw', () => {
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		expect(() => loader.destroyClips(null)).not.toThrow();
 		expect(() => loader.destroyClips(undefined)).not.toThrow();
 	});
@@ -505,7 +505,7 @@ describe('ClipLoader - destroyClips()', () => {
 		const clips = {
 			0: { 60: { 0: exploding, 64: survivor } }
 		};
-		const loader = new ClipLoader({});
+		const loader = new ClipLoader();
 		expect(() => loader.destroyClips(clips)).not.toThrow();
 		expect(exploding.destroy).toHaveBeenCalledTimes(1);
 		expect(survivor.destroy).toHaveBeenCalledTimes(1);

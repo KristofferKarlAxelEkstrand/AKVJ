@@ -14,6 +14,7 @@
  *   node scripts/clips --project=default
  *   node scripts/clips --watch          # Watch mode
  *   node scripts/clips --validate-only  # Validation only
+ *   node scripts/clips --fix            # Migrate deprecated source meta.json, then build
  *   node scripts/clips --no-optimize    # Skip optimization
  *   node scripts/clips --clean          # Remove cache and output
  */
@@ -50,6 +51,7 @@ function parseArgs() {
 	return {
 		watch: args.includes('--watch'),
 		validateOnly: args.includes('--validate-only'),
+		fix: args.includes('--fix'),
 		noOptimize: args.includes('--no-optimize'),
 		clean: args.includes('--clean'),
 		help: args.includes('--help') || args.includes('-h'),
@@ -71,6 +73,8 @@ Options:
   --project=<id>   Build only one project
   --watch          Watch for changes and rebuild automatically
   --validate-only  Only validate, don't build
+  --fix            Migrate deprecated source meta.json in place (loop → playback,
+                   png → the sprite on disk) and report every change
   --no-optimize    Skip PNG optimization (just copy)
   --clean          Remove cache and generated output
   --help, -h       Show this help message

@@ -38,7 +38,7 @@ describe('scripts/clips/spritesheet.js', () => {
 			expect(parseArgs(['frames', 'clip'])).toEqual({
 				inputDir: 'frames',
 				outputDir: 'clip',
-				framesPerRow: 8,
+				framesPerRow: 16,
 				frameRate: 12
 			});
 		});

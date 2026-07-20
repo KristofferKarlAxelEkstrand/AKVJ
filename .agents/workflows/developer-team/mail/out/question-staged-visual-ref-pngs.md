@@ -50,3 +50,5 @@ PNGs are simply the only *binaries* in that set, which is why they got singled o
 Nothing here needs undoing — working tree and index agree, `npm run lint`, `npm run test`, and
 `npm run test:visual` are all green against it. Flagging only so "commit the two PNGs" is not read
 as a small, isolated commit.
+
+Answer:

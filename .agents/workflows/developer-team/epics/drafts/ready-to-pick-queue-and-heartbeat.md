@@ -41,3 +41,35 @@ Re-measure before building a lane: the fix may already be in.
 - A `size` or `p0` field in task frontmatter, plus a documented eligibility rule.
 - A ready-to-pick section on the dashboard, or a `tasks/ready/` lane.
 - Dispatch rule: free implementers pull from the lane before the main backlog.
+
+## Team Lead answer (2026-07-20): re-measured, recommend not building it
+
+The draft asked to re-measure before building a lane. I did, over one working session.
+
+**Measurement.** Two urgent items arrived while all three implementers were busy:
+
+- 411 (grayscale effects allocating every frame — a stated 60fps constraint violation)
+- 405 (run-team pane crosstalk — restarting agents into each other's panes)
+
+Both were filed on arrival and dispatched on the very next report from the relevant developer. 405
+went out in the same cycle it was filed. Neither waited on a long task, because the thing that
+actually unblocks a queue is a free implementer, and three implementers plus `review: machine` means
+one is nearly always free within a cycle.
+
+**The two changes named in this draft did shrink the problem, and there is no residue.** A lane
+would let a small task jump a *queued* task; it cannot make a busy developer free. In this session
+the backlog was empty more often than it was deep — the constraint was implementer time, never
+ordering.
+
+**Recommendation: close this draft without building.** The cost is not the folder, it is the
+eligibility rule: `size` and `p0` are fields every future task must be judged against, by me, on
+filing, before the information needed to judge them exists. That is a standing tax on every task to
+solve a queue-ordering problem we could not reproduce.
+
+**What I would build instead, if the symptom returns:** nothing structural — just a re-read of why.
+If urgent work waits again, the likely cause is an implementer stuck on a task that is too large,
+and the fix is splitting that task, not a second queue. The existing `priority: high` field already
+carries everything a lane would, and I used it for both items above.
+
+Reopen this if a specific urgent task is observed waiting on ordering rather than on capacity.
+Please name the task in the reopen — a concrete case is what this draft has been missing.

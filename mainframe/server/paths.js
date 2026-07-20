@@ -1,6 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { CLIP_ID_PATTERN, SAFE_PNG_NAME, isValidClipId } from '../shared/clipId.js';
+import { slugifyPathSegment } from '../shared/slugify.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -63,28 +64,12 @@ export function isValidProjectId(projectId) {
 }
 
 /**
- * Slugify a display name into a path-safe id fragment.
- * @param {string} name
- * @returns {string}
- */
-function slugifyId(name) {
-	return String(name)
-		.toLowerCase()
-		.trim()
-		.replace(/_/g, '-')
-		.replace(/[^a-z0-9\s-]/g, '')
-		.replace(/[\s]+/g, '-')
-		.replace(/-+/g, '-')
-		.replace(/^-+|-+$/g, '');
-}
-
-/**
  * Derive a path-safe project id from a display name.
  * @param {string} name
  * @returns {string}
  */
 export function deriveProjectId(name) {
-	return slugifyId(name);
+	return slugifyPathSegment(name);
 }
 
 /**

@@ -37,7 +37,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			return;
 		}
 
-		this.#clipLoader = new ClipLoader(this.#displayContext);
+		this.#clipLoader = new ClipLoader();
 		this.#layerManager = new LayerManager();
 		this.#renderer = new Renderer(this.#displayContext, this.#layerManager, settings, appState);
 		this.#loadingOverlay = new AkvjLoadingOverlay();

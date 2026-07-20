@@ -16,15 +16,12 @@ const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
 const MAPPING_OVERRIDE_KEYS = Object.freeze(['triggerType', 'triggerGroup', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
 
 class ClipLoader {
-	#displayContext;
 	#projectCatalog;
 
 	/**
-	 * @param {CanvasRenderingContext2D} displayContext
 	 * @param {ProjectCatalog} [projectCatalog] - Injected for testing; created internally by default
 	 */
-	constructor(displayContext, projectCatalog) {
-		this.#displayContext = displayContext;
+	constructor(projectCatalog) {
 		this.#projectCatalog = projectCatalog ?? new ProjectCatalog();
 	}
 
@@ -157,7 +154,6 @@ class ClipLoader {
 		try {
 			const normalized = normalizeClipMetadata(clipMetadata);
 			return new Clip({
-				displayContext: this.#displayContext,
 				image,
 				frames: normalized.frames,
 				framesPerRow: normalized.framesPerRow,

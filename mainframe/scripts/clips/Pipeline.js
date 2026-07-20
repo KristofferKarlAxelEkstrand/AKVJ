@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { validate } from './lib/validate.js';
+import { fixClips } from './lib/fix.js';
 import { validateKeyMap } from './lib/validateMapping.js';
 import { optimize } from './lib/optimize.js';
 import { generate } from './lib/generate.js';
@@ -43,6 +44,7 @@ export class Pipeline {
 	 * Run the full pipeline with the provided options.
 	 * @param {Object} [options={}]
 	 * @param {boolean} [options.validateOnly] - Only validate, don't build
+	 * @param {boolean} [options.fix] - Migrate deprecated source metadata before validating
 	 * @param {boolean} [options.noOptimize] - Skip PNG optimization
 	 * @param {string} [options.sourceDir] - Override: single clips dir (fixture tests)
 	 * @param {string} [options.project] - Build only this project id
@@ -119,6 +121,10 @@ export class Pipeline {
 		const keyMapPath = paths.keyMapPath ?? path.join(sourceDir, 'key-map.json');
 		const licensePath = paths.licensePath ?? path.join(sourceDir, 'LICENSE-ASSETS.md');
 
+		if (options.fix) {
+			await this.#fix(sourceDir);
+		}
+
 		const { valid: validClips, errors: clipErrors } = await this.#validate(sourceDir);
 		const { errors: mappingErrors } = await validateKeyMap(sourceDir, validClips, keyMapPath);
 		const errors = [...clipErrors, ...mappingErrors];
@@ -148,6 +154,26 @@ export class Pipeline {
 	#validate(sourceDir) {
 		console.log(`Step 1: Validating clips from ${sourceDir}...`);
 		return validate(sourceDir);
+	}
+
+	/**
+	 * Migrate deprecated source metadata in place (--fix). Reports every file it rewrites.
+	 * @param {string} sourceDir
+	 */
+	async #fix(sourceDir) {
+		console.log(`Step 0: Migrating source meta.json (--fix) in ${sourceDir}...`);
+		const { fixed, skipped, errors } = await fixClips(sourceDir);
+
+		for (const { clipId, changes } of fixed) {
+			console.log(`  ${clipId}: ${changes.join('; ')}`);
+		}
+		for (const { clipId, skipped: reasons } of skipped) {
+			console.warn(`  ${clipId}: not migrated — ${reasons.join('; ')}`);
+		}
+		for (const { clipId, errors: reasons } of errors) {
+			console.error(`  ${clipId}: ${reasons.join('; ')}`);
+		}
+		console.log(fixed.length > 0 ? `  Migrated ${fixed.length} clip(s)\n` : '  Nothing to migrate\n');
 	}
 
 	#logValidationErrors(errors) {

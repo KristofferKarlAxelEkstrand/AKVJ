@@ -1,24 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateClipId, slugifyClipName } from '../src/js/generateClipId.js';
+import { generateClipId } from '../src/js/generateClipId.js';
 import { isValidClipId } from '../shared/clipId.js';
-
-describe('slugifyClipName', () => {
-	it('slugifies with hyphens and folds diacritics', () => {
-		expect(slugifyClipName('My really nice clip')).toBe('my-really-nice-clip');
-		expect(slugifyClipName('Jag är bäst')).toBe('jag-ar-bast');
-		expect(slugifyClipName('Neon Skull!')).toBe('neon-skull');
-	});
-
-	it('collapses whitespace and trims hyphens', () => {
-		expect(slugifyClipName('  my   clip  ')).toBe('my-clip');
-		expect(slugifyClipName('a -- b')).toBe('a-b');
-	});
-
-	it('strips disallowed characters', () => {
-		expect(slugifyClipName('A_B-C')).toBe('ab-c');
-		expect(slugifyClipName('hello@world')).toBe('helloworld');
-	});
-});
 
 describe('generateClipId', () => {
 	it('returns a 4-character alphanumeric id when no name is given', () => {

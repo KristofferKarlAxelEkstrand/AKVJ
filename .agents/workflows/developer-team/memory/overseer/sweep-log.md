@@ -174,35 +174,14 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 15:43 — False wake on own mapping-request-events broadcast; left for team; skipped heavy sweep — Area: `slack/all`
 - 2026-07-20 15:54 — Process sweep: team healthy; pruned mapping-request broadcast; trimmed mail/in/read→20; no prompt drift; workflow green; flipped→product — Area: `mail/in/read,slack/all`
 - 2026-07-20 16:07 — Product sweep: re-verified clip-timing-sync (frameDurationsMs wired; fixed StagingPreview 120BPM myth); no new product bugs; flipped→process — Area: `spec/clip-timing-sync.md,akvj/src/js/visuals`
+- 2026-07-20 16:07 — False wake on own clip-timing-sync broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 16:10 — TL/TM: validateFrameHeight slots check confirmed dead after divisibility guard — filed BUG to delete; 394 stays test-only — Area: `mainframe/scripts/clips/lib/validate/image.js`
+- 2026-07-20 16:20 — Process sweep: team healthy; 395 dead-slots shipped; pruned clip-timing broadcast; trimmed read→20; workflow green; flipped→product — Area: `mail/in/read,slack/all`
+- 2026-07-20 16:32 — Product sweep: re-verified aesthetics.md (Zero UI → near-zero with D/loading/fullscreen exceptions); no Shadow DOM; no new bugs; flipped→process — Area: `spec/aesthetics.md,akvj/src/js`
+- 2026-07-20 16:34 — False wake on own aesthetics-zero-ui broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 16:36 — Aligned goal.md Near-zero UI with aesthetics exceptions; answered TL (399 stays PROJECT-SPEC only) — Area: `spec/goal.md`
 
 ## Recent
-
-### 2026-07-20 16:07 — False wake on own clip-timing-sync broadcast; left for team; skipped heavy sweep
-
-- Area: `slack/all`
-
-### 2026-07-20 16:10 — TL/TM: validateFrameHeight slots check confirmed dead after divisibility guard — filed BUG to delete; 394 stays test-only
-
-- Area: `mainframe/scripts/clips/lib/validate/image.js`
-- Refs: 394
-
-### 2026-07-20 16:20 — Process sweep: team healthy; 395 dead-slots shipped; pruned clip-timing broadcast; trimmed read→20; workflow green; flipped→product
-
-- Area: `mail/in/read,slack/all`
-- Refs: 395
-
-### 2026-07-20 16:32 — Product sweep: re-verified aesthetics.md (Zero UI → near-zero with D/loading/fullscreen exceptions); no Shadow DOM; no new bugs; flipped→process
-
-- Area: `spec/aesthetics.md,akvj/src/js`
-
-### 2026-07-20 16:34 — False wake on own aesthetics-zero-ui broadcast; left for team; skipped heavy sweep
-
-- Area: `slack/all`
-
-### 2026-07-20 16:36 — Aligned goal.md Near-zero UI with aesthetics exceptions; answered TL (399 stays PROJECT-SPEC only)
-
-- Area: `spec/goal.md`
-- Refs: 399
 
 ### 2026-07-20 16:38 — False wake on own goal-near-zero-ui broadcast; left for team; skipped heavy sweep
 
@@ -230,3 +209,29 @@ One line per past finding — read this in full before a sweep.
 
 - Area: `akvj/src/js/visuals/effects`
 - Refs: 368
+
+### 2026-07-20 17:09 — Task 405 fixed my pane_index crosstalk bug — verified the fix in run-team and added a read-confirmation note to TL's mail/out restart question; restart is the human's call; 2 TL questions now pending for human
+
+- Area: `.agents/workflows/scripts/run-team`
+- Refs: 405
+
+### 2026-07-20 17:09 — False wake on own edit to mail/out restart question; no human Answer on either pending question; pruned own stale goal-near-zero-ui broadcast; skipped heavy sweep
+
+- Area: `mail/out,slack/all`
+
+### 2026-07-20 17:17 — Verified utility-dev's 4 untracked mainframe modules finding (accurate; index clean); fixed its misused Answer: block; added mail/out Answer-block rule to _shared/messaging.md, broadcast + restarts for all 9 enabled agents
+
+- Area: `co-workers/_shared/messaging.md,mainframe`
+- Refs: 416
+
+### 2026-07-20 17:18 — False wake on own edit to untracked-modules question; no Answer yet; 3 questions now queued for human (staged PNGs, team restart, untracked modules); restart requests 6/9 consumed; skipped heavy sweep
+
+- Area: `mail/out`
+
+### 2026-07-20 17:18 — All 9 restarts consumed; found both TL mail/out questions had no Answer: block at all (human had nowhere to reply) — appended blocks and told TL; validates the messaging.md rule added last cycle
+
+- Area: `mail/out,co-workers/_shared/messaging.md`
+
+### 2026-07-20 17:19 — Root-caused my own repeated false wakes: await-messages fileSignature is mtime:size so any mail/out edit self-wakes; filed BUG to gate mail/out wakes on actual Answer: content; all 3 questions still waiting
+
+- Area: `.agents/workflows/scripts/await-messages.js`

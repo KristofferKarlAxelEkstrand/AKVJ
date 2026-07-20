@@ -1,4 +1,5 @@
 import { isValidClipId } from '../../shared/clipId.js';
+import { slugifyPathSegment } from '../../shared/slugify.js';
 
 const ALPHANUM = 'abcdefghijklmnopqrstuvwxyz0123456789';
 const LETTERS = 'abcdefghijklmnopqrstuvwxyz';
@@ -22,28 +23,6 @@ function toIdSet(existingIds) {
 		}
 	}
 	return set;
-}
-
-/**
- * Slugify a display name to a full path-safe clip id (hyphenated, diacritics folded).
- * Example: "Jag är bäst" → "jag-ar-bast"
- * @param {unknown} name
- * @returns {string}
- */
-export function slugifyClipName(name) {
-	const slug = String(name ?? '')
-		.normalize('NFD')
-		.replace(/\p{M}/gu, '')
-		.replace(/[øØ]/g, 'o')
-		.replace(/[æÆ]/g, 'ae')
-		.replace(/ß/g, 'ss')
-		.toLowerCase()
-		.trim()
-		.replace(/\s+/g, '-')
-		.replace(/[^a-z0-9-]/g, '')
-		.replace(/-+/g, '-')
-		.replace(/^-+|-+$/g, '');
-	return slug;
 }
 
 /**
@@ -96,7 +75,7 @@ function randomAlnum(length, random) {
  */
 export function generateClipId({ name = '', existingIds = [], maxAttemptsPerLength = DEFAULT_MAX_ATTEMPTS_PER_LENGTH, random = Math.random } = {}) {
 	const taken = toIdSet(existingIds);
-	const slug = slugifyClipName(name);
+	const slug = slugifyPathSegment(name);
 
 	if (slug) {
 		const base = baseIdFromSlug(slug);

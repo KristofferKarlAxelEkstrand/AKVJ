@@ -1,7 +1,5 @@
 # mainframe-developer-log
 
-### 2026-07-20 16:27 — Task 382: optimize clipPath→clipId + Pipeline log; lint/test pass
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.

@@ -72,17 +72,10 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 15:15 — Approved 377 (ingest soft lanczos3 resize); spritesheet-core tests + lint pass; preview stays nearest — Area: `mainframe/scripts/clips/lib/spritesheet-core.js`
 - 2026-07-20 15:26 — Wake on slack/all PROMPT-UPDATED clip-editor-goal; no reviews; resuming await — Area: `slack/all`
 - 2026-07-20 15:32 — Approved 364 (KeyBed/PianoRoll naming + pianoroll:* events); filed bug for draft mapping.md stale event names — Area: `mainframe/src/js/PianoRoll.js,spec/mapping.md`
+- 2026-07-20 15:32 — Wake on slack/all PROMPT-UPDATED mapping-events (draft event table); no reviews; resuming await — Area: `slack/all`
+- 2026-07-20 15:37 — Approved 387 (ClipFramesUploadPanel→ClipFramesPanel rename); no leftover refs; lint/test/build pass — Area: `mainframe/src/js/ClipFramesPanel.js`
 
 ## Recent
-
-### 2026-07-20 15:32 — Wake on slack/all PROMPT-UPDATED mapping-events (draft event table); no reviews; resuming await
-
-- Area: `slack/all`
-
-### 2026-07-20 15:37 — Approved 387 (ClipFramesUploadPanel→ClipFramesPanel rename); no leftover refs; lint/test/build pass
-
-- Area: `mainframe/src/js/ClipFramesPanel.js`
-- Refs: 387
 
 ### 2026-07-20 15:43 — Approved 389 (PianoKey pianoroll:*-request events); no leftover compact request names; lint/build pass
 
@@ -126,3 +119,13 @@ One line per past finding — read this in full before a sweep.
 
 - Area: `akvj/src/js/visuals`
 - Refs: 404
+
+### 2026-07-20 17:06 — Approved 402 (mainframe EDITABLE_META + frameDurationsMs): loop dropped, rename complete (zero 'frameDurations' hits), new tests assert real round-trip; lint + 585/81/147 mainframe + 580/18 root green. Verified frameDurationsMs/frameRatesForFrames coexistence is safe — ClipTiming.js:260 ignores FPS map entirely when ms entries exist.
+
+- Area: `mainframe/server`
+- Refs: 402
+
+### 2026-07-20 17:08 — Approved 409 (EffectsManager dead 'reserved' guard removed, doc comment fixed) — my own 404 feedback, verified applied; lint + 580/18 + 20/7 visual green. LayerManager #reservedChannels correctly left alone (different concept).
+
+- Area: `akvj/src/js/visuals`
+- Refs: 409
