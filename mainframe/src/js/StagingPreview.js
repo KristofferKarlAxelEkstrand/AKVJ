@@ -10,6 +10,7 @@ import { resolveFrameBakeConfig } from './frameBake.js';
  * StagingPreview — custom element showing a live canvas preview of staged
  * frames at target resolution with scale modes. Provides play/pause, scrub, and speed controls.
  * Reuses the preview player pattern from ClipList.
+ * Canvas draw is always nearest-neighbour; does not honor meta `scaling: "smooth"`.
  *
  * @fires StagingPreview#framesloaded - CustomEvent when frames finish loading
  */

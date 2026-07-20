@@ -55,61 +55,74 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 13:28 — Woken by [PROMPT-UPDATED] broadcast in slack/all (aesthetics-spec.md); file already consumed, no new reviews; resuming await — Area: `slack/all`
 - 2026-07-20 13:42 — Approved task 339: ClipLoader image cache optimization. — Area: `akvj/src/js/visuals` [339]
 - 2026-07-20 13:44 — Approved task 356: Added engines node >=20 block and removed redundant akvj smoke test. — Area: `akvj, mainframe` [356]
+- 2026-07-20 13:45 — Approved task 340: Dependency injection for settings and appState in MaskManager and Midi. — Area: `akvj` [340]
+- 2026-07-20 13:47 — Approved task 347: Naming cleanups in overlay and UI utilities. — Area: `akvj` [347]
+- 2026-07-20 14:19 — Approved 334 (mainframe magic-number constants) and 345 (README tree + vite ESM/poll interval); lint/test/build pass; Pipeline flake under parallel run only — Area: `mainframe/src/js,akvj/vite.config.js,projects/default`
+- 2026-07-20 14:22 — Approved 363 (skip disabled agents in health monitor) and 371 (piano-roll e2e+visual); selftest/workflow/e2e/visual pass — Area: `.agents/workflows/scripts,e2e,mainframe/test/visual`
+- 2026-07-20 14:26 — Approved 343 (writeJsonAtomic for mainframe JSON persistence); unit tests 4/4, affected modules clean of direct JSON writeFile — Area: `mainframe/server`
+- 2026-07-20 14:26 — Wake on slack/all PROMPT-UPDATED (mapping-spec + keybed); no reviews in qa-reviewer mailbox; resuming await — Area: `slack/all`
+- 2026-07-20 14:32 — Lane check 328: queue empty; lint/test/build green; noted untracked 371 screenshots + machine-only done batch; reported to team-lead — Area: `tasks/done,mainframe/test/visual`
+- 2026-07-20 14:34 — Approved 344 (413 oversized body), 346 (human-review regression tests), 373 (PROJECT-SPECIFICATION pointer); lint + targeted tests pass — Area: `mainframe/server,akvj/test,PROJECT-SPECIFICATION.md`
+- 2026-07-20 14:34 — Wake on slack/all PROMPT-UPDATED goal-spec; no reviews in mailbox; resuming await — Area: `slack/all`
+- 2026-07-20 14:37 — Approved 367 (select≡filter in KeyBed + PianoRoll tests); lint/build and targeted tests pass — Area: `mainframe/src/js/KeyBed.js,mainframe/test`
+- 2026-07-20 14:47 — Wake on slack/all PROMPT-UPDATED aesthetics-scaling-lock; no reviews; resuming await — Area: `slack/all`
+- 2026-07-20 14:48 — Wake on slack/all PROMPT-UPDATED clip-format-scaling; no reviews; resuming await — Area: `slack/all`
+- 2026-07-20 14:58 — Approved 384 (ClipLoader mapping override allowlist); targeted ClipLoader tests + lint pass — Area: `akvj/src/js/visuals/ClipLoader.js`
+- 2026-07-20 15:04 — Approved 338 (Compositor no-mask A then B source-over); Compositor tests + lint pass — Area: `akvj/src/js/visuals/Compositor.js`
+- 2026-07-20 15:15 — Approved 377 (ingest soft lanczos3 resize); spritesheet-core tests + lint pass; preview stays nearest — Area: `mainframe/scripts/clips/lib/spritesheet-core.js`
+- 2026-07-20 15:26 — Wake on slack/all PROMPT-UPDATED clip-editor-goal; no reviews; resuming await — Area: `slack/all`
+- 2026-07-20 15:32 — Approved 364 (KeyBed/PianoRoll naming + pianoroll:* events); filed bug for draft mapping.md stale event names — Area: `mainframe/src/js/PianoRoll.js,spec/mapping.md`
 
 ## Recent
 
-### 2026-07-20 13:45 — Approved task 340: Dependency injection for settings and appState in MaskManager and Midi.
-
-- Area: `akvj`
-- Refs: 340
-
-### 2026-07-20 13:47 — Approved task 347: Naming cleanups in overlay and UI utilities.
-
-- Area: `akvj`
-- Refs: 347
-
-### 2026-07-20 14:19 — Approved 334 (mainframe magic-number constants) and 345 (README tree + vite ESM/poll interval); lint/test/build pass; Pipeline flake under parallel run only
-
-- Area: `mainframe/src/js,akvj/vite.config.js,projects/default`
-- Refs: 334,345
-
-### 2026-07-20 14:22 — Approved 363 (skip disabled agents in health monitor) and 371 (piano-roll e2e+visual); selftest/workflow/e2e/visual pass
-
-- Area: `.agents/workflows/scripts,e2e,mainframe/test/visual`
-- Refs: 363,371
-
-### 2026-07-20 14:26 — Approved 343 (writeJsonAtomic for mainframe JSON persistence); unit tests 4/4, affected modules clean of direct JSON writeFile
-
-- Area: `mainframe/server`
-- Refs: 343
-
-### 2026-07-20 14:26 — Wake on slack/all PROMPT-UPDATED (mapping-spec + keybed); no reviews in qa-reviewer mailbox; resuming await
+### 2026-07-20 15:32 — Wake on slack/all PROMPT-UPDATED mapping-events (draft event table); no reviews; resuming await
 
 - Area: `slack/all`
 
-### 2026-07-20 14:32 — Lane check 328: queue empty; lint/test/build green; noted untracked 371 screenshots + machine-only done batch; reported to team-lead
+### 2026-07-20 15:37 — Approved 387 (ClipFramesUploadPanel→ClipFramesPanel rename); no leftover refs; lint/test/build pass
 
-- Area: `tasks/done,mainframe/test/visual`
-- Refs: 328
+- Area: `mainframe/src/js/ClipFramesPanel.js`
+- Refs: 387
 
-### 2026-07-20 14:34 — Approved 344 (413 oversized body), 346 (human-review regression tests), 373 (PROJECT-SPECIFICATION pointer); lint + targeted tests pass
+### 2026-07-20 15:43 — Approved 389 (PianoKey pianoroll:*-request events); no leftover compact request names; lint/build pass
 
-- Area: `mainframe/server,akvj/test,PROJECT-SPECIFICATION.md`
-- Refs: 344,346,373
+- Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
+- Refs: 389
 
-### 2026-07-20 14:34 — Wake on slack/all PROMPT-UPDATED goal-spec; no reviews in mailbox; resuming await
-
-- Area: `slack/all`
-
-### 2026-07-20 14:37 — Approved 367 (select≡filter in KeyBed + PianoRoll tests); lint/build and targeted tests pass
-
-- Area: `mainframe/src/js/KeyBed.js,mainframe/test`
-- Refs: 367
-
-### 2026-07-20 14:47 — Wake on slack/all PROMPT-UPDATED aesthetics-scaling-lock; no reviews; resuming await
+### 2026-07-20 15:43 — Wake on slack/all PROMPT-UPDATED mapping-request-events; no reviews; resuming await
 
 - Area: `slack/all`
 
-### 2026-07-20 14:48 — Wake on slack/all PROMPT-UPDATED clip-format-scaling; no reviews; resuming await
+### 2026-07-20 15:59 — Approved 366 (MappingTable slot→mapping wording); MappingTable tests 7/7 + lint pass
+
+- Area: `mainframe/src/js/MappingTable.js,e2e`
+- Refs: 366
+
+### 2026-07-20 16:07 — Wake on slack/all PROMPT-UPDATED clip-timing-sync; no reviews; resuming await
 
 - Area: `slack/all`
+
+### 2026-07-20 16:20 — Approved 397 (e2e clearStaleMainframe after CE rename); clip-editor e2e 2/2 + lint pass
+
+- Area: `e2e/clearStaleMainframe.js,playwright.config.js`
+- Refs: 397
+
+### 2026-07-20 16:33 — Wake on slack/all PROMPT-UPDATED aesthetics-zero-ui; no reviews; resuming await
+
+- Area: `slack/all`
+
+### 2026-07-20 16:37 — Wake on slack/all PROMPT-UPDATED goal-near-zero-ui; no reviews; resuming await
+
+- Area: `slack/all`
+
+### 2026-07-20 16:44 — Wake: mailbox empty, no review tasks. Noted [PROMPT-UPDATED] goal.md near-zero UI broadcast (left in slack/all per protocol). Nothing to review.
+
+### 2026-07-20 16:47 — Approved 401: mainframe MappingTable visual refs refreshed for 'N mapping(s)' copy; verified PNG content by eye + re-ran test:visual 7/7. Flagged PNGs are staged in index, not just modified.
+
+- Area: `mainframe/test/visual`
+- Refs: 401
+
+### 2026-07-20 16:57 — Approved 404 (mask/effects nits): PLAYBACK_MODE enum, scrub literals, getCurrentBitDepth rename, EffectsManager channel comments + EffectType union all verified; lint/572 unit/27 visual green. Sent feedback: dead 'reserved' guard at EffectsManager.js:77 and stale comment L69. Transient Renderer test failure traced to another agent's concurrent unstaged edit, not a flake.
+
+- Area: `akvj/src/js/visuals`
+- Refs: 404

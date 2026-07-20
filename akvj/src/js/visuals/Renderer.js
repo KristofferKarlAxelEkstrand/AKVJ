@@ -205,7 +205,7 @@ class Renderer {
 		const maskManager = this.#layerManager?.getMaskManager();
 		const mask = maskManager?.getCurrentMask() ?? null;
 		this.#compositingInput.mask = mask;
-		this.#compositingInput.bitDepth = mask ? (maskManager.getBitDepth() ?? 1) : 1;
+		this.#compositingInput.bitDepth = mask ? (maskManager.getCurrentBitDepth() ?? 1) : 1;
 		this.#compositingInput.isLayerGroupAEmpty = !layerGroupA?.hasActiveClips();
 		this.#compositingInput.isLayerGroupBEmpty = !layerGroupB?.hasActiveClips();
 		this.#compositor.mixLayerGroups(this.#compositingInput, timestamp);

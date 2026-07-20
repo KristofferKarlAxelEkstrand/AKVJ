@@ -1,8 +1,7 @@
 {
   "display": "The Nitpicker",
-  "cli": "cursor",
-  "model": "cursor-grok-4.5-high",
-  "permission_mode": "force",
+  "cli": "claude",
+  "permission_mode": "bypassPermissions",
   "sweep": "nit sweep",
   "min_wait_minutes": 15,
   "max_wait_minutes": 30,

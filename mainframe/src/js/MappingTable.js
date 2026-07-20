@@ -3,7 +3,7 @@ import '../scss/MappingTable.scss';
 /**
  * MappingTable — custom element encapsulating the mapping table and summary.
  * Renders mapping entries with remove buttons, and a summary showing
- * mapped slot count and unmapped clips.
+ * mapping count and unmapped clips.
  *
  * @fires MappingTable#mappingremove - CustomEvent with `{ detail: { channel, note, velocity, clipId } }`
  */
@@ -58,10 +58,10 @@ class MappingTable extends HTMLElement {
 		const readyClips = this.#clipCatalog.filter(clip => clip.pipelineReady);
 		const unmappedClips = readyClips.filter(clip => !mappedClipIds.has(clip.clipId));
 
-		const slotCount = document.createElement('span');
-		slotCount.className = 'mapping-summary-count';
-		slotCount.textContent = `${this.#mappings.length} mapped slot${this.#mappings.length === 1 ? '' : 's'}`;
-		summary.append(slotCount);
+		const mappingCount = document.createElement('span');
+		mappingCount.className = 'mapping-summary-count';
+		mappingCount.textContent = `${this.#mappings.length} mapping${this.#mappings.length === 1 ? '' : 's'}`;
+		summary.append(mappingCount);
 
 		if (unmappedClips.length > 0) {
 			const unmappedLabel = document.createElement('span');

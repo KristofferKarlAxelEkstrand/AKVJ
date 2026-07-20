@@ -52,18 +52,26 @@ describe('SimpleRouter', () => {
 		expect(notFound).toHaveBeenCalledWith('/nonexistent');
 	});
 
-	test('popstate triggers route handler', () => {
-		window.history.replaceState({}, '', '/');
+	test('popstate triggers route handler for the restored path', () => {
+		window.history.replaceState({}, '', '/library');
 		const libraryHandler = vi.fn();
+		const mappingHandler = vi.fn();
 		router.add('/library', libraryHandler);
+		router.add('/key-map', mappingHandler);
 		router.start();
+		expect(libraryHandler).toHaveBeenCalledTimes(1);
 
-		router.navigate('/library');
+		router.navigate('/key-map');
+		expect(mappingHandler).toHaveBeenCalledWith('/key-map', {});
 		libraryHandler.mockClear();
+		mappingHandler.mockClear();
 
-		window.history.back();
-		// popstate is async in jsdom — simulate it
+		// jsdom history.back() is unreliable — restore the prior URL then fire popstate
+		window.history.replaceState({}, '', '/library');
 		window.dispatchEvent(new PopStateEvent('popstate'));
+
+		expect(libraryHandler).toHaveBeenCalledWith('/library', {});
+		expect(mappingHandler).not.toHaveBeenCalled();
 	});
 
 	test('replace updates URL without adding history entry', () => {

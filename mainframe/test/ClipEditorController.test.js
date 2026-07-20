@@ -782,6 +782,46 @@ describe('ClipEditorController', () => {
 			expect(clipFrames.loadFrames).not.toHaveBeenCalled();
 			vi.unstubAllGlobals();
 		});
+
+		test('GIF mixed with PNG does not call expand-gif and stages both files', async () => {
+			const clipFrames = document.getElementById('clip-frames');
+			const fetchMock = apiFetchMock(async href => {
+				if (href === '/api/expand-gif') {
+					throw new Error('expand-gif should not be called for mixed batches');
+				}
+				return jsonOk({});
+			});
+			vi.stubGlobal('fetch', fetchMock);
+
+			const controller = makeController();
+			await controller.stageSelectedFiles([new File(['gif'], 'anim.gif', { type: 'image/gif' }), new File(['png'], 'frame.png', { type: 'image/png' })]);
+
+			expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/expand-gif'))).toBe(false);
+			expect(clipFrames.loadFrames).toHaveBeenCalled();
+			const frames = clipFrames.loadFrames.mock.calls.at(-1)[0];
+			expect(frames).toHaveLength(2);
+			vi.unstubAllGlobals();
+		});
+
+		test('two GIFs do not call expand-gif and stage both as first-page frames', async () => {
+			const clipFrames = document.getElementById('clip-frames');
+			const fetchMock = apiFetchMock(async href => {
+				if (href === '/api/expand-gif') {
+					throw new Error('expand-gif should not be called for multi-GIF batches');
+				}
+				return jsonOk({});
+			});
+			vi.stubGlobal('fetch', fetchMock);
+
+			const controller = makeController();
+			await controller.stageSelectedFiles([new File(['gif-a'], 'a.gif', { type: 'image/gif' }), new File(['gif-b'], 'b.gif', { type: 'image/gif' })]);
+
+			expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/api/expand-gif'))).toBe(false);
+			expect(clipFrames.loadFrames).toHaveBeenCalled();
+			const frames = clipFrames.loadFrames.mock.calls.at(-1)[0];
+			expect(frames).toHaveLength(2);
+			vi.unstubAllGlobals();
+		});
 	});
 });
 

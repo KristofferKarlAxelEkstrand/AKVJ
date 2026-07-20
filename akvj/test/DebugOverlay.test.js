@@ -224,6 +224,51 @@ describe('DebugOverlay', () => {
 		expect(entry.textContent).toContain('64');
 	});
 
+	test('transport events add log entries', () => {
+		overlay.mount();
+
+		const logEl = document.getElementById('debug-midi-log');
+		appState.dispatchMIDIStart();
+		expect(logEl.children[0].className).toContain('transport');
+		expect(logEl.children[0].textContent).toBe('START');
+
+		appState.dispatchMIDIContinue();
+		expect(logEl.children[0].textContent).toBe('CONTINUE');
+
+		appState.dispatchMIDIStop();
+		expect(logEl.children[0].textContent).toBe('STOP');
+	});
+
+	test('projectChanged event updates the project display', () => {
+		overlay.mount();
+
+		appState.activeProjectId = 'live-set';
+
+		expect(document.getElementById('debug-project').textContent).toBe('live-set');
+	});
+
+	test('clipLoadError event updates the error display', () => {
+		overlay.mount();
+
+		appState.dispatchClipLoadError('/projects/demo/clips/clips.json', 'network down');
+
+		const errorEl = document.getElementById('debug-error');
+		expect(errorEl.textContent).toContain('network down');
+		expect(errorEl.textContent).toContain('/projects/demo/clips/clips.json');
+	});
+
+	test('bpmSourceChanged event updates the source display without a bpm change', () => {
+		overlay.mount();
+		const sourceEl = document.getElementById('debug-bpm-source');
+		const bpmEl = document.getElementById('debug-bpm');
+		const bpmBefore = bpmEl.textContent;
+
+		appState.dispatchEvent(new CustomEvent('bpmSourceChanged', { detail: { source: 'default', bpm: appState.bpm } }));
+
+		expect(sourceEl.textContent).toBe('default');
+		expect(bpmEl.textContent).toBe(bpmBefore);
+	});
+
 	test('log entries are capped at MAX_LOG_ENTRIES (8)', () => {
 		overlay.mount();
 

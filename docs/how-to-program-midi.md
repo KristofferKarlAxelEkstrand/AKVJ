@@ -21,7 +21,7 @@ AKVJ uses MIDI notes to trigger clips. Each MIDI channel controls a different la
 - **Channel 11**: Layer Group C, Slot 0 (logos, graphics)
 - **Channel 12**: Layer Group C, Slot 1
 - **Channel 13**: Global effects (on entire output)
-- **Channel 14**: Reserved (ignored)
+- **Channel 14**: Project selection (note → project switch, latched, velocity ignored)
 - **Channel 15**: Reserved (ignored)
 - **Channel 16**: Reserved (ignored)
 
@@ -37,7 +37,7 @@ Every MIDI note you send has three values:
 
 **Note:** Velocity 0 = Note Off (stops the clip)
 
-**Example:** `Channel 1, Note 60, Velocity 100` plays the clip mapped to that slot in `clips/key-map.json` (e.g. `clips/c1-n60-v100/`).
+**Example:** `Channel 1, Note 60, Velocity 100` plays the clip mapped to that slot in `projects/{projectId}/key-map.json` (e.g. `projects/default/clips/c1-n60-v100/`).
 
 ## Layer Group Architecture
 
@@ -93,9 +93,13 @@ Renders **on top** of everything. Use for:
 
 Applies effects to the **entire final output** (all layer groups combined). Same note ranges as mixed output effects.
 
+### Project selection
+
+Channel 14 switches the active project. A Note On latches the project mapped to that note; velocity is ignored.
+
 ### Reserved
 
-These channels are ignored by AKVJ.
+Channels 15 and 16 are ignored by AKVJ.
 
 ## DAW Setup
 
@@ -103,7 +107,7 @@ These channels are ignored by AKVJ.
 
 Set up a MIDI track in your DAW for each AKVJ Channel you want to control. See the **[AKVJ Channel Mapping](#akvj-channel-mapping)** list above for the exact channel numbers and their functions.
 
-> **Folder path note:** Clip source folders use 1-16 (matching your DAW). The build pipeline converts to 0-15 for code output.
+> **Channel numbering note:** `projects/{projectId}/key-map.json` uses DAW channels 1-16. The build pipeline converts to code channels 0-15 for the runtime clip tree.
 
 ### Route to AKVJ
 
@@ -180,17 +184,17 @@ Channel 11 (Layer Group C, Slot 0):
 
 ## Clip File Locations
 
-Clips live in flat `clips/{clipId}/` folders, with MIDI placement defined in `clips/key-map.json`:
+Clips live per project in `projects/{projectId}/clips/{clipId}/`, with MIDI placement defined in `projects/{projectId}/key-map.json`:
 
 ```
-clips/{clipId}/
+projects/{projectId}/clips/{clipId}/
   ├── sprite.png     # Spritesheet with all frames
   └── meta.json      # Clip metadata
 
-clips/key-map.json   # Maps channel/note/velocity → clipId
+projects/{projectId}/key-map.json   # Maps channel → note → velocity → clipId
 ```
 
-**Example:** For `Channel 1, Note 60, Velocity 100`, the mapping entry `{ "channel": 1, "note": 60, "velocity": 100, "clipId": "my-clip" }` plays `clips/my-clip/`.
+**Example:** For `Channel 1, Note 60, Velocity 100`, the mapping entry `{ "1": { "60": { "100": "my-clip" } } }` plays `projects/default/clips/my-clip/`.
 
 If no clip exists for the exact velocity, AKVJ will look for available velocities.
 
@@ -254,7 +258,7 @@ sudo modprobe snd-virmidi
 2. **Check console:** Press F12, look for "JSON for clips loaded"
 3. **Check MIDI routing:** Ensure DAW outputs to virtual MIDI port
 4. **Check channel numbers:** Use channels 1-16 in your DAW
-5. **Check clip exists:** Verify folder at `clips/{ch-1}/{note}/{vel}/`
+5. **Check clip exists:** Verify the clipId in `projects/{projectId}/key-map.json` has a folder at `projects/{projectId}/clips/{clipId}/`
 
 ### Wrong Layer Group responding
 
@@ -270,7 +274,7 @@ Enable MIDI Clock output in your DAW to sync AKVJ to your tempo.
 
 ## Quick Reference Card
 
-### Channels (DAW: 1-16 / SOURCE FOLDERS: 1-16)
+### Channels (DAW / key-map.json: 1-16)
 
 - **Channel 1**: Layer Group A, Slot 0
 - **Channel 2**: Layer Group A, Slot 1
@@ -285,7 +289,7 @@ Enable MIDI Clock output in your DAW to sync AKVJ to your tempo.
 - **Channel 11**: Layer Group C, Slot 0 (overlay layer)
 - **Channel 12**: Layer Group C, Slot 1 (overlay layer)
 - **Channel 13**: Global effects (on entire output)
-- **Channel 14**: Reserved (ignored)
+- **Channel 14**: Project selection (note → project switch, latched, velocity ignored)
 - **Channel 15**: Reserved (ignored)
 - **Channel 16**: Reserved (ignored)
 
@@ -308,11 +312,11 @@ For effect channels (10, 13):
 
 ### File Location
 
-`clips/{clipId}/sprite.png` (MIDI mapping in `clips/key-map.json`)
+`projects/{projectId}/clips/{clipId}/sprite.png` (MIDI mapping in `projects/{projectId}/key-map.json`)
 
 ## See Also
 
-- [Clip Asset Guide](../clips/README.md) - Creating clips
+- [Clip Asset Guide](../projects/default/README.md) - Creating clips
 - [MIDI Protocol Guide](./midi-protocol-guide.md) - Technical MIDI details
 - [Web MIDI API Guide](./web-midi-api-guide.md) - Browser integration
 

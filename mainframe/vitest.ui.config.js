@@ -10,7 +10,7 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		css: true,
-		include: ['test/ClipList.test.js', 'test/ProjectChooser.test.js', 'test/SortChoices.test.js', 'test/MappingTable.test.js', 'test/RoleChoices.test.js', 'test/SimpleRouter.test.js', 'test/ClipNameInput.test.js', 'test/ClipFramesUploadPanel.test.js'],
+		include: ['test/ClipList.test.js', 'test/ProjectChooser.test.js', 'test/SortChoices.test.js', 'test/MappingTable.test.js', 'test/RoleChoices.test.js', 'test/SimpleRouter.test.js', 'test/ClipNameInput.test.js', 'test/ClipFramesPanel.test.js'],
 		pool: 'forks',
 		forks: {
 			singleFork: true

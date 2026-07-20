@@ -5,6 +5,7 @@
  * shuffle, scrub. Maintains internal state for pingpong direction, shuffle
  * pool, and finished status.
  */
+import { PLAYBACK_MODE } from './clipMetadata.js';
 
 class PlaybackController {
 	#frameCount;
@@ -51,11 +52,11 @@ class PlaybackController {
 	}
 
 	/**
-	 * Set the scrub position (0.0 to 1.0). Only active in 'scrub' mode.
+	 * Set the scrub position (0.0 to 1.0). Only active in scrub mode.
 	 * @param {number} normalizedValue
 	 */
 	setScrubPosition(normalizedValue) {
-		if (this.#playbackMode !== 'scrub') {
+		if (this.#playbackMode !== PLAYBACK_MODE.SCRUB) {
 			return;
 		}
 		const clamped = Math.max(0, Math.min(1, normalizedValue));
@@ -97,7 +98,7 @@ class PlaybackController {
 	 * @returns {boolean} True if clip continues playing, false if finished
 	 */
 	advance() {
-		if (this.#playbackMode === 'scrub') {
+		if (this.#playbackMode === PLAYBACK_MODE.SCRUB) {
 			return true;
 		}
 

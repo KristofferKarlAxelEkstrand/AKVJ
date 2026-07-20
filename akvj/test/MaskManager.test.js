@@ -28,8 +28,8 @@ describe('MaskManager', () => {
 		expect(mm.getCurrentMask()).toBeNull();
 	});
 
-	test('getBitDepth returns null before any trigger', () => {
-		expect(mm.getBitDepth()).toBeNull();
+	test('getCurrentBitDepth returns null before any trigger', () => {
+		expect(mm.getCurrentBitDepth()).toBeNull();
 	});
 
 	test('noteOn with wrong channel returns false', () => {
@@ -44,7 +44,7 @@ describe('MaskManager', () => {
 
 		expect(mm.noteOn(settings.channelMapping.mixer, 60, 127)).toBe(true);
 		expect(mm.getCurrentMask()).toBe(clip);
-		expect(mm.getBitDepth()).toBe(1);
+		expect(mm.getCurrentBitDepth()).toBe(1);
 		expect(clip.reset).toHaveBeenCalled();
 	});
 
@@ -63,7 +63,7 @@ describe('MaskManager', () => {
 
 		mm.noteOn(settings.channelMapping.mixer, 61, 127);
 		expect(mm.getCurrentMask()).toBe(clip2);
-		expect(mm.getBitDepth()).toBe(8);
+		expect(mm.getCurrentBitDepth()).toBe(8);
 		expect(clip1.stop).toHaveBeenCalled();
 	});
 
@@ -104,7 +104,7 @@ describe('MaskManager', () => {
 		mm.setClips({ [settings.channelMapping.mixer]: { 60: { 0: clip } } });
 
 		mm.noteOn(settings.channelMapping.mixer, 60, 127);
-		expect(mm.getBitDepth()).toBe(1);
+		expect(mm.getCurrentBitDepth()).toBe(1);
 	});
 
 	test('clear stops current mask and resets state', () => {
@@ -114,7 +114,7 @@ describe('MaskManager', () => {
 
 		mm.clear();
 		expect(mm.getCurrentMask()).toBeNull();
-		expect(mm.getBitDepth()).toBeNull();
+		expect(mm.getCurrentBitDepth()).toBeNull();
 		expect(clip.stop).toHaveBeenCalled();
 	});
 
@@ -129,7 +129,7 @@ describe('MaskManager', () => {
 
 		mm.destroy();
 		expect(mm.getCurrentMask()).toBeNull();
-		expect(mm.getBitDepth()).toBeNull();
+		expect(mm.getCurrentBitDepth()).toBeNull();
 		expect(clip.stop).toHaveBeenCalled();
 
 		// Second destroy should not throw
@@ -190,7 +190,7 @@ describe('MaskManager', () => {
 
 			expect(local.noteOn(99, 60, 127)).toBe(true);
 			expect(local.getCurrentMask()).toBe(clip);
-			expect(local.getBitDepth()).toBe(2);
+			expect(local.getCurrentBitDepth()).toBe(2);
 			// Default mixer channel (4) must not activate when constructor used channel 99
 			expect(local.noteOn(4, 60, 127)).toBe(false);
 		});

@@ -148,61 +148,85 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 14:13 — False-positive wake on unanswered mail/out scaling question; no Answer yet; skipped heavy sweep — Area: `mail/out`
 - 2026-07-20 14:13 — Message wake on own slack/all PROMPT-UPDATED mapping specs; already acted last cycle; left broadcasts; skipped heavy sweep — Area: `slack/all`
 - 2026-07-20 14:16 — Message wake: akvj-developer asked human on task 338 unmasked A/B compositor intent (opt1 A-only); left in mail/out; scaling still unanswered; skipped heavy sweep — Area: `mail/out` [338]
+- 2026-07-20 14:29 — Product sweep (special: goal.md): corrected fullscreen Enter/Space/dblclick + Bridge key-map/public copy; filed FEATURE refresh PROJECT-SPECIFICATION.md; pruned old slack/all prompt-updated; flipped mode→process — Area: `spec/goal.md`
+- 2026-07-20 14:29 — False wake on own slack/all [PROMPT-UPDATED]-goal-spec; left for other agents; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 14:33 — Message wake: TL asked human to commit task 371 mainframe visual baseline PNGs; left in mail/out; skipped heavy sweep — Area: `mail/out` [371]
+- 2026-07-20 14:44 — Ingested human answer on 338: channel-stack redesign epic drafted; no crisp opt1/2; told akvj-dev hold; asked TL to park/split; deleted answered mail/out — Area: `epics/drafts,Compositor.js`
+- 2026-07-20 14:45 — Ingested flap answers: pruned retired health-inspector alert/heartbeat; field-tester up; fixed agents-status padEnd crash on awaiting arrays; reported speed-loss findings to TL (301s poller deaths + restart storms) — Area: `.agents/workflows/scripts,health`
+- 2026-07-20 14:45 — TL parked 338 in todo; crisp 1-vs-2 lock filed to mail/out; channel stack remains separate epic draft — Area: `mail/out`
+- 2026-07-20 14:45 — False wake on unanswered mail/out 338 compositor lock; skipped heavy sweep — Area: `mail/out`
+- 2026-07-20 14:46 — Ingested scaling answer: preview always nearest; soft kernels on ingest bake — filed FEATURE; updated aesthetics.md; notified TM+TL — Area: `spec/aesthetics.md,mainframe/scripts/clips`
+- 2026-07-20 14:47 — False wake on own aesthetics-scaling-lock broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 14:48 — Answered nitpicker: corrected clip-format.md scaling row for preview-nearest lock; pruned aesthetics broadcast — Area: `spec/clip-format.md`
+- 2026-07-20 14:48 — False wake on own clip-format-scaling broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 14:48 — Stale TL question on clip-format scaling — already fixed; pointed at task 378 for JSDoc — Area: `spec/clip-format.md` [378]
+- 2026-07-20 14:53 — TL asked ClipLoader override allowlist gap — filed BUG; 383 remains test-only — Area: `akvj/src/js/visuals/ClipLoader.js`
+- 2026-07-20 14:59 — Human locked 338 option 2 (A then B source-over no-mask); told TL+akvj-dev; updated epic/memory notes — Area: `akvj/src/js/visuals/Compositor.js`
+- 2026-07-20 14:59 — Human committed task 371 mainframe visual baselines; verified clean; notified TL — Area: `mainframe/test/visual` [371]
+- 2026-07-20 15:12 — Process sweep: team healthy; trimmed mail/in/read 81→20; restored 361 source mail for ref-check; no prompt drift; flipped mode→product — Area: `mail/in/read,co-workers`
+- 2026-07-20 15:26 — Product sweep: re-verified clip-editor (fixed 120BPM myth; preview nearest + ingest lanczos3); goal.md PROJECT-SPEC note cleared post-373; compositor A-then-B verified; no new bugs; flipped→process — Area: `spec/clip-editor.md,Compositor.js`
+- 2026-07-20 15:26 — False wake on own clip-editor-goal broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 15:31 — Updated mapping.md public events to pianoroll:* after task 364; answered TL — Area: `spec/mapping.md` [364]
+- 2026-07-20 15:31 — False wake on own mapping-events broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 15:33 — Corrected mapping.md changelog: KeyBed select bands fixed in task 367 — Area: `spec/mapping.md` [367]
+- 2026-07-20 15:33 — Fixed mapping.md narrative compact event names (mappingchange, noteon/off → pianoroll:*); *request left for 389 — Area: `spec/mapping.md`
+- 2026-07-20 15:42 — Updated mapping.md request-event footnote to pianoroll:*-request after task 389 — Area: `spec/mapping.md` [389]
+- 2026-07-20 15:43 — False wake on own mapping-request-events broadcast; left for team; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 15:54 — Process sweep: team healthy; pruned mapping-request broadcast; trimmed mail/in/read→20; no prompt drift; workflow green; flipped→product — Area: `mail/in/read,slack/all`
+- 2026-07-20 16:07 — Product sweep: re-verified clip-timing-sync (frameDurationsMs wired; fixed StagingPreview 120BPM myth); no new product bugs; flipped→process — Area: `spec/clip-timing-sync.md,akvj/src/js/visuals`
 
 ## Recent
 
-### 2026-07-20 14:29 — Product sweep (special: goal.md): corrected fullscreen Enter/Space/dblclick + Bridge key-map/public copy; filed FEATURE refresh PROJECT-SPECIFICATION.md; pruned old slack/all prompt-updated; flipped mode→process
+### 2026-07-20 16:07 — False wake on own clip-timing-sync broadcast; left for team; skipped heavy sweep
+
+- Area: `slack/all`
+
+### 2026-07-20 16:10 — TL/TM: validateFrameHeight slots check confirmed dead after divisibility guard — filed BUG to delete; 394 stays test-only
+
+- Area: `mainframe/scripts/clips/lib/validate/image.js`
+- Refs: 394
+
+### 2026-07-20 16:20 — Process sweep: team healthy; 395 dead-slots shipped; pruned clip-timing broadcast; trimmed read→20; workflow green; flipped→product
+
+- Area: `mail/in/read,slack/all`
+- Refs: 395
+
+### 2026-07-20 16:32 — Product sweep: re-verified aesthetics.md (Zero UI → near-zero with D/loading/fullscreen exceptions); no Shadow DOM; no new bugs; flipped→process
+
+- Area: `spec/aesthetics.md,akvj/src/js`
+
+### 2026-07-20 16:34 — False wake on own aesthetics-zero-ui broadcast; left for team; skipped heavy sweep
+
+- Area: `slack/all`
+
+### 2026-07-20 16:36 — Aligned goal.md Near-zero UI with aesthetics exceptions; answered TL (399 stays PROJECT-SPEC only)
 
 - Area: `spec/goal.md`
-- Refs: 338
+- Refs: 399
 
-### 2026-07-20 14:29 — False wake on own slack/all [PROMPT-UPDATED]-goal-spec; left for other agents; skipped heavy sweep
-
-- Area: `slack/all`
-
-### 2026-07-20 14:33 — Message wake: TL asked human to commit task 371 mainframe visual baseline PNGs; left in mail/out; skipped heavy sweep
-
-- Area: `mail/out`
-- Refs: 371
-
-### 2026-07-20 14:44 — Ingested human answer on 338: channel-stack redesign epic drafted; no crisp opt1/2; told akvj-dev hold; asked TL to park/split; deleted answered mail/out
-
-- Area: `epics/drafts,Compositor.js`
-- Refs: 338
-
-### 2026-07-20 14:45 — Ingested flap answers: pruned retired health-inspector alert/heartbeat; field-tester up; fixed agents-status padEnd crash on awaiting arrays; reported speed-loss findings to TL (301s poller deaths + restart storms)
-
-- Area: `.agents/workflows/scripts,health`
-- Refs: 363
-
-### 2026-07-20 14:45 — TL parked 338 in todo; crisp 1-vs-2 lock filed to mail/out; channel stack remains separate epic draft
-
-- Area: `mail/out`
-- Refs: 338
-
-### 2026-07-20 14:45 — False wake on unanswered mail/out 338 compositor lock; skipped heavy sweep
-
-- Area: `mail/out`
-- Refs: 338
-
-### 2026-07-20 14:46 — Ingested scaling answer: preview always nearest; soft kernels on ingest bake — filed FEATURE; updated aesthetics.md; notified TM+TL
-
-- Area: `spec/aesthetics.md,mainframe/scripts/clips`
-- Refs: 294,365
-
-### 2026-07-20 14:47 — False wake on own aesthetics-scaling-lock broadcast; left for team; skipped heavy sweep
+### 2026-07-20 16:38 — False wake on own goal-near-zero-ui broadcast; left for team; skipped heavy sweep
 
 - Area: `slack/all`
 
-### 2026-07-20 14:48 — Answered nitpicker: corrected clip-format.md scaling row for preview-nearest lock; pruned aesthetics broadcast
+### 2026-07-20 16:46 — Process sweep: prompts/partials clean, no drift; filed run-team pane_index fallback crosstalk bug + check-references generated-path false positive; pruned retired health-inspector pane/slack dir; trimmed mail/in/read 25->20; flipped mode->product
 
-- Area: `spec/clip-format.md`
+- Area: `.agents/workflows/scripts,co-workers`
 
-### 2026-07-20 14:48 — False wake on own clip-format-scaling broadcast; left for team; skipped heavy sweep
+### 2026-07-20 16:47 — Message wake: TL asked human re 2 staged mainframe visual PNGs; git diff --cached shows 6 (4 extra akvj grayscale refs) — appended full list to mail/out and told TL; staged nothing
 
-- Area: `slack/all`
+- Area: `mainframe/test/visual,akvj/test/visual`
+- Refs: 401
 
-### 2026-07-20 14:48 — Stale TL question on clip-format scaling — already fixed; pointed at task 378 for JSDoc
+### 2026-07-20 16:47 — False wake on own edit to mail/out staged-PNG question; no human Answer yet; skipped heavy sweep
 
-- Area: `spec/clip-format.md`
-- Refs: 378
+- Area: `mail/out`
+
+### 2026-07-20 16:50 — TL supplied provenance for the 4 extra staged akvj PNGs (task 368, verified in tasks/done); all six staged refs are legit and await the human's commit; no Answer yet; skipped heavy sweep
+
+- Area: `mail/out,akvj/test/visual`
+- Refs: 368,401
+
+### 2026-07-20 17:00 — Product sweep: all specs verified today so no re-verify due; confirmed EffectsManager reserved-skip removal is correct dead-code cleanup; filed BUG grayscaleBlend per-frame 129KB alloc in 60fps loop + displacement wasted copy before early-out (task 368 code); HUMAN=1 rename verified consistent
+
+- Area: `akvj/src/js/visuals/effects`
+- Refs: 368

@@ -101,13 +101,19 @@ function insertionIndexForDropVelocity(dropVelocity, bands) {
 	return bands.length;
 }
 
+/** Bubbling request events from `<piano-key>` → `<piano-roll>` (namespaced like public pianoroll:*). */
+export const EVENT_PIANOROLL_KEY_CLICK_REQUEST = 'pianoroll:key-click-request';
+export const EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST = 'pianoroll:mapping-change-request';
+export const EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST = 'pianoroll:mapping-remove-request';
+export const EVENT_PIANOROLL_MAPPING_ADD_REQUEST = 'pianoroll:mapping-add-request';
+
 /**
  * PianoKey — individual piano key with mapped/active states and optional velocity regions.
  *
- * @fires PianoKey#keyclickrequest - `{ detail: { note, velocity?, clipId?, action } }` (bubbles)
- * @fires PianoKey#mappingchangerequest - `{ detail: { note, oldVelocity, newVelocity, clipId } }` (bubbles)
- * @fires PianoKey#mappingremoverequest - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
- * @fires PianoKey#mappingaddrequest - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
+ * @fires PianoKey#pianoroll:key-click-request - `{ detail: { note, velocity?, clipId?, action } }` (bubbles)
+ * @fires PianoKey#pianoroll:mapping-change-request - `{ detail: { note, oldVelocity, newVelocity, clipId } }` (bubbles)
+ * @fires PianoKey#pianoroll:mapping-remove-request - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
+ * @fires PianoKey#pianoroll:mapping-add-request - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
  */
 class PianoKey extends HTMLElement {
 	#note = 0;
@@ -248,7 +254,7 @@ class PianoKey extends HTMLElement {
 			return;
 		}
 		this.dispatchEvent(
-			new CustomEvent('keyclickrequest', {
+			new CustomEvent(EVENT_PIANOROLL_KEY_CLICK_REQUEST, {
 				bubbles: true,
 				detail: { note: this.#note, velocity: null, clipId: null, action: 'assign' }
 			})
@@ -275,7 +281,7 @@ class PianoKey extends HTMLElement {
 		if (event.key === 'Enter' || event.key === ' ') {
 			event.preventDefault();
 			this.dispatchEvent(
-				new CustomEvent('keyclickrequest', {
+				new CustomEvent(EVENT_PIANOROLL_KEY_CLICK_REQUEST, {
 					bubbles: true,
 					detail: { note: this.#note, velocity: null, clipId: null, action: 'assign' }
 				})
@@ -328,7 +334,7 @@ class PianoKey extends HTMLElement {
 		const velocity = mappings[insertAt]?.velocity ?? 0;
 
 		this.dispatchEvent(
-			new CustomEvent('mappingaddrequest', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_ADD_REQUEST, {
 				bubbles: true,
 				detail: {
 					note: this.#note,
@@ -392,7 +398,7 @@ class PianoKey extends HTMLElement {
 					return;
 				}
 				this.dispatchEvent(
-					new CustomEvent('keyclickrequest', {
+					new CustomEvent(EVENT_PIANOROLL_KEY_CLICK_REQUEST, {
 						bubbles: true,
 						detail: {
 							note: this.#note,
@@ -571,7 +577,7 @@ class PianoKey extends HTMLElement {
 		}
 
 		this.dispatchEvent(
-			new CustomEvent('mappingchangerequest', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST, {
 				bubbles: true,
 				detail: {
 					note: this.#note,
@@ -597,7 +603,7 @@ class PianoKey extends HTMLElement {
 		const mappings = redistributeVelocities(remainingClipIds);
 
 		this.dispatchEvent(
-			new CustomEvent('mappingremoverequest', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST, {
 				bubbles: true,
 				detail: {
 					note: this.#note,
@@ -622,4 +628,14 @@ class PianoKey extends HTMLElement {
 
 customElements.define('piano-key', PianoKey);
 
-export { PianoKey, isBlackKey, noteLabel, noteHue, clipHue, buildVelocityBands, redistributeVelocities, insertionIndexForDropVelocity, MIN_REGION_VELOCITY };
+export {
+	PianoKey,
+	isBlackKey,
+	noteLabel,
+	noteHue,
+	clipHue,
+	buildVelocityBands,
+	redistributeVelocities,
+	insertionIndexForDropVelocity,
+	MIN_REGION_VELOCITY
+};

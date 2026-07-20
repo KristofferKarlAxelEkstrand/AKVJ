@@ -6,53 +6,48 @@
 
 All 10 agents up.
 
-## 📋 Backlog (13)
-- **338-akvj-compositor-layer-group-b-intent.md**: Task 338: AKVJ Compositor Layer Group B rendering intent (PARKED) (Priority: high)
-- **359-akvj-visuals-effects-nits.md**: Nit Sweep: visuals/effects magic numbers (Priority: low)
-- **361-generate-mainframe-ui-visual-references.md**: Task 361: Generate missing visual reference screenshots for Mainframe UI (Priority: medium)
-- **362-mainframe-server-handlers-naming-sweep.md**: Task 362: Nitpicker Findings: `mainframe/server/handlers/` (Priority: low)
-- **364-mainframe-keybed-pianoroll-naming.md**: Task 364: KeyBed + PianoRoll naming sweep (Priority: medium)
-- **365-mainframe-scaling-coverage.md**: Task 365: Mainframe `scaling` metadata plumbing coverage (Priority: medium)
-- **366-mainframe-mappingtable-slot-wording.md**: Task 366: MappingTable “slot” → “mapping” wording (Priority: low)
-- **369-akvj-drawScaled-scaleMode-rename.md**: Task 369: Rename `drawScaled` to avoid `scaling` collision (Priority: medium)
-- **370-mainframe-writeJsonAtomic-param-rename.md**: Task 370: Rename `writeJsonAtomic` param `data` → `value` (Priority: low)
-- **374-mainframe-resolveScaleMode-jsdoc-pattern.md**: Task 374: `resolveScaleMode` JSDoc include `pattern` (Priority: low)
-- **377-mainframe-ingest-soft-resize-kernels.md**: Task 377: Soft kernels on clip ingest downscale (Priority: medium)
-- **378-mainframe-preview-nearest-jsdoc.md**: Task 378: Preview nearest-lock JSDoc (PreviewClip / StagingPreview) (Priority: low)
-- **379-mainframe-preview-nearest-lock-tests.md**: Task 379: Assert preview forces `imageSmoothingEnabled = false` (Priority: medium)
+## 📋 Backlog (2)
+- **407-check-references-generated-paths.md**: 407 — check-references flags generated/gitignored paths as dangling (Priority: high)
+- **411-akvj-grayscale-per-frame-allocation.md**: 411 — grayscale effects allocate in the 60fps render loop (Priority: high)
 
 ## 🚀 In Progress
 ### akvj-developer
-- **368-akvj-visual-grayscale-effects.md**: Task 368: Visual suite — grayscaleDisplacement + grayscaleBlend screenshots
+- **408-akvj-event-hygiene-appstate.md**: 408 — Event hygiene: AppState
+- **409-akvj-effectsmanager-reserved-leftover.md**: 409 — EffectsManager: dead `reserved` guard removed
 
 **Slack / Active Files:**
-- [TASK]-368-akvj-visual-grayscale-effects.md
+- [TASK]-408-akvj-event-hygiene-appstate.md
 
 ### mainframe-developer
-- **372-mainframe-state-pianoroll-filters.md**: Task 372: Unit-test `mainframeState.pianorollFilters`
-
-### utility-developer
-- **376-fix-agents-status-eqeqeq.md**: Task 376: Fix `agents-status.js` eqeqeq (blocks root lint)
+- **402-mainframe-editable-meta-frameDurationsMs.md**: Task 402: clips handler EDITABLE_META + frameDurationsMs
+- **410-mainframe-shared-module-extraction.md**: 410 — Mainframe layering: shared module extraction
 
 **Slack / Active Files:**
-- [TASK]-376-fix-agents-status-eqeqeq.md
+- [TASK]-410-mainframe-shared-module-extraction.md
+
+### utility-developer
+- **403-docs-config-projects-layout-sweep.md**: 403 — Docs & config sweep for the projects layout
+- **405-run-team-pane-id-fallback.md**: 405 — run-team: dead-pane fallback restarts the wrong agent
+
+**Slack / Active Files:**
+- [TASK]-405-run-team-pane-id-fallback.md
 
 ## 🔍 Pending QA Audit
 - *No tasks pending review*
 
 ## ✅ Done (Recent 15)
-- **375-mainframe-pianoroll-layer-role-filters.md**: Task 375: PianoRoll `layerGroup` / `role` filter mask tests
-- **367-mainframe-select-filter-alias.md**: Task 367: Align `select`≡`filter` in KeyBed + fix stale tests
-- **373-refresh-project-specification-md.md**: Task 373: Refresh root PROJECT-SPECIFICATION.md
-- **346-add-regression-tests-human-review.md**: Task 346: Add regression tests for human review findings
-- **344-mainframe-oversized-body-413.md**: Task 344: Mainframe oversized body should return 413
-- **328-qa-reviewer-project-review.md**: Task 328: QA reviewer project review lane check
-- **360-fix-lint-clipeditorcontroller.md**: Task 360: Fix lint error in ClipEditorController
-- **343-mainframe-atomic-json-writes.md**: Task 343: Mainframe atomic JSON writes
-- **371-e2e-visual-piano-roll-coverage.md**: Task 371: E2E + visual coverage for piano-roll / key-bed
-- **363-health-monitor-skip-disabled-agents.md**: Task 363: Health monitor must skip disabled agents
-- **357-update-contributing-githooks.md**: Task 357: Update docs for githooks
-- **345-nitpicker-readme-vite-config-nits.md**: Task 345: Fix README and vite config nits
-- **334-mainframe-js-magic-numbers.md**: Task 334: Mainframe JS magic-number sweep
-- **358-akvj-visuals-clipDrawRect-coverage.md**: Add direct unit tests for clipDrawRect.js
-- **355-akvj-visuals-effects-magic-numbers.md**: Task 355: AKVJ visuals effects magic-number naming
+- **406-akvj-renderer-lifecycle-tests.md**: 406 — Renderer lifecycle test coverage
+- **404-akvj-mask-effects-nits.md**: 404 — MaskManager / EffectsManager readability nits
+- **401-mainframe-mapping-table-visual-refs.md**: Task 401: Refresh MappingTable visual refs after “mapping(s)” copy
+- **400-akvj-switchproject-destroyclips-mock.md**: Task 400: switchProject destroyClips mock assertion
+- **399-project-spec-near-zero-ui-wording.md**: Task 399: PROJECT-SPEC near-zero UI wording
+- **398-akvj-layerManager-channel13-header-honesty.md**: Task 398: LayerManager channel-13 header honesty + mixer name
+- **382-mainframe-optimize-clipPath-rename.md**: Task 382: Rename optimize `clipPath` → `clipId`
+- **380-mainframe-validate-jsdoc-result-shapes.md**: Task 380: Fix validate/ JSDoc result shapes
+- **374-mainframe-resolveScaleMode-jsdoc-pattern.md**: Task 374: `resolveScaleMode` JSDoc include `pattern`
+- **396-mainframe-generate-edge-paths.md**: Task 396: generate.js skip / corrupt-meta edge tests
+- **397-e2e-stale-vite-clip-frames-panel-rename.md**: Task 397: Stale Vite after ClipFramesPanel rename breaks clip-editor e2e
+- **395-mainframe-validate-image-dead-slots-check.md**: Task 395: Delete dead validateFrameHeight slots check
+- **394-mainframe-validate-image-slots-mock.md**: Task 394: Remove vacuous validate-image slots `Math.floor` mock
+- **370-mainframe-writeJsonAtomic-param-rename.md**: Task 370: Rename `writeJsonAtomic` param `data` → `value`
+- **393-akvj-clipTiming-free-mode-ms-honesty.md**: Task 393: ClipTiming free-mode naming honesty (ms-first)

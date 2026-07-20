@@ -5,29 +5,34 @@
 One line per past finding — read this in full before a sweep.
 
 - (nothing compacted yet)
+- Area: `e2e,lint,clips,agents`
+- Area: `test,build,clips`
+- Area: `lint,agents,clips`
 
 ## Recent
 
-### 2026-07-20 12:45 — Sweep lint/clips:validate/test:all/build:all/agents:check + mainframe API repro; filed [BUG]-health-report-unused-stale-heartbeat and [BUG]-mainframe-frameDurationBeats-write-repro.
-
-### 2026-07-20 12:59 — timer wake: lint + clips:validate clean; test:all interrupted by session, will resume on next wake
-
-### 2026-07-20 13:29 — Swept test:all and test:visual; test:all clean, filed [TEST]-mainframe-ui-missing-visual-references for test:visual
-
-### 2026-07-20 13:41 — ran clips, build:all — all clean
-
-### 2026-07-20 14:07 — timer wake: lint, agents:check, clips:validate, test:e2e (18) — all clean; no bugs filed
-
-- Area: `e2e,lint,clips,agents`
-
-### 2026-07-20 14:18 — timer wake: test:all (akvj 563 + mainframe + workflow 42) and build:all (clips+vite) — all clean; no bugs filed
-
-- Area: `test,build,clips`
-
-### 2026-07-20 14:19 — woke on [PROMPT-UPDATED]-mapping-spec-keybed (left in place); lint + agents:check + clips:validate — all clean; no bugs filed
-
-- Area: `lint,agents,clips`
-
-### 2026-07-20 14:30 — woke on [PROMPT-UPDATED]-goal-spec (left in place); test:e2e (21) + test:visual (akvj 16 + mainframe 7) — all clean; no bugs filed
-
 - Area: `e2e,visual`
+
+- Area: `clips,mainframe`
+
+- Area: `lint,agents,akvj`
+
+- Area: `build,e2e,clips`
+
+- Area: `lint,agents,visual`
+
+- Area: `test:all`
+
+- Area: `e2e,mainframe`
+
+- Refs: 387
+
+- Area: `lint,agents,e2e`
+
+- Area: `visual,mainframe`
+
+- Refs: 366
+
+### 2026-07-20 16:59 — Swept lint + test:all + agents:check. lint clean, agents:check clean (107 refs, 9 specs, 5 msgs). akvj 567/567 green. mainframe unit suite failed twice with DIFFERENT tests (clipFramesBody 'converts frameDurationsMs', then server.test 'updates metadata fields'), both passed in isolation, third full run 48/48 green with a different test count (583 vs 585). Cause: mainframe-developer was mid-edit on task 402 — clipFramesBody.test.js/server.test.js and their sources all mtime-changed inside my run window. Torn-tree artifact, NOT a defect. Filed nothing. Lesson: check mtimes before believing a mainframe failure while 402-class work is in flight.
+
+- Area: `mainframe,test:all,lint,agents`

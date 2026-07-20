@@ -129,6 +129,26 @@ describe('Compositor', () => {
 		expect(ctxMixed.drawImage).toHaveBeenCalled();
 	});
 
+	test('mixLayerGroups with no mask and both groups active draws A then B source-over', () => {
+		const compositor = createCompositor();
+		const ctxMixed = compositor.ctxMixed;
+		const [canvasA, canvasB] = canvasMock.createdCanvases;
+
+		compositor.mixLayerGroups(
+			{
+				mask: null,
+				bitDepth: 1,
+				isLayerGroupAEmpty: false,
+				isLayerGroupBEmpty: false
+			},
+			0
+		);
+
+		expect(ctxMixed.drawImage).toHaveBeenCalledTimes(2);
+		expect(ctxMixed.drawImage.mock.calls[0][0]).toBe(canvasA);
+		expect(ctxMixed.drawImage.mock.calls[1][0]).toBe(canvasB);
+	});
+
 	test('1-bit mask: mask < 128 selects Layer Group A, mask >= 128 selects Layer Group B', () => {
 		const compositor = createCompositor();
 		const ctxA = compositor.ctxA;

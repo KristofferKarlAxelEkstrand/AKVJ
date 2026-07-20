@@ -206,7 +206,7 @@ export class Pipeline {
 			return;
 		}
 		for (const result of results.filter(result => result.error)) {
-			console.error(`  Error: ${result.clipPath}: ${result.error}`);
+			console.error(`  Error: ${result.clipId}: ${result.error}`);
 		}
 	}
 

@@ -10,7 +10,7 @@ export { DEFAULT_SCALE_MODE };
 
 /**
  * @param {unknown} mode
- * @returns {'fit'|'cover'|'stretch'|'none'}
+ * @returns {'fit'|'cover'|'stretch'|'none'|'pattern'}
  */
 export function resolveScaleMode(mode) {
 	return SCALE_MODES.includes(mode) ? mode : DEFAULT_SCALE_MODE;

@@ -65,6 +65,9 @@ still stage; only a batch with nothing usable fails.
 
 Every frame is composited into the clip's frame size (default 240×135) with alpha preserved end
 to end — decode, fit, spritesheet, stored `sprite.png`. JPG has no alpha and is treated as opaque.
+Upload / first-bake resize uses sharp kernel `lanczos3` (`INGEST_RESIZE_KERNEL` in
+`spritesheet-core.js`) — soft resampling, not nearest. That is separate from preview and from
+akvj `scaling` metadata.
 
 Each staged image can carry its own **bake** settings — scale (`fit`/`cover`/`stretch`/`none`/
 custom), custom pixel size, and offset within the cell. These are import-session state: they are
@@ -82,7 +85,11 @@ The staging preview and the frame thumbnails sit on a Photoshop-style grey/white
 clips. There is no backdrop chooser, and the checker never bakes into the saved sheet.
 
 The staging canvas buffer stays at the true frame size; only its CSS size is doubled, with
-`image-rendering: pixelated`. Beat-synced clips preview at 120 BPM.
+`image-rendering: pixelated`. Canvas drawing forces `imageSmoothingEnabled = false` (hard nearest)
+regardless of clip `scaling` metadata — see [aesthetics.md](aesthetics.md).
+
+Beat-mode clips still preview on the staged free-timing durations (default 1000 ms per frame).
+The preview does **not** simulate MIDI clock or a fixed BPM; live beat lock is akvj-only.
 
 ## Timing
 
@@ -108,5 +115,7 @@ frame on disk.
 
 ## Changelog
 
+- 2026-07-20 — Re-verified: removed false “preview at 120 BPM” (preview uses staged ms; beat
+  mode does not retimed preview); documented preview nearest lock and ingest `lanczos3` kernel.
 - 2026-07-20 — Written as current truth, merging `clip-upload-edit-feature.md` and
   `feature-edit-clip.md`. Route corrected to `/clip/edit` (the proposals said `/clip/new`).

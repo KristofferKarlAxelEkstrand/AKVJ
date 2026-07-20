@@ -6,10 +6,10 @@ import path from 'path';
  * and then renaming it over the target path.
  *
  * @param {string} targetPath
- * @param {any} data
+ * @param {any} value
  */
-export async function writeJsonAtomic(targetPath, data) {
-	const jsonString = `${JSON.stringify(data, null, '\t')}\n`;
+export async function writeJsonAtomic(targetPath, value) {
+	const jsonString = `${JSON.stringify(value, null, '\t')}\n`;
 	const tempPath = `${targetPath}.tmp.${Date.now()}.${Math.random().toString(36).slice(2)}`;
 
 	await fs.mkdir(path.dirname(targetPath), { recursive: true });

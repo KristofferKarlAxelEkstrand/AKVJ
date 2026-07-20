@@ -1,9 +1,32 @@
 import '../scss/PianoRoll.scss';
 import './KeyBed.js';
+import {
+	EVENT_PIANOROLL_KEY_CLICK_REQUEST,
+	EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST,
+	EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST,
+	EVENT_PIANOROLL_MAPPING_ADD_REQUEST
+} from './PianoKey.js';
 
 const VALID_MODES = new Set(['edit', 'select', 'filter', 'play']);
 const UI_MODES = ['edit', 'filter', 'play'];
 const DEFAULT_PREVIEW_VELOCITY = 100;
+
+/** Public custom events emitted by `<piano-roll>` (namespaced for consistency). */
+export const EVENT_PIANOROLL_KEY_CLICK = 'pianoroll:key-click';
+export const EVENT_PIANOROLL_CHANNEL_CHANGED = 'pianoroll:channel-changed';
+export const EVENT_PIANOROLL_MODE_CHANGED = 'pianoroll:mode-changed';
+export const EVENT_PIANOROLL_FILTER_CHANGED = 'pianoroll:filter-changed';
+export const EVENT_PIANOROLL_NOTE_ON = 'pianoroll:note-on';
+export const EVENT_PIANOROLL_NOTE_OFF = 'pianoroll:note-off';
+export const EVENT_PIANOROLL_MAPPING_CHANGED = 'pianoroll:mapping-changed';
+export const EVENT_PIANOROLL_MAPPING_REMOVED = 'pianoroll:mapping-removed';
+export const EVENT_PIANOROLL_MAPPING_ADDED = 'pianoroll:mapping-added';
+export {
+	EVENT_PIANOROLL_KEY_CLICK_REQUEST,
+	EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST,
+	EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST,
+	EVENT_PIANOROLL_MAPPING_ADD_REQUEST
+};
 
 const MODE_LABELS = {
 	edit: 'Edit',
@@ -43,6 +66,9 @@ function channelLayerGroup(channel) {
 	if (channel === 13) {
 		return 'Global';
 	}
+	if (channel === 14) {
+		return 'Project';
+	}
 	return 'Reserved';
 }
 
@@ -60,7 +86,7 @@ const CHANNEL_LABELS = {
 	11: 'Layer Group C',
 	12: 'Layer Group C',
 	13: 'Global effects',
-	14: 'Reserved',
+	14: 'Project selection',
 	15: 'Reserved',
 	16: 'Reserved'
 };
@@ -75,15 +101,15 @@ const CHANNEL_LABELS = {
  *
  * Optional `channel-select` attribute renders a per-instance MIDI channel selector.
  *
- * @fires PianoRoll#keyclick - CustomEvent with `{ detail: { note, clipId, velocity, isActive, mode, action, mappings } }`
- * @fires PianoRoll#channelchange - CustomEvent with `{ detail: { channel } }`
- * @fires PianoRoll#pianoroll:mode-changed - CustomEvent with `{ detail: { mode } }`
- * @fires PianoRoll#pianoroll:filter-changed - CustomEvent with `{ detail: { filters } }`
- * @fires PianoRoll#noteon - play mode
- * @fires PianoRoll#noteoff - play mode
- * @fires PianoRoll#mappingchange - edit mode breakpoint drag `{ channel, note, oldVelocity, newVelocity, clipId }`
- * @fires PianoRoll#mappingremove - edit mode region right-click `{ channel, note, clipId, velocity, mappings }`
- * @fires PianoRoll#mappingadd - edit mode clip drop `{ channel, note, clipId, velocity, mappings }`
+ * @fires PianoRoll#pianoroll:key-click - `{ detail: { note, clipId, velocity, isActive, mode, action, mappings } }`
+ * @fires PianoRoll#pianoroll:channel-changed - `{ detail: { channel } }`
+ * @fires PianoRoll#pianoroll:mode-changed - `{ detail: { mode } }`
+ * @fires PianoRoll#pianoroll:filter-changed - `{ detail: { filters } }`
+ * @fires PianoRoll#pianoroll:note-on - play mode
+ * @fires PianoRoll#pianoroll:note-off - play mode
+ * @fires PianoRoll#pianoroll:mapping-changed - edit mode breakpoint drag `{ channel, note, oldVelocity, newVelocity, clipId }`
+ * @fires PianoRoll#pianoroll:mapping-removed - edit mode region right-click `{ channel, note, clipId, velocity, mappings }`
+ * @fires PianoRoll#pianoroll:mapping-added - edit mode clip drop `{ channel, note, clipId, velocity, mappings }`
  */
 class PianoRoll extends HTMLElement {
 	/** @type {Array<{channel: number, note: number, velocity: number, clipId: string}>} */
@@ -145,7 +171,7 @@ class PianoRoll extends HTMLElement {
 			this.#syncModeButtons();
 			if (previousMode !== this.#mode) {
 				this.dispatchEvent(
-					new CustomEvent('pianoroll:mode-changed', {
+					new CustomEvent(EVENT_PIANOROLL_MODE_CHANGED, {
 						bubbles: true,
 						detail: { mode: this.#mode }
 					})
@@ -242,7 +268,7 @@ class PianoRoll extends HTMLElement {
 			this.#applyFilterMask();
 		}
 		this.dispatchEvent(
-			new CustomEvent('pianoroll:filter-changed', {
+			new CustomEvent(EVENT_PIANOROLL_FILTER_CHANGED, {
 				bubbles: true,
 				detail: { filters: { ...this.#filterState } }
 			})
@@ -265,20 +291,20 @@ class PianoRoll extends HTMLElement {
 			this.setAttribute('channel', String(this.#channel));
 		}
 		this.#syncModeClasses();
-		this.addEventListener('keyclickrequest', this.#boundHandleKeyClick);
-		this.addEventListener('mappingchangerequest', this.#boundHandleMappingChange);
-		this.addEventListener('mappingremoverequest', this.#boundHandleMappingRemove);
-		this.addEventListener('mappingaddrequest', this.#boundHandleMappingAdd);
+		this.addEventListener(EVENT_PIANOROLL_KEY_CLICK_REQUEST, this.#boundHandleKeyClick);
+		this.addEventListener(EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST, this.#boundHandleMappingChange);
+		this.addEventListener(EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST, this.#boundHandleMappingRemove);
+		this.addEventListener(EVENT_PIANOROLL_MAPPING_ADD_REQUEST, this.#boundHandleMappingAdd);
 		this.addEventListener('pointermove', this.#boundHandleMouseMove);
 		this.addEventListener('pointerleave', this.#boundHideTooltip);
 		this.#render();
 	}
 
 	disconnectedCallback() {
-		this.removeEventListener('keyclickrequest', this.#boundHandleKeyClick);
-		this.removeEventListener('mappingchangerequest', this.#boundHandleMappingChange);
-		this.removeEventListener('mappingremoverequest', this.#boundHandleMappingRemove);
-		this.removeEventListener('mappingaddrequest', this.#boundHandleMappingAdd);
+		this.removeEventListener(EVENT_PIANOROLL_KEY_CLICK_REQUEST, this.#boundHandleKeyClick);
+		this.removeEventListener(EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST, this.#boundHandleMappingChange);
+		this.removeEventListener(EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST, this.#boundHandleMappingRemove);
+		this.removeEventListener(EVENT_PIANOROLL_MAPPING_ADD_REQUEST, this.#boundHandleMappingAdd);
 		this.removeEventListener('pointermove', this.#boundHandleMouseMove);
 		this.removeEventListener('pointerleave', this.#boundHideTooltip);
 		this.replaceChildren();
@@ -312,7 +338,7 @@ class PianoRoll extends HTMLElement {
 		for (const note of notesTurningOff) {
 			const noteMappings = this.#mappingsForNote(note);
 			this.dispatchEvent(
-				new CustomEvent('noteoff', {
+				new CustomEvent(EVENT_PIANOROLL_NOTE_OFF, {
 					bubbles: true,
 					detail: {
 						note,
@@ -373,7 +399,7 @@ class PianoRoll extends HTMLElement {
 				const channel = Number(this.#channelSelect.value) || 1;
 				this.channel = channel;
 				this.dispatchEvent(
-					new CustomEvent('channelchange', {
+					new CustomEvent(EVENT_PIANOROLL_CHANNEL_CHANGED, {
 						bubbles: true,
 						detail: { channel }
 					})
@@ -491,7 +517,7 @@ class PianoRoll extends HTMLElement {
 		const layerGroupSelect = document.createElement('select');
 		layerGroupSelect.className = 'piano-roll-filter-layer-group';
 		layerGroupSelect.setAttribute('aria-label', 'Layer group');
-		for (const value of ['', 'A', 'B', 'C', 'Mixer', 'Mixed', 'Global', 'Reserved']) {
+		for (const value of ['', 'A', 'B', 'C', 'Mixer', 'Mixed', 'Global', 'Project', 'Reserved']) {
 			const option = document.createElement('option');
 			option.value = value;
 			option.textContent = value || 'Any layer group';
@@ -621,7 +647,7 @@ class PianoRoll extends HTMLElement {
 			}
 			this.#updateActiveKeys();
 			this.dispatchEvent(
-				new CustomEvent(isActive ? 'noteon' : 'noteoff', {
+				new CustomEvent(isActive ? EVENT_PIANOROLL_NOTE_ON : EVENT_PIANOROLL_NOTE_OFF, {
 					bubbles: true,
 					detail: {
 						note,
@@ -634,7 +660,7 @@ class PianoRoll extends HTMLElement {
 		}
 
 		this.dispatchEvent(
-			new CustomEvent('keyclick', {
+			new CustomEvent(EVENT_PIANOROLL_KEY_CLICK, {
 				bubbles: true,
 				detail: {
 					note,
@@ -659,7 +685,7 @@ class PianoRoll extends HTMLElement {
 		event.stopPropagation();
 		const { note, oldVelocity, newVelocity, clipId } = event.detail;
 		this.dispatchEvent(
-			new CustomEvent('mappingchange', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_CHANGED, {
 				bubbles: true,
 				detail: {
 					channel: this.#channel,
@@ -682,7 +708,7 @@ class PianoRoll extends HTMLElement {
 		event.stopPropagation();
 		const { note, clipId, velocity, mappings } = event.detail;
 		this.dispatchEvent(
-			new CustomEvent('mappingremove', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_REMOVED, {
 				bubbles: true,
 				detail: {
 					channel: this.#channel,
@@ -705,7 +731,7 @@ class PianoRoll extends HTMLElement {
 		event.stopPropagation();
 		const { note, clipId, velocity, mappings } = event.detail;
 		this.dispatchEvent(
-			new CustomEvent('mappingadd', {
+			new CustomEvent(EVENT_PIANOROLL_MAPPING_ADDED, {
 				bubbles: true,
 				detail: {
 					channel: this.#channel,
@@ -727,7 +753,7 @@ class PianoRoll extends HTMLElement {
 			return;
 		}
 		const channelMappings = this.#mappings.filter(mapping => mapping.channel === this.#channel);
-		this.#keyBed.setMappedKeys(channelMappings, this.#mode);
+		this.#keyBed.applyChannelMappings(channelMappings, this.#mode);
 	}
 
 	#updateActiveKeys() {

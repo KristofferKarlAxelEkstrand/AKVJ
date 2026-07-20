@@ -1,6 +1,6 @@
 import { sendJson } from '../httpUtils.js';
 import { handleGetHealth, handlePostPipeline, handleExpandGif } from '../handlers/misc.js';
-import { handleGetClips, handleGetMapping, handlePutMapping, handlePostClips, serveSprite, handleGetClipFrames, handlePutClipFrames, handleRecompileClip, handleDeleteClip, handlePutClipMeta } from '../handlers/clips.js';
+import { handleGetClips, handleGetMapping, handlePutMapping, handlePostClips, handleGetClipSprite, handleGetClipFrames, handlePutClipFrames, handleRecompileClip, handleDeleteClip, handlePutClipMeta } from '../handlers/clips.js';
 import { handleGetProjects, handlePostProjects, handleGetActiveProject, handleGetProject, handlePutProject, handleDeleteProject, handleActivateProject, handleGetProjectKeyMap, handlePutProjectKeyMap } from '../handlers/projects.js';
 
 const EXACT_ROUTES = {
@@ -32,7 +32,7 @@ export async function routeRequest(req, res, url) {
 		return;
 	}
 	if (req.method === 'GET' && url.pathname.startsWith('/api/clips/') && url.pathname.endsWith('/sprite')) {
-		await serveSprite(req, res, url);
+		await handleGetClipSprite(req, res, url);
 		return;
 	}
 	if (req.method === 'GET' && url.pathname.startsWith('/api/clips/') && url.pathname.endsWith('/frames')) {

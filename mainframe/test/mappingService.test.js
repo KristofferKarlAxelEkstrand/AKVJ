@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping, collectNestedKeyMapErrors } from '../server/mappingService.js';
+import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping, collectNestedKeyMapErrors } from '../shared/mappingService.js';
 
 describe('mappingService', () => {
 	test('flatten and nest round-trip', () => {

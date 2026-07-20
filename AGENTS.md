@@ -392,7 +392,7 @@ npm run build                  # ensure build succeeds
 
 4. IDE tooling and manual verification
 
-- Tracked git guard rails live in `.githooks/pre-commit` and `.githooks/pre-push`; `run-team` arms them via `core.hooksPath`. They block secrets, supervisor/CI files, binary assets, and all pushes — not lint/format. Use IDE format-on-save and still run `npm run lint` / `npm run format:prettier` before committing. Human override: `AKVJ_HUMAN=1`.
+- Tracked git guard rails live in `.githooks/pre-commit` and `.githooks/pre-push`; `run-team` arms them via `core.hooksPath`. They block secrets, supervisor/CI files, binary assets, and all pushes — not lint/format. Use IDE format-on-save and still run `npm run lint` / `npm run format:prettier` before committing. Human override: `HUMAN=1`.
 - Workspace VS Code settings enable `editor.formatOnSave` and `editor.codeActionsOnSave` for quick formatting and fixing on save.
 
 ## Troubleshooting

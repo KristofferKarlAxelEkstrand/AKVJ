@@ -103,11 +103,10 @@ describe('ProjectCatalog', () => {
 		});
 	});
 
-	describe('activeProjectId', () => {
-		test('setActiveProjectId / getter round-trip', () => {
-			expect(catalog.activeProjectId).toBeNull();
-			catalog.setActiveProjectId('live-set');
-			expect(catalog.activeProjectId).toBe('live-set');
+	describe('statelessness', () => {
+		test('holds no active project id — AppState owns it', () => {
+			expect(catalog.activeProjectId).toBeUndefined();
+			expect(catalog.setActiveProjectId).toBeUndefined();
 		});
 	});
 

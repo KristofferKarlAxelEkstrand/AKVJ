@@ -45,8 +45,8 @@ describe('parseClipFramesBody', () => {
 		expect(parsed.frameBuffers).toBeNull();
 	});
 
-	test('converts frameDurations to frameRatesForFrames', () => {
-		const parsed = parseClipFramesBody({ frameDurations: [500, 250] });
+	test('converts frameDurationsMs to frameRatesForFrames', () => {
+		const parsed = parseClipFramesBody({ frameDurationsMs: [500, 250] });
 		expect(parsed.frameRatesForFrames).toEqual({ 0: 2, 1: 4 });
 	});
 
@@ -73,6 +73,12 @@ describe('parseClipFramesBody', () => {
 			syncBeats: 8,
 			beatsPerBar: 3
 		});
+	});
+
+	test('passes through scaling', () => {
+		expect(parseClipFramesBody({ scaling: 'smooth' }).scaling).toBe('smooth');
+		expect(parseClipFramesBody({ scaling: 'nearest' }).scaling).toBe('nearest');
+		expect(parseClipFramesBody({}).scaling).toBeUndefined();
 	});
 
 	test('decodes non-empty frames into frameBuffers', () => {

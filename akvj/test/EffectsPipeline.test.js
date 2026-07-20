@@ -120,7 +120,7 @@ describe('EffectsPipeline', () => {
 			bpm: 120
 		});
 
-		// Strobe effect uses bpm; with default bpmMin=1 and bpmDefault=120
+		// Strobe effect uses bpm; with fallback bpmMin=1 and bpmDefault=120
 		expect(mockCtx.getImageData).toHaveBeenCalled();
 	});
 

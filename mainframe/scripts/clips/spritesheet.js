@@ -20,7 +20,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { writeJsonAtomic } from '../../server/writeJsonAtomic.js';
-import { renderSpriteSheet, DEFAULT_FRAME_RATE } from './lib/spritesheet-core.js';
+import { renderSpriteSheet, DEFAULT_FRAME_RATE } from '../../shared/spritesheetCore.js';
 
 /**
  * Parse command line arguments.

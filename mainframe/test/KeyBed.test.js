@@ -73,11 +73,11 @@ describe('KeyBed', () => {
 		}
 	});
 
-	test('setMappedKeys with empty channelMappings leaves all keys unmapped (edit mode)', () => {
+	test('applyChannelMappings with empty channelMappings leaves all keys unmapped (edit mode)', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
-		keyBed.setMappedKeys([], 'edit');
+		keyBed.applyChannelMappings([], 'edit');
 
 		const keys = keyBed.keys;
 		for (const key of keys) {
@@ -87,7 +87,7 @@ describe('KeyBed', () => {
 		}
 	});
 
-	test('setMappedKeys with single mapping per note (edit mode)', () => {
+	test('applyChannelMappings with single mapping per note (edit mode)', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -96,7 +96,7 @@ describe('KeyBed', () => {
 			{ channel: 1, note: 62, velocity: 64, clipId: 'd-note' }
 		];
 
-		keyBed.setMappedKeys(channelMappings, 'edit');
+		keyBed.applyChannelMappings(channelMappings, 'edit');
 
 		const keys = keyBed.keys;
 		expect(keys[60].mapped).toBe(true);
@@ -112,7 +112,7 @@ describe('KeyBed', () => {
 		expect(keys[61].clipId).toBeNull();
 	});
 
-	test('setMappedKeys with multiple velocity bands per note (edit mode)', () => {
+	test('applyChannelMappings with multiple velocity bands per note (edit mode)', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -122,7 +122,7 @@ describe('KeyBed', () => {
 			{ channel: 1, note: 60, velocity: 100, clipId: 'hardest' }
 		];
 
-		keyBed.setMappedKeys(channelMappings, 'edit');
+		keyBed.applyChannelMappings(channelMappings, 'edit');
 
 		const keys = keyBed.keys;
 		expect(keys[60].mapped).toBe(true);
@@ -133,7 +133,7 @@ describe('KeyBed', () => {
 		expect(keys[60].velocityBands[2]).toMatchObject({ velocity: 100, clipId: 'hardest' });
 	});
 
-	test('setMappedKeys in select mode builds the same velocity bands as filter', () => {
+	test('applyChannelMappings in select mode builds the same velocity bands as filter', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -142,10 +142,10 @@ describe('KeyBed', () => {
 			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
 		];
 
-		keyBed.setMappedKeys(channelMappings, 'select');
+		keyBed.applyChannelMappings(channelMappings, 'select');
 		const selectBands = keyBed.keys[60].velocityBands;
 
-		keyBed.setMappedKeys(channelMappings, 'filter');
+		keyBed.applyChannelMappings(channelMappings, 'filter');
 		const filterBands = keyBed.keys[60].velocityBands;
 
 		expect(selectBands).toEqual(filterBands);
@@ -154,7 +154,7 @@ describe('KeyBed', () => {
 		expect(keyBed.keys[60].clipId).toBe('soft');
 	});
 
-	test('setMappedKeys in play mode clears velocity bands (first clipId only)', () => {
+	test('applyChannelMappings in play mode clears velocity bands (first clipId only)', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -163,7 +163,7 @@ describe('KeyBed', () => {
 			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
 		];
 
-		keyBed.setMappedKeys(channelMappings, 'play');
+		keyBed.applyChannelMappings(channelMappings, 'play');
 
 		const keys = keyBed.keys;
 		expect(keys[60].mapped).toBe(true);
@@ -171,17 +171,17 @@ describe('KeyBed', () => {
 		expect(keys[60].velocityBands).toEqual([]);
 	});
 
-	test('setMappedKeys triggers lazy rendering if not yet rendered', () => {
+	test('applyChannelMappings triggers lazy rendering if not yet rendered', () => {
 		const keyBed = new KeyBed();
 		// Don't append to document to avoid connectedCallback auto-trigger
-		// setMappedKeys should trigger lazy rendering
-		keyBed.setMappedKeys([], 'edit');
+		// applyChannelMappings should trigger lazy rendering
+		keyBed.applyChannelMappings([], 'edit');
 
-		// After setMappedKeys, keys should be rendered
+		// After applyChannelMappings, keys should be rendered
 		expect(keyBed.keys).toHaveLength(128);
 	});
 
-	test('setMappedKeys filters mappings by note', () => {
+	test('applyChannelMappings filters mappings by note', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -191,7 +191,7 @@ describe('KeyBed', () => {
 			{ channel: 1, note: 64, velocity: 64, clipId: 'e-note' }
 		];
 
-		keyBed.setMappedKeys(channelMappings, 'edit');
+		keyBed.applyChannelMappings(channelMappings, 'edit');
 
 		expect(keyBed.keys[60].mapped).toBe(true);
 		expect(keyBed.keys[61].mapped).toBe(false);

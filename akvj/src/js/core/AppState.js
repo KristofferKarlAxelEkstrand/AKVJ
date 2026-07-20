@@ -5,7 +5,6 @@ import { MAX_MIDI_DATA_BYTE } from './midiConstants.js';
 const MS_PER_SECOND = 1000;
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
-const EVENT_CLIPS_LOADED_CHANGED = 'clipsLoadedChanged';
 const EVENT_BPM_CHANGED = 'bpmChanged';
 const EVENT_BPM_SOURCE_CHANGED = 'bpmSourceChanged';
 const EVENT_MIDI_NOTE_ON = 'midiNoteOn';
@@ -16,8 +15,8 @@ const EVENT_MIDI_START = 'midiStart';
 const EVENT_MIDI_CONTINUE = 'midiContinue';
 const EVENT_MIDI_STOP = 'midiStop';
 const EVENT_VIDEO_JOCKEY_READY = 'videoJockeyReady';
-const EVENT_PROJECT_SWITCH = 'projectSwitch';
-const EVENT_ACTIVE_PROJECT_CHANGED = 'activeProjectChanged';
+const EVENT_PROJECT_SWITCH_REQUESTED = 'projectSwitchRequested';
+const EVENT_PROJECT_CHANGED = 'projectChanged';
 const EVENT_PROJECT_LOAD_START = 'projectLoadStart';
 const EVENT_PROJECT_LOAD_COMPLETE = 'projectLoadComplete';
 const EVENT_PROJECT_LOAD_ERROR = 'projectLoadError';
@@ -100,10 +99,7 @@ class AppState extends EventTarget {
 	}
 
 	set clipsLoaded(loaded) {
-		if (this.#isClipsLoaded !== loaded) {
-			this.#isClipsLoaded = loaded;
-			this.#dispatchStateEvent(EVENT_CLIPS_LOADED_CHANGED, { loaded });
-		}
+		this.#isClipsLoaded = loaded;
 	}
 
 	get clipsLoaded() {
@@ -119,15 +115,16 @@ class AppState extends EventTarget {
 	}
 
 	/**
-	 * Set the active project ID and dispatch an active-project-changed event.
-	 * This is distinct from EVENT_PROJECT_SWITCH (a request) so that
-	 * success-path updates do not re-fire the request event.
+	 * Set the active project ID and announce the change.
+	 * This is the output side of a project switch: EVENT_PROJECT_SWITCH_REQUESTED
+	 * asks for one, EVENT_PROJECT_CHANGED reports the one now in effect.
+	 * AppState is the single owner of this id — no other module keeps a copy.
 	 * @param {string} projectId
 	 */
 	set activeProjectId(projectId) {
 		if (this.#activeProjectId !== projectId) {
 			this.#activeProjectId = projectId;
-			this.#dispatchStateEvent(EVENT_ACTIVE_PROJECT_CHANGED, { projectId });
+			this.#dispatchStateEvent(EVENT_PROJECT_CHANGED, { projectId });
 		}
 	}
 
@@ -225,7 +222,24 @@ class AppState extends EventTarget {
 	 * @param {number} note - MIDI note number (0-127), used as project index
 	 */
 	dispatchProjectSelection(note) {
-		this.#dispatchStateEvent(EVENT_PROJECT_SWITCH, { note });
+		this.#dispatchStateEvent(EVENT_PROJECT_SWITCH_REQUESTED, { note });
+	}
+
+	/**
+	 * Request a switch to a specific project by id.
+	 * @param {string} projectId
+	 */
+	dispatchProjectSwitchRequest(projectId) {
+		this.#dispatchStateEvent(EVENT_PROJECT_SWITCH_REQUESTED, { projectId });
+	}
+
+	/**
+	 * Dispatch a clip-catalog load failure.
+	 * @param {string} url - The catalog URL that failed
+	 * @param {string} message - Error message
+	 */
+	dispatchClipLoadError(url, message) {
+		this.#dispatchStateEvent(EVENT_CLIP_LOAD_ERROR, { url, error: message });
 	}
 
 	/**
@@ -501,5 +515,5 @@ export function createAppState(settings) {
 	return new AppState(settings);
 }
 
-export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH, EVENT_ACTIVE_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES, BPM_SOURCE_CLOCK };
+export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES, BPM_SOURCE_CLOCK };
 export default appState;

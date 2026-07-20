@@ -172,7 +172,7 @@ export function createMockLayerManager({ clipA = null, clipB = null, clipC = nul
 function makeMockMaskManager(maskClip, maskBitDepth) {
 	return {
 		getCurrentMask: () => maskClip,
-		getBitDepth: () => (maskClip ? maskBitDepth : null)
+		getCurrentBitDepth: () => (maskClip ? maskBitDepth : null)
 	};
 }
 

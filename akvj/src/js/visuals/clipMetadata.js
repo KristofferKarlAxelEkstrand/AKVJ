@@ -8,9 +8,24 @@
 
 /**
  * Canonical playback modes supported by the engine.
+ * @readonly
+ * @enum {string}
+ */
+export const PLAYBACK_MODE = Object.freeze({
+	ONCE: 'once',
+	LOOP: 'loop',
+	PINGPONG: 'pingpong',
+	RANDOM: 'random',
+	REVERSE: 'reverse',
+	SHUFFLE: 'shuffle',
+	SCRUB: 'scrub'
+});
+
+/**
+ * Canonical playback modes as a list, for validation and defaulting.
  * @type {readonly string[]}
  */
-export const PLAYBACK_MODES = Object.freeze(['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub']);
+export const PLAYBACK_MODES = Object.freeze(Object.values(PLAYBACK_MODE));
 
 /**
  * Default clip frame dimensions (AKVJ canvas resolution).

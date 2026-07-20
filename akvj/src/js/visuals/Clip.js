@@ -283,7 +283,7 @@ class Clip {
 
 	/**
 	 * Manually set the scrub position (0.0 to 1.0).
-	 * Only active when playbackMode is 'scrub'.
+	 * Only active when playbackMode is scrub.
 	 * @param {number} normalizedValue
 	 */
 	setScrubPosition(normalizedValue) {

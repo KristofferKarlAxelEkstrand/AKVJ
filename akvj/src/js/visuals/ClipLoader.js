@@ -9,7 +9,11 @@ import { normalizeClipMetadata } from './clipMetadata.js';
 import ProjectCatalog from './ProjectCatalog.js';
 
 const DEFAULT_MAX_CONCURRENT_LOADS = 8;
+const DEFAULT_PROJECT_ID = 'default';
 const CLIP_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/;
+
+/** Allowed key-map leaf override keys (mirrors mainframe/shared/mappingLeaf.js — no cross-package import). */
+const MAPPING_OVERRIDE_KEYS = Object.freeze(['triggerType', 'triggerGroup', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
 
 class ClipLoader {
 	#displayContext;
@@ -178,8 +182,8 @@ class ClipLoader {
 	/**
 	 * Load a single mapped clip into a MIDI slot.
 	 */
-	async #loadMappedClip(dawChannel, note, velocityThreshold, clipId, clipMetadata, overrides = null, imageCache = new Map()) {
-		const validation = this.#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata);
+	async #loadMappedClip(dawChannel, note, velocityThreshold, clipId, clipMetadata, overrides = null, imageCache = new Map(), projectId = DEFAULT_PROJECT_ID) {
+		const validation = this.#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata, projectId);
 		if (!validation) {
 			return null;
 		}
@@ -214,7 +218,7 @@ class ClipLoader {
 	 * Validate a mapping entry and compute safe paths.
 	 * @returns {{safeClipId: string, imagePath: string, codeChannel: string}|null}
 	 */
-	#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata) {
+	#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata, projectId) {
 		if (!this.#validateNumericKeys(dawChannel, note, velocityThreshold)) {
 			return null;
 		}
@@ -230,7 +234,7 @@ class ClipLoader {
 		if (!sanitizedFilename) {
 			return null;
 		}
-		return this.#buildMappingResult(safeClipId, sanitizedFilename, dawChannelNum);
+		return this.#buildMappingResult(safeClipId, sanitizedFilename, dawChannelNum, projectId);
 	}
 
 	#validateNumericKeys(dawChannel, note, velocityThreshold) {
@@ -249,10 +253,9 @@ class ClipLoader {
 		return true;
 	}
 
-	#buildMappingResult(safeClipId, sanitizedFilename, dawChannelNum) {
+	#buildMappingResult(safeClipId, sanitizedFilename, dawChannelNum, projectId) {
 		const normalizedBasePath = settings.performance.clipsBasePath.replace(/\/$/, '');
-		const projectId = this.#projectCatalog.activeProjectId ?? 'default';
-		const clipsPath = settings.performance.projectClipsPathTemplate.replace('{projectId}', projectId);
+		const clipsPath = settings.performance.projectClipsPathTemplate.replace('{projectId}', projectId ?? DEFAULT_PROJECT_ID);
 		const imagePath = `${normalizedBasePath}${clipsPath}/${safeClipId}/${sanitizedFilename}`;
 		const codeChannel = String(dawChannelNum - 1);
 		return { safeClipId, imagePath, codeChannel };
@@ -305,10 +308,9 @@ class ClipLoader {
 	 */
 	async loadClips(clipsJsonUrl = settings.performance.clipsJsonUrl, keyMapJsonUrl = settings.performance.keyMapJsonUrl) {
 		const activeProjectId = await this.fetchActiveProjectId();
-		this.#projectCatalog.setActiveProjectId(activeProjectId ?? 'default');
 		const effectiveKeyMapUrl = activeProjectId ? this.buildProjectKeyMapUrl(activeProjectId) : keyMapJsonUrl;
 		const effectiveClipsUrl = activeProjectId ? this.buildProjectClipsJsonUrl(activeProjectId) : clipsJsonUrl;
-		return this.#loadClipsFromKeyMap(effectiveClipsUrl, effectiveKeyMapUrl);
+		return this.#loadClipsFromKeyMap(effectiveClipsUrl, effectiveKeyMapUrl, activeProjectId ?? DEFAULT_PROJECT_ID);
 	}
 
 	/**
@@ -318,19 +320,19 @@ class ClipLoader {
 	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocityThreshold
 	 */
 	async loadClipsFromProject(projectId) {
-		this.#projectCatalog.setActiveProjectId(projectId);
 		const keyMapUrl = this.buildProjectKeyMapUrl(projectId);
 		const catalogUrl = this.buildProjectClipsJsonUrl(projectId);
-		return this.#loadClipsFromKeyMap(catalogUrl, keyMapUrl);
+		return this.#loadClipsFromKeyMap(catalogUrl, keyMapUrl, projectId);
 	}
 
 	/**
 	 * Shared clip-loading path: fetch catalog + key-map, validate, build clip tree.
 	 * @param {string} clipsJsonUrl
 	 * @param {string} keyMapJsonUrl
+	 * @param {string} projectId - Project the assets belong to (used for image paths)
 	 * @returns {Promise<Object>}
 	 */
-	async #loadClipsFromKeyMap(clipsJsonUrl, keyMapJsonUrl) {
+	async #loadClipsFromKeyMap(clipsJsonUrl, keyMapJsonUrl, projectId) {
 		const [clipsCatalog, keyMap] = await Promise.all([this.#loadJson(clipsJsonUrl), this.#loadJson(keyMapJsonUrl)]);
 
 		if (import.meta.env.DEV) {
@@ -346,7 +348,7 @@ class ClipLoader {
 		}
 
 		const imageCache = new Map();
-		const loadTasks = this.#buildLoadTasks(keyMap, clipsCatalog, imageCache);
+		const loadTasks = this.#buildLoadTasks(keyMap, clipsCatalog, imageCache, projectId);
 		const loadResults = await this.#runBatchedLoads(loadTasks);
 		return this.#buildClipsObject(loadResults);
 	}
@@ -358,9 +360,11 @@ class ClipLoader {
 	 * - Object: `{ clipId, triggerType?, triggerGroup?, sync?, syncLength?, syncBeats?, beatsPerBar? }`
 	 * @param {Object} keyMap - Nested {channel: {note: {velocityThreshold: clipId|mappingObject}}}
 	 * @param {Object} clipsCatalog - Flat clip metadata catalog
+	 * @param {Map} imageCache - Shared per-load image promise cache
+	 * @param {string} projectId - Project the assets belong to (used for image paths)
 	 * @returns {Function[]} Array of async load functions
 	 */
-	#buildLoadTasks(keyMap, clipsCatalog, imageCache) {
+	#buildLoadTasks(keyMap, clipsCatalog, imageCache, projectId) {
 		const loadTasks = [];
 		const uniqueClips = new Set();
 		const maxActiveClips = settings.performance?.maxActiveClips ?? 512;
@@ -383,7 +387,7 @@ class ClipLoader {
 						console.warn('ClipLoader: key-map references unknown clipId', clipId);
 						continue;
 					}
-					loadTasks.push(() => this.#loadMappedClip(channel, note, velocityThreshold, clipId, clipMetadata, overrides, imageCache));
+					loadTasks.push(() => this.#loadMappedClip(channel, note, velocityThreshold, clipId, clipMetadata, overrides, imageCache, projectId));
 				}
 			}
 		}
@@ -393,6 +397,7 @@ class ClipLoader {
 	/**
 	 * Parse a mapping value from key-map.json.
 	 * Accepts both string (backward compatible) and object formats.
+	 * Unknown override keys are dropped (allowlist matches mainframe MAPPING_OVERRIDE_KEYS).
 	 * @param {string|Object} mappingValue - clipId string or { clipId, …overrides }
 	 * @returns {{clipId: string, overrides: Object|null}}
 	 */
@@ -401,10 +406,32 @@ class ClipLoader {
 			return { clipId: mappingValue, overrides: null };
 		}
 		if (mappingValue && typeof mappingValue === 'object' && typeof mappingValue.clipId === 'string') {
-			const { clipId, ...overrides } = mappingValue;
-			return { clipId, overrides: Object.keys(overrides).length > 0 ? overrides : null };
+			const { clipId, ...rawOverrides } = mappingValue;
+			const overrides = this.#filterMappingOverrides(rawOverrides);
+			return { clipId, overrides };
 		}
 		return { clipId: String(mappingValue), overrides: null };
+	}
+
+	/**
+	 * Keep only allowlisted mapping override keys; drop the rest.
+	 * @param {Object} rawOverrides
+	 * @returns {Object|null}
+	 */
+	#filterMappingOverrides(rawOverrides) {
+		const filtered = {};
+		const droppedKeys = [];
+		for (const [key, value] of Object.entries(rawOverrides)) {
+			if (MAPPING_OVERRIDE_KEYS.includes(key)) {
+				filtered[key] = value;
+			} else {
+				droppedKeys.push(key);
+			}
+		}
+		if (droppedKeys.length > 0 && import.meta.env.DEV) {
+			console.warn('ClipLoader: dropped unknown mapping override keys', droppedKeys);
+		}
+		return Object.keys(filtered).length > 0 ? filtered : null;
 	}
 
 	/**

@@ -537,7 +537,12 @@ launch_agent_in_pane() {
 #
 # Prefers the stable pane id (%N) recorded at launch: tmux renumbers pane
 # *indices* whenever a pane dies, which would silently point a restart at some
-# other agent's pane. Falls back to the recorded index for older tracking files.
+# other agent's pane. The index fallback therefore exists only for legacy
+# tracking files that never recorded a pane_id at all — once an id is on record,
+# a missing pane resolves to nothing rather than to a guess.
+#
+# Returns 1 and echoes nothing when there is no usable pane; callers must treat
+# an empty result as "no pane", never as success.
 # ---------------------------------------------------------------------------
 resolve_pane_target() {
     local workflow="$1"
@@ -555,6 +560,11 @@ resolve_pane_target() {
             echo "$pane_id"
             return 0
         fi
+        # The id was recorded but the pane is gone. Do NOT guess by index:
+        # tmux renumbers indices on pane death, so the recorded index now very
+        # likely belongs to a different, live agent — typing a restart there
+        # hijacks that agent's session.
+        return 1
     fi
 
     local pane_index

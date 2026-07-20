@@ -266,7 +266,7 @@ describe('AkvjMainframe', () => {
 	test('mappingPianoRoll keyclick select populates the mapping form', () => {
 		const pianoRoll = element.querySelector('#mapping-piano-roll');
 		pianoRoll.dispatchEvent(
-			new CustomEvent('keyclick', {
+			new CustomEvent('pianoroll:key-click', {
 				bubbles: true,
 				detail: { note: 60, velocity: 64, clipId: 'kick', action: 'select', isActive: true, mode: 'edit', mappings: [] }
 			})
@@ -280,7 +280,7 @@ describe('AkvjMainframe', () => {
 		mainframeState.mappings = [];
 		const pianoRoll = element.querySelector('#mapping-piano-roll');
 		pianoRoll.dispatchEvent(
-			new CustomEvent('mappingadd', {
+			new CustomEvent('pianoroll:mapping-added', {
 				bubbles: true,
 				detail: { channel: 1, note: 62, clipId: 'kick', velocity: 0, mappings: [{ clipId: 'kick', velocity: 0 }] }
 			})
@@ -308,7 +308,7 @@ describe('AkvjMainframe', () => {
 		clipList.clips = mainframeState.clips;
 		const libraryPianoRoll = element.querySelector('#library-piano-roll');
 		libraryPianoRoll.dispatchEvent(
-			new CustomEvent('keyclick', {
+			new CustomEvent('pianoroll:key-click', {
 				bubbles: true,
 				detail: { note: 60, isActive: true, mappings: [{ clipId: 'kick' }] }
 			})

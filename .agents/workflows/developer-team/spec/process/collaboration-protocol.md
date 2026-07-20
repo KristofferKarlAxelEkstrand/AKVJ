@@ -107,7 +107,7 @@ refuses:
 - committing `run-team`, `await-messages.js`, `control-center`, or `.github/workflows/`
 - committing binary assets
 
-The human overrides any of it with `AKVJ_HUMAN=1`. If a hook blocks you, that is the answer — do
+The human overrides any of it with `HUMAN=1`. If a hook blocks you, that is the answer — do
 not work around it, and do not disable the hook. Escalate through `mail/out/` instead.
 
 ## The Golden Hygiene Rule

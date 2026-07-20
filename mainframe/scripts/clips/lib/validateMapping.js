@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { collectNestedKeyMapErrors } from '../../../server/mappingService.js';
+import { collectNestedKeyMapErrors } from '../../../shared/mappingService.js';
 
 /**
  * Validate key-map.json against the flat clip bucket.

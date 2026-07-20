@@ -57,15 +57,11 @@ function validateFrameHeight(width, height, meta, errors) {
 	}
 	const rowsNeeded = Math.ceil((meta.frames ?? meta.numberOfFrames) / meta.framesPerRow);
 	const frameHeight = Math.floor(height / rowsNeeded);
+	if (frameHeight <= 0) {
+		return;
+	}
 
 	if (height % rowsNeeded !== 0) {
 		errors.push(`Image height (${height}) must be divisible by number of rows (${rowsNeeded})`);
-	}
-
-	const actualRows = Math.floor(height / frameHeight);
-	const totalFrameSlots = actualRows * meta.framesPerRow;
-	const frameCount = meta.frames ?? meta.numberOfFrames;
-	if (totalFrameSlots < frameCount) {
-		errors.push(`Image has ${totalFrameSlots} frame slots (${actualRows} rows × ${meta.framesPerRow}) but frames is ${frameCount}`);
 	}
 }

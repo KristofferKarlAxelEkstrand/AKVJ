@@ -140,7 +140,7 @@ human owns commits" is prompt text — a rule, not a control. `.githooks/` is th
 | `pre-push` | every push |
 | `pre-commit` | `.env` / keys / credential-shaped diffs, `run-team`, `await-messages.js`, `control-center`, `.github/workflows/`, binary assets |
 
-The human overrides with `AKVJ_HUMAN=1` (`AKVJ_HUMAN=1 git commit …`). Agents do not work around a
+The human overrides with `HUMAN=1` (`HUMAN=1 git commit …`). Agents do not work around a
 blocked hook — they escalate through `mail/out/`.
 
 ## Is The Team Up?

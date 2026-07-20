@@ -1,8 +1,7 @@
 {
   "display": "The Overseer",
-  "cli": "cursor",
-  "model": "cursor-grok-4.5-high",
-  "permission_mode": "force",
+  "cli": "claude",
+  "permission_mode": "bypassPermissions",
   "watch_folders": [
     "slack/overseer",
     "mail/out"

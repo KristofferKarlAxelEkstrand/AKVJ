@@ -11,6 +11,7 @@ const FALLBACK_MS = DEFAULT_FALLBACK_FRAME_DURATION_MS;
 /**
  * PreviewClip — reusable custom element that previews a clip on a canvas,
  * with playback speed control and a progress indicator.
+ * Canvas draw is always nearest-neighbour; does not honor meta `scaling: "smooth"`.
  *
  * @fires PreviewClip#speedchange - CustomEvent when speed changes
  * @fires PreviewClip#framechange - CustomEvent when current frame changes

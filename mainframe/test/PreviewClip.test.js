@@ -48,13 +48,16 @@ describe('PreviewClip', () => {
 	/** @type {import('../src/js/PreviewClip.js').default} */
 	let element;
 	let originalImage;
+	/** @type {{ imageSmoothingEnabled: boolean, clearRect: Function, drawImage: Function }} */
+	let mockCtx;
 
 	beforeEach(() => {
-		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-			imageSmoothingEnabled: false,
+		mockCtx = {
+			imageSmoothingEnabled: true,
 			clearRect: () => {},
 			drawImage: () => {}
-		});
+		};
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx);
 		originalImage = mockImage();
 		element = document.createElement('preview-clip');
 		document.body.append(element);
@@ -64,6 +67,24 @@ describe('PreviewClip', () => {
 		element.remove();
 		global.Image = originalImage;
 		vi.restoreAllMocks();
+	});
+
+	test('forces imageSmoothingEnabled false on connect', () => {
+		expect(mockCtx.imageSmoothingEnabled).toBe(false);
+	});
+
+	test('re-applies imageSmoothingEnabled false when paint resizes the canvas buffer', async () => {
+		mockFetch([FRAME_DATA_URL, FRAME_DATA_URL]);
+		element.clipId = 'paint-smooth-lock';
+		await flushPromises();
+
+		element.currentFrame = 1;
+		mockCtx.imageSmoothingEnabled = true;
+		const canvas = element.querySelector('canvas');
+		canvas.width = 1;
+		canvas.height = 1;
+		element.currentFrame = 0;
+		expect(mockCtx.imageSmoothingEnabled).toBe(false);
 	});
 
 	test('renders canvas, speed control, and progress indicator', () => {

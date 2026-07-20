@@ -90,7 +90,7 @@ export class ClipEditorController {
 
 	/**
 	 * Lazily resolve the inner <clip-frames> element, which may be created by
-	 * <clip-frames-upload-panel> after this controller is constructed.
+	 * <clip-frames-panel> after this controller is constructed.
 	 * @returns {HTMLElement|null}
 	 */
 	get #clipFramesElement() {
@@ -99,7 +99,7 @@ export class ClipEditorController {
 
 	/**
 	 * Attach listeners to the dynamic <clip-frames> element once it exists.
-	 * The element is rendered by <clip-frames-upload-panel>, so it may not be
+	 * The element is rendered by <clip-frames-panel>, so it may not be
 	 * available at construction time.
 	 */
 	#attachClipFramesListeners() {
@@ -365,7 +365,7 @@ export class ClipEditorController {
 			const playback = document.getElementById('clip-editor-playback').value;
 			const scaleMode = document.getElementById('clip-editor-scale-mode').value;
 			const placement = this.#readPlacementFromDom();
-			const frameDurations = this.#clipFramesElement.getDurationsMs();
+			const frameDurationsMs = this.#clipFramesElement.getDurationsMs();
 			const extended = this.#readExtendedEditorFields();
 			if (extended.error) {
 				this.#reportOutcome('error', extended.error);
@@ -382,7 +382,7 @@ export class ClipEditorController {
 							name,
 							role,
 							frames,
-							frameDurations,
+							frameDurationsMs,
 							targetWidth,
 							targetHeight,
 							playback,
@@ -404,7 +404,7 @@ export class ClipEditorController {
 								frameWidth: targetWidth,
 								frameHeight: targetHeight,
 								placement,
-								frameDurationsMs: frameDurations,
+								frameDurationsMs,
 								retrigger: extended.values.retrigger,
 								triggerType: extended.values.triggerType,
 								triggerGroup: extended.values.triggerGroup,
@@ -431,7 +431,7 @@ export class ClipEditorController {
 						name,
 						role,
 						frames,
-						frameDurations,
+						frameDurationsMs,
 						targetWidth,
 						targetHeight,
 						playback,

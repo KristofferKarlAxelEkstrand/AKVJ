@@ -9,6 +9,7 @@ import { CLIP_ID_PATTERN } from '../../../../shared/clipId.js';
  * Validation result for a single clip.
  * @typedef {Object} ValidationResult
  * @property {string} clipId - Clip identity (folder name)
+ * @property {string} dir - Absolute path to the clip directory
  * @property {Object} meta - Parsed metadata
  * @property {string} pngPath - Path to PNG file
  * @property {string[]} errors - List of validation errors
@@ -82,7 +83,7 @@ function validateMetaConstraints(meta, errors) {
 /**
  * Scan and validate all clips in a flat clip-id bucket.
  * @param {string} sourceDir - Root clips directory
- * @returns {Promise<{valid: ValidationResult[], errors: {path: string, errors: string[]}[]}>}
+ * @returns {Promise<{valid: ValidationResult[], errors: {clipId: string, errors: string[]}[]}>}
  */
 export async function validate(sourceDir) {
 	const validClips = [];
@@ -104,7 +105,7 @@ export async function validate(sourceDir) {
 
 function validateClipId(clipId) {
 	if (/^\d+$/.test(clipId)) {
-		return { errors: { clipId, errors: ['Numeric top-level folders are leftover nested MIDI paths; migrate to flat clipId folders (see npm run migrate:clips) or remove them'] } };
+		return { errors: { clipId, errors: ['Numeric top-level folders are leftover nested MIDI paths; rename them to clipId folders and place them in key-map.json, or remove them'] } };
 	}
 	if (!CLIP_ID_PATTERN.test(clipId)) {
 		return { errors: { clipId, errors: ['Invalid clipId folder name (use alphanumeric / hyphen / underscore, not starting with punctuation)'] } };

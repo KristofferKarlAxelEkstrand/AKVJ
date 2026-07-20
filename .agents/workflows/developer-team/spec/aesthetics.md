@@ -14,7 +14,7 @@ This project has two distinct aesthetic requirements depending on whether you ar
 
 ### 1. The Visualizations (Lo-Fi / Pixel Art)
 The actual output of the `akvj` is focused entirely on **80s and 90s pixel art and lo-fi aesthetics**.
-- **Zero UI**: The `akvj` must have absolutely no user interface elements (no buttons, menus, or overlays). It is a pure, unadulterated visualization canvas.
+- **Near-zero UI**: Performance canvas only. Allowed exceptions: fullscreen (Enter / Space / double-click), debug overlay toggled with **D** (`DebugOverlay.js`), and the transient project-switch loading overlay (`AkvjLoadingOverlay.js`). No chrome, menus, or persistent HUD.
 - **Pixel Perfection**: The rendering canvas defaults to `imageSmoothingEnabled = false` to preserve sharp, hard pixel edges. Individual clips may set metadata `scaling: "smooth"` for **akvj live playback** only. Mainframe staging / clip preview must stay nearest-neighbour (`imageSmoothingEnabled = false`) so authors always see pixel-for-pixel output — do not mirror `scaling: "smooth"` in preview. 
 - **Retro Effects**: Any visual effects added to the renderer should lean into the retro, lo-fi route (e.g., bit-crushing, hard masking, pixelation, simple strobes). 
 - **Performance Benefit**: Keep in mind that this lo-fi approach is inherently highly performant, which aligns perfectly with our 60fps locked requirement.
@@ -26,5 +26,8 @@ The `mainframe` dashboard and user interface is **not** meant to be a retro skeu
 
 ## Changelog
 
+- 2026-07-20 — Re-verified: softened “Zero UI” to match shipped exceptions (D debug overlay,
+  loading overlay, fullscreen). Pixel / preview nearest lock still holds; no Shadow DOM in
+  akvj or mainframe.
 - 2026-07-20 — Human lock: mainframe preview stays hard nearest always; `scaling: "smooth"` is akvj playback only. Soft/modern kernels belong on **upload/ingest downscale** (sprite bake), not preview.
 - 2026-07-20 — Updated Pixel Perfection rule to reflect that individual clips can opt into smooth bilinear scaling via their metadata `scaling` property.

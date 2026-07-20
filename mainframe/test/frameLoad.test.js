@@ -122,4 +122,39 @@ describe('loadClipFrameBuffers', () => {
 		expect(result.meta.frameDurationBeats).toBe(0.5);
 		expect(result.durationsMs[0]).toBe(fpsToMs(12));
 	});
+
+	test('throws on invalid clipId', async () => {
+		await expect(loadClipFrameBuffers('../escape')).rejects.toThrow(/Invalid clipId/);
+		await expect(loadClipFrameBuffers('123')).rejects.toThrow(/Invalid clipId/);
+	});
+
+	test('throws when clip meta.json is missing', async () => {
+		await expect(loadClipFrameBuffers('ghost-clip')).rejects.toThrow(/Clip "ghost-clip" not found/);
+	});
+
+	test('throws when meta exists but no raw or sprite frames', async () => {
+		const clipPath = path.join(clipsDir, 'empty-clip');
+		await fs.mkdir(clipPath, { recursive: true });
+		await fs.writeFile(path.join(clipPath, 'meta.json'), `${JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 }, null, '\t')}\n`);
+
+		await expect(loadClipFrameBuffers('empty-clip')).rejects.toThrow(/No frames found/);
+	});
+
+	test('throws when sprite meta is missing frames or framesPerRow', async () => {
+		await createClipFromFrames({
+			clipId: 'bad-meta',
+			frameBuffers: [PNG_1x1],
+			targetWidth: 4,
+			targetHeight: 4
+		});
+		await fs.rm(path.join(clipsDir, '.raw-assets', 'bad-meta'), { recursive: true, force: true });
+		const metaPath = path.join(clipsDir, 'bad-meta', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		delete meta.frames;
+		delete meta.numberOfFrames;
+		delete meta.framesPerRow;
+		await fs.writeFile(metaPath, `${JSON.stringify(meta, null, '\t')}\n`);
+
+		await expect(loadClipFrameBuffers('bad-meta')).rejects.toThrow(/missing frames\/framesPerRow/);
+	});
 });

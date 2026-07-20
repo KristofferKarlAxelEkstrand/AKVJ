@@ -18,7 +18,7 @@ describe('Renderer', () => {
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 1 };
+		const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 1 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -82,7 +82,7 @@ describe('Renderer', () => {
 			const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 			const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 			const maskClip = { isFinished: false, renderToContext: vi.fn() };
-			const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 8 };
+			const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 8 };
 			const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 			const layerManager = {
 				getLayerGroupA: () => layerGroupA,
@@ -282,7 +282,7 @@ describe('Renderer', () => {
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 1 };
+		const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 1 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -363,7 +363,7 @@ describe('Renderer', () => {
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 8 };
+		const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 8 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -425,7 +425,7 @@ describe('Renderer', () => {
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 2 };
+		const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 2 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -489,7 +489,7 @@ describe('Renderer', () => {
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const maskClip = { isFinished: false, renderToContext: vi.fn() };
-		const maskManager = { getCurrentMask: () => maskClip, getBitDepth: () => 4 };
+		const maskManager = { getCurrentMask: () => maskClip, getCurrentBitDepth: () => 4 };
 		const effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false };
 		const layerManager = {
 			getLayerGroupA: () => layerGroupA,
@@ -612,7 +612,7 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
+		const maskManager = { getCurrentMask: () => null, getCurrentBitDepth: () => 8 };
 		const effectsManager = {
 			hasMixedOutputEffects: () => true,
 			hasGlobalEffects: () => false,
@@ -658,7 +658,7 @@ describe('Renderer', () => {
 		const displayContext = createMockContext();
 		const layerGroupA = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
 		const layerGroupB = { hasActiveClips: () => true, getActiveClips: () => [{ renderToContext: vi.fn() }] };
-		const maskManager = { getCurrentMask: () => null, getBitDepth: () => 8 };
+		const maskManager = { getCurrentMask: () => null, getCurrentBitDepth: () => 8 };
 		const effectsManager = {
 			hasMixedOutputEffects: () => true,
 			hasGlobalEffects: () => false,
@@ -743,6 +743,143 @@ describe('Renderer', () => {
 
 		renderer.destroy();
 		expect(() => renderer.destroy()).not.toThrow();
+	});
+
+	describe('lifecycle', () => {
+		/**
+		 * Layer manager with one active clip in Layer Group A, so every rendered
+		 * frame leaves an observable trace (clip render + display clear).
+		 * @param {Object} [effectsManager]
+		 * @returns {{ layerManager: Object, clip: Object }}
+		 */
+		function createLayerManager(effectsManager = { hasMixedOutputEffects: () => false, hasGlobalEffects: () => false }) {
+			const clip = { renderToContext: vi.fn() };
+			const layerManager = {
+				getLayerGroupA: () => ({ hasActiveClips: () => true, getActiveClips: () => [clip] }),
+				getLayerGroupB: () => ({ hasActiveClips: () => false, getActiveClips: () => [] }),
+				getLayerGroupC: () => ({ getActiveClips: () => [] }),
+				getMaskManager: () => ({ getCurrentMask: () => null, getCurrentBitDepth: () => 1 }),
+				getEffectsManager: () => effectsManager
+			};
+			return { layerManager, clip };
+		}
+
+		test('freeze skips clip rendering but keeps the loop scheduled', () => {
+			const displayContext = createMockContext();
+			const { layerManager, clip } = createLayerManager();
+
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			renderer.start();
+			const renderLoop = rafMocks.rafSpy.mock.calls.at(-1)[0];
+			renderLoop(0);
+
+			renderer.freeze();
+			displayContext.fillRect.mockClear();
+			clip.renderToContext.mockClear();
+			rafMocks.rafSpy.mockClear();
+			renderLoop(16);
+
+			expect(displayContext.fillRect).not.toHaveBeenCalled();
+			expect(clip.renderToContext).not.toHaveBeenCalled();
+			// The loop must keep running while frozen, not die.
+			expect(rafMocks.rafSpy).toHaveBeenCalledTimes(1);
+
+			renderer.destroy();
+		});
+
+		test('unfreeze resumes clip rendering on the next frame', () => {
+			const displayContext = createMockContext();
+			const { layerManager, clip } = createLayerManager();
+
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			renderer.start();
+			const renderLoop = rafMocks.rafSpy.mock.calls.at(-1)[0];
+
+			renderer.freeze();
+			renderLoop(0);
+			displayContext.fillRect.mockClear();
+			clip.renderToContext.mockClear();
+
+			renderer.unfreeze();
+			renderLoop(16);
+
+			expect(clip.renderToContext).toHaveBeenCalled();
+			expect(displayContext.fillRect).toHaveBeenCalled();
+
+			renderer.destroy();
+		});
+
+		test('stop cancels the pending frame and disarms the loop', () => {
+			const displayContext = createMockContext();
+			const { layerManager, clip } = createLayerManager();
+
+			const frameId = 42;
+			let renderLoop = null;
+			rafMocks.rafSpy.mockImplementation(callback => {
+				renderLoop = callback;
+				return frameId;
+			});
+
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			renderer.start();
+			renderer.stop();
+
+			expect(rafMocks.cafSpy).toHaveBeenCalledWith(frameId);
+
+			// A callback captured before stop() must be inert afterwards.
+			displayContext.fillRect.mockClear();
+			clip.renderToContext.mockClear();
+			rafMocks.rafSpy.mockClear();
+			renderLoop(0);
+
+			expect(displayContext.fillRect).not.toHaveBeenCalled();
+			expect(clip.renderToContext).not.toHaveBeenCalled();
+			expect(rafMocks.rafSpy).not.toHaveBeenCalled();
+
+			renderer.destroy();
+		});
+
+		test('start is idempotent — a second call schedules no extra frame', () => {
+			const displayContext = createMockContext();
+			const { layerManager, clip } = createLayerManager();
+
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			rafMocks.rafSpy.mockClear();
+			renderer.start();
+			clip.renderToContext.mockClear();
+			renderer.start();
+
+			expect(rafMocks.rafSpy).toHaveBeenCalledTimes(1);
+			// The second start() must not re-run the warm-up render either.
+			expect(clip.renderToContext).not.toHaveBeenCalled();
+
+			renderer.destroy();
+		});
+
+		test('start warms up synchronously without applying effects', () => {
+			const displayContext = createMockContext();
+			const effectsManager = {
+				hasMixedOutputEffects: vi.fn(() => true),
+				hasGlobalEffects: vi.fn(() => false),
+				getActiveMixedOutputEffects: vi.fn(() => [{ type: 'color', note: settings.effectRanges.color.min, velocity: 127 }])
+			};
+			const { layerManager, clip } = createLayerManager(effectsManager);
+
+			const renderer = new Renderer(displayContext, layerManager, settings, { bpm: 120 });
+			renderer.start();
+
+			// Warm-up is synchronous: no RAF callback has run yet.
+			expect(clip.renderToContext).toHaveBeenCalled();
+			expect(displayContext.fillRect).toHaveBeenCalled();
+			expect(effectsManager.getActiveMixedOutputEffects).not.toHaveBeenCalled();
+
+			// The first scheduled frame is what applies effects.
+			const renderLoop = rafMocks.rafSpy.mock.calls.at(-1)[0];
+			renderLoop(0);
+			expect(effectsManager.getActiveMixedOutputEffects).toHaveBeenCalled();
+
+			renderer.destroy();
+		});
 	});
 
 	test('destroy before start does not throw', () => {

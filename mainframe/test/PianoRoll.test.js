@@ -61,7 +61,7 @@ describe('PianoRoll', () => {
 	test('edit mode dispatches keyclick with note', () => {
 		element.mode = 'edit';
 		let detail = null;
-		element.addEventListener('keyclick', event => {
+		element.addEventListener('pianoroll:key-click', event => {
 			detail = event.detail;
 		});
 
@@ -102,7 +102,7 @@ describe('PianoRoll', () => {
 		];
 
 		let detail = null;
-		element.addEventListener('keyclick', event => {
+		element.addEventListener('pianoroll:key-click', event => {
 			detail = event.detail;
 		});
 
@@ -133,7 +133,7 @@ describe('PianoRoll', () => {
 		];
 
 		let detail = null;
-		element.addEventListener('keyclick', event => {
+		element.addEventListener('pianoroll:key-click', event => {
 			detail = event.detail;
 		});
 
@@ -262,8 +262,8 @@ describe('PianoRoll', () => {
 		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
 
 		const events = [];
-		element.addEventListener('noteon', event => events.push(['on', event.detail]));
-		element.addEventListener('noteoff', event => events.push(['off', event.detail]));
+		element.addEventListener('pianoroll:note-on', event => events.push(['on', event.detail]));
+		element.addEventListener('pianoroll:note-off', event => events.push(['off', event.detail]));
 
 		const key = element.querySelectorAll('piano-key')[60];
 		press(key);
@@ -289,7 +289,7 @@ describe('PianoRoll', () => {
 		element.mode = 'play';
 		const keys = element.querySelectorAll('piano-key');
 		const offs = [];
-		element.addEventListener('noteoff', event => offs.push(event.detail.note));
+		element.addEventListener('pianoroll:note-off', event => offs.push(event.detail.note));
 
 		press(keys[60]);
 		press(keys[64]);
@@ -346,7 +346,7 @@ describe('PianoRoll', () => {
 	test('channel selector dispatches channelchange for this instance only', () => {
 		element.channelSelect = true;
 		let detail = null;
-		element.addEventListener('channelchange', event => {
+		element.addEventListener('pianoroll:channel-changed', event => {
 			detail = event.detail;
 		});
 
@@ -428,7 +428,7 @@ describe('PianoRoll', () => {
 		});
 
 		let detail = null;
-		element.addEventListener('mappingchange', event => {
+		element.addEventListener('pianoroll:mapping-changed', event => {
 			detail = event.detail;
 		});
 
@@ -470,7 +470,7 @@ describe('PianoRoll', () => {
 		});
 
 		let detail = null;
-		element.addEventListener('mappingchange', event => {
+		element.addEventListener('pianoroll:mapping-changed', event => {
 			detail = event.detail;
 		});
 
@@ -598,7 +598,7 @@ describe('PianoRoll', () => {
 		});
 
 		let changeFired = false;
-		element.addEventListener('mappingchange', () => {
+		element.addEventListener('pianoroll:mapping-changed', () => {
 			changeFired = true;
 		});
 
@@ -631,7 +631,7 @@ describe('PianoRoll', () => {
 
 		const key = element.querySelectorAll('piano-key')[60];
 		let addFired = false;
-		element.addEventListener('mappingadd', () => {
+		element.addEventListener('pianoroll:mapping-added', () => {
 			addFired = true;
 		});
 
@@ -661,7 +661,7 @@ describe('PianoRoll', () => {
 
 		const key = element.querySelectorAll('piano-key')[60];
 		let addDetail = null;
-		element.addEventListener('mappingadd', event => {
+		element.addEventListener('pianoroll:mapping-added', event => {
 			addDetail = event.detail;
 		});
 
@@ -689,7 +689,7 @@ describe('PianoRoll', () => {
 		];
 
 		let detail = null;
-		element.addEventListener('mappingremove', event => {
+		element.addEventListener('pianoroll:mapping-removed', event => {
 			detail = event.detail;
 		});
 
@@ -712,7 +712,7 @@ describe('PianoRoll', () => {
 		];
 
 		let detail = null;
-		element.addEventListener('mappingremove', event => {
+		element.addEventListener('pianoroll:mapping-removed', event => {
 			detail = event.detail;
 		});
 
@@ -757,7 +757,7 @@ describe('PianoRoll', () => {
 		});
 
 		let detail = null;
-		element.addEventListener('mappingadd', event => {
+		element.addEventListener('pianoroll:mapping-added', event => {
 			detail = event.detail;
 		});
 
@@ -781,10 +781,10 @@ describe('PianoRoll', () => {
 		expect(detail.velocity).toBe(64);
 	});
 
-	test('keydown Enter/Space dispatches keyclickrequest and disconnecting removes the listener', () => {
+	test('keydown Enter/Space dispatches pianoroll:key-click-request and disconnecting removes the listener', () => {
 		const key = element.querySelectorAll('piano-key')[60];
 		const handler = vi.fn();
-		key.addEventListener('keyclickrequest', handler);
+		key.addEventListener('pianoroll:key-click-request', handler);
 
 		key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
 		expect(handler).toHaveBeenCalledTimes(1);
@@ -882,6 +882,26 @@ describe('PianoRoll', () => {
 		expect(element.querySelector('.piano-roll-filter-populated input')).not.toBeNull();
 		expect(element.querySelector('.piano-roll-filter-clear')).not.toBeNull();
 		expect(element.querySelector('.piano-roll-filter-summary').textContent).toBe('No active filters');
+		const layerOptions = [...element.querySelectorAll('.piano-roll-filter-layer-group option')].map(option => option.value);
+		expect(layerOptions).toContain('Project');
+		expect(layerOptions).toContain('Reserved');
+	});
+
+	test('channel 14 is labeled Project selection and filters as Project layer', () => {
+		element.channelSelect = true;
+		element.channel = 14;
+		const channelSelect = element.querySelector('select.piano-roll-channel');
+		expect(channelSelect.options[13].textContent).toContain('Project selection');
+
+		element.mode = 'filter';
+		element.mappings = [{ channel: 14, note: 60, velocity: 0, clipId: 'proj' }];
+		const key = element.querySelectorAll('piano-key')[60];
+
+		element.filters = { layerGroup: 'Reserved' };
+		expect(key.classList.contains('is-dimmed')).toBe(true);
+
+		element.filters = { layerGroup: 'Project' };
+		expect(key.classList.contains('is-dimmed')).toBe(false);
 	});
 
 	test('setting filters dispatches pianoroll:filter-changed and updates summary', () => {

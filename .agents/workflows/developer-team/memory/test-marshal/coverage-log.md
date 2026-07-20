@@ -1,7 +1,5 @@
 # The Test Marshal — Coverage Log
 
-### 2026-07-20 14:47 — Human lock: preview always nearest (skip smooth-preview tests); 365 still valid. Filed [TEST]-mainframe-preview-nearest-lock.md (mocks seed false, never prove assignment). Left aesthetics-scaling-lock broadcast.
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -171,32 +169,51 @@ One line per past finding — read this in full before a sweep.
 - Area: `mainframe/server,mainframe/scripts/clips,mainframe/src/js`
 - Refs: TEST-mainframe-scaling-coverage
 - Area: `mainframe/src/js/PianoRoll.js,mainframe/src/js/KeyBed.js`
+- Refs: TEST-mainframe-select-filter-alias-coverage
+- Area: `akvj/test/visual`
+- Refs: TEST-akvj-visual-grayscale-effects
+- Area: `e2e,mainframe/test/visual`
+- Refs: TEST-e2e-visual-piano-roll-coverage,367
+- Area: `mainframe/src/js/mainframeState.js`
+- Refs: TEST-mainframe-state-pianoroll-filters
+- Area: `mainframe/src/js/PianoRoll.js`
+- Refs: TEST-mainframe-pianoroll-layer-role-filters
+- Area: `mainframe/src/js/PreviewClip.js,StagingPreview.js`
+- Refs: TEST-mainframe-preview-nearest-lock,365
+- Area: `mainframe/test/SimpleRouter.test.js`
+- Refs: TEST-mainframe-simplerouter-popstate
+- Area: `akvj/test/ClipLoader.test.js`
+- Refs: TEST-akvj-cliploader-framedurationsms-override
+- Area: `mainframe/server/gifExpand.js`
+- Refs: TEST-mainframe-gifexpand-edge-paths
+- Area: `mainframe/src/js/ClipEditorController.js`
+- Refs: TEST-mainframe-clipeditor-gif-batch
 
 ## Recent
 
-- Refs: TEST-mainframe-select-filter-alias-coverage
+- Area: `mainframe/server/frameLoad.js`
 
-- Area: `akvj/test/visual`
+- Refs: TEST-mainframe-frameload-error-paths
 
-- Refs: TEST-akvj-visual-grayscale-effects
+- Area: `mainframe/scripts/clips/lib/validate/image.js`
 
-- Area: `e2e,mainframe/test/visual`
+- Refs: TEST-mainframe-validate-image-dimensions,389
 
-- Refs: TEST-e2e-visual-piano-roll-coverage,367
+- Area: `mainframe/test/validate-image.test.js`
 
-- Area: `mainframe/src/js/mainframeState.js`
+- Refs: TEST-mainframe-validate-image-slots-mock
 
-- Refs: TEST-mainframe-state-pianoroll-filters
+- Area: `mainframe/scripts/clips/lib/generate.js`
 
-- Area: `mainframe/src/js/PianoRoll.js`
+- Refs: TEST-mainframe-generate-edge-paths
 
-- Refs: TEST-mainframe-pianoroll-layer-role-filters
+- Area: `akvj/test/AdventureKidVideoJockey.test.js`
 
-- Area: `mainframe/src/js/PreviewClip.js,StagingPreview.js`
+- Refs: TEST-akvj-switchproject-destroyclips-mock
 
-- Refs: TEST-mainframe-preview-nearest-lock,365
+- Refs: PROMPT-UPDATED-goal-near-zero-ui
 
-### 2026-07-20 14:49 — Aesthetics-scaling broadcast already handled (left). Verified 367/371/375/372 landed. Filed [TEST]-mainframe-simplerouter-popstate.md — popstate test has zero expects.
+### 2026-07-20 16:45 — Swept akvj/src/js/visuals lifecycle: all 27 modules have test files; found Renderer freeze/unfreeze/stop/start-idempotency/warmup all untested (AKVJ tests only spy that freeze was called, never its effect). Filed [TEST]-akvj-renderer-lifecycle-coverage.md. Broadcast [PROMPT-UPDATED]-goal-near-zero-ui left in slack/all, no test action.
 
-- Area: `mainframe/test/SimpleRouter.test.js`
-- Refs: TEST-mainframe-simplerouter-popstate
+- Area: `akvj/src/js/visuals`
+- Refs: TEST-akvj-renderer-lifecycle-coverage

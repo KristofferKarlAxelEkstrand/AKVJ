@@ -26,7 +26,7 @@ Simplify programming: **one MIDI channel per role**, renumber as needed. Propose
 
 ## Relation to task 338
 
-Task 338 asked only: no-mask + both A and B active → keep A-only (opt 1) or A-then-B source-over (opt 2). The human answer **did not crisply pick**; they pivoted to this stack rethink. Park 338 code changes until that lock is explicit.
+**Locked 2026-07-20:** no-mask + both A and B → **option 2** (A then B source-over). Implement in task 338 only; this epic stays separate.
 
 ## Current shipped mapping (do not invent drift)
 

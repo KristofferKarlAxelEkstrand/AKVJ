@@ -1,10 +1,9 @@
 /**
  * Strobe effect: flash white at BPM-synced subdivisions based on velocity.
  */
-import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
 import { msPerBeat } from '../../utils/timing.js';
 
-const WHITE_PIXEL_VALUE = 255;
 const STROBE_WHITEOUT_MAX_VELOCITY = 9;
 const STROBE_PULSE_MIN_VELOCITY = 10;
 const STROBE_VELOCITY_BUCKET_SIZE = 10;
@@ -44,9 +43,9 @@ export default {
 
 function applyWhiteout(pixels) {
 	for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
-		pixels[i] = WHITE_PIXEL_VALUE;
-		pixels[i + 1] = WHITE_PIXEL_VALUE;
-		pixels[i + 2] = WHITE_PIXEL_VALUE;
+		pixels[i] = MAX_COLOR_VALUE;
+		pixels[i + 1] = MAX_COLOR_VALUE;
+		pixels[i + 2] = MAX_COLOR_VALUE;
 	}
 }
 

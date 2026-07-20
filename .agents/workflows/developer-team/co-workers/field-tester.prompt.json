@@ -1,8 +1,7 @@
 {
   "display": "The Field Tester",
-  "cli": "cursor",
-  "model": "cursor-grok-4.5-high",
-  "permission_mode": "force",
+  "cli": "claude",
+  "permission_mode": "bypassPermissions",
   "sweep": "field test",
   "min_wait_minutes": 25,
   "max_wait_minutes": 45,

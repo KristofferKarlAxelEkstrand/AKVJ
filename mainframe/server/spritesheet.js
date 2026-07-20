@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 import { clipDir, rawAssetsDir, isValidClipId, DEFAULT_PROJECT_ID } from './paths.js';
-import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveTargetDimensions, resolveFrameRate, resolvePlayback, resolveFramesPerRow } from '../scripts/clips/lib/spritesheet-core.js';
+import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveCompileOptions, resolveFramesPerRow } from '../shared/spritesheetCore.js';
 import { resolveScaleMode } from '../shared/frameFit.js';
 import { resolvePlacement, DEFAULT_SCALING, SCALING_MODES } from '../shared/clipSchema.js';
 import { writeJsonAtomic } from './writeJsonAtomic.js';
@@ -32,17 +32,14 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 		throw new Error('At least one frame image is required');
 	}
 
-	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight } = resolveTargetDimensions(targetWidth, targetHeight);
-	const resolvedScaleMode = resolveScaleMode(scaleMode);
-	const resolvedFrameRate = resolveFrameRate(frameRate);
-	const resolvedPlayback = resolvePlayback(playback);
-	const bakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
+	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight, scaleMode: resolvedScaleMode, frameRate: resolvedFrameRate, playback: resolvedPlayback } = resolveCompileOptions({ targetWidth, targetHeight, scaleMode, frameRate, playback });
+	const scaleModeOrBakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
 
 	const normalizedFrames = await normalizeFrameBuffers(sharp, frameBuffers);
 	await assertReadableFrames(sharp, normalizedFrames);
 	await storeRawAssets(clipId, normalizedFrames, projectId);
 
-	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, bakeConfigs);
+	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, scaleModeOrBakeConfigs);
 	const composites = buildComposites(resizedBuffers, resolvedTargetWidth, resolvedTargetHeight);
 	const sheet = await renderSpriteSheet(sharp, composites, resolvedTargetWidth, resolvedTargetHeight, resizedBuffers.length);
 	const framesPerRow = resolveFramesPerRow(resizedBuffers.length);
@@ -111,10 +108,7 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
 
 	const frameBuffers = await Promise.all(pngFiles.map(file => fs.readFile(path.join(rawDir, file))));
 
-	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight } = resolveTargetDimensions(targetWidth, targetHeight);
-	const resolvedScaleMode = resolveScaleMode(scaleMode ?? 'fit');
-	const resolvedFrameRate = resolveFrameRate(frameRate);
-	const resolvedPlayback = resolvePlayback(playback);
+	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight, scaleMode: resolvedScaleMode, frameRate: resolvedFrameRate, playback: resolvedPlayback } = resolveCompileOptions({ targetWidth, targetHeight, scaleMode, frameRate, playback });
 
 	const resizedBuffers = await resizeFrames(sharp, frameBuffers, resolvedTargetWidth, resolvedTargetHeight, resolvedScaleMode);
 	const composites = buildComposites(resizedBuffers, resolvedTargetWidth, resolvedTargetHeight);
@@ -172,17 +166,14 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 		throw new Error(`Clip "${clipId}" not found`);
 	}
 
-	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight } = resolveTargetDimensions(targetWidth, targetHeight);
-	const resolvedScaleMode = resolveScaleMode(scaleMode);
-	const resolvedFrameRate = resolveFrameRate(frameRate);
-	const resolvedPlayback = resolvePlayback(playback);
-	const bakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
+	const { targetWidth: resolvedTargetWidth, targetHeight: resolvedTargetHeight, scaleMode: resolvedScaleMode, frameRate: resolvedFrameRate, playback: resolvedPlayback } = resolveCompileOptions({ targetWidth, targetHeight, scaleMode, frameRate, playback });
+	const scaleModeOrBakeConfigs = Array.isArray(frameBakeConfigs) ? frameBakeConfigs : scaleMode;
 
 	const normalizedFrames = await normalizeFrameBuffers(sharp, frameBuffers);
 	await assertReadableFrames(sharp, normalizedFrames);
 	await replaceRawAssets(clipId, normalizedFrames, projectId);
 
-	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, bakeConfigs);
+	const resizedBuffers = await resizeFrames(sharp, normalizedFrames, resolvedTargetWidth, resolvedTargetHeight, scaleModeOrBakeConfigs);
 	const composites = buildComposites(resizedBuffers, resolvedTargetWidth, resolvedTargetHeight);
 	const sheet = await renderSpriteSheet(sharp, composites, resolvedTargetWidth, resolvedTargetHeight, resizedBuffers.length);
 	const framesPerRow = resolveFramesPerRow(resizedBuffers.length);

@@ -332,11 +332,22 @@ describe('POST /api/clips', () => {
 		expect(spriteMeta.height).toBe(8);
 	});
 
-	test('maps frameDurations ms to frameRatesForFrames FPS', async () => {
+	test('persists scaling: smooth on create', async () => {
+		const { status } = await fetchJson('POST', '/api/clips', {
+			clipId: 'upload-test-clip',
+			frames: [PNG_4x4],
+			scaling: 'smooth'
+		});
+		expect(status).toBe(201);
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'upload-test-clip', 'meta.json'), 'utf8'));
+		expect(meta.scaling).toBe('smooth');
+	});
+
+	test('maps frameDurationsMs to frameRatesForFrames FPS', async () => {
 		const { status, data } = await fetchJson('POST', '/api/clips', {
 			clipId: 'duration-test-clip',
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [100, 50]
+			frameDurationsMs: [100, 50]
 		});
 		expect(status).toBe(201);
 		expect(data.frames).toBe(2);
@@ -351,7 +362,7 @@ describe('POST /api/clips', () => {
 		const { status } = await fetchJson('POST', '/api/clips', {
 			clipId: 'scale-duration-clip',
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [100, 250],
+			frameDurationsMs: [100, 250],
 			scaleMode: 'cover',
 			targetWidth: 16,
 			targetHeight: 9
@@ -433,7 +444,7 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		await fetchJson('POST', '/api/clips', {
 			clipId: 'frames-api-clip',
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [100, 50]
+			frameDurationsMs: [100, 50]
 		});
 		const { status, data } = await fetchJson('GET', '/api/clips/frames-api-clip/frames');
 		expect(status).toBe(200);
@@ -447,7 +458,7 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		await fetchJson('POST', '/api/clips', {
 			clipId: 'frames-api-clip',
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [200, 100],
+			frameDurationsMs: [200, 100],
 			targetWidth: 8,
 			targetHeight: 8
 		});
@@ -472,7 +483,7 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 
 		const { status, data } = await fetchJson('PUT', '/api/clips/frames-api-clip/frames', {
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [100, 100],
+			frameDurationsMs: [100, 100],
 			targetWidth: 8,
 			targetHeight: 8
 		});
@@ -486,7 +497,7 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 			name: 'Original',
 			role: 'bitmask',
 			frames: [PNG_4x4, PNG_4x4],
-			frameDurations: [100, 250],
+			frameDurationsMs: [100, 250],
 			playback: 'pingpong',
 			scaleMode: 'cover',
 			targetWidth: 16,
@@ -544,7 +555,7 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 			scaleMode: 'stretch',
 			targetWidth: 12,
 			targetHeight: 10,
-			frameDurations: [50, 50]
+			frameDurationsMs: [50, 50]
 		});
 		expect(status).toBe(200);
 		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'frames-api-clip', 'meta.json'), 'utf8'));
@@ -616,13 +627,29 @@ describe('PUT /api/clips/:clipId', () => {
 		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
 			frames: 3,
 			framesPerRow: 2,
-			loop: false
+			playback: 'pingpong'
 		});
 		expect(status).toBe(200);
 		expect(data.ok).toBe(true);
 		expect(data.meta.frames).toBe(3);
 		expect(data.meta.framesPerRow).toBe(2);
-		expect(data.meta.loop).toBe(false);
+		expect(data.meta.playback).toBe('pingpong');
+	});
+
+	test('ignores deprecated loop field', async () => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', { loop: false });
+		expect(status).toBe(200);
+		expect(data.meta.loop).toBe(true);
+	});
+
+	test('persists frameDurationsMs on a meta-only PUT', async () => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: [250, 750]
+		});
+		expect(status).toBe(200);
+		expect(data.meta.frameDurationsMs).toEqual([250, 750]);
 	});
 
 	test('preserves non-edited fields', async () => {
@@ -631,6 +658,16 @@ describe('PUT /api/clips/:clipId', () => {
 		});
 		expect(data.meta.retrigger).toBe(true);
 		expect(data.meta.png).toBe('sprite.png');
+	});
+
+	test('round-trips scaling via PUT meta', async () => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
+			scaling: 'smooth'
+		});
+		expect(status).toBe(200);
+		expect(data.meta.scaling).toBe('smooth');
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'test-clip-a', 'meta.json'), 'utf8'));
+		expect(meta.scaling).toBe('smooth');
 	});
 
 	test('ignores non-whitelisted fields', async () => {
@@ -850,6 +887,29 @@ describe('POST /api/clips/:clipId/recompile', () => {
 		expect(meta.frameWidth).toBe(120);
 		expect(meta.frameHeight).toBe(68);
 		expect(meta.name).toBe('Recompiled');
+	});
+
+	test('recompile without body scaling keeps existing scaling', async () => {
+		await fs.rm(path.join(testClipsDir, 'recompile-scaling-clip'), { recursive: true, force: true });
+		await fs.rm(path.join(testRawAssetsDir, 'recompile-scaling-clip'), { recursive: true, force: true });
+
+		const created = await fetchJson('POST', '/api/clips', {
+			clipId: 'recompile-scaling-clip',
+			frames: [PNG_4x4],
+			scaling: 'smooth'
+		});
+		expect(created.status).toBe(201);
+
+		const { status } = await fetchJson('POST', '/api/clips/recompile-scaling-clip/recompile', {
+			targetWidth: 120,
+			targetHeight: 68
+		});
+		expect(status).toBe(200);
+
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'recompile-scaling-clip', 'meta.json'), 'utf8'));
+		expect(meta.scaling).toBe('smooth');
+		expect(meta.frameWidth).toBe(120);
+		expect(meta.frameHeight).toBe(68);
 	});
 
 	test('returns 404 for a non-existent clip', async () => {
@@ -1072,7 +1132,7 @@ describe('POST /api/clips/:clipId/recompile edge cases', () => {
 		expect(meta.frameHeight).toBe(8);
 	});
 
-	test('converts frameDurations to frameRatesForFrames and applies them', async () => {
+	test('converts frameDurationsMs to frameRatesForFrames and applies them', async () => {
 		await fetchJson('POST', '/api/clips', {
 			clipId: 'recompile-durations',
 			frames: [PNG_4x4, PNG_4x4],
@@ -1081,7 +1141,7 @@ describe('POST /api/clips/:clipId/recompile edge cases', () => {
 		});
 
 		const { status, data } = await fetchJson('POST', '/api/clips/recompile-durations/recompile', {
-			frameDurations: [100, 50]
+			frameDurationsMs: [100, 50]
 		});
 		expect(status).toBe(200);
 		expect(data.ok).toBe(true);

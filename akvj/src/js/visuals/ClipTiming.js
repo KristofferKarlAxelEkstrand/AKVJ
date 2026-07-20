@@ -2,11 +2,11 @@
  * ClipTiming — frame interval calculation and clock sync.
  *
  * Handles two timing modes:
- * 1. Free (FPS) — frame timing in frames-per-second (frameRatesForFrames), no sync
+ * 1. Free — prefer `frameDurationsMs` (ms per frame); else FPS via `frameRatesForFrames`
  * 2. Beat (BPM sync) — the whole clip is scaled to fit `syncBeats` total beats as a unit,
  *    preserving each frame's natural relative timing:
  *    - Time-based (no MIDI clock): a speed multiplier scales every frame's natural
- *      (FPS-derived) interval
+ *      (ms or FPS-derived) interval
  *    - Clock-driven (MIDI clock active, 24 PPQN): a precomputed cumulative-proportion
  *      table maps clock-pulse progress to a duration-weighted progress value passed to
  *      PlaybackController.setLinearProgress() — BPM is irrelevant, pulses are the tempo
@@ -52,7 +52,7 @@ class ClipTiming {
 	#frameRatesForFrames;
 	#frameDurationsMs;
 	#defaultFrameRate;
-	#naturalDuration;
+	#naturalDurationMs;
 	#cumulativeProportions;
 	#isUsingBPMSync = false;
 	#syncBeats = null;
@@ -69,9 +69,9 @@ class ClipTiming {
 		this.#clockSource = clockSource ?? defaultClockSource;
 		this.#frameCount = frames;
 
-		this.#initFrameRates(frameRatesForFrames, frameDurationsMs, frames);
+		this.#initFrameTiming(frameRatesForFrames, frameDurationsMs, frames);
 		this.#initDefaultFrameRate();
-		this.#naturalDuration = this.#computeNaturalDuration(frames);
+		this.#naturalDurationMs = this.#computeNaturalDuration(frames);
 		this.#cumulativeProportions = this.#computeCumulativeProportions(frames);
 
 		if (syncBeats !== null && syncBeats !== undefined) {
@@ -118,8 +118,8 @@ class ClipTiming {
 		if (Number.isFinite(bpm)) {
 			bpm = Math.min(Math.max(bpm, minBPM), maxBPM);
 		}
-		const targetDuration = (this.#syncBeats * MS_PER_MINUTE) / bpm;
-		const speedMultiplier = targetDuration / this.#naturalDuration;
+		const targetDurationMs = (this.#syncBeats * MS_PER_MINUTE) / bpm;
+		const speedMultiplier = targetDurationMs / this.#naturalDurationMs;
 		return naturalInterval * speedMultiplier;
 	}
 
@@ -234,7 +234,7 @@ class ClipTiming {
 	 * @param {Object|null} frameDurationsMs - Frame index → ms per frame mapping
 	 * @param {number} frames - Total frame count for bounds checking
 	 */
-	#initFrameRates(frameRatesForFrames, frameDurationsMs, frames) {
+	#initFrameTiming(frameRatesForFrames, frameDurationsMs, frames) {
 		this.#frameDurationsMs = {};
 		this.#frameRatesForFrames = {};
 
@@ -310,7 +310,7 @@ class ClipTiming {
 		const proportions = [];
 		let elapsedMs = 0;
 		for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
-			proportions.push(this.#naturalDuration > 0 ? elapsedMs / this.#naturalDuration : 0);
+			proportions.push(this.#naturalDurationMs > 0 ? elapsedMs / this.#naturalDurationMs : 0);
 			// Use ms values directly when available
 			const intervalMs = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
 			elapsedMs += intervalMs;

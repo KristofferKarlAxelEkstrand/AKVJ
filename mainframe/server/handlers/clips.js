@@ -9,7 +9,7 @@ import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { parseClipFramesBody } from '../clipFramesBody.js';
 import { validateMetaFields } from '../../scripts/clips/lib/validate/meta.js';
 import { listClips, activeProjectId, clipsRootFor } from '../clipCatalog.js';
-import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
+import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../../shared/mappingService.js';
 import { writeJsonAtomic } from '../writeJsonAtomic.js';
 
 /**
@@ -76,7 +76,7 @@ async function resolveSpriteName(clipId, projectId) {
 	}
 }
 
-export async function serveSprite(_req, res, url) {
+export async function handleGetClipSprite(_req, res, url) {
 	const clipId = decodeURIComponent(url.pathname.slice('/api/clips/'.length, -'/sprite'.length));
 	if (!isValidClipId(clipId)) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
@@ -85,9 +85,9 @@ export async function serveSprite(_req, res, url) {
 	const projectId = await activeProjectId();
 	const pngName = await resolveSpriteName(clipId, projectId);
 	const spritePath = resolveSafeSpritePath(clipId, pngName, projectId);
-	let spriteData;
+	let spriteBuffer;
 	try {
-		spriteData = await fs.readFile(spritePath);
+		spriteBuffer = await fs.readFile(spritePath);
 	} catch (error) {
 		if (error.code === 'ENOENT') {
 			sendJson(res, 404, { error: `Sprite "${pngName}" not found for clip "${clipId}"` });
@@ -97,10 +97,10 @@ export async function serveSprite(_req, res, url) {
 	}
 	res.writeHead(200, {
 		'Content-Type': 'image/png',
-		'Content-Length': spriteData.length,
+		'Content-Length': spriteBuffer.length,
 		'Cache-Control': 'no-store'
 	});
-	res.end(spriteData);
+	res.end(spriteBuffer);
 }
 
 export async function handleGetClipFrames(_req, res, url) {
@@ -245,7 +245,7 @@ export async function handleRecompileClip(req, res, url) {
 	if (body === null) {
 		return;
 	}
-	const { targetWidth, targetHeight, name, playback, frameRate, role, frameDurations } = body;
+	const { targetWidth, targetHeight, name, playback, frameRate, role, frameDurationsMs } = body;
 	let { scaleMode, scaling } = body;
 	if (!scaleMode || scaling === undefined) {
 		try {
@@ -256,7 +256,7 @@ export async function handleRecompileClip(req, res, url) {
 			// keep undefined — spritesheet defaults to fit / nearest
 		}
 	}
-	const frameRatesForFrames = Array.isArray(frameDurations) && frameDurations.length > 0 ? durationsMsToFrameRates(frameDurations) : undefined;
+	const frameRatesForFrames = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? durationsMsToFrameRates(frameDurationsMs) : undefined;
 	try {
 		const result = await recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, projectId });
 		sendJson(res, 200, { ok: true, ...result });
@@ -292,7 +292,7 @@ export async function handleDeleteClip(_req, res, url) {
 	sendJson(res, 200, { ok: true, clipId });
 }
 
-const EDITABLE_META_FIELDS = new Set(['name', 'frames', 'framesPerRow', 'playback', 'loop', 'retrigger', 'frameRatesForFrames', 'bitDepth', 'role', 'png', 'triggerType', 'triggerGroup', 'scaleMode', 'scaling', 'frameWidth', 'frameHeight', 'placement', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
+const EDITABLE_META_FIELDS = new Set(['name', 'frames', 'framesPerRow', 'playback', 'retrigger', 'frameRatesForFrames', 'frameDurationsMs', 'bitDepth', 'role', 'png', 'triggerType', 'triggerGroup', 'scaleMode', 'scaling', 'frameWidth', 'frameHeight', 'placement', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
 
 export async function handlePutClipMeta(req, res, url) {
 	const clipId = decodeURIComponent(url.pathname.slice('/api/clips/'.length));

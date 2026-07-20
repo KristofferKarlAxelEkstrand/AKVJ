@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import sharp from 'sharp';
-import { fitFrameBuffer, compositeContentOntoCell } from '../scripts/clips/lib/spritesheet-core.js';
+import { fitFrameBuffer, compositeContentOntoCell } from '../shared/spritesheetCore.js';
 import { resolveFrameBakeConfig, areFrameBakeConfigsUniform, FRAME_BAKE_SCALE_MODES } from '../shared/frameBake.js';
 
 async function solidPng(width, height, rgba) {

@@ -17,11 +17,6 @@
 	"private": true,
 	"scripts": {
 		"build": "vite build",
-		"clips": "node scripts/clips",
-		"clips:clean": "node scripts/clips --clean",
-		"clips:new": "node scripts/clips/new.js",
-		"clips:spritesheet": "node scripts/clips/spritesheet.js",
-		"clips:validate": "node scripts/clips --validate-only",
 		"clips:watch": "node scripts/clips --watch",
 		"dev": "concurrently -n ui,api,clips -c magenta,cyan,green \"vite\" \"node --watch server/index.js\" \"npm run clips:watch\"",
 		"dev:api": "node --watch server/index.js",

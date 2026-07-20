@@ -270,7 +270,6 @@ npm run clips:watch                      # Watch for clip changes and rebuild
 npm run clips:clean                      # Remove cache and generated output
 npm run clips:new -- neon-skull          # Scaffold projects/default/clips/{clipId}/meta.json
 npm run clips:spritesheet                # Generate sprite sheet from frames
-npm run migrate:clips                    # One-shot nested→flat migration (if needed)
 ```
 
 ## Performance
@@ -318,4 +317,4 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 
 ### Clip Assets
 
-All clip assets (including all .png and .json files under `projects/{projectId}/clips/` and generated `akvj/src/public/projects/{projectId}/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.
+All clip assets (including all .png and .json files under `projects/{projectId}/clips/` and generated `akvj/src/public/projects/{projectId}/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [projects/default/LICENSE-ASSETS.md](projects/default/LICENSE-ASSETS.md) for the full terms.

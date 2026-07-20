@@ -116,7 +116,7 @@ describe('MaskManager', () => {
 	test('returns null for bit depth when no mask is active', () => {
 		const mask = new MaskManager();
 		// Bit depth is null when no mask is active
-		expect(mask.getBitDepth()).toBe(null);
+		expect(mask.getCurrentBitDepth()).toBe(null);
 	});
 });
 

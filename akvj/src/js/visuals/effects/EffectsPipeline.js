@@ -19,8 +19,8 @@ import effectRegistry from './index.js';
  *   scratch buffer before reading from it (e.g., glitch, offset, split effects).
  * - The pipeline guarantees the scratch buffer is at least as large as imageData.data.
  */
-const DEFAULT_BPM_MIN = 1;
-const DEFAULT_BPM = 120;
+const FALLBACK_BPM_MIN = 1;
+const FALLBACK_BPM = 120;
 
 class EffectsPipeline {
 	/** @type {Uint8ClampedArray|null} */
@@ -40,8 +40,8 @@ class EffectsPipeline {
 			effectParams,
 			effectRanges,
 			bpm: 0,
-			bpmMin: DEFAULT_BPM_MIN,
-			bpmDefault: DEFAULT_BPM,
+			bpmMin: FALLBACK_BPM_MIN,
+			bpmDefault: FALLBACK_BPM,
 			scratchBuffer: null
 		};
 	}
@@ -61,7 +61,7 @@ class EffectsPipeline {
 			return;
 		}
 
-		const { width, height, bpm, bpmMin = DEFAULT_BPM_MIN, bpmDefault = DEFAULT_BPM } = renderContext;
+		const { width, height, bpm, bpmMin = FALLBACK_BPM_MIN, bpmDefault = FALLBACK_BPM } = renderContext;
 		const imageData = ctx.getImageData(0, 0, width, height);
 		this.#ensureScratchBuffer(imageData.data.length);
 		this.#prepareEffectContext(width, height, bpm, bpmMin, bpmDefault);

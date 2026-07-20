@@ -1,4 +1,4 @@
-import appState, { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_PROJECT_SWITCH, EVENT_CLIP_LOAD_ERROR } from './AppState.js';
+import appState, { EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_PROJECT_SWITCH_REQUESTED } from './AppState.js';
 import settings from './settings.js';
 import ClipLoader from '../visuals/ClipLoader.js';
 import LayerManager from '../visuals/LayerManager.js';
@@ -21,7 +21,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#unsubscribers = [];
 	#loadingOverlay = null;
 	#userMessages = null;
-	#activeProjectId = null;
 	#isSwitchingProject = false;
 
 	constructor() {
@@ -84,7 +83,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	 */
 	#setupProjectEventListeners() {
 		this.#unsubscribers.push(
-			appState.subscribe(EVENT_PROJECT_SWITCH, event => {
+			appState.subscribe(EVENT_PROJECT_SWITCH_REQUESTED, event => {
 				this.#handleProjectSwitch(event.detail);
 			})
 		);
@@ -108,7 +107,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			projectId = await this.#resolveProjectIdFromNote(detail.note);
 		}
 
-		if (!projectId || projectId === this.#activeProjectId) {
+		if (!projectId || projectId === appState.activeProjectId) {
 			return;
 		}
 
@@ -152,7 +151,6 @@ class AdventureKidVideoJockey extends HTMLElement {
 			this.#clipLoader.destroyClips(this.#loadedClips);
 			this.#loadedClips = newClips;
 			this.#layerManager.setClips(this.#loadedClips);
-			this.#activeProjectId = projectId;
 			appState.activeProjectId = projectId;
 
 			this.#renderer?.unfreeze();
@@ -268,11 +266,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 			console.error(`Failed to set up clips from ${jsonUrl}:`, error);
 			appState.clipsLoaded = false;
 			appState.error(`Failed to load clips: ${error.message}`);
-			appState.dispatchEvent(
-				new CustomEvent(EVENT_CLIP_LOAD_ERROR, {
-					detail: { url: jsonUrl, error: error.message }
-				})
-			);
+			appState.dispatchClipLoadError(jsonUrl, error.message);
 			return {};
 		}
 	}
@@ -292,9 +286,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 		if (appState.clipsLoaded) {
 			// Set the active project ID from active-project.json (if available)
 			try {
-				this.#activeProjectId = await this.#clipLoader.fetchActiveProjectId();
-				if (this.#activeProjectId) {
-					appState.activeProjectId = this.#activeProjectId;
+				const activeProjectId = await this.#clipLoader.fetchActiveProjectId();
+				if (activeProjectId) {
+					appState.activeProjectId = activeProjectId;
 				}
 			} catch {
 				// No active project — that's fine, legacy mode

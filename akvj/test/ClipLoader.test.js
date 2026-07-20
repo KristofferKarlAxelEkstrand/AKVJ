@@ -349,7 +349,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		expect(clip.currentFrame).toBe(1);
 	});
 
-	test('mapping overrides can supply frameDurationsMs and it reaches the Clip', async () => {
+	test('unknown mapping override keys are dropped and do not reach Clip timing', async () => {
 		const catalog = {
 			'base-clip': {
 				png: 'sprite.png',
@@ -363,7 +363,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		const keyMap = {
 			1: {
 				60: { 0: 'base-clip' },
-				61: { 0: { clipId: 'base-clip', frameDurationsMs: [50, 100] } }
+				61: { 0: { clipId: 'base-clip', frameDurationsMs: [50, 100], scaleMode: 'cover' } }
 			}
 		};
 		mockFetchCatalogAndLayout(catalog, keyMap);
@@ -371,22 +371,18 @@ describe('ClipLoader - mapping edge cases', () => {
 
 		const loader = new ClipLoader({});
 		const clips = await loader.loadClips();
-
-		// Base slot uses FPS (1ms per frame)
-		const baseClip = clips[0][60][0];
 		const ctx = { drawImage: vi.fn() };
+
+		const baseClip = clips[0][60][0];
 		baseClip.renderToContext(ctx, 0);
 		baseClip.renderToContext(ctx, 1);
 		expect(baseClip.currentFrame).toBe(1);
 
-		// Overridden slot uses ms timing (50ms for frame 0)
-		const overrideClip = clips[0][61][0];
-		overrideClip.renderToContext(ctx, 0);
-		expect(overrideClip.currentFrame).toBe(0);
-		overrideClip.renderToContext(ctx, 40);
-		expect(overrideClip.currentFrame).toBe(0);
-		overrideClip.renderToContext(ctx, 50);
-		expect(overrideClip.currentFrame).toBe(1);
+		// Disallowed leaf keys must not override catalog FPS timing (1ms/frame)
+		const filteredClip = clips[0][61][0];
+		filteredClip.renderToContext(ctx, 0);
+		filteredClip.renderToContext(ctx, 1);
+		expect(filteredClip.currentFrame).toBe(1);
 	});
 });
 

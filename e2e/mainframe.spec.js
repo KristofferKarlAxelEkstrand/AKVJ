@@ -164,7 +164,7 @@ test('mapping table view loads and displays mapping entries or empty state', asy
 		await expect(firstRow.locator('td').nth(2)).toContainText(/\d+/);
 		await expect(firstRow.locator('td').nth(3)).not.toBeEmpty();
 	} else {
-		await expect(mappingTable.locator('.mapping-summary-count')).toHaveText('0 mapped slots');
+		await expect(mappingTable.locator('.mapping-summary-count')).toHaveText('0 mappings');
 	}
 });
 

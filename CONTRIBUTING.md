@@ -99,7 +99,7 @@ Tracked hooks in `.githooks/` are armed when you start the agent team (`run-team
 | `pre-commit` | `.env` / credential-shaped diffs, supervisor scripts (`run-team`, `await-messages.js`, `control-center`), `.github/workflows/`, binary assets (PNG, etc.) |
 | `pre-push`   | every push                                                                                                                                                |
 
-Override as the human: `AKVJ_HUMAN=1 git commit …` / `AKVJ_HUMAN=1 git push`. Or set hooks manually: `git config core.hooksPath .githooks`.
+Override as the human: `HUMAN=1 git commit …` / `HUMAN=1 git push`. Or set hooks manually: `git config core.hooksPath .githooks`.
 
 ```bash
 git add .
@@ -152,18 +152,24 @@ Push your branch and open a PR against `main`.
 
 ## Adding Clips
 
-Clips live in flat `clips/{clipId}/` folders (source folder, not `src/public/`):
+Clips live per project under `projects/{projectId}/clips/{clipId}/` (source folders — never edit the generated `akvj/src/public/projects/{projectId}/clips/`):
 
 ```
-clips/neon-skull/
+projects/default/clips/neon-skull/
   ├── meta.json       # Clip metadata
   └── sprite.png      # Sprite sheet with all frames
 ```
 
-MIDI placement is configured in `clips/key-map.json` using DAW channel numbers (1-16):
+MIDI placement is configured in `projects/{projectId}/key-map.json`, nested channel → note → velocity using DAW channel numbers (1-16):
 
 ```json
-[{ "channel": 1, "note": 0, "velocity": 0, "clipId": "neon-skull" }]
+{
+    "1": {
+        "0": {
+            "0": "neon-skull"
+        }
+    }
+}
 ```
 
 To scaffold a new clip:

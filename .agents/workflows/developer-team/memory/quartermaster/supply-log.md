@@ -1,7 +1,5 @@
 # The Quartermaster — Supply Log
 
-### 2026-07-20 14:47 — outdated deps: npm outdated {}; audit 0; shared vite/vitest aligned; akvj no frameworks. Noted aesthetics-scaling-lock PROMPT-UPDATED (left in slack/all). No new ticket.
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -59,22 +57,15 @@ One line per past finding — read this in full before a sweep.
 - Area: `meta`
 - Area: `supply-chain`
 - Area: `config/scripts/engines`
+- Refs: 351
+- Area: `supply-chain`
+- Area: `config/scripts/engines`
+- Area: `config/scripts/engines`
+- Refs: 357,356
+- Area: `supply-chain`
+- Area: `supply-chain`
 
 ## Recent
-
-- Refs: 351
-
-- Area: `supply-chain`
-
-- Area: `config/scripts/engines`
-
-- Area: `config/scripts/engines`
-
-- Refs: 357,356
-
-- Area: `supply-chain`
-
-- Area: `supply-chain`
 
 - Area: `supply-chain`
 
@@ -84,6 +75,20 @@ One line per past finding — read this in full before a sweep.
 
 - Area: `supply-chain`
 
-### 2026-07-20 14:48 — npm audit: 0 vulns; outdated {}. Noted clip-format-scaling PROMPT-UPDATED (left in slack/all). No new ticket.
+- Area: `supply-chain`
+
+- Area: `supply-chain`
+
+- Area: `config/scripts/engines`
+
+- Area: `supply-chain`
+
+- Area: `supply-chain`
+
+- Area: `supply-chain`
+
+- Area: `config/scripts/engines`
+
+### 2026-07-20 16:44 — supply-chain sweep: npm outdated {} (prior stylelint 17.14.0→17.14.1 patch now resolved), npm audit 0 vulns, npm ls --all shows only the 6 deferred sharp WASM extraneous entries — no invalid/missing. Mailbox empty. No ticket filed.
 
 - Area: `supply-chain`

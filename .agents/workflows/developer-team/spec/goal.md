@@ -16,7 +16,7 @@ The goal of this project is to maintain a strict architectural split between two
 - **Purpose**: A highly efficient pixel VJ setup used in live performances as a backdrop or lighting.
 - **Triggered by MIDI**: It runs on a computer that receives MIDI via WebMIDI from a sequencer or DAW to create live, synced visualizations that follow what the performer does.
 - **Performance**: It must be extremely efficient, run flawlessly, and completely lock to a 60fps render loop with zero heavy dependencies.
-- **No UI**: It should have essentially no user interface. It is meant to run fullscreen (toggled via Enter, Space, or double-click — `Fullscreen.js`) and do nothing but perform its visualization duties.
+- **Near-zero UI**: Visualization canvas first. Exceptions match [aesthetics.md](aesthetics.md): fullscreen (Enter / Space / double-click — `Fullscreen.js`), debug overlay on **D** (`DebugOverlay.js`), and the transient project-switch loading overlay (`AkvjLoadingOverlay.js`). No chrome, menus, or persistent HUD.
 
 ## Mainframe: The Backoffice
 - **Purpose**: A user-friendly backoffice dashboard where you set up, edit, and map all the clips for the live visualizer.
@@ -36,7 +36,7 @@ Per direct user feedback (2026-07-17, see `memory/overseer/`), clips, MIDI mappi
 
 Still open / not yet built:
 - **Song/scene sub-tier**: switching is outer-project-only today; the user explicitly deferred any song/scene concept within a project ("not really a song concept for now").
-- **Settings split (General vs. per-Project)**: which settings are global vs. per-project is still being worked out case by case (e.g. `effectParams` is treated as per-project-overridable in root `PROJECT-SPECIFICATION.md`, while BPM/MIDI/channelMapping are global) — no single documented rule yet. Note: `PROJECT-SPECIFICATION.md` itself is partly stale (still mentions removed `frameDurationBeats`); prefer `.agents/workflows/developer-team/spec/` for current behaviour.
+- **Settings split (General vs. per-Project)**: which settings are global vs. per-project is still being worked out case by case (e.g. `effectParams` is treated as per-project-overridable in older notes, while BPM/MIDI/channelMapping are global) — no single documented rule yet. Root `PROJECT-SPECIFICATION.md` is now an entry-point pointer to `AGENTS.md` + `spec/` (task 373); prefer those for behaviour.
 - **Copying clips between projects**: the user wants this later ("I would like us to be able to copy them later on") — not required now, but per-project isolation should not be designed so tight it blocks this.
 
 ## Real-world usage context (from the user, 2026-07-17)
@@ -47,4 +47,7 @@ Still open / not yet built:
 
 ## Changelog
 
+- 2026-07-20 — Aligned AKVJ UI bullet with aesthetics **Near-zero UI** (D debug overlay +
+  loading overlay + fullscreen); task 399 owns root `PROJECT-SPECIFICATION.md` only.
+- 2026-07-20 — Cleared stale “PROJECT-SPECIFICATION.md still has frameDurationBeats” note after task 373 turned that file into an entry-point pointer.
 - 2026-07-20 — Re-verified against codebase (special mission). Fact corrections: fullscreen is Enter **or** Space **or** double-click (`Fullscreen.js`); Bridge names `key-map.json` and clarifies `akvj/src/public/` is generated copy; flagged root `PROJECT-SPECIFICATION.md` as partly stale (`frameDurationBeats`). Split, channel-14 project switch, and open Projects gaps still hold. No JS cross-imports between `akvj` and `mainframe`.

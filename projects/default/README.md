@@ -1,15 +1,16 @@
-# Clips
+# Project: default
 
-Shared clip bucket for AKVJ. Each clip has a stable **clipId** (folder name). MIDI placement is defined separately in `key-map.json`.
+Clip bucket for the `default` project. Each clip has a stable **clipId** (folder name). MIDI placement is defined separately in this project's `key-map.json`. Every project under `projects/` has the same shape.
 
 ## Directory Structure
 
 ```
-clips/
-  {clipId}/             # e.g. neon-skull or c1-n0-v0
-    sprite.png          # Sprite sheet with all frames
-    meta.json           # Clip metadata
-key-map.json        # MIDI → clipId mappings (DAW channels 1–16)
+projects/default/
+  clips/
+    {clipId}/           # e.g. neon-skull or c1-n0-v0
+      sprite.png        # Sprite sheet with all frames
+      meta.json         # Clip metadata
+  key-map.json          # MIDI → clipId mappings (DAW channels 1–16)
 ```
 
 **Example mapping entry:**
@@ -56,16 +57,16 @@ Use **Upload** to ingest frames, **Mapping** to assign MIDI slots, then **Run pi
 
 ```bash
 npm run clips:new -- neon-skull
-# Creates: clips/neon-skull/meta.json
+# Creates: projects/default/clips/neon-skull/meta.json
 ```
 
-Then add `sprite.png`, map the clip in `key-map.json`, and run `npm run clips`.
+Then add `sprite.png`, map the clip in `projects/default/key-map.json`, and run `npm run clips`.
 
 ### Option 3: Manual
 
-1. Create `clips/{clipId}/`
+1. Create `projects/default/clips/{clipId}/`
 2. Add `sprite.png` and `meta.json`
-3. Add a mapping entry in `key-map.json`
+3. Add a mapping entry in `projects/default/key-map.json`
 
 ## meta.json Format
 

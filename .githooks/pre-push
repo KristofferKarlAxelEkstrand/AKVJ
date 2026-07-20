@@ -3,10 +3,10 @@
 # undone by editing a file. No agent has a reason to take it, and the protocol
 # says so — this makes saying so unnecessary.
 #
-# The human overrides with AKVJ_HUMAN=1:
-#   AKVJ_HUMAN=1 git push
+# The human overrides with HUMAN=1:
+#   HUMAN=1 git push
 
-if [ "$AKVJ_HUMAN" = "1" ]; then
+if [ "$HUMAN" = "1" ]; then
     exit 0
 fi
 
@@ -15,5 +15,5 @@ echo "" >&2
 echo "Agents leave work in the working tree; the human reviews and publishes it" >&2
 echo "(spec/process/collaboration-protocol.md → Git & Commits)." >&2
 echo "" >&2
-echo "If you are the human: AKVJ_HUMAN=1 git push" >&2
+echo "If you are the human: HUMAN=1 git push" >&2
 exit 1

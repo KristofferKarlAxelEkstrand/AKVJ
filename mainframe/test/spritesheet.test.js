@@ -127,6 +127,35 @@ describe('createClipFromFrames', () => {
 		expect(meta.frameRatesForFrames[0]).toBe(24);
 	});
 
+	test('writes scaling: smooth when provided', async () => {
+		await createClipFromFrames({
+			clipId: 'smooth-clip',
+			frameBuffers: [makeFrame(PNG_1x1)],
+			scaling: 'smooth'
+		});
+		const meta = JSON.parse(await fs.readFile(path.join(clipsDir, 'smooth-clip', 'meta.json'), 'utf-8'));
+		expect(meta.scaling).toBe('smooth');
+	});
+
+	test('invalid scaling falls back to nearest', async () => {
+		await createClipFromFrames({
+			clipId: 'bad-scaling-clip',
+			frameBuffers: [makeFrame(PNG_1x1)],
+			scaling: 'bilinear'
+		});
+		const meta = JSON.parse(await fs.readFile(path.join(clipsDir, 'bad-scaling-clip', 'meta.json'), 'utf-8'));
+		expect(meta.scaling).toBe('nearest');
+	});
+
+	test('omitted scaling leaves the field absent', async () => {
+		await createClipFromFrames({
+			clipId: 'default-scaling-clip',
+			frameBuffers: [makeFrame(PNG_1x1)]
+		});
+		const meta = JSON.parse(await fs.readFile(path.join(clipsDir, 'default-scaling-clip', 'meta.json'), 'utf-8'));
+		expect(meta.scaling).toBeUndefined();
+	});
+
 	test('accepts frames with mismatched dimensions using fit scale mode', async () => {
 		const result = await createClipFromFrames({
 			clipId: 'mismatch',

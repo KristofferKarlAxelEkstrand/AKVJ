@@ -1,6 +1,13 @@
 import '../scss/main.scss';
 import './PianoKey.js';
-import './PianoRoll.js';
+import {
+	EVENT_PIANOROLL_KEY_CLICK,
+	EVENT_PIANOROLL_CHANNEL_CHANGED,
+	EVENT_PIANOROLL_FILTER_CHANGED,
+	EVENT_PIANOROLL_MAPPING_CHANGED,
+	EVENT_PIANOROLL_MAPPING_REMOVED,
+	EVENT_PIANOROLL_MAPPING_ADDED
+} from './PianoRoll.js';
 import './ClipList.js';
 import { ClipEditorController } from './ClipEditorController.js';
 import './MappingTable.js';
@@ -8,7 +15,7 @@ import './StagingPreview.js';
 import './PreviewClip.js';
 import './ClipFrame.js';
 import './ClipFrames.js';
-import './ClipFramesUploadPanel.js';
+import './ClipFramesPanel.js';
 import './UserMessage.js';
 import './UserMessages.js';
 import './ClipNameInput.js';
@@ -322,7 +329,7 @@ class AkvjMainframe extends HTMLElement {
 			mainframeState.mappings = mainframeState.mappings.filter(existingEntry => !(existingEntry.channel === channel && existingEntry.note === note && existingEntry.velocity === velocity));
 		});
 
-		mappingPianoRoll.addEventListener('mappingchange', event => {
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_CHANGED, event => {
 			const { channel, note, oldVelocity, newVelocity, clipId } = event.detail;
 			mainframeState.mappings = mainframeState.mappings.map(entry => {
 				if (entry.channel === channel && entry.note === note && entry.velocity === oldVelocity && entry.clipId === clipId) {
@@ -334,7 +341,7 @@ class AkvjMainframe extends HTMLElement {
 			setStatus(status, `Breakpoint ${clipId} → vel ${newVelocity}`, 'is-ok');
 		});
 
-		mappingPianoRoll.addEventListener('mappingremove', event => {
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_REMOVED, event => {
 			const { channel, note, clipId, velocity, mappings } = event.detail;
 			const others = mainframeState.mappings.filter(entry => !(entry.channel === channel && entry.note === note));
 			mainframeState.mappings = others.concat(
@@ -349,7 +356,7 @@ class AkvjMainframe extends HTMLElement {
 			setStatus(status, `Removed ${clipId} @ note ${note} vel ${velocity}`, 'is-ok');
 		});
 
-		mappingPianoRoll.addEventListener('mappingadd', event => {
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_ADDED, event => {
 			const { channel, note, clipId, velocity, mappings } = event.detail;
 			const others = mainframeState.mappings.filter(entry => !(entry.channel === channel && entry.note === note));
 			mainframeState.mappings = others.concat(
@@ -364,7 +371,7 @@ class AkvjMainframe extends HTMLElement {
 			setStatus(status, `Dropped ${clipId} @ note ${note} vel ${velocity}`, 'is-ok');
 		});
 
-		mappingPianoRoll.addEventListener('keyclick', event => {
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_KEY_CLICK, event => {
 			const { note, velocity, clipId: bandClipId, action } = event.detail;
 			const mapChannel = root.querySelector('#map-channel');
 			const mapNote = root.querySelector('#map-note');
@@ -395,7 +402,7 @@ class AkvjMainframe extends HTMLElement {
 			mapChannel.value = String(mainframeState.channel);
 		});
 
-		libraryPianoRoll.addEventListener('keyclick', event => {
+		libraryPianoRoll.addEventListener(EVENT_PIANOROLL_KEY_CLICK, event => {
 			const { mappings, isActive } = event.detail;
 			if (isActive && mappings?.length === 1) {
 				clipListElement.searchQuery = mappings[0].clipId;
@@ -404,11 +411,11 @@ class AkvjMainframe extends HTMLElement {
 			}
 		});
 
-		libraryPianoRoll.addEventListener('pianoroll:filter-changed', event => {
+		libraryPianoRoll.addEventListener(EVENT_PIANOROLL_FILTER_CHANGED, event => {
 			mainframeState.pianorollFilters = event.detail.filters;
 		});
 
-		mappingPianoRoll.addEventListener('channelchange', event => {
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_CHANNEL_CHANGED, event => {
 			mainframeState.channel = event.detail.channel;
 			root.querySelector('#map-channel').value = String(event.detail.channel);
 		});

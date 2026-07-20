@@ -142,6 +142,34 @@ describe('validateMetaFields — scaleMode', () => {
 	});
 });
 
+describe('validateMetaFields — scaling', () => {
+	function baseMeta(overrides = {}) {
+		return { frames: 4, framesPerRow: 2, playback: 'loop', ...overrides };
+	}
+
+	test('accepts nearest and smooth', () => {
+		for (const scaling of ['nearest', 'smooth']) {
+			const errors = validateMetaFields(baseMeta({ scaling }));
+			expect(
+				errors.filter(e => e.includes('scaling')),
+				scaling
+			).toEqual([]);
+		}
+	});
+
+	test('rejects invalid scaling', () => {
+		const errors = validateMetaFields(baseMeta({ scaling: 'bilinear' }));
+		expect(errors.some(e => e.includes('scaling must be one of'))).toBe(true);
+		expect(errors.some(e => e.includes('nearest'))).toBe(true);
+		expect(errors.some(e => e.includes('smooth'))).toBe(true);
+	});
+
+	test('omitting scaling is valid', () => {
+		const errors = validateMetaFields(baseMeta());
+		expect(errors.filter(e => e.includes('scaling'))).toEqual([]);
+	});
+});
+
 describe('clipSchema constants', () => {
 	test('PLAYBACK_MODES matches engine canonical list', () => {
 		expect([...PLAYBACK_MODES]).toEqual(['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub']);

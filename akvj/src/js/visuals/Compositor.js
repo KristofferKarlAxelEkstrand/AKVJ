@@ -26,6 +26,7 @@ const BIT_DEPTH_MIXING = {
  * - Create and own off-screen canvases for Layer Group A, Layer Group B, Mask, and Mixed output.
  * - Clear layer group canvases each frame.
  * - Mix Layer Group A and Layer Group B using the active mask (supporting 1/2/4/8-bit masks).
+ * - With no mask: draw A and/or B with source-over (A first, then B on top when both active).
  *
  * The Renderer drives the Compositor: it renders layer groups into ctxA/ctxB,
  * then asks the Compositor to produce the mixed result.
@@ -190,10 +191,17 @@ class Compositor {
 		this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
 
+	/**
+	 * Draw active layer groups onto mixed with default source-over (no mask).
+	 * When both A and B have content, A is drawn first then B on top.
+	 * @param {boolean} isLayerGroupAEmpty
+	 * @param {boolean} isLayerGroupBEmpty
+	 */
 	#drawUnmaskedLayerGroups(isLayerGroupAEmpty, isLayerGroupBEmpty) {
 		if (!isLayerGroupAEmpty) {
 			this.#ctxMixed.drawImage(this.#canvasA, 0, 0);
-		} else if (!isLayerGroupBEmpty) {
+		}
+		if (!isLayerGroupBEmpty) {
 			this.#ctxMixed.drawImage(this.#canvasB, 0, 0);
 		}
 	}

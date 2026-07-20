@@ -7,7 +7,7 @@
  * - Within a channel, lower note number renders first (bottom)
  */
 import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
-import { TRIGGER_TYPES } from './clipMetadata.js';
+import { TRIGGER_TYPES, PLAYBACK_MODE } from './clipMetadata.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip
@@ -226,7 +226,7 @@ class LayerGroup {
 	setScrubPosition(normalizedValue) {
 		for (const channelClips of this.#activeClips.values()) {
 			for (const clip of channelClips.values()) {
-				if (clip && !clip.isFinished && clip.playbackMode === 'scrub') {
+				if (clip && !clip.isFinished && clip.playbackMode === PLAYBACK_MODE.SCRUB) {
 					clip.setScrubPosition(normalizedValue);
 				}
 			}

@@ -6,13 +6,13 @@
 # are prompt text — a rule an agent can forget mid-turn, not a control. This
 # hook is the enforcement: it runs regardless of which CLI made the change.
 #
-# The human overrides with AKVJ_HUMAN=1, e.g.
-#   AKVJ_HUMAN=1 git commit -m "..."
+# The human overrides with HUMAN=1, e.g.
+#   HUMAN=1 git commit -m "..."
 #
 # Install (run-team does this automatically at pre-flight):
 #   git config core.hooksPath .githooks
 
-if [ "$AKVJ_HUMAN" = "1" ]; then
+if [ "$HUMAN" = "1" ]; then
     exit 0
 fi
 
@@ -23,7 +23,7 @@ fail() {
     echo "pre-commit: $1" >&2
     echo "" >&2
     echo "The human owns commits (spec/process/collaboration-protocol.md → Git & Commits)." >&2
-    echo "If you are the human: AKVJ_HUMAN=1 git commit ..." >&2
+    echo "If you are the human: HUMAN=1 git commit ..." >&2
     exit 1
 }
 

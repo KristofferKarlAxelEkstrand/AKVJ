@@ -26,7 +26,7 @@ Implementation: `mainframe/src/js/PianoRoll.js`, `KeyBed.js`, `PianoKey.js`,
 | `edit` | The mapping workflow: drop clips onto keys, drag velocity breakpoints, right-click or double-click a region to remove |
 | `select` | Legacy API alias for `filter` — same filter view and controls; kept for consumers that set `mode="select"` |
 | `filter` | Click a key to select its note; filter controls (clip id / trigger / role / layer / populated) dim non-matching regions |
-| `play` | Sticky-toggle keys dispatch `noteon`/`noteoff` for testing mappings |
+| `play` | Sticky-toggle keys dispatch `pianoroll:note-on` / `pianoroll:note-off` for testing mappings |
 
 `edit`, `filter`, and `play` have mode buttons in the UI; `select` is still accepted as an attribute
 value and lights the Filter button, but it is not a separate bare note picker.
@@ -42,7 +42,7 @@ from clip identity plus the clip id where the region is tall enough to show it.
 
 Between adjacent regions sits a draggable handle with a grab target several pixels tall. Dragging
 it moves the velocity boundary between the two clips and shows a live velocity readout; on release
-the roll dispatches `mappingchange`.
+the roll dispatches `pianoroll:mapping-changed`.
 
 **Regions have a minimum size.** `MIN_REGION_VELOCITY` is 2 velocity units (`PianoKey.js:8`), and
 a drop that would push any region below it is rejected. This is the practical cap on clips per
@@ -60,27 +60,29 @@ evenly across the freed range, the same way a drop does.
 
 ## Events
 
-All events bubble from `PianoKey` through `KeyBed` to `PianoRoll` (and then to the consumer).
-`KeyBed` does not re-dispatch — it is the DOM parent that owns the keys.
+All public events are namespaced `pianoroll:*` and bubble from `PianoKey` through `KeyBed` to
+`PianoRoll` (then to the consumer). `KeyBed` does not re-dispatch — it is the DOM parent that
+owns the keys. Constants live on `PianoRoll.js` (`EVENT_PIANOROLL_*`).
 
 | Event | Mode | Detail |
 | --- | --- | --- |
-| `keyclick` | all | `{ note, clipId, velocity, isActive, mode, action, mappings }` |
-| `noteon` / `noteoff` | play | `{ note, clipId, velocity, mappings }` |
-| `mappingadd` | edit | `{ clipId, note, channel, velocity, mappings }` |
-| `mappingchange` | edit | `{ channel, note, oldVelocity, newVelocity, clipId }` |
-| `mappingremove` | edit | `{ channel, note, clipId, velocity, mappings }` |
-| `channelchange` | all | `{ channel }` |
+| `pianoroll:key-click` | all | `{ note, clipId, velocity, isActive, mode, action, mappings }` |
+| `pianoroll:note-on` / `pianoroll:note-off` | play | `{ note, clipId, velocity, mappings }` |
+| `pianoroll:mapping-added` | edit | `{ clipId, note, channel, velocity, mappings }` |
+| `pianoroll:mapping-changed` | edit | `{ channel, note, oldVelocity, newVelocity, clipId }` |
+| `pianoroll:mapping-removed` | edit | `{ channel, note, clipId, velocity, mappings }` |
+| `pianoroll:channel-changed` | all | `{ channel }` |
 | `pianoroll:mode-changed` | all | `{ mode }` |
 | `pianoroll:filter-changed` | filter | `{ filters }` |
 
 `mappings` carries the **full recomputed** list of `{ clipId, velocity }` for that note and
 channel, because adding or removing a clip shifts every other breakpoint on the key.
-`mappingchange` stays single-entry — dragging a handle moves exactly one boundary.
+`pianoroll:mapping-changed` stays single-entry — dragging a handle moves exactly one boundary.
 
-Keys dispatch `*request` variants (`mappingaddrequest`, `mappingchangerequest`,
-`mappingremoverequest`, `keyclickrequest`) upward; `PianoRoll` validates and re-dispatches them as
-the public events above.
+Keys dispatch namespaced request events upward (`pianoroll:key-click-request`,
+`pianoroll:mapping-add-request`, `pianoroll:mapping-change-request`,
+`pianoroll:mapping-remove-request` — `EVENT_PIANOROLL_*_REQUEST` on `PianoKey.js`);
+`PianoRoll` validates and re-dispatches them as the public `pianoroll:*` events above.
 
 ## Saving
 
@@ -100,10 +102,17 @@ not use it for save/load anymore.
 
 ## Changelog
 
+- 2026-07-20 — Task **389**: request events → `pianoroll:*-request` (`EVENT_PIANOROLL_*_REQUEST`
+  on `PianoKey.js`); footnote updated.
+- 2026-07-20 — Narrative leftovers: play-mode `noteon`/`noteoff` and drag `mappingchange` →
+  `pianoroll:*` names (QA bug follow-up to task 364).
+- 2026-07-20 — Public events renamed to `pianoroll:*` after task 364 (`EVENT_PIANOROLL_*` in
+  `PianoRoll.js`).
+- 2026-07-20 — Task **367** landed: KeyBed treats `select` like `filter`/`edit` for velocity
+  bands (`setMappedKeys` / `applyChannelMappings`). Changelog no longer claims the omit.
 - 2026-07-20 — Fact-fix after KeyBed landed: documented `KeyBed.js` / `KeyBed.scss` and
   `<key-bed>` in the DOM tree; event path is PianoKey → KeyBed → PianoRoll (KeyBed does not
-  re-dispatch). `select`≡`filter` alias stands; KeyBed `setMappedKeys` still omits `select` from
-  the velocity-band branch — tracked as task 367.
+  re-dispatch). `select`≡`filter` alias stands.
 - 2026-07-20 — Re-verified against `PianoRoll.js` / `PianoKey.js` / `AkvjMainframe.js` / projects
   key-map handlers: `select` is a filter alias (not a bare picker); removal is right-click **or**
   double-click; save path is `PUT /api/projects/{id}/key-map` (legacy `/api/mapping` still on

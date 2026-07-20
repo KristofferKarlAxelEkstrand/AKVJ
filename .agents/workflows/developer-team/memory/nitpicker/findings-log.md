@@ -1,7 +1,5 @@
 # The Nitpicker — Findings Log
 
-### 2026-07-20 14:47 — Woke on [PROMPT-UPDATED]-aesthetics-scaling-lock (left in slack/all). Preview already nearest-locked; FEATURE covers ingest. Filed [NIT]-preview-nearest-lock-docs (StagingPreview/PreviewClip JSDoc + clip-format scaling caveat) and asked Overseer about clip-format. Next: akvj/src/js/utils/ or validate/.
-
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -152,32 +150,51 @@ One line per past finding — read this in full before a sweep.
 - Area: `mainframe/src/js/KeyBed.js,syncTiming.js,PianoRoll.js`
 - Refs: 63,46,494,50,730
 - Area: `spec/mapping.md,mainframe/src/js/MappingTable.js`
+- Refs: 18,61,78,6,61-63
+- Area: `akvj/src/js/visuals/clipDrawRect.js`
+- Refs: 87,99,205
+- Area: `mainframe/server/`
+- Refs: 9,11,79,3,35
+- Area: `mainframe/shared/frameFit.js`
+- Refs: 7,13,15
+- Area: `e2e/,mainframe/test/MappingTable.test.js`
+- Refs: 167,41,56,103
+- Area: `mainframe/src/js/StagingPreview.js,PreviewClip.js,spec/clip-format.md`
+- Refs: 9,11,59
+- Area: `mainframe/scripts/clips/lib/validate/`
+- Refs: 10,15,34,85,121
+- Area: `mainframe/scripts/clips/lib/optimize.js`
+- Refs: 215,218,209
+- Area: `mainframe/scripts/clips/lib/spritesheet-core.js`
+- Refs: 63,69,232,234
+- Area: `mainframe/src/js/ClipFramesUploadPanel.js`
+- Refs: 7,11,33,39,69
+- Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
 
 ## Recent
 
-- Refs: 18,61,78,6,61-63
+- Refs: 250,331,574,600,282,285
 
-- Area: `akvj/src/js/visuals/clipDrawRect.js`
+- Area: `mainframe/server/spritesheet.js`
 
-- Refs: 87,99,205
+- Refs: 39,179
 
-- Area: `mainframe/server/`
+- Area: `akvj/src/js/visuals/ClipTiming.js`
 
-- Refs: 9,11,79,3,35
+- Refs: 5,55,72,121,237
 
-- Area: `mainframe/shared/frameFit.js`
+- Area: `akvj/src/js/visuals/LayerManager.js`
 
-- Refs: 7,13,15
+- Refs: 12,95
 
-- Area: `e2e/,mainframe/test/MappingTable.test.js`
+- Area: `.agents/workflows/developer-team/spec/goal.md,PROJECT-SPECIFICATION.md`
 
-- Refs: 167,41,56,103
+- Refs: 19,17
 
-- Area: `mainframe/src/js/StagingPreview.js,PreviewClip.js,spec/clip-format.md`
+- Area: `mainframe/server/handlers/clips.js`
 
-- Refs: 9,11,59
+- Refs: 248,295,407
 
-### 2026-07-20 14:48 — Processed [ANSWER]-clip-format-scaling-preview-lock (deleted); clip-format scaling fixed — marked done on preview-nearest NIT. Broadcast left in slack/all. Utils clean. Swept validate/; filed [NIT]-validate-jsdoc-result-shapes (ValidationResult.dir + errors.clipId vs path). Next: mainframe/scripts/clips/lib/optimize or generate.
+### 2026-07-20 16:45 — Swept MaskManager.js + EffectsManager.js. Filed [NIT]-mask-effects-managers-2026-07-20 (PLAYBACK_MODE constant for 4x 'scrub' literal; EffectsManager header channel 9/12 -> DAW 10/13; EffectType typedef drops 'reserved'; getBitDepth -> getCurrentBitDepth). Next: Renderer.js or Compositor.js deep pass.
 
-- Area: `mainframe/scripts/clips/lib/validate/`
-- Refs: 10,15,34,85,121
+- Area: `akvj/src/js/visuals`

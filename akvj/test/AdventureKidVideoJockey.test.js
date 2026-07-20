@@ -2,11 +2,15 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { installRAFMocks, restoreRAFMocks, createMockCanvasContext } from './utils/rendererFixture.js';
 import { waitForEvent } from './utils/waitForEvent.js';
 import AdventureKidVideoJockey from '../src/js/core/AdventureKidVideoJockey.js';
-import appState, { EVENT_PROJECT_SWITCH, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_MIDI_CONTROL_CHANGE, EVENT_VIDEO_JOCKEY_READY } from '../src/js/core/AppState.js';
+import appState, { EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_MIDI_CONTROL_CHANGE, EVENT_VIDEO_JOCKEY_READY } from '../src/js/core/AppState.js';
 import settings from '../src/js/core/settings.js';
 import ClipLoader from '../src/js/visuals/ClipLoader.js';
 import LayerManager from '../src/js/visuals/LayerManager.js';
 import Renderer from '../src/js/visuals/Renderer.js';
+
+// Captured before any spy replaces it, so a test can opt back into the real
+// teardown behaviour while the suite-wide mock stays a no-op.
+const realDestroyClips = ClipLoader.prototype.destroyClips;
 
 describe('AdventureKidVideoJockey', () => {
 	let rafMocks;
@@ -82,7 +86,7 @@ describe('AdventureKidVideoJockey', () => {
 		element.disconnectedCallback();
 	});
 
-	test('connectedCallback subscribes to midi and projectSwitch events', async () => {
+	test('connectedCallback subscribes to midi and project-switch-requested events', async () => {
 		const subscribeSpy = vi.spyOn(appState, 'subscribe');
 		const element = await connectReadyElement();
 
@@ -90,7 +94,7 @@ describe('AdventureKidVideoJockey', () => {
 		expect(subscribedEvents).toContain('midiNoteOn');
 		expect(subscribedEvents).toContain('midiNoteOff');
 		expect(subscribedEvents).toContain(EVENT_MIDI_CONTROL_CHANGE);
-		expect(subscribedEvents).toContain(EVENT_PROJECT_SWITCH);
+		expect(subscribedEvents).toContain(EVENT_PROJECT_SWITCH_REQUESTED);
 
 		subscribeSpy.mockRestore();
 		element.disconnectedCallback();
@@ -206,7 +210,7 @@ describe('AdventureKidVideoJockey', () => {
 			const setClipsSpy = vi.spyOn(LayerManager.prototype, 'setClips');
 			const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
 
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-b' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-b' } }));
 			const event = await complete;
 
 			expect(event.detail.projectId).toBe('proj-b');
@@ -224,8 +228,13 @@ describe('AdventureKidVideoJockey', () => {
 		});
 
 		test('switchProject clears active clips, mask, and effects before installing new catalog', async () => {
-			const mockClipA = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), isFinished: false };
-			const mockMask = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), bitDepth: 1, isFinished: false };
+			const mockClipA = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), destroy: vi.fn(), isFinished: false };
+			const mockMask = { play: vi.fn(), stop: vi.fn(), reset: vi.fn(), destroy: vi.fn(), bitDepth: 1, isFinished: false };
+			// Boot-time catalog, so the component holds a real prior catalog to destroy.
+			const priorCatalog = {
+				0: { 60: { 0: mockClipA } },
+				[settings.channelMapping.mixer]: { 60: { 0: mockMask } }
+			};
 
 			let layerManager;
 			const originalSetClips = LayerManager.prototype.setClips;
@@ -235,15 +244,12 @@ describe('AdventureKidVideoJockey', () => {
 			});
 			const clearClipsSpy = vi.spyOn(LayerManager.prototype, 'clearClips');
 			const destroySpy = ClipLoader.prototype.destroyClips;
+			destroySpy.mockImplementation(realDestroyClips);
+			ClipLoader.prototype.loadClips.mockResolvedValueOnce(priorCatalog);
 			const element = await connectReadyElement();
 
 			try {
 				expect(layerManager).toBeDefined();
-
-				layerManager.setClips({
-					0: { 60: { 0: mockClipA } },
-					[settings.channelMapping.mixer]: { 60: { 0: mockMask } }
-				});
 
 				layerManager.noteOn(0, 60, 100);
 				layerManager.noteOn(settings.channelMapping.mixer, 60, 127);
@@ -259,11 +265,13 @@ describe('AdventureKidVideoJockey', () => {
 				destroySpy.mockClear();
 
 				const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
-				appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-b' } }));
+				appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-b' } }));
 				await complete;
 
 				expect(clearClipsSpy).toHaveBeenCalled();
-				expect(destroySpy).toHaveBeenCalled();
+				expect(destroySpy).toHaveBeenCalledWith(priorCatalog);
+				expect(mockClipA.destroy).toHaveBeenCalled();
+				expect(mockMask.destroy).toHaveBeenCalled();
 				expect(clearClipsSpy.mock.invocationCallOrder[0]).toBeLessThan(destroySpy.mock.invocationCallOrder[0]);
 
 				expect(layerManager.getLayerGroupA().getActiveClips()).toEqual([]);
@@ -294,7 +302,7 @@ describe('AdventureKidVideoJockey', () => {
 			);
 
 			try {
-				appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
+				appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-a' } }));
 				await vi.waitFor(() => {
 					expect(appState.projectSwitching).toBe(true);
 				});
@@ -378,9 +386,9 @@ describe('AdventureKidVideoJockey', () => {
 				})
 			);
 
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-a' } }));
 			// Second request while first is in flight
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-b' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-b' } }));
 
 			await Promise.resolve();
 			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledTimes(1);
@@ -396,11 +404,11 @@ describe('AdventureKidVideoJockey', () => {
 		test('handleProjectSwitch when projectId equals current is a no-op', async () => {
 			const element = await connectReadyElement();
 			const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-a' } }));
 			await complete;
 
 			ClipLoader.prototype.loadClipsFromProject.mockClear();
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-a' } }));
 			await Promise.resolve();
 			expect(ClipLoader.prototype.loadClipsFromProject).not.toHaveBeenCalled();
 
@@ -441,7 +449,7 @@ describe('AdventureKidVideoJockey', () => {
 			const errorPromise = waitForEvent(appState, EVENT_PROJECT_LOAD_ERROR);
 			const messagePromise = waitForEvent(appState, 'userMessage');
 
-			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'bad-proj' } }));
+			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'bad-proj' } }));
 
 			const errorEvent = await errorPromise;
 			const messageEvent = await messagePromise;

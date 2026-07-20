@@ -131,13 +131,16 @@ describe('ShuffleState', () => {
 describe('StagingPreview', () => {
 	/** @type {import('../src/js/StagingPreview.js').default} */
 	let element;
+	/** @type {{ imageSmoothingEnabled: boolean, clearRect: Function, drawImage: Function }} */
+	let mockCtx;
 
 	beforeEach(() => {
-		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-			imageSmoothingEnabled: false,
+		mockCtx = {
+			imageSmoothingEnabled: true,
 			clearRect: () => {},
 			drawImage: () => {}
-		});
+		};
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx);
 		element = document.createElement('akvj-staging-preview');
 		document.body.append(element);
 	});
@@ -145,6 +148,54 @@ describe('StagingPreview', () => {
 	afterEach(() => {
 		element.remove();
 		vi.restoreAllMocks();
+	});
+
+	test('forces imageSmoothingEnabled false on connect', () => {
+		expect(mockCtx.imageSmoothingEnabled).toBe(false);
+	});
+
+	test('forces imageSmoothingEnabled false on offscreen bake cell contexts', async () => {
+		const contexts = [];
+		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
+			const ctx = {
+				imageSmoothingEnabled: true,
+				clearRect: () => {},
+				drawImage: () => {}
+			};
+			contexts.push(ctx);
+			return ctx;
+		});
+		element.remove();
+		element = document.createElement('akvj-staging-preview');
+		document.body.append(element);
+		const contextsAfterConnect = contexts.length;
+		expect(contextsAfterConnect).toBeGreaterThan(0);
+		expect(contexts[0].imageSmoothingEnabled).toBe(false);
+
+		const mockFile = new File(['pixel-data'], 'frame0.png', { type: 'image/png' });
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				this.naturalWidth = 4;
+				this.naturalHeight = 4;
+				this.width = 4;
+				this.height = 4;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames([mockFile], 240, 135, [], 'loop');
+		global.Image = originalImage;
+
+		const cellContexts = contexts.slice(contextsAfterConnect);
+		expect(cellContexts.length).toBeGreaterThan(0);
+		expect(cellContexts.every(ctx => ctx.imageSmoothingEnabled === false)).toBe(true);
 	});
 
 	test('renders canvas and controls on connect', () => {
@@ -441,7 +492,7 @@ function createRecording2dContext(canvas) {
 	};
 
 	return {
-		imageSmoothingEnabled: false,
+		imageSmoothingEnabled: true,
 		/** @type {{ sourceWidth: number, sourceHeight: number, dx: number, dy: number }[]} */
 		drawCalls: [],
 		clearRect(x, y, width, height) {
@@ -625,6 +676,7 @@ describe('StagingPreview bake/placement drawing', () => {
 		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
 
 		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 0, y: 0 }, [{ scaleMode: 'none', placement: { x: 0, y: 0 } }]);
+		expect(previewCtx.imageSmoothingEnabled).toBe(false);
 		element.querySelector('button.clip-preview-play').click();
 
 		const canvas = element.querySelector('canvas');

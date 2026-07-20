@@ -11,6 +11,7 @@
  */
 import defaultSettings from '../core/settings.js';
 import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
+import { PLAYBACK_MODE } from './clipMetadata.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip
@@ -99,7 +100,7 @@ class MaskManager {
 	 * Get the current mask's bit depth
 	 * @returns {number|null} Bit depth (1, 2, 4, 8) or null if no mask
 	 */
-	getBitDepth() {
+	getCurrentBitDepth() {
 		return this.#currentBitDepth;
 	}
 
@@ -108,7 +109,7 @@ class MaskManager {
 	 * @param {number} normalizedValue - Value from 0.0 to 1.0
 	 */
 	setScrubPosition(normalizedValue) {
-		if (this.#currentMask && !this.#currentMask.isFinished && this.#currentMask.playbackMode === 'scrub') {
+		if (this.#currentMask && !this.#currentMask.isFinished && this.#currentMask.playbackMode === PLAYBACK_MODE.SCRUB) {
 			this.#currentMask.setScrubPosition(normalizedValue);
 		}
 	}

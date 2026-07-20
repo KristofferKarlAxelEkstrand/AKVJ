@@ -38,11 +38,11 @@ describe('MappingTable', () => {
 			{ clipId: 'incomplete', pipelineReady: false }
 		];
 
-		expect(element.querySelector('.mapping-summary-count').textContent).toBe('1 mapped slot');
+		expect(element.querySelector('.mapping-summary-count').textContent).toBe('1 mapping');
 		expect(element.querySelector('.mapping-summary-unmapped').textContent).toBe('Unmapped: free-clip');
 	});
 
-	test('summary shows plural mapped slots and sorted unmapped list', () => {
+	test('summary shows plural mappings and sorted unmapped list', () => {
 		element.mappings = [
 			{ channel: 1, note: 0, velocity: 0, clipId: 'a' },
 			{ channel: 1, note: 1, velocity: 0, clipId: 'b' }
@@ -53,7 +53,7 @@ describe('MappingTable', () => {
 			{ clipId: 'a', pipelineReady: true }
 		];
 
-		expect(element.querySelector('.mapping-summary-count').textContent).toBe('2 mapped slots');
+		expect(element.querySelector('.mapping-summary-count').textContent).toBe('2 mappings');
 		expect(element.querySelector('.mapping-summary-unmapped').textContent).toBe('Unmapped: alpha, zeta');
 	});
 
@@ -96,11 +96,11 @@ describe('MappingTable', () => {
 		expect(element.querySelector('table')).toBeNull();
 	});
 
-	test('empty mappings renders empty table and 0 mapped slots summary', () => {
+	test('empty mappings renders empty table and 0 mappings summary', () => {
 		element.mappings = [];
 		element.clipCatalog = [];
 
-		expect(element.querySelector('.mapping-summary-count').textContent).toBe('0 mapped slots');
+		expect(element.querySelector('.mapping-summary-count').textContent).toBe('0 mappings');
 		expect(element.querySelector('.mapping-summary-unmapped')).toBeNull();
 		expect(element.querySelectorAll('tbody tr')).toHaveLength(0);
 		expect(element.querySelectorAll('thead th')).toHaveLength(5);

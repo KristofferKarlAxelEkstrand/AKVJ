@@ -1,0 +1,39 @@
+clip-frames-panel {
+	display: flex;
+	width: 100%;
+
+	.clip-frames-panel {
+		align-items: stretch;
+		display: flex;
+		gap: 0.5rem;
+		width: 100%;
+	}
+
+	clip-frames {
+		flex: 1;
+		min-width: 0;
+		overflow-x: auto;
+	}
+
+	.clip-frames-panel-drop {
+		display: flex;
+		flex: 0 0 auto;
+		flex-direction: column;
+		width: 8.5rem;
+
+		.drop-zone {
+			align-items: center;
+			display: flex;
+			flex: 1;
+			flex-direction: column;
+			justify-content: center;
+			min-height: 6rem;
+			padding: 0.5rem;
+			width: 100%;
+		}
+
+		.drop-zone-text {
+			font-size: 0.8rem;
+		}
+	}
+}

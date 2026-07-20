@@ -74,3 +74,7 @@
 .debug-log-entry.clock {
 	color: #888;
 }
+
+.debug-log-entry.transport {
+	color: #ff0;
+}

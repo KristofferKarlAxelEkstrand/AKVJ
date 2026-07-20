@@ -2,7 +2,7 @@ import { isValidProjectId } from '../paths.js';
 import { listProjects, getProject, createProject, updateProject, deleteProject, getActiveProjectId, setActiveProjectId, readProjectKeyMapFile, writeProjectKeyMapFile } from '../projects.js';
 import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { listClips } from '../clipCatalog.js';
-import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
+import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../../shared/mappingService.js';
 
 export async function handleGetProjects(_req, res) {
 	sendJson(res, 200, { projects: await listProjects() });

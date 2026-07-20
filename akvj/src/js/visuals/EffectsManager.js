@@ -2,8 +2,8 @@
  * EffectsManager - Manages visual effects for AKVJ
  *
  * Two effect channels:
- * - Channel 9 (mixedOutputEffects): Effects applied to mixed Layer Group A and Layer Group B output
- * - Channel 12 (globalEffects): Effects applied to entire output (after Layer Group C)
+ * - Channel 10 (mixedOutputEffects, code channel 9): Effects applied to mixed Layer Group A and Layer Group B output
+ * - Channel 13 (globalEffects, code channel 12): Effects applied to entire output (after Layer Group C)
  *
  * Key behaviors:
  * - Effects are NOT latched - Note Off immediately disables the effect
@@ -16,7 +16,7 @@ import { MAX_MIDI_NOTE } from '../core/midiConstants.js';
 
 /**
  * Effect type based on note range
- * @typedef {'split'|'mirror'|'offset'|'color'|'glitch'|'strobe'|'reserved'} EffectType
+ * @typedef {'split'|'mirror'|'offset'|'color'|'glitch'|'strobe'|'grayscaleDisplacement'|'grayscaleBlend'} EffectType
  */
 
 /**
@@ -45,7 +45,7 @@ class EffectsManager {
 	#effectRanges = settings.effectRanges;
 
 	/**
-	 * Active effects for mixed Layer Group A and Layer Group B output (channel 9)
+	 * Active effects for mixed Layer Group A and Layer Group B output
 	 * Key: effect type, Value: {note, velocity}
 	 * @type {Map<EffectType, ActiveEffect>}
 	 */
@@ -55,7 +55,7 @@ class EffectsManager {
 	#cachedMixedOutputEffects = null;
 
 	/**
-	 * Active global effects (channel 12)
+	 * Active global effects
 	 * Key: effect type, Value: {note, velocity}
 	 * @type {Map<EffectType, ActiveEffect>}
 	 */
@@ -65,8 +65,8 @@ class EffectsManager {
 	#cachedGlobalEffects = null;
 
 	/**
-	 * Precomputed map of MIDI note (0-127) to effect type.
-	 * Excludes reserved notes so callers can treat a missing type as "no effect".
+	 * Precomputed map of MIDI note (0-127) to effect type. Built from the
+	 * configured ranges, so a note outside every range has no effect.
 	 * @type {Map<number, EffectType>}
 	 */
 	#effectTypeByNote;
@@ -74,9 +74,6 @@ class EffectsManager {
 	constructor() {
 		this.#effectTypeByNote = new Map();
 		for (const [type, range] of Object.entries(this.#effectRanges)) {
-			if (type === 'reserved') {
-				continue;
-			}
 			for (let note = range.min; note <= range.max; note++) {
 				this.#effectTypeByNote.set(note, /** @type {EffectType} */ (type));
 			}

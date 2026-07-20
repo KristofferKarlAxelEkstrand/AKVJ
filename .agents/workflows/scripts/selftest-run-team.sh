@@ -218,6 +218,84 @@ rm -f "$WF/co-workers/retired.prompt.json" "$WF/co-workers/retired.prompt.md" \
 
 # ---------------------------------------------------------------------------
 echo ""
+echo "resolve_pane_target: no index guessing after a pane dies"
+# ---------------------------------------------------------------------------
+# Live defect: a tracking file recorded a pane_id, that pane died, and resolve
+# fell through to the recorded pane_index. tmux renumbers indices on pane death,
+# so the index then pointed at a *different, live* agent — and restart_agent
+# typed one agent's loop command into the other's session.
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+tmux new-session -d -s "$SESSION" -n agents
+tmux split-window -h -t "$SESSION:agents"
+sleep 0.5
+
+live_pane_id=$(tmux display-message -p -t "$SESSION:agents.1" '#{pane_id}')
+
+resolve() {
+    (cd "$TMP_ROOT" && bash -c '
+        source <(sed -n "/^resolve_pane_target()/,/^}/p" '"$SCRIPTS"'/run-team)
+        WORKFLOWS_DIR="'"$TMP_ROOT"'/.agents/workflows"
+        resolve_pane_target "'"$WORKFLOW"'" "'"$1"'"
+    ')
+}
+
+# 1. Recorded id still exists → the id wins over the index.
+jq -n --arg id "$live_pane_id" '{agent:"livepane",pane_id:$id,pane_index:0,cli:"claude"}' \
+    > "$WF/health/livepane-pane.json"
+GOT=$(resolve livepane); RC=$?
+if [ "$RC" -eq 0 ] && [ "$GOT" = "$live_pane_id" ]; then
+    pass "a live pane_id resolves to the id, not the index"
+else
+    fail "a live pane_id resolves to the id, not the index" "rc=$RC got='$GOT' want='$live_pane_id'"
+fi
+
+# 2. Recorded id is gone → nothing, never the index of whoever holds it now.
+jq -n '{agent:"deadpane",pane_id:"%999999",pane_index:1,cli:"claude"}' \
+    > "$WF/health/deadpane-pane.json"
+GOT=$(resolve deadpane); RC=$?
+if [ "$RC" -ne 0 ] && [ -z "$GOT" ]; then
+    pass "a recorded pane_id whose pane is gone resolves to nothing"
+else
+    fail "a recorded pane_id whose pane is gone resolves to nothing" \
+        "rc=$RC got='$GOT' — index fallback would have returned $SESSION:0.1"
+fi
+
+# 3. Legacy tracking file with no pane_id at all → index fallback still works.
+jq -n '{agent:"legacy",pane_index:1,cli:"claude"}' > "$WF/health/legacy-pane.json"
+GOT=$(resolve legacy); RC=$?
+if [ "$RC" -eq 0 ] && [ "$GOT" = "$SESSION:0.1" ]; then
+    pass "a legacy file with no pane_id still falls back to the index"
+else
+    fail "a legacy file with no pane_id still falls back to the index" \
+        "rc=$RC got='$GOT' want='$SESSION:0.1'"
+fi
+
+# 4. No tracking file at all → nothing.
+GOT=$(resolve nosuchagent); RC=$?
+if [ "$RC" -ne 0 ] && [ -z "$GOT" ]; then
+    pass "a missing tracking file resolves to nothing"
+else
+    fail "a missing tracking file resolves to nothing" "rc=$RC got='$GOT'"
+fi
+
+# Callers must read that empty result as "no pane" and refuse, not restart blind.
+agent_config "deadpane"
+RESTART_OUT=$(cd "$TMP_ROOT" && PATH="$TMP_ROOT/bin:/usr/local/bin:/usr/bin:/bin" \
+    timeout 20 bash "$SCRIPTS/run-team" --restart "$WORKFLOW" deadpane 2>&1)
+RESTART_RC=$?
+if [ "$RESTART_RC" -ne 0 ] && echo "$RESTART_OUT" | grep -q "Could not resolve a live pane"; then
+    pass "restart_agent refuses when no pane resolves"
+else
+    fail "restart_agent refuses when no pane resolves" \
+        "rc=$RESTART_RC out=$(echo "$RESTART_OUT" | tail -5)"
+fi
+
+rm -f "$WF/health"/{livepane,deadpane,legacy}-pane.json \
+    "$WF/co-workers/deadpane.prompt.json" "$WF/co-workers/deadpane.prompt.md"
+tmux kill-session -t "$SESSION" 2>/dev/null || true
+
+# ---------------------------------------------------------------------------
+echo ""
 echo "shell quoting (apostrophe injection)"
 # ---------------------------------------------------------------------------
 # Source only the quoting helpers — do not execute run-team's top-level side effects.

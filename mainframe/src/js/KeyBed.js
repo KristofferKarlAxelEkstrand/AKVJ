@@ -7,7 +7,7 @@ const KEY_COUNT = 128;
  * KeyBed — custom element that owns the 128-key container with flex layout,
  * horizontal scroll, and key instantiation.
  *
- * Exposes a `keys` getter and a `setMappedKeys()` method so `PianoRoll`
+ * Exposes a `keys` getter and an `applyChannelMappings()` method so `PianoRoll`
  * doesn't need to iterate children manually.
  *
  * @extends HTMLElement
@@ -47,7 +47,7 @@ class KeyBed extends HTMLElement {
 	 * @param {Array<{channel: number, note: number, velocity: number, clipId: string}>} channelMappings - mappings already filtered to the current channel
 	 * @param {'edit'|'select'|'filter'|'play'} mode
 	 */
-	setMappedKeys(channelMappings, mode) {
+	applyChannelMappings(channelMappings, mode) {
 		if (!this.#hasRendered) {
 			this.#renderKeys();
 		}

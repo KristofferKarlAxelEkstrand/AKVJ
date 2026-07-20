@@ -9,7 +9,8 @@
  * - Mixed output effects (channel 9): Effects applied to mixed Layer Group A and Layer Group B output
  * - Layer Group C (channels 10-11): Overlay layer (logos, persistent graphics)
  * - Global effects (channel 12): Effects applied to entire output
- * - Reserved (channels 13-15): Ignored
+ * - Project selection (channel 13): Handled in Midi.js (not routed here)
+ * - Reserved (channels 14-15): Ignored
  */
 import settings from '../core/settings.js';
 import LayerGroup from './LayerGroup.js';
@@ -92,7 +93,7 @@ class LayerManager {
 				noteOff: (channel, note) => this.#layerGroupA.noteOff(channel, note)
 			},
 			{
-				name: 'mask',
+				name: 'mixer',
 				noteOn: (channel, note, velocity) => this.#maskManager.noteOn(channel, note, velocity),
 				// Masks latch: they stay active until replaced, so note-off is ignored
 				noteOff: () => false

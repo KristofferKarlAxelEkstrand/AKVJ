@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import defaultSettings from '../src/js/core/settings.js';
-import { createAppState, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_PROJECT_SWITCH, EVENT_ACTIVE_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, BPM_SOURCE_CLOCK } from '../src/js/core/AppState.js';
+import { createAppState, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_MIDI_CONNECTION_CHANGED, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_CLIP_LOAD_ERROR, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, BPM_SOURCE_CLOCK } from '../src/js/core/AppState.js';
 import { MAX_MIDI_DATA_BYTE } from '../src/js/core/midiConstants.js';
 
 /** @returns {typeof defaultSettings} */
@@ -315,11 +315,44 @@ describe('AppState', () => {
 	});
 
 	describe('project events', () => {
-		test('dispatchProjectSelection dispatches projectSwitch with note', () => {
+		test('dispatchProjectSelection dispatches projectSwitchRequested with note', () => {
 			const spy = vi.fn();
-			state.subscribe(EVENT_PROJECT_SWITCH, spy);
+			state.subscribe(EVENT_PROJECT_SWITCH_REQUESTED, spy);
 			state.dispatchProjectSelection(3);
 			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { note: 3 } }));
+		});
+
+		test('dispatchProjectSwitchRequest dispatches projectSwitchRequested with projectId', () => {
+			const spy = vi.fn();
+			state.subscribe(EVENT_PROJECT_SWITCH_REQUESTED, spy);
+			state.dispatchProjectSwitchRequest('live-set');
+			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { projectId: 'live-set' } }));
+		});
+
+		test('a switch request does not announce a project change', () => {
+			const changedSpy = vi.fn();
+			state.subscribe(EVENT_PROJECT_CHANGED, changedSpy);
+			state.dispatchProjectSwitchRequest('live-set');
+			state.dispatchProjectSelection(3);
+			expect(changedSpy).not.toHaveBeenCalled();
+			expect(state.activeProjectId).toBeNull();
+		});
+
+		test('activeProjectId announces projectChanged, not a new request', () => {
+			const requestSpy = vi.fn();
+			const changedSpy = vi.fn();
+			state.subscribe(EVENT_PROJECT_SWITCH_REQUESTED, requestSpy);
+			state.subscribe(EVENT_PROJECT_CHANGED, changedSpy);
+			state.activeProjectId = 'live-set';
+			expect(changedSpy).toHaveBeenCalledWith(expect.objectContaining({ detail: { projectId: 'live-set' } }));
+			expect(requestSpy).not.toHaveBeenCalled();
+		});
+
+		test('dispatchClipLoadError dispatches clipLoadError with url and message', () => {
+			const spy = vi.fn();
+			state.subscribe(EVENT_CLIP_LOAD_ERROR, spy);
+			state.dispatchClipLoadError('/clips.json', 'network down');
+			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { url: '/clips.json', error: 'network down' } }));
 		});
 
 		test('dispatchProjectLoadComplete clears projectSwitching and dispatches', () => {
@@ -352,17 +385,16 @@ describe('AppState', () => {
 			expect(state.midiConnected).toBe(true);
 		});
 
-		test('clipsLoaded only dispatches when value changes', () => {
-			const spy = vi.fn();
-			state.subscribe(EVENT_CLIPS_LOADED_CHANGED, spy);
+		test('clipsLoaded round-trips without dispatching', () => {
 			state.clipsLoaded = true;
-			state.clipsLoaded = true;
-			expect(spy).toHaveBeenCalledTimes(1);
+			expect(state.clipsLoaded).toBe(true);
+			state.clipsLoaded = false;
+			expect(state.clipsLoaded).toBe(false);
 		});
 
 		test('activeProjectId only dispatches when value changes', () => {
 			const spy = vi.fn();
-			state.subscribe(EVENT_ACTIVE_PROJECT_CHANGED, spy);
+			state.subscribe(EVENT_PROJECT_CHANGED, spy);
 			state.activeProjectId = 'a';
 			state.activeProjectId = 'a';
 			expect(spy).toHaveBeenCalledTimes(1);

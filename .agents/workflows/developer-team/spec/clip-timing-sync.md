@@ -109,7 +109,9 @@ delays are milliseconds too. Conversion between ms and FPS goes through the shar
 (`akvj/src/js/visuals/timingConversion.js`, `mainframe/shared/frameTiming.js`) — never
 reimplemented inline.
 
-`StagingPreview` previews beat-synced clips at 120 BPM, matching the engine's default.
+`StagingPreview` previews on staged free-timing durations (default 1000 ms per frame) even when
+`sync` is `beat` — it does **not** simulate MIDI clock or a fixed BPM. Live beat lock is
+akvj-only. See [clip-editor.md](clip-editor.md).
 
 ## Not built yet
 
@@ -118,6 +120,9 @@ reimplemented inline.
 
 ## Changelog
 
+- 2026-07-20 — Re-verified: `frameDurationsMs` wired through `clipMetadata` → `Clip` →
+  `ClipTiming`; corrected false “StagingPreview at 120 BPM” (matches clip-editor.md). MIDI
+  clock / free / beat facts still hold.
 - 2026-07-20 — Written as current truth, merging two conflicting proposal specs. The per-frame
   `frameDurationBeats` model they described is gone: the engine scales total clip length via a
   speed multiplier and the pipeline rejects the old field.

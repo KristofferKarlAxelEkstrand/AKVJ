@@ -8,6 +8,7 @@ import { VALID_BIT_DEPTHS } from '../../../shared/clipSchema.js';
  * Optimization result for a single file.
  * @typedef {Object} OptimizeResult
  * @property {string} path - Source file path
+ * @property {string} [clipId] - Clip folder id
  * @property {boolean} skipped - True if file was unchanged
  * @property {boolean} optimized - True if file was optimized
  * @property {number|null} [bitDepth] - Bit depth used for conversion, null if standard optimization
@@ -212,10 +213,10 @@ async function processClipOptimization(clip, cacheDir, sharp, results, bitDepthC
 
 	try {
 		const result = await optimizeFile(clip.pngPath, cachePath, sharp, bitDepth);
-		result.clipPath = clipId;
+		result.clipId = clipId;
 		results.push(result);
 	} catch (error) {
-		results.push({ path: clip.pngPath, clipPath: clipId, skipped: false, optimized: false, bitDepth, error: error.message });
+		results.push({ path: clip.pngPath, clipId, skipped: false, optimized: false, bitDepth, error: error.message });
 	}
 
 	await copyClipJsonFiles(clip.dir, cacheDir, clipId);

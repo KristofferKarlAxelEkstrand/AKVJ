@@ -51,7 +51,7 @@ export default [
 	},
 	// Node config for build/dev tools
 	{
-		files: ['**/*.config.js', '**/scripts/**/*.js', 'monorepo-scripts/**/*.js', 'mainframe/server/**/*.js', '**/server/**/*.js', 'mainframe/scripts/**/*.js'],
+		files: ['**/*.config.js', '**/scripts/**/*.js', 'monorepo-scripts/**/*.js', 'mainframe/server/**/*.js', '**/server/**/*.js', 'mainframe/scripts/**/*.js', 'e2e/**/*.js'],
 		languageOptions: {
 			globals: {
 				...globals.node

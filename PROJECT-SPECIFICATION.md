@@ -14,7 +14,7 @@ Only specs marked `status: approved` are binding. Draft specs are informative co
 
 ## One-sentence product map
 
-- **`akvj/`** — live 240×135 / 60fps VJ engine; MIDI in → canvas out; essentially no UI (fullscreen via Enter, Space, or double-click).
+- **`akvj/`** — live 240×135 / 60fps VJ engine; MIDI in → canvas out; near-zero UI (fullscreen via Enter/Space/double-click; **D** debug overlay; transient project-switch loading — see `spec/aesthetics.md`).
 - **`mainframe/`** — backoffice for clip authoring, mapping, and projects.
 - **Bridge** — shared on-disk projects only (`projects/{projectId}/clips/`, `key-map.json`, `projects/index.json`, `active-project.json`). The pipeline copies into `akvj/src/public/` (generated; do not hand-edit). No shared JS imports between the two packages.
 

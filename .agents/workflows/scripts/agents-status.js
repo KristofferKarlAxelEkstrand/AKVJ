@@ -117,7 +117,7 @@ if (summary) {
 			'awaiting',
 			agent => {
 				const waitingOn = agent.awaiting?.waitingOn;
-				if (waitingOn == null || waitingOn === '') {
+				if (waitingOn === null || waitingOn === undefined || waitingOn === '') {
 					return '—';
 				}
 				return Array.isArray(waitingOn) ? waitingOn.join(',') : String(waitingOn);

@@ -31,9 +31,9 @@ export function decodeFrameDataUrls(frames) {
  * }}
  */
 export function parseClipFramesBody(body) {
-	const { role, frames, targetWidth, targetHeight, name, playback, frameRate, scaleMode, frameDurations, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, placement, scaling, frameBakeConfigs } = body ?? {};
+	const { role, frames, targetWidth, targetHeight, name, playback, frameRate, scaleMode, frameDurationsMs, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, placement, scaling, frameBakeConfigs } = body ?? {};
 	const frameBuffers = Array.isArray(frames) && frames.length > 0 ? decodeFrameDataUrls(frames) : null;
-	const frameRatesForFrames = Array.isArray(frameDurations) && frameDurations.length > 0 ? durationsMsToFrameRates(frameDurations) : undefined;
+	const frameRatesForFrames = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? durationsMsToFrameRates(frameDurationsMs) : undefined;
 	return {
 		role,
 		frames,
