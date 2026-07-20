@@ -12,7 +12,6 @@
 /akvj/src/public/clips
 /akvj/src/public/projects
 /akvj/src/public/active-project.json
-/active-project.json
 
 # Ignore lock files (auto-generated, not worth formatting)
 /package-lock.json
@@ -21,6 +20,3 @@
 /.agents
 /.vitest-attachments
 
-# Ignore generated MIDI spec corpus (machine-extracted, never reformat)
-/midi-mcp/data
-/midi-mcp/.cache

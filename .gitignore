@@ -53,11 +53,9 @@ test-bug-*.js
 /akvj/src/public/clips/
 /akvj/src/public/projects/
 /akvj/src/public/active-project.json
-/active-project.json
 
-# MIDI spec raw sources (copyrighted binaries, local-only; extracted text lives in midi-mcp/data/)
+# MIDI spec raw sources (copyrighted binaries, local-only)
 /.midi-raw-data/
-/midi-mcp/.cache/
 
 # System files
 Thumbs.db
