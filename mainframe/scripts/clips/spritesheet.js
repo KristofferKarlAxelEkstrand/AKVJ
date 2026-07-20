@@ -30,7 +30,7 @@ export function parseArgs(argv = process.argv.slice(2)) {
 		inputDir: null,
 		outputDir: null,
 		framesPerRow: 8,
-		frameRate: 12
+		frameRate: DEFAULT_FRAME_RATE
 	};
 
 	for (let i = 0; i < argv.length; i++) {

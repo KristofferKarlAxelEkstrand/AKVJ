@@ -1,0 +1,16 @@
+{
+	"display": "Health Inspector",
+	"model": "SWE-1.7 Max",
+	"cli": "devin",
+	"permission_mode": "yolo",
+	"enabled": false,
+	"random_wake": true,
+	"min_wait_minutes": 40,
+	"max_wait_minutes": 50,
+	"random_tasks": [
+		"Audit team health"
+	],
+	"mission_chance": 1,
+	"sweep": "health audit",
+	"_retired": "Replaced by scripts/health-report.js, which the monitor runs every pass. Re-enable only if you want narrative analysis rather than the snapshot."
+}

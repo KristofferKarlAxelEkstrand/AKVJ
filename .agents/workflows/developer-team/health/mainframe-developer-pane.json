@@ -1,1 +1,6 @@
-{"agent":"mainframe-developer","pane_index":1,"cli":"devin"}
+{
+  "agent": "mainframe-developer",
+  "pane_id": "%2",
+  "pane_index": 2,
+  "cli": "devin"
+}

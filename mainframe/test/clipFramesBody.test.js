@@ -15,11 +15,7 @@ describe('decodeFrameDataUrls', () => {
 	});
 
 	test('decodes mixed data-URL formats (png, jpeg, gif)', () => {
-		const frames = [
-			`data:image/png;base64,${PNG_B64}`,
-			`data:image/jpeg;base64,${JPEG_B64}`,
-			`data:image/gif;base64,${GIF_B64}`
-		];
+		const frames = [`data:image/png;base64,${PNG_B64}`, `data:image/jpeg;base64,${JPEG_B64}`, `data:image/gif;base64,${GIF_B64}`];
 		const buffers = decodeFrameDataUrls(frames);
 		expect(buffers).toHaveLength(3);
 		expect(buffers[0].equals(Buffer.from(PNG_B64, 'base64'))).toBe(true);

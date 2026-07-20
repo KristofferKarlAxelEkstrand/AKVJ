@@ -1,11 +1,21 @@
 #!/bin/bash
 # control-center — interactive dashboard for AI agent team management
 
-WORKFLOWS_DIR="/workspaces/AKVJ/.agents/workflows"
-AKVJ_ROOT="/workspaces/AKVJ"
 SCRIPT_DIR="$(dirname "$(realpath "$0")")"
 RUN_TEAM="$SCRIPT_DIR/run-team"
+# Derived from this script's location (.agents/workflows/scripts/) so the
+# control center works from any checkout path.
+AKVJ_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+WORKFLOWS_DIR="$AKVJ_ROOT/.agents/workflows"
 REFRESH_SECONDS=5
+
+# shellcheck source=lib/cli-tools.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/cli-tools.sh"
+
+# shellcheck source=lib/team-session.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/team-session.sh"
 
 # Colors
 G='\033[0;32m'   # green
@@ -17,6 +27,35 @@ D='\033[2m'      # dim
 N='\033[0m'      # reset
 
 cd "$AKVJ_ROOT" || { echo "Error: Cannot cd to $AKVJ_ROOT"; exit 1; }
+
+# This is a TUI: every loop and menu here is built on a blocking read. Without a
+# terminal those reads return instantly at EOF, so the redraw loop spins as fast
+# as the CPU allows (measured: ~200k iterations in 3 seconds) and the menus never
+# get an answer. Fail with a pointer instead of pretending — an agent or a cron
+# that runs this deserves an answer, not a pegged core.
+if [ ! -t 0 ]; then
+    echo "control-center needs an interactive terminal." >&2
+    echo "" >&2
+    echo "Non-interactive alternatives:" >&2
+    echo "  npm run agents:status                                  # is the team up?" >&2
+    echo "  npm run agents:health                                  # write a health snapshot" >&2
+    echo "  bash .agents/workflows/scripts/run-team --list         # running teams" >&2
+    echo "  bash .agents/workflows/scripts/run-team --ensure <wf>  # start if stopped" >&2
+    exit 1
+fi
+
+# Ensure tmux is available, offer to install if missing
+if ! command -v tmux &> /dev/null; then
+    echo "tmux is not installed — it is required to run agent teams."
+    echo -n "Install now with apt? [y/N] "
+    read -r answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        sudo apt-get install -y tmux || { echo "Install failed. Please run: sudo apt install tmux"; exit 1; }
+    else
+        echo "Install tmux and try again: sudo apt install tmux"
+        exit 1
+    fi
+fi
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -31,19 +70,34 @@ get_all_workflows() {
     done
 }
 
-session_name() { echo "${1}-agents"; }
-
-is_running() { tmux has-session -t "$(session_name "$1")" 2>/dev/null; }
-
-agent_count() {
-    tmux list-panes -t "$(session_name "$1"):agents" 2>/dev/null | wc -l | tr -d ' '
+# Liveness, read from the same place the monitor and the dashboard read it.
+#
+# This used to count tmux panes. A pane whose CLI has died still exists, so a
+# team where every agent was dead rendered as a green "11 agents". agents-status
+# checks each poller's pid instead, and owns all of that logic — this script
+# only paints what it prints.
+#
+# Records (tab-separated):
+#   team <up> <total> <down> <alerts> <flaps>
+#   down <agent> <heartbeat-age> <pid>
+#   alert <agent> <reason>
+#   flap <agent> <restarts>
+team_health() {
+    node "$SCRIPT_DIR/agents-status.js" "$1" --summary 2>/dev/null
 }
 
+# Questions waiting on a human decision.
+#
+# Markdown only. `mail/out/` holds `question-*.md` and nothing else — that is
+# what the protocol specifies, what every writer produces (the plan-approval
+# gate, the Overseer, the monitor's flap escalation), and what git history has
+# ever contained. The `*.json` this used to also match looks like it was copied
+# from the poller, which watches `.json` because it also watches
+# `health/restart-requests/`.
 outbox_files() {
     local dir="$WORKFLOWS_DIR/$1/mail/out"
     [ -d "$dir" ] || return
-    find "$dir" -maxdepth 1 -type f \( -name "*.md" -o -name "*.json" \) \
-        ! -name "README.md" ! -name ".gitkeep" 2>/dev/null | sort
+    find "$dir" -maxdepth 1 -type f -name "*.md" ! -name "README.md" 2>/dev/null | sort
 }
 
 outbox_count() { outbox_files "$1" | wc -l | tr -d ' '; }
@@ -57,6 +111,208 @@ tmux_go() {
     fi
 }
 
+drain_stdin() {
+    # Throw away any buffered input (e.g. the newline left by `read -n 1`).
+    #
+    # `read -t 0` is a poll: it reports whether input is available without
+    # consuming any, which is why a consuming read has to follow it. The catch is
+    # that bash reports **EOF as "input available"** — so on a pipe or /dev/null
+    # the poll succeeds forever while the consuming read returns nothing, and the
+    # loop never exits. That is a hard hang, not a slow path.
+    #
+    # The `&&` is the fix: a failed consume ends the loop, which is exactly the
+    # EOF case. The tty guard means we never reach it — draining only means
+    # anything at a terminal, and a terminal is the one thing that never EOFs.
+    #
+    # `local REPLY` keeps the discarded character out of the caller's REPLY,
+    # which is where a bare `read` puts what it consumed.
+    [ -t 0 ] || return 0
+    local REPLY
+    while read -r -t 0 && IFS= read -r -t 0.1 -n 1; do :; done
+}
+
+# ---------------------------------------------------------------------------
+# CLI tool detection lives in lib/cli-tools.sh — `cli_tools_bin` for the
+# product → binary map, `CLI_TOOLS_KNOWN` for the list. This file used to carry
+# its own identical copy of both.
+# ---------------------------------------------------------------------------
+
+# Live auth probes are slow. Cache the whole CLI+catalog panel so the 5s
+# teams/mail redraw does not rebuild (or visually "update") CLI info every time.
+declare -A CLI_AUTH_CACHE=()
+declare -A CLI_AUTH_CACHE_AT=()
+CLI_AUTH_CACHE_TTL=300
+CLI_PANEL_CACHE=""
+CLI_PANEL_CACHE_AT=0
+CLI_PANEL_CACHE_TTL=300
+
+cli_auth_cached() {
+    local label="$1" now
+    now=$(date +%s)
+    if [ -n "${CLI_AUTH_CACHE[$label]+x}" ] \
+        && [ $((now - ${CLI_AUTH_CACHE_AT[$label]:-0})) -lt "$CLI_AUTH_CACHE_TTL" ]; then
+        printf '%s\n' "${CLI_AUTH_CACHE[$label]}"
+        return 0
+    fi
+    CLI_AUTH_CACHE[$label]=$(cli_tools_auth_status "$label" 2>/dev/null) || true
+    CLI_AUTH_CACHE_AT[$label]=$now
+    printf '%s\n' "${CLI_AUTH_CACHE[$label]}"
+}
+
+cli_panel_invalidate() {
+    CLI_AUTH_CACHE=()
+    CLI_AUTH_CACHE_AT=()
+    CLI_PANEL_CACHE=""
+    CLI_PANEL_CACHE_AT=0
+}
+
+cli_status_line() {
+    local label="$1" path auth hint hint_color dot_color
+    path=$(cli_tools_bin "$label")
+    if [ -z "$path" ]; then
+        echo -e "  ○ $label: ${R}not installed${N}"
+        return
+    fi
+
+    auth=$(cli_auth_cached "$label")
+    if [[ "$auth" == logged\ in* ]]; then
+        dot_color="$G"
+        hint="logged in"
+        hint_color="$G"
+    else
+        dot_color="$Y"
+        hint=$(cli_tools_auth_command "$label")
+        [ -z "$hint" ] && hint="$auth"
+        hint_color="$Y"
+    fi
+
+    echo -e "  ${dot_color}●${N} $label: ${hint_color}${hint}${N}"
+}
+
+build_cli_panel() {
+    local tool
+    echo -e "${B} CLI TOOLS${N}"
+    for tool in "${CLI_TOOLS_KNOWN[@]}"; do
+        cli_status_line "$tool"
+    done
+    echo ""
+}
+
+print_cli_panel() {
+    local now
+    now=$(date +%s)
+    if [ -z "$CLI_PANEL_CACHE" ] \
+        || [ $((now - CLI_PANEL_CACHE_AT)) -ge "$CLI_PANEL_CACHE_TTL" ]; then
+        CLI_PANEL_CACHE=$(build_cli_panel)
+        CLI_PANEL_CACHE_AT=$now
+    fi
+    printf '%s\n' "$CLI_PANEL_CACHE"
+}
+
+# ---------------------------------------------------------------------------
+# Team liveness panels
+#
+# HEALTH holds one --summary block per running team, read once per draw and
+# shared by the TEAMS line and the TEAM HEALTH panel.
+# ---------------------------------------------------------------------------
+
+declare -A HEALTH=()
+
+read_health() {
+    HEALTH=()
+    local wf
+    for wf in "$@"; do
+        is_running "$wf" && HEALTH[$wf]=$(team_health "$wf")
+    done
+}
+
+# team_stats <workflow> — prints "up total down alerts flaps", or nothing when
+# the summary is missing or malformed.
+team_stats() {
+    printf '%s\n' "${HEALTH[$1]}" | awk -F'\t' '$1 == "team" { print $2, $3, $4, $5, $6 }'
+}
+
+print_teams() {
+    echo -e "${B} TEAMS${N}"
+    if [ $# -eq 0 ]; then
+        echo -e "  ${D}No workflows found in $WORKFLOWS_DIR${N}"
+        return
+    fi
+
+    local wf up total down alerts flaps dot detail
+    for wf in "$@"; do
+        if ! is_running "$wf"; then
+            echo -e "  ${D}○ $wf  stopped${N}"
+            continue
+        fi
+        if ! read -r up total down alerts flaps < <(team_stats "$wf"); then
+            echo -e "  ${Y}●${N} ${B}$wf${N}  ${Y}liveness unavailable${N}"
+            continue
+        fi
+
+        if [ "$up" -eq 0 ]; then
+            dot="$R"
+        elif [ "$up" -lt "$total" ] || [ "$alerts" -gt 0 ] || [ "$flaps" -gt 0 ]; then
+            dot="$Y"
+        else
+            dot="$G"
+        fi
+
+        detail="$up/$total up"
+        [ "$down" -gt 0 ] && detail="$detail, $down down"
+        echo -e "  ${dot}●${N} ${B}$wf${N}  ${D}$detail${N}"
+    done
+}
+
+print_team_health() {
+    echo -e "${B} TEAM HEALTH${N}"
+
+    local wf up total down alerts flaps kind agent age pid reason restarts
+    local any_running=false any_problem=false
+    for wf in "$@"; do
+        is_running "$wf" || continue
+        any_running=true
+
+        if ! read -r up total down alerts flaps < <(team_stats "$wf"); then
+            echo -e "  ${Y}?${N} $wf  ${Y}agents-status.js gave no answer${N}"
+            any_problem=true
+            continue
+        fi
+
+        if [ "$down" -eq 0 ] && [ "$alerts" -eq 0 ] && [ "$flaps" -eq 0 ]; then
+            echo -e "  ${G}✓${N} ${D}$wf  $up/$total up, no alerts${N}"
+            continue
+        fi
+        any_problem=true
+
+        while IFS=$'\t' read -r kind agent age pid; do
+            case "$kind" in
+                down)
+                    if [ "$age" = "never" ]; then
+                        echo -e "  ${R}✗${N} ${B}$wf/$agent${N}  ${R}DOWN${N} ${D}— no heartbeat, poller pid $pid gone${N}"
+                    else
+                        echo -e "  ${R}✗${N} ${B}$wf/$agent${N}  ${R}DOWN${N} ${D}— $age since heartbeat, poller pid $pid gone${N}"
+                    fi
+                    ;;
+                alert)
+                    reason="$age"
+                    echo -e "  ${Y}!${N} ${B}$wf/$agent${N}  ${Y}alert: $reason${N}"
+                    echo -e "    ${D}→${N} ${D}$WORKFLOWS_DIR/$wf/health/alerts/$agent.json${N}"
+                    ;;
+                flap)
+                    restarts="$age"
+                    echo -e "  ${Y}~${N} ${B}$wf/$agent${N}  ${Y}flapping — $restarts recent restarts${N}"
+                    echo -e "    ${D}→${N} ${D}$WORKFLOWS_DIR/$wf/health/uptime.log${N}"
+                    ;;
+            esac
+        done < <(printf '%s\n' "${HEALTH[$wf]}" | awk -F'\t' '$1 != "team"')
+    done
+
+    $any_running || echo -e "  ${D}No team running.${N}"
+    $any_problem && echo -e "  ${D}Detail: npm run agents:status${N}"
+    return 0
+}
+
 # ---------------------------------------------------------------------------
 # Screen
 # ---------------------------------------------------------------------------
@@ -65,26 +321,20 @@ draw() {
     clear
     mapfile -t workflows < <(get_all_workflows)
 
-    echo -e "${B}╔══════════════════════════════════════════╗${N}"
-    echo -e "${B}║       AKVJ Team Control Center           ║${N}"
-    echo -e "${B}╚══════════════════════════════════════════╝${N}"
+    echo -e "${B}                                                                   ${N}"
+    echo -e "${B}   CONTROL V.1.0.0                                                 ${N}"
+    echo -e "${B}   ███████████████████████████████████████████████████████████████ ${N}"
+    echo -e "${B} ░░████████████████ IS THIS GOOD FOR THE COMPANY? ████████████████ ${N}"
+    echo -e "${B} ░░███████████████████████████████████████████████████████████████ ${N}"
+    echo -e "${B} ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${N}"
     echo ""
 
-    # Teams
-    echo -e "${B} TEAMS${N}"
-    if [ ${#workflows[@]} -eq 0 ]; then
-        echo -e "  ${D}No workflows found in $WORKFLOWS_DIR${N}"
-    else
-        for wf in "${workflows[@]}"; do
-            if is_running "$wf"; then
-                local n
-                n=$(agent_count "$wf")
-                echo -e "  ${G}●${N} ${B}$wf${N}  ${D}$n agents${N}"
-            else
-                echo -e "  ${D}○ $wf  stopped${N}"
-            fi
-        done
-    fi
+    read_health "${workflows[@]}"
+
+    print_teams "${workflows[@]}"
+    echo ""
+
+    print_team_health "${workflows[@]}"
     echo ""
 
     # Outbox mail
@@ -99,16 +349,26 @@ draw() {
             fi
             echo -e "  ${Y}!${N} ${B}$wf${N}  $count message(s)"
             outbox_files "$wf" | while IFS= read -r f; do
-                echo -e "    ${D}→ $(basename "$f")${N}"
+                # Print full path — VS Code terminal auto-links file paths
+                echo -e "    ${D}→${N} ${f}"
             done
         fi
     done
     $any_mail && echo ""
 
-    echo -e "${D}──────────────────────────────────────────${N}"
-    echo -e "  ${C}s${N} Start   ${C}q${N} Stop   ${C}a${N} Attach   ${C}r${N} Restart   ${C}x${N} Exit"
-    echo -e "${D}──────────────────────────────────────────${N}"
+    # CLI + catalog panel (cached — teams/mail still refresh every 5s)
+    print_cli_panel
+    echo ""
+
+    echo -e "${B}   ███████████████████████████████████████████████████████████████ ${N}"
+    echo -e "${B} ░░██ ${C}s${N} Start ██ ${C}q${N} Stop ██ ${C}a${N} Attach ██ ${C}r${N} Restart █████████████████ ${N}"
+    echo -e "${B} ░░███████████████████████████████████████████████████████████████ ${N}"
+    echo -e "${B} ░░██ ${C}i${N} Install ██ ${C}u${N} Refresh auth ██ ${C}m${N} Refresh models ██ ${C}x${N} Exit ██ ${N}"
+    echo -e "${B} ░░███████████████████████████████████████████████████████████████ ${N}"
+    echo -e "${B} ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░  ${N}"
+    echo ""
     echo -ne "  Key or wait ${REFRESH_SECONDS}s to refresh... "
+    echo ""
 }
 
 # ---------------------------------------------------------------------------
@@ -138,6 +398,7 @@ pick_team() {
     done
     echo -ne "  Number: " >&2
     local sel
+    drain_stdin
     read -r sel
     local idx=$((sel - 1))
     if [[ "$sel" =~ ^[0-9]+$ ]] && [ -n "${options[$idx]}" ]; then
@@ -149,49 +410,117 @@ pick_team() {
 # Actions
 # ---------------------------------------------------------------------------
 
-do_start() {
-    local stopped=()
+# Ask which team to act on, offering only those in the right state.
+#
+# Every action shares this: drain the keystroke that got us here, filter the
+# workflows by whether their session is up, and ask. Only the filter, the prompt,
+# and what happens to the answer differ — so only those are arguments.
+#
+# Prints the chosen workflow name, or nothing if the user declined or none
+# qualified. All prompting inside pick_team goes to stderr, so this stays
+# capturable with $().
+#
+# pick_by_state <running|stopped> <prompt>
+pick_by_state() {
+    local want="$1" label="$2" wf
+    local options=()
     for wf in $(get_all_workflows); do
-        is_running "$wf" || stopped+=("$wf")
+        if [ "$want" = "running" ]; then
+            is_running "$wf" && options+=("$wf")
+        else
+            is_running "$wf" || options+=("$wf")
+        fi
     done
+    pick_team "$label" "${options[@]}"
+}
+
+do_start() {
+    drain_stdin
     local target
-    target=$(pick_team "Start which team?" "${stopped[@]}")
-    [ -n "$target" ] && "$RUN_TEAM" "$target"
+    target=$(pick_by_state stopped "Start which team?")
+    [ -n "$target" ] && bash "$RUN_TEAM" "$target"
 }
 
 do_stop() {
-    local running=()
-    for wf in $(get_all_workflows); do
-        is_running "$wf" && running+=("$wf")
-    done
+    drain_stdin
     local target
-    target=$(pick_team "Stop which team?" "${running[@]}")
+    target=$(pick_by_state running "Stop which team?")
     if [ -n "$target" ]; then
         echo -ne "  Stopping $target... "
-        tmux kill-session -t "$(session_name "$target")" 2>/dev/null
+        stop_team "$target"
         echo -e "${G}done${N}"
         sleep 1
     fi
 }
 
 do_attach() {
-    local running=()
-    for wf in $(get_all_workflows); do
-        is_running "$wf" && running+=("$wf")
-    done
+    drain_stdin
     local target
-    target=$(pick_team "Attach to which team?" "${running[@]}")
+    target=$(pick_by_state running "Attach to which team?")
     [ -n "$target" ] && tmux_go "$(session_name "$target")"
 }
 
+# Restart is Start's body against a running team — `run-team` opens with
+# `stop_team`, so starting an already-running workflow is a genuine restart
+# (session killed, pollers reaped, everything relaunched), not a second copy.
 do_restart() {
-    local running=()
-    for wf in $(get_all_workflows); do
-        is_running "$wf" && running+=("$wf")
-    done
+    drain_stdin
     local target
-    target=$(pick_team "Restart which team?" "${running[@]}")
-    [ -n "$target" ] && "$RUN_TEAM" "$target"
+    target=$(pick_by_state running "Restart which team?")
+    [ -n "$target" ] && bash "$RUN_TEAM" "$target"
+}
+
+do_install() {
+    drain_stdin
+    echo ""
+    echo -e "${B} CLI INSTALL COMMANDS${N}"
+    echo ""
+
+    local cli path install_command windows note
+    for cli in "${CLI_TOOLS_KNOWN[@]}"; do
+        path=$(cli_tools_bin "$cli")
+        if [ -n "$path" ]; then
+            echo -e "  ${G}●${N} ${B}$cli${N} ${D}already installed: $path${N}"
+            continue
+        fi
+
+        echo -e "  ${R}○${N} ${B}$cli${N} ${D}not found${N}"
+        install_command=$(cli_tools_install_command "$cli")
+        [ -n "$install_command" ] && echo -e "    ${C}$install_command${N}"
+        windows=$(cli_tools_install_windows "$cli")
+        [ -n "$windows" ] && echo -e "    ${D}Windows (PowerShell): $windows${N}"
+        note=$(cli_tools_install_note "$cli")
+        [ -n "$note" ] && echo -e "    ${D}$note${N}"
+    done
+
+    echo ""
+    echo -e "  ${D}Run the command for the one you want, then press ${C}u${N}${D} to re-probe auth.${N}"
+    echo ""
+    echo -ne "  Press any key to return... "
+    read -r -n 1
+    cli_panel_invalidate
+}
+
+do_refresh_auth() {
+    # Fast path: drop the 5-minute auth/panel cache so the next draw re-probes
+    # login status. Model catalog stays on m (cli_tools_refresh_catalog).
+    cli_panel_invalidate
+}
+
+do_refresh_models() {
+    drain_stdin
+    echo ""
+    echo -e "${B} REFRESH MODEL CATALOG${N}"
+    echo ""
+    echo -e "  Fetching from installed CLIs (skips unauthenticated)..."
+    echo ""
+    cli_tools_refresh_catalog
+    cli_panel_invalidate
+    echo ""
+    echo -e "  ${D}Pre-flight in run-team rejects models that belong to another CLI.${N}"
+    echo ""
+    echo -ne "  Press any key to return... "
+    read -r -n 1
 }
 
 # ---------------------------------------------------------------------------
@@ -207,6 +536,9 @@ while true; do
         q|Q) clear; do_stop ;;
         a|A) clear; do_attach ;;
         r|R) clear; do_restart ;;
+        i|I) clear; do_install ;;
+        u|U) do_refresh_auth ;;
+        m|M) clear; do_refresh_models ;;
         x|X) clear; exit 0 ;;
     esac
 done

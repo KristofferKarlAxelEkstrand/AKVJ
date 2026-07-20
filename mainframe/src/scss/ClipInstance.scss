@@ -45,13 +45,13 @@ clip-instance {
 
 	.clip-delete {
 		border-color: var(--line);
-		color: var(--err);
+		color: var(--err, #e07171);
 		font-size: 0.85rem;
 		padding: 0.35rem 0.7rem;
 	}
 
 	.clip-delete:hover {
-		background: color-mix(in srgb, var(--err) 12%, transparent);
-		border-color: var(--err);
+		background: color-mix(in srgb, var(--err, #e07171) 12%, transparent);
+		border-color: var(--err, #e07171);
 	}
 }

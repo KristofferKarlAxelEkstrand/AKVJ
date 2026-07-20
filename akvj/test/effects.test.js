@@ -430,9 +430,15 @@ describe('glitchEffect', () => {
 	test('allocates new buffer when scratch is too small', () => {
 		const img = createImageData();
 		const smallScratch = new Uint8ClampedArray(4);
+		const originalSmallScratch = new Uint8ClampedArray(smallScratch);
+		const originalPixels = new Uint8ClampedArray(img.data);
 		const mathRandomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.05);
 
-		expect(() => glitchEffect.apply(img, { velocity: 127 }, 0, { ...EFFECT_CONTEXT, scratchBuffer: smallScratch })).not.toThrow();
+		const result = glitchEffect.apply(img, { velocity: 127 }, 0, { ...EFFECT_CONTEXT, scratchBuffer: smallScratch });
+
+		expect(result).toBe(true);
+		expect(img.data).not.toEqual(originalPixels);
+		expect(smallScratch).toEqual(originalSmallScratch);
 
 		mathRandomSpy.mockRestore();
 	});

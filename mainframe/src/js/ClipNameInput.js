@@ -11,7 +11,9 @@ import '../scss/ClipNameInput.scss';
  * @returns {string}
  */
 export function cleanDisplayName(raw, { trimTrailing = false } = {}) {
-	let value = String(raw ?? '').replace(/^\s+/, '').replace(/[^\S\n]+/g, ' ');
+	let value = String(raw ?? '')
+		.replace(/^\s+/, '')
+		.replace(/[^\S\n]+/g, ' ');
 	if (trimTrailing) {
 		value = value.replace(/\s+$/, '');
 	}

@@ -1,6 +1,6 @@
 # AKVJ Multi-Agent Developer Team
 
-This directory contains an autonomous, multi-agent development workflow. The team consists of **six core** AI agents plus **two optional** specialist roles that communicate asynchronously through a file-based "Slack" system and use an efficient Node.js polling script to wait for tasks without burning API tokens.
+This directory contains an autonomous, multi-agent development workflow. The team consists of **seven core** AI agents plus **three optional** specialist roles that communicate asynchronously through a file-based "Slack" system and use an efficient Node.js polling script to wait for tasks without burning API tokens.
 
 ## How to Start the Team
 
@@ -33,6 +33,8 @@ See [WORKFLOW.md](WORKFLOW.md) for detailed documentation.
 
 **2. AKVJ Developer** - Implements features and fixes bugs in the `akvj/` visualizer — vanilla JS, 60fps canvas rendering, Web MIDI API. Runs lint and tests after every change, self-heals up to 3 times before escalating, and reports results to the Team Lead.
 
+**3a. Utility Developer** - Implements everything outside the two workspaces: root config, `monorepo-scripts/`, `.agents/workflows/scripts/`, `.github/workflows/`, e2e and smoke tiers, and sweeps that span both workspaces. Exists because that queue previously had no owner.
+
 **3. Mainframe Developer** - Implements features and fixes bugs in the `mainframe/` application — clip management, image optimization, file scaling, and the MIDI key-map UI. Runs lint, tests, and the clip pipeline after every change, self-heals up to 3 times before escalating, and reports results to the Team Lead.
 
 **4. QA Reviewer** - Audits completed developer work assigned by the Team Lead. Reviews only the scope of each task — checks code against the task's claims, verifies Vanilla JS / 60fps rules, and returns an `[APPROVED]` or `[REJECTED]` verdict. Does not run open-ended sweeps; that's the Overseer's job.
@@ -46,6 +48,10 @@ See [WORKFLOW.md](WORKFLOW.md) for detailed documentation.
 **7. Test Marshal** - Test-coverage and quality specialist — hunts coverage gaps, flaky assertions, stale tests, and wrong-tier tests. Files `[TEST]` tickets in `mail/in/` for developers to close; never writes tests itself and stays out of QA's per-task reviews. Wakes on a random 20–40 minute timer (or when pinged).
 
 **8. Quartermaster** - Dependency and configuration hygiene specialist — audits `npm audit` advisories, version skew across workspaces, lockfile anomalies, dead npm scripts, and config inconsistencies. Files `[DEPS]` tickets in `mail/in/`; runs only read-only diagnostics and never installs packages or edits `package.json`. Wakes on a random 30–60 minute timer (or when pinged).
+
+**9a. Field Tester** - Bug hunter that *runs* things rather than reading them — suites, the clip pipeline, the mainframe API with deliberately malformed payloads. Files `[BUG]` tickets carrying the exact command, the real output, and the narrowest reproduction. Never fixes anything. Wakes on a random 25–45 minute timer.
+
+*(Retired 2026-07-20: the **Health Inspector** was a stateless auditor that woke every 40–50 minutes to read JSON, subtract timestamps, and format markdown. `.agents/workflows/scripts/health-report.js` does exactly that on every monitor pass — instantly, for free, and never fifty minutes stale. Its config is kept with `"enabled": false`.)*
 
 ## How to Assign Work
 
@@ -81,11 +87,12 @@ The **Team Lead** is responsible for moving epics through this lifecycle.
 
 **What happens next?**
 - The **Team Lead** wakes instantly, reads the request, updates the dashboard, and assigns discrete tasks to the developers' slack folders
-- The **AKVJ Developer** or **Mainframe Developer** wakes, implements the work, runs lint and tests, self-heals up to 3 times, and reports back
+- The **AKVJ Developer**, **Mainframe Developer**, or **Utility Developer** wakes, implements the work, runs lint and tests, self-heals up to 3 times, and reports back
 - The **QA Reviewer** wakes when the Team Lead drops a `[TASK]-review-*` file, audits the specific task's changes, and returns `[APPROVED]` / `[REJECTED]`
 - The **Overseer** wakes every 10–20 minutes (or when pinged), alternating product bug/architecture sweeps with process hygiene audits
 - The **Nitpicker** wakes on a timer (or when pinged) for focused naming/semantics/readability sweeps, filing tidy `[NIT]` tickets in `mail/in/`
 - *(optional)* The **Test Marshal** wakes on a timer (or when pinged) to hunt coverage gaps and flaky tests, filing `[TEST]` tickets in `mail/in/`
 - *(optional)* The **Quartermaster** wakes on a timer (or when pinged) to check outdated dependencies, `npm audit` advisories, lockfile hygiene, and dead scripts, filing `[DEPS]` tickets in `mail/in/`
+- The health monitor writes a fresh `health/reports/` snapshot every pass, `npm run agents:status` answers "are the agents up?" on demand, and `npm run control-center` shows live counts plus a TEAM HEALTH panel (down agents, open alerts, flapping)
 
 Monitor the team's progress at any time by opening `.agents/workflows/developer-team/slack/general/team-dashboard.md`.

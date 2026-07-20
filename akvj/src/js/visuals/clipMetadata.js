@@ -6,8 +6,6 @@
  * the `frames ?? numberOfFrames` or `playback ?? (loop === false ? 'once' : 'loop')` logic.
  */
 
-import { durationsMsToFrameRates } from './timingConversion.js';
-
 /**
  * Canonical playback modes supported by the engine.
  * @type {readonly string[]}
@@ -24,6 +22,16 @@ export const DEFAULT_FRAME_HEIGHT = 135;
  * Default scale mode for clip frames.
  */
 export const DEFAULT_SCALE_MODE = 'fit';
+
+/**
+ * Default scaling (interpolation) for clip frames.
+ */
+export const DEFAULT_SCALING = 'nearest';
+
+/**
+ * Supported scaling (interpolation) modes.
+ */
+export const SCALING_MODES = Object.freeze(['nearest', 'smooth']);
 
 /**
  * Default playback mode when none is specified.
@@ -66,7 +74,7 @@ export const DEFAULT_PLACEMENT = Object.freeze({ x: 0, y: 0 });
  *
  * - `frames` takes priority; falls back to legacy `numberOfFrames`
  * - `playback` takes priority; falls back to legacy `loop` (false → 'once', true/undefined → 'loop')
- * - `frameRatesForFrames` takes priority; falls back to `frameDurationsMs` converted to FPS
+ * - `frameDurationsMs` takes priority; falls back to `frameRatesForFrames`
  * - Optional fields get defaults where the engine expects a value
  *
  * Does NOT mutate the input object.
@@ -83,13 +91,16 @@ export function normalizeClipMetadata(rawMeta) {
 	const playback = resolvePlayback(rawMeta);
 
 	const syncBeats = resolveSyncBeats(rawMeta);
-	const frameRatesForFrames = resolveFrameRates(rawMeta);
+	const { frameDurationsMs, frameRatesForFrames } = resolveFrameTiming(rawMeta);
+
+	const scaling = SCALING_MODES.includes(rawMeta.scaling) ? rawMeta.scaling : DEFAULT_SCALING;
 
 	return {
 		png: rawMeta.png ?? 'sprite.png',
 		frames,
 		framesPerRow: rawMeta.framesPerRow ?? null,
 		playback,
+		frameDurationsMs,
 		frameRatesForFrames,
 		syncBeats,
 		retrigger: rawMeta.retrigger ?? true,
@@ -97,6 +108,7 @@ export function normalizeClipMetadata(rawMeta) {
 		triggerType: rawMeta.triggerType ?? DEFAULT_TRIGGER_TYPE,
 		triggerGroup: rawMeta.triggerGroup ?? null,
 		scaleMode: rawMeta.scaleMode ?? DEFAULT_SCALE_MODE,
+		scaling,
 		frameWidth: rawMeta.frameWidth ?? DEFAULT_FRAME_WIDTH,
 		frameHeight: rawMeta.frameHeight ?? DEFAULT_FRAME_HEIGHT,
 		placement: resolvePlacement(rawMeta.placement),
@@ -121,28 +133,90 @@ function resolvePlayback(rawMeta) {
 }
 
 /**
- * Resolve frame rates from raw metadata, supporting both FPS-based and ms-based timing.
+ * Resolve frame timing from raw metadata, giving priority to ms-based durations.
  *
- * - `frameRatesForFrames` (object with frame index → FPS) takes priority
- * - Falls back to `frameDurationsMs` (object with frame index → ms per frame), converted to FPS
- * - Both null if neither is provided
+ * - `frameDurationsMs` (object or array of ms per frame) is normalized to a
+ *   `{frameIndex: ms}` object and wins over `frameRatesForFrames`
+ * - Falls back to `frameRatesForFrames` (object with frame index → FPS)
+ * - Both null if neither is provided or if all entries are invalid
+ *
+ * @param {Object} rawMeta
+ * @returns {{frameDurationsMs: Object|null, frameRatesForFrames: Object|null}}
+ */
+function resolveFrameTiming(rawMeta) {
+	const rawMs = rawMeta.frameDurationsMs;
+	if (isFrameDurationsMsCandidate(rawMs)) {
+		const frameDurationsMs = resolveFrameDurationsMs(rawMs);
+		return { frameDurationsMs, frameRatesForFrames: null };
+	}
+
+	return { frameDurationsMs: null, frameRatesForFrames: resolveFrameRatesForFrames(rawMeta) };
+}
+
+/**
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+function isFrameDurationsMsCandidate(value) {
+	return value !== null && typeof value === 'object';
+}
+
+/**
+ * Normalize a `frameDurationsMs` value to a `{frameIndex: ms}` object.
+ * Skips invalid, zero, and negative entries.
+ *
+ * @param {Object|Array} raw
+ * @returns {Object|null}
+ */
+function resolveFrameDurationsMs(raw) {
+	const result = {};
+
+	if (Array.isArray(raw)) {
+		for (let i = 0; i < raw.length; i++) {
+			if (typeof raw[i] === 'number' && Number.isFinite(raw[i]) && raw[i] > 0) {
+				result[i] = raw[i];
+			}
+		}
+	} else {
+		for (const [key, value] of Object.entries(raw)) {
+			const frameIndex = Number(key);
+			if (!Number.isInteger(frameIndex) || frameIndex < 0) {
+				continue;
+			}
+			if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+				result[frameIndex] = value;
+			}
+		}
+	}
+
+	return Object.keys(result).length > 0 ? result : null;
+}
+
+/**
+ * Resolve FPS-based frame timing from raw metadata.
+ * Skips invalid, zero, and negative entries.
  *
  * @param {Object} rawMeta
  * @returns {Object|null}
  */
-function resolveFrameRates(rawMeta) {
-	// Priority: frameRatesForFrames (legacy FPS-based)
-	if (rawMeta.frameRatesForFrames && typeof rawMeta.frameRatesForFrames === 'object') {
-		return rawMeta.frameRatesForFrames;
+function resolveFrameRatesForFrames(rawMeta) {
+	const raw = rawMeta.frameRatesForFrames;
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+		return null;
 	}
 
-	// Fallback: frameDurationsMs (new ms-based), convert to FPS using utility
-	if (rawMeta.frameDurationsMs && typeof rawMeta.frameDurationsMs === 'object') {
-		const frameRatesForFrames = durationsMsToFrameRates(rawMeta.frameDurationsMs);
-		return Object.keys(frameRatesForFrames).length > 0 ? frameRatesForFrames : null;
+	const result = {};
+	for (const [key, value] of Object.entries(raw)) {
+		const frameIndex = Number(key);
+		if (!Number.isInteger(frameIndex) || frameIndex < 0) {
+			continue;
+		}
+		if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+			result[frameIndex] = value;
+		}
 	}
 
-	return null;
+	return Object.keys(result).length > 0 ? result : null;
 }
 
 /**

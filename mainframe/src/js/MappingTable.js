@@ -88,9 +88,7 @@ class MappingTable extends HTMLElement {
 		thead.append(headerRow);
 
 		const tbody = document.createElement('tbody');
-		const sorted = [...this.#mappings].sort(
-			(a, b) => a.channel - b.channel || a.note - b.note || a.velocity - b.velocity
-		);
+		const sorted = [...this.#mappings].sort((a, b) => a.channel - b.channel || a.note - b.note || a.velocity - b.velocity);
 
 		for (const entry of sorted) {
 			const tr = document.createElement('tr');

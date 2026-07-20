@@ -15,7 +15,7 @@ import settings from '../core/settings.js';
 import LayerGroup from './LayerGroup.js';
 import MaskManager from './MaskManager.js';
 import EffectsManager from './EffectsManager.js';
-import { MAX_MIDI_DATA_BYTE } from './effects/effectConstants.js';
+import { MAX_MIDI_DATA_BYTE } from '../core/midiConstants.js';
 
 /**
  * @typedef {import('./Clip.js').default} Clip

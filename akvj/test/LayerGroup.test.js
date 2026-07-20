@@ -200,6 +200,23 @@ describe('LayerGroup', () => {
 		expect(active2).toEqual([]);
 	});
 
+	test('setScrubPosition only affects active scrub-mode clips', () => {
+		const scrubClip = createMockClip('scrub-clip');
+		scrubClip.playbackMode = 'scrub';
+		scrubClip.setScrubPosition = vi.fn();
+
+		const loopClip = createMockClip('loop-clip');
+		loopClip.playbackMode = 'loop';
+
+		group.setClips({ 0: { 60: { 0: scrubClip }, 61: { 0: loopClip } } });
+		group.noteOn(0, 60, 127);
+		group.noteOn(0, 61, 127);
+
+		group.setScrubPosition(0.5);
+		expect(scrubClip.setScrubPosition).toHaveBeenCalledWith(0.5);
+		expect(loopClip.setScrubPosition).toBeUndefined();
+	});
+
 	describe('trigger types', () => {
 		test('momentary: note off stops the clip', () => {
 			const clip = createMockClip('momentary-clip');
@@ -259,7 +276,7 @@ describe('LayerGroup', () => {
 		});
 	});
 
-	describe('choke groups', () => {
+	describe('trigger groups', () => {
 		test('triggering a clip stops other clips in the same trigger group', () => {
 			const clipA = createMockClip('clip-a');
 			clipA.triggerGroup = 'bg';
@@ -274,7 +291,7 @@ describe('LayerGroup', () => {
 			group.noteOn(0, 60, 127);
 			expect(group.getActiveClips()).toContain(clipA);
 
-			// Activate clipB — should stop clipA (same choke group)
+			// Activate clipB — should stop clipA (same trigger group)
 			group.noteOn(0, 61, 127);
 			expect(clipA.stop).toHaveBeenCalled();
 			expect(group.getActiveClips()).toContain(clipB);
@@ -299,7 +316,7 @@ describe('LayerGroup', () => {
 			expect(group.getActiveClips()).toContain(clipB);
 		});
 
-		test('clips without trigger group are not affected by choke groups', () => {
+		test('clips without trigger group are not affected by trigger groups', () => {
 			const clipA = createMockClip('clip-a');
 			clipA.triggerGroup = 'bg';
 			const clipB = createMockClip('clip-b');

@@ -27,18 +27,8 @@ describe('frameBake helpers', () => {
 	});
 
 	test('areFrameBakeConfigsUniform ignores custom size when mode is not custom', () => {
-		expect(
-			areFrameBakeConfigsUniform([
-				resolveFrameBakeConfig({ scaleMode: 'fit', width: 10, height: 10 }),
-				resolveFrameBakeConfig({ scaleMode: 'fit', width: 99, height: 99 })
-			])
-		).toBe(true);
-		expect(
-			areFrameBakeConfigsUniform([
-				resolveFrameBakeConfig({ scaleMode: 'custom', width: 10, height: 10 }),
-				resolveFrameBakeConfig({ scaleMode: 'custom', width: 99, height: 99 })
-			])
-		).toBe(false);
+		expect(areFrameBakeConfigsUniform([resolveFrameBakeConfig({ scaleMode: 'fit', width: 10, height: 10 }), resolveFrameBakeConfig({ scaleMode: 'fit', width: 99, height: 99 })])).toBe(true);
+		expect(areFrameBakeConfigsUniform([resolveFrameBakeConfig({ scaleMode: 'custom', width: 10, height: 10 }), resolveFrameBakeConfig({ scaleMode: 'custom', width: 99, height: 99 })])).toBe(false);
 	});
 });
 

@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> clip edit opens clip editor panel with form fields
-- Location: e2e/mainframe.spec.js:130:1
+- Location: e2e/mainframe.spec.js:164:1
 
 # Error details
 

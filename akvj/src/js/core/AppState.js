@@ -1,6 +1,8 @@
 import defaultSettings from './settings.js';
 import { MS_PER_MINUTE } from '../utils/timing.js';
-import { MAX_MIDI_DATA_BYTE } from '../visuals/effects/effectConstants.js';
+import { MAX_MIDI_DATA_BYTE } from './midiConstants.js';
+
+const MS_PER_SECOND = 1000;
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
 const EVENT_CLIPS_LOADED_CHANGED = 'clipsLoadedChanged';
@@ -280,7 +282,7 @@ class AppState extends EventTarget {
 	 */
 	#shouldProcessClockPulse(timestamp) {
 		const maxPulsesPerSecond = this.#settings.midi?.maxClockPulsesPerSecond ?? 1000;
-		const windowSizeMs = 1000; // 1 second window
+		const windowSizeMs = MS_PER_SECOND; // 1 second window
 
 		// Initialize window on first pulse
 		if (this.#clockPulseWindowStart === 0) {
@@ -328,12 +330,12 @@ class AppState extends EventTarget {
 			return;
 		}
 
-		const interval = timestamp - this.#lastClockTimestamp;
-		if (interval < 1) {
+		const intervalMs = timestamp - this.#lastClockTimestamp;
+		if (intervalMs < 1) {
 			return;
 		}
 
-		this.#recentPulseIntervals.push(interval);
+		this.#recentPulseIntervals.push(intervalMs);
 		if (this.#recentPulseIntervals.length > this.#settings.midi.ppqn) {
 			this.#recentPulseIntervals.shift();
 		}
@@ -344,12 +346,12 @@ class AppState extends EventTarget {
 	}
 
 	#calculateBPMFromClock() {
-		let total = 0;
-		for (const interval of this.#recentPulseIntervals) {
-			total += interval;
+		let totalMs = 0;
+		for (const intervalMs of this.#recentPulseIntervals) {
+			totalMs += intervalMs;
 		}
-		const avgInterval = total / this.#recentPulseIntervals.length;
-		const msPerBeat = avgInterval * this.#settings.midi.ppqn;
+		const avgIntervalMs = totalMs / this.#recentPulseIntervals.length;
+		const msPerBeat = avgIntervalMs * this.#settings.midi.ppqn;
 		const bpm = MS_PER_MINUTE / msPerBeat;
 		this.#setBPM(bpm, BPM_SOURCE_CLOCK);
 	}

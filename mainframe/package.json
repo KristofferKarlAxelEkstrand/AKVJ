@@ -25,7 +25,8 @@
 		"dev:ui": "vite",
 		"lint": "eslint --config ../eslint.config.js .",
 		"start:api": "node server/index.js",
-		"test": "vitest run",
+		"test": "vitest run --config vitest.config.js && vitest run --config vitest.ui.config.js && vitest run --config vitest.ui.heavy.config.js",
+		"test:ui": "vitest run --config vitest.ui.config.js && vitest run --config vitest.ui.heavy.config.js",
 		"test:visual": "vitest run --config vitest.visual.config.js",
 		"test:visual:update": "vitest run --config vitest.visual.config.js --update",
 		"test:watch": "vitest"

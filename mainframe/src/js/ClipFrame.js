@@ -166,16 +166,7 @@ class ClipFrame extends HTMLElement {
 			);
 		});
 
-		this.append(
-			this.#imgElement,
-			label,
-			this.#durationInput,
-			this.#scaleSelect,
-			this.#customFields,
-			this.#placementXInput,
-			this.#placementYInput,
-			removeButton
-		);
+		this.append(this.#imgElement, label, this.#durationInput, this.#scaleSelect, this.#customFields, this.#placementXInput, this.#placementYInput, removeButton);
 		this.#syncBakeConfigControls();
 	}
 

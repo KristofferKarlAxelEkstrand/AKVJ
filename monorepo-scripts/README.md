@@ -2,11 +2,11 @@
 
 Small Node utilities used from the repo root `package.json` scripts and CI. Built-ins only — this directory is **not** an npm workspace.
 
-| Script | Purpose |
-| ------ | ------- |
-| `check-line-endings.js` | Fail (or `--fix`) if tracked text files contain CRLF |
-| `check-utf8.js` | Fail (or `--fix` BOM strip) if tracked text is not UTF-8 without BOM |
-| `sort-package-json.js` | Sort `package.json` keys (root + workspaces) |
+| Script                  | Purpose                                                              |
+| ----------------------- | -------------------------------------------------------------------- |
+| `check-line-endings.js` | Fail (or `--fix`) if tracked text files contain CRLF                 |
+| `check-utf8.js`         | Fail (or `--fix` BOM strip) if tracked text is not UTF-8 without BOM |
+| `sort-package-json.js`  | Sort `package.json` keys (root + workspaces)                         |
 
 Shared helpers live in `lib/`:
 

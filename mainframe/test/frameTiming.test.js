@@ -20,9 +20,9 @@ describe('frameTiming', () => {
 
 	it('builds frameRatesForFrames from durations', () => {
 		expect(durationsMsToFrameRates([100, 50, 0])).toEqual({
-			'0': 10,
-			'1': 20,
-			'2': DEFAULT_FALLBACK_FPS
+			0: 10,
+			1: 20,
+			2: DEFAULT_FALLBACK_FPS
 		});
 	});
 });

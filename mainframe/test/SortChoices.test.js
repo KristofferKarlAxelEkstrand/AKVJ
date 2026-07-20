@@ -166,9 +166,7 @@ describe('SortChoices', () => {
 	});
 
 	test('cleans up on disconnect', () => {
-		element.choices = [
-			{ value: 'name', label: 'Name' }
-		];
+		element.choices = [{ value: 'name', label: 'Name' }];
 		element.remove();
 		expect(element.children.length).toBe(0);
 	});

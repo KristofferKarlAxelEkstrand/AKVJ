@@ -4,8 +4,6 @@
 	"framesPerRow": 1,
 	"playback": "once",
 	"retrigger": true,
-	"frameDurationsMs": [
-		41.67
-	],
+	"frameDurationsMs": [41.67],
 	"name": "My Cool Clip"
 }

@@ -1,14 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-	ACCEPTED_IMAGE_ACCEPT,
-	ACCEPTED_IMAGE_LABEL,
-	formatSkippedFilesMessage,
-	getFileExtension,
-	isAcceptedImageFile,
-	isGifFile,
-	partitionImageFiles,
-	shouldAttemptGifExpand
-} from '../src/js/acceptedImageFiles.js';
+import { ACCEPTED_IMAGE_ACCEPT, ACCEPTED_IMAGE_LABEL, formatSkippedFilesMessage, getFileExtension, isAcceptedImageFile, isGifFile, partitionImageFiles, shouldAttemptGifExpand } from '../src/js/acceptedImageFiles.js';
 
 function fakeFile(name, type) {
 	return { name, type };

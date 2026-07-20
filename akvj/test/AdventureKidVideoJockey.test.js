@@ -19,11 +19,11 @@ describe('AdventureKidVideoJockey', () => {
 		appState.reset();
 		spies = [];
 
-		spies.push(vi.spyOn(ClipLoader.prototype, 'setupClips').mockResolvedValue({}));
+		spies.push(vi.spyOn(ClipLoader.prototype, 'loadClips').mockResolvedValue({}));
 		spies.push(vi.spyOn(ClipLoader.prototype, 'fetchActiveProjectId').mockResolvedValue(null));
-		spies.push(vi.spyOn(ClipLoader.prototype, 'setupClipsFromProject').mockResolvedValue({ 'new-clip': {} }));
+		spies.push(vi.spyOn(ClipLoader.prototype, 'loadClipsFromProject').mockResolvedValue({ 'new-clip': {} }));
 		spies.push(vi.spyOn(ClipLoader.prototype, 'fetchProjectsIndex').mockResolvedValue([{ id: 'proj-a' }, { id: 'proj-b' }]));
-		spies.push(vi.spyOn(ClipLoader.prototype, 'destroy').mockImplementation(() => {}));
+		spies.push(vi.spyOn(ClipLoader.prototype, 'destroyClips').mockImplementation(() => {}));
 		spies.push(vi.spyOn(console, 'error').mockImplementation(() => {}));
 		spies.push(vi.spyOn(console, 'warn').mockImplementation(() => {}));
 
@@ -180,8 +180,8 @@ describe('AdventureKidVideoJockey', () => {
 		expect(() => element.disconnectedCallback()).not.toThrow();
 	});
 
-	test('setupClips error path: dispatches clipLoadError and sets clipsLoaded false', async () => {
-		ClipLoader.prototype.setupClips.mockRejectedValueOnce(new Error('network down'));
+	test('loadClips error path: dispatches clipLoadError and sets clipsLoaded false', async () => {
+		ClipLoader.prototype.loadClips.mockRejectedValueOnce(new Error('network down'));
 
 		const errorPromise = waitForEvent(appState, EVENT_CLIP_LOAD_ERROR);
 		const element = new AdventureKidVideoJockey();
@@ -210,7 +210,7 @@ describe('AdventureKidVideoJockey', () => {
 			const event = await complete;
 
 			expect(event.detail.projectId).toBe('proj-b');
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledWith('proj-b');
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-b');
 			expect(freezeSpy).toHaveBeenCalled();
 			expect(unfreezeSpy).toHaveBeenCalled();
 			expect(setClipsSpy).toHaveBeenCalled();
@@ -234,7 +234,7 @@ describe('AdventureKidVideoJockey', () => {
 				return originalSetClips.call(this, clips);
 			});
 			const clearClipsSpy = vi.spyOn(LayerManager.prototype, 'clearClips');
-			const destroySpy = ClipLoader.prototype.destroy;
+			const destroySpy = ClipLoader.prototype.destroyClips;
 			const element = await connectReadyElement();
 
 			try {
@@ -286,7 +286,7 @@ describe('AdventureKidVideoJockey', () => {
 			const ccSpy = vi.spyOn(LayerManager.prototype, 'handleControlChange');
 
 			let resolveLoad;
-			ClipLoader.prototype.setupClipsFromProject.mockImplementationOnce(
+			ClipLoader.prototype.loadClipsFromProject.mockImplementationOnce(
 				() =>
 					new Promise(resolve => {
 						resolveLoad = resolve;
@@ -338,7 +338,7 @@ describe('AdventureKidVideoJockey', () => {
 			const event = await complete;
 
 			expect(ClipLoader.prototype.fetchProjectsIndex).toHaveBeenCalled();
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledWith('proj-b');
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-b');
 			expect(event.detail.projectId).toBe('proj-b');
 
 			element.disconnectedCallback();
@@ -347,22 +347,22 @@ describe('AdventureKidVideoJockey', () => {
 		test('resolveProjectIdFromNote refetches index so new projects appear without reload', async () => {
 			const element = await connectReadyElement();
 			ClipLoader.prototype.fetchProjectsIndex.mockResolvedValueOnce([{ id: 'proj-a' }]);
-			ClipLoader.prototype.setupClipsFromProject.mockClear();
+			ClipLoader.prototype.loadClipsFromProject.mockClear();
 
 			const firstComplete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
 			appState.dispatchProjectSelection(0);
 			await firstComplete;
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledWith('proj-a');
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-a');
 
 			ClipLoader.prototype.fetchProjectsIndex.mockResolvedValueOnce([{ id: 'proj-a' }, { id: 'proj-b' }]);
-			ClipLoader.prototype.setupClipsFromProject.mockClear();
+			ClipLoader.prototype.loadClipsFromProject.mockClear();
 
 			const secondComplete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
 			appState.dispatchProjectSelection(1);
 			const event = await secondComplete;
 
 			expect(ClipLoader.prototype.fetchProjectsIndex).toHaveBeenCalledTimes(2);
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledWith('proj-b');
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-b');
 			expect(event.detail.projectId).toBe('proj-b');
 
 			element.disconnectedCallback();
@@ -372,7 +372,7 @@ describe('AdventureKidVideoJockey', () => {
 			const element = await connectReadyElement();
 
 			let resolveLoad;
-			ClipLoader.prototype.setupClipsFromProject.mockReturnValueOnce(
+			ClipLoader.prototype.loadClipsFromProject.mockReturnValueOnce(
 				new Promise(resolve => {
 					resolveLoad = resolve;
 				})
@@ -383,8 +383,8 @@ describe('AdventureKidVideoJockey', () => {
 			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-b' } }));
 
 			await Promise.resolve();
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledTimes(1);
-			expect(ClipLoader.prototype.setupClipsFromProject).toHaveBeenCalledWith('proj-a');
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledTimes(1);
+			expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-a');
 
 			const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
 			resolveLoad({ 'clip-a': {} });
@@ -399,10 +399,10 @@ describe('AdventureKidVideoJockey', () => {
 			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
 			await complete;
 
-			ClipLoader.prototype.setupClipsFromProject.mockClear();
+			ClipLoader.prototype.loadClipsFromProject.mockClear();
 			appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH, { detail: { projectId: 'proj-a' } }));
 			await Promise.resolve();
-			expect(ClipLoader.prototype.setupClipsFromProject).not.toHaveBeenCalled();
+			expect(ClipLoader.prototype.loadClipsFromProject).not.toHaveBeenCalled();
 
 			element.disconnectedCallback();
 		});
@@ -410,33 +410,33 @@ describe('AdventureKidVideoJockey', () => {
 		test('handleProjectSwitch when resolved projectId is null is a no-op', async () => {
 			const element = await connectReadyElement();
 			ClipLoader.prototype.fetchProjectsIndex.mockResolvedValueOnce([]);
-			ClipLoader.prototype.setupClipsFromProject.mockClear();
+			ClipLoader.prototype.loadClipsFromProject.mockClear();
 
 			appState.dispatchProjectSelection(99);
 			await Promise.resolve();
 			await Promise.resolve();
 
-			expect(ClipLoader.prototype.setupClipsFromProject).not.toHaveBeenCalled();
+			expect(ClipLoader.prototype.loadClipsFromProject).not.toHaveBeenCalled();
 			element.disconnectedCallback();
 		});
 
 		test('resolveProjectIdFromNote returns null on fetch failure', async () => {
 			const element = await connectReadyElement();
 			ClipLoader.prototype.fetchProjectsIndex.mockRejectedValueOnce(new Error('index missing'));
-			ClipLoader.prototype.setupClipsFromProject.mockClear();
+			ClipLoader.prototype.loadClipsFromProject.mockClear();
 
 			appState.dispatchProjectSelection(0);
 			await Promise.resolve();
 			await Promise.resolve();
 
-			expect(ClipLoader.prototype.setupClipsFromProject).not.toHaveBeenCalled();
+			expect(ClipLoader.prototype.loadClipsFromProject).not.toHaveBeenCalled();
 			element.disconnectedCallback();
 		});
 
 		test('switchProject error path: unfreezes, dispatches projectLoadError, shows user message', async () => {
 			const element = await connectReadyElement();
 			const unfreezeSpy = vi.spyOn(Renderer.prototype, 'unfreeze');
-			ClipLoader.prototype.setupClipsFromProject.mockRejectedValueOnce(new Error('load failed'));
+			ClipLoader.prototype.loadClipsFromProject.mockRejectedValueOnce(new Error('load failed'));
 
 			const errorPromise = waitForEvent(appState, EVENT_PROJECT_LOAD_ERROR);
 			const messagePromise = waitForEvent(appState, 'userMessage');

@@ -48,7 +48,7 @@
 - Ensure validation accepts ms arrays
 
 ### 4. Clip Schema Documentation
-**File**: `.agents/workflows/developer-team/spec/clip-schema.md`
+**File**: `.agents/workflows/developer-team/spec/clip-format.md`
 - Document `frameDurationsMs` as primary timing field
 - Mark `frameRatesForFrames` as legacy/deprecated
 - Update field descriptions and examples

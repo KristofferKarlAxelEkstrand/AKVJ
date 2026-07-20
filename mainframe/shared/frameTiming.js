@@ -5,9 +5,11 @@
 
 export const DEFAULT_FALLBACK_FPS = 12;
 
+const MS_PER_SECOND = 1000;
+
 /**
  * @param {unknown} delayMs
- * @param {number} [fallbackFps=12]
+ * @param {number} [fallbackFps=DEFAULT_FALLBACK_FPS]
  * @returns {number}
  */
 export function msToFps(delayMs, fallbackFps = DEFAULT_FALLBACK_FPS) {
@@ -16,7 +18,7 @@ export function msToFps(delayMs, fallbackFps = DEFAULT_FALLBACK_FPS) {
 	if (!Number.isFinite(ms) || ms <= 0) {
 		return fallback;
 	}
-	return 1000 / ms;
+	return MS_PER_SECOND / ms;
 }
 
 /**
@@ -24,19 +26,19 @@ export function msToFps(delayMs, fallbackFps = DEFAULT_FALLBACK_FPS) {
  * @param {number} [fallbackMs]
  * @returns {number}
  */
-export function fpsToMs(fps, fallbackMs = 1000 / DEFAULT_FALLBACK_FPS) {
+export function fpsToMs(fps, fallbackMs = MS_PER_SECOND / DEFAULT_FALLBACK_FPS) {
 	const rate = Number(fps);
-	const fallback = Number.isFinite(fallbackMs) && fallbackMs > 0 ? fallbackMs : 1000 / DEFAULT_FALLBACK_FPS;
+	const fallback = Number.isFinite(fallbackMs) && fallbackMs > 0 ? fallbackMs : MS_PER_SECOND / DEFAULT_FALLBACK_FPS;
 	if (!Number.isFinite(rate) || rate <= 0) {
 		return fallback;
 	}
-	return 1000 / rate;
+	return MS_PER_SECOND / rate;
 }
 
 /**
  * Build a `frameRatesForFrames` object from millisecond durations (current frame order).
  * @param {unknown[]} durationsMs
- * @param {number} [fallbackFps=12]
+ * @param {number} [fallbackFps=DEFAULT_FALLBACK_FPS]
  * @returns {Record<string, number>}
  */
 export function durationsMsToFrameRates(durationsMs, fallbackFps = DEFAULT_FALLBACK_FPS) {

@@ -144,12 +144,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.#renderer?.freeze();
 
 		try {
-			const newClips = await this.#clipLoader.setupClipsFromProject(projectId);
+			const newClips = await this.#clipLoader.loadClipsFromProject(projectId);
 
 			// Stop active clips/mask/effects before destroying the old catalog —
 			// setClips alone leaves runtime activation pointing at destroyed clips.
 			this.#layerManager.clearClips();
-			this.#clipLoader.destroy(this.#loadedClips);
+			this.#clipLoader.destroyClips(this.#loadedClips);
 			this.#loadedClips = newClips;
 			this.#layerManager.setClips(this.#loadedClips);
 			this.#activeProjectId = projectId;
@@ -251,7 +251,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	#destroyClipLoader() {
 		try {
-			this.#clipLoader?.destroy(this.#loadedClips);
+			this.#clipLoader?.destroyClips(this.#loadedClips);
 			this.#loadedClips = {};
 		} catch (error) {
 			console.error('Error destroying clip loader:', error);
@@ -260,7 +260,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	async #loadClipsFromUrl(jsonUrl) {
 		try {
-			this.#loadedClips = await this.#clipLoader.setupClips(jsonUrl);
+			this.#loadedClips = await this.#clipLoader.loadClips(jsonUrl);
 			this.#layerManager.setClips(this.#loadedClips);
 			appState.clipsLoaded = true;
 			return this.#loadedClips;

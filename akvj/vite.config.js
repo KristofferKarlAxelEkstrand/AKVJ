@@ -12,7 +12,7 @@ function reloadOnClipChange() {
 		handleHotUpdate({ file, server }) {
 			// Match generated public projects output (forward or backslash; Windows-safe)
 			const normalized = file.replace(/\\/g, '/');
-			if (normalized.includes('/public/projects/') || normalized.includes('/public/clips/')) {
+			if (normalized.includes('/public/projects/')) {
 				console.log('[vite] clip change detected, reloading...');
 				server.ws.send({ type: 'full-reload' });
 				return [];

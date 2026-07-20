@@ -1,3 +1,13 @@
+---
+id: aesthetics
+title: Aesthetics & Design Philosophy
+status: draft
+owner: human
+maintainer: overseer
+approved:
+verified: 2026-07-20
+---
+
 # Aesthetics & Design Philosophy
 
 This project has two distinct aesthetic requirements depending on whether you are working on the actual VJ visualizations (`akvj`) or the management interface (`mainframe`).

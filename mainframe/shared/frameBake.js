@@ -19,8 +19,7 @@ export const FRAME_BAKE_SCALE_MODES = Object.freeze(['fit', 'cover', 'stretch', 
  */
 export function resolveFrameBakeConfig(raw, cellWidth = DEFAULT_FRAME_WIDTH, cellHeight = DEFAULT_FRAME_HEIGHT) {
 	const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-	const scaleMode =
-		typeof source.scaleMode === 'string' && FRAME_BAKE_SCALE_MODES.includes(source.scaleMode) ? source.scaleMode : 'fit';
+	const scaleMode = typeof source.scaleMode === 'string' && FRAME_BAKE_SCALE_MODES.includes(source.scaleMode) ? source.scaleMode : 'fit';
 	const placement = resolvePlacement(source.placement);
 	const width = Number(source.width);
 	const height = Number(source.height);
@@ -38,12 +37,7 @@ export function resolveFrameBakeConfig(raw, cellWidth = DEFAULT_FRAME_WIDTH, cel
  * @returns {boolean}
  */
 export function frameBakeConfigsEqual(a, b) {
-	return (
-		a.scaleMode === b.scaleMode &&
-		a.placement.x === b.placement.x &&
-		a.placement.y === b.placement.y &&
-		(a.scaleMode !== 'custom' || (a.width === b.width && a.height === b.height))
-	);
+	return a.scaleMode === b.scaleMode && a.placement.x === b.placement.x && a.placement.y === b.placement.y && (a.scaleMode !== 'custom' || (a.width === b.width && a.height === b.height));
 }
 
 /**

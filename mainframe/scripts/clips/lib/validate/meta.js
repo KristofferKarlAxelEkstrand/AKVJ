@@ -1,7 +1,7 @@
 /**
  * Metadata validation rules for clip meta.json.
  */
-import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, SYNC_MODES, SYNC_LENGTH_PRESETS } from '../../../../shared/clipSchema.js';
+import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, SYNC_MODES, SYNC_LENGTH_PRESETS, SCALING_MODES } from '../../../../shared/clipSchema.js';
 import { SCALE_MODES } from '../../../../shared/frameFit.js';
 
 /**
@@ -76,6 +76,11 @@ function validateBasicFields(meta, errors) {
 	if (meta.scaleMode !== undefined) {
 		if (!SCALE_MODES.includes(meta.scaleMode)) {
 			errors.push(`scaleMode must be one of: ${SCALE_MODES.join(', ')}`);
+		}
+	}
+	if (meta.scaling !== undefined) {
+		if (!SCALING_MODES.includes(meta.scaling)) {
+			errors.push(`scaling must be one of: ${SCALING_MODES.join(', ')}`);
 		}
 	}
 	if (meta.placement !== undefined) {

@@ -1,1 +1,6 @@
-{"agent":"quartermaster","pane_index":5,"cli":"devin"}
+{
+  "agent": "quartermaster",
+  "pane_id": "%6",
+  "pane_index": 6,
+  "cli": "devin"
+}

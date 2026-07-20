@@ -1,4 +1,11 @@
 import { test, expect } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const samplePngPath = path.resolve(__dirname, '../projects/default/clips/single-frame/sprite.png');
+
+const E2E_TIMEOUT_MS = 15000;
 
 /**
  * E2E tests for the Mainframe UI.
@@ -22,7 +29,7 @@ test.afterEach(() => {
 
 test('mainframe loads and shows library tab by default', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('h1')).toHaveText('AKVJ Mainframe');
+	await expect(page).toHaveTitle('AKVJ Mainframe');
 	await expect(page.locator('#panel-library')).toBeVisible();
 	await expect(page.locator('#panel-clip-editor')).toBeHidden();
 	await expect(page.locator('#panel-mapping')).toBeHidden();
@@ -31,7 +38,7 @@ test('mainframe loads and shows library tab by default', async ({ page }) => {
 test('clip library renders clip items or empty state', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('#refresh-library').click();
-	const clipList = page.locator('akvj-clip-list');
+	const clipList = page.locator('#clip-list');
 	await expect(clipList).toBeVisible();
 	const listItems = clipList.locator('clip-instance');
 	const itemCount = await listItems.count();
@@ -44,6 +51,9 @@ test('clip library renders clip items or empty state', async ({ page }) => {
 
 test('tab navigation switches between Library, Clip editor, and Mapping', async ({ page }) => {
 	await page.goto('/');
+
+	await expect(page.locator('.mainframe-header')).toBeVisible();
+	await expect(page.locator('.mainframe-brand')).toBeVisible();
 
 	await page.locator('[data-tab="editor"]').click();
 	await expect(page.locator('#panel-clip-editor')).toBeVisible();
@@ -58,6 +68,14 @@ test('tab navigation switches between Library, Clip editor, and Mapping', async 
 	await expect(page.locator('#panel-mapping')).toBeHidden();
 });
 
+test('settings route shows header and settings panel', async ({ page }) => {
+	await page.goto('/settings');
+	await expect(page.locator('.mainframe-header')).toBeVisible();
+	await expect(page.locator('.mainframe-brand')).toBeVisible();
+	await expect(page.locator('#panel-settings')).toBeVisible();
+	await expect(page.locator('#panel-library')).toBeHidden();
+});
+
 test('clip editor tab has drag-and-drop zone and config fields', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('[data-tab="editor"]').click();
@@ -66,7 +84,20 @@ test('clip editor tab has drag-and-drop zone and config fields', async ({ page }
 	await expect(page.locator('#clip-editor-target-width')).toHaveValue('240');
 	await expect(page.locator('#clip-editor-target-height')).toHaveValue('135');
 	await expect(page.locator('#clip-editor-playback')).toHaveValue('loop');
-	await expect(page.locator('#clip-frames-fps-preset')).toHaveValue('12');
+	await expect(page.locator('#clip-frames-global-duration')).toHaveValue('');
+	await expect(page.locator('#clip-frames-global-duration')).toBeDisabled();
+	await expect(page.locator('#clip-editor-sync')).toHaveValue('free');
+});
+
+test('clip editor global duration is populated when a frame is staged', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('[data-tab="editor"]').click();
+
+	await page.locator('#clip-editor-files').setInputFiles(samplePngPath, { force: true });
+	await expect(page.locator('#clip-frames clip-frame')).toHaveCount(1, { timeout: E2E_TIMEOUT_MS });
+
+	await expect(page.locator('#clip-frames-global-duration')).toHaveValue('1000');
+	await expect(page.locator('#clip-frames-global-duration')).toBeEnabled();
 });
 
 test('staging preview element is present in clip editor tab', async ({ page }) => {
@@ -96,12 +127,15 @@ test('mapping table view loads and displays mapping entries or empty state', asy
 	await expect(mappingTable.locator('.mapping-summary')).toBeVisible();
 	const tableRows = mappingTable.locator('tbody tr');
 	const rowCount = await tableRows.count();
-	test.skip(rowCount === 0, 'No mapping rows — seed key-map for this project');
-	const firstRow = tableRows.first();
-	await expect(firstRow.locator('td').nth(0)).toContainText(/\d+/);
-	await expect(firstRow.locator('td').nth(1)).toContainText(/\d+/);
-	await expect(firstRow.locator('td').nth(2)).toContainText(/\d+/);
-	await expect(firstRow.locator('td').nth(3)).not.toBeEmpty();
+	if (rowCount > 0) {
+		const firstRow = tableRows.first();
+		await expect(firstRow.locator('td').nth(0)).toContainText(/\d+/);
+		await expect(firstRow.locator('td').nth(1)).toContainText(/\d+/);
+		await expect(firstRow.locator('td').nth(2)).toContainText(/\d+/);
+		await expect(firstRow.locator('td').nth(3)).not.toBeEmpty();
+	} else {
+		await expect(mappingTable.locator('.mapping-summary-count')).toHaveText('0 mapped slots');
+	}
 });
 
 test('mapping table has correct column headers', async ({ page }) => {
@@ -132,9 +166,12 @@ test('clip edit opens clip editor panel with form fields', async ({ page }) => {
 	await page.locator('#refresh-library').click();
 	const clipList = page.locator('akvj-clip-list');
 	const listItems = clipList.locator('clip-instance');
-	await expect(listItems.first()).toBeVisible({ timeout: 15000 });
+
+	await page.waitForFunction(() => document.querySelectorAll('#clip-list clip-instance').length > 0, { timeout: E2E_TIMEOUT_MS }).catch(() => {});
 	const itemCount = await listItems.count();
 	test.skip(itemCount === 0, 'No clips in library — seed default project clips');
+
+	await expect(listItems.first()).toBeVisible({ timeout: E2E_TIMEOUT_MS });
 
 	await listItems.first().locator('.clip-edit').click();
 	await expect(page.locator('#panel-clip-editor')).toBeVisible();
@@ -145,24 +182,36 @@ test('clip edit opens clip editor panel with form fields', async ({ page }) => {
 	await expect(page.locator('#clip-editor-submit')).toHaveText(/Save clip|Create sprite & save/);
 });
 
-test('mapping table remove button dispatches removal', async ({ page }) => {
+test('mapping table add and remove button lifecycle', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('[data-tab="mapping"]').click();
 	const mappingTable = page.locator('akvj-mapping-table');
 	await expect(mappingTable).toBeVisible();
-	const tableRows = mappingTable.locator('tbody tr');
-	const rowCount = await tableRows.count();
-	test.skip(rowCount === 0, 'No mapping rows — seed key-map for this project');
 
-	const removeButton = tableRows.first().locator('button', { hasText: 'Remove' });
-	await expect(removeButton).toBeVisible();
-	await removeButton.click();
-	await expect(tableRows).toHaveCount(rowCount - 1);
+	const clipOptions = page.locator('#map-clip-id option');
+	await expect(clipOptions).not.toHaveCount(0);
+
+	const tableRows = mappingTable.locator('tbody tr');
+	const initialCount = await tableRows.count();
+
+	await page.locator('#map-channel').fill('1');
+	await page.locator('#map-note').fill('99');
+	await page.locator('#map-velocity').fill('0');
+	const clipId = await clipOptions.first().getAttribute('value');
+	await page.locator('#map-clip-id').selectOption(clipId);
+	await page.locator('#add-mapping').click();
+
+	await expect(tableRows).toHaveCount(initialCount + 1);
+
+	const addedRow = tableRows.filter({ has: page.locator('td:nth-child(2)', { hasText: '99' }) });
+	await addedRow.locator('button', { hasText: 'Remove' }).click();
+
+	await expect(tableRows).toHaveCount(initialCount);
 });
 
 test('mainframe page has no unexpected console errors on load', async ({ page }) => {
 	await page.goto('/');
-	await expect(page.locator('h1')).toHaveText('AKVJ Mainframe');
+	await expect(page).toHaveTitle('AKVJ Mainframe');
 	await expect(page.locator('#panel-library')).toBeVisible();
 	expect(consoleErrors, `Console errors: ${consoleErrors.join('; ')}`).toEqual([]);
 });

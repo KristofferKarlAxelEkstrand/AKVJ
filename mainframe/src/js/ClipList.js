@@ -18,6 +18,7 @@ class ClipList extends HTMLElement {
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
+	#pianorollFilters = {};
 	#showMapAction = true;
 
 	/**
@@ -80,6 +81,18 @@ class ClipList extends HTMLElement {
 		return this.#sortMode;
 	}
 
+	/**
+	 * @param {object} filters
+	 */
+	set pianorollFilters(filters) {
+		this.#pianorollFilters = filters && typeof filters === 'object' ? filters : {};
+		this.#render();
+	}
+
+	get pianorollFilters() {
+		return this.#pianorollFilters;
+	}
+
 	connectedCallback() {
 		this.#render();
 	}
@@ -138,9 +151,22 @@ class ClipList extends HTMLElement {
 	}
 
 	#filterClips() {
+		const filters = this.#pianorollFilters;
+		const clipIdFilter = (filters.clipId || '').toLowerCase();
+		const triggerTypeFilter = filters.triggerType || '';
+		const rolePianoFilter = filters.role || '';
 		const filtered = this.#loadedClips.filter(clip => {
 			const clipRole = clip.meta.role || 'clip';
 			if (this.#roleFilter && clipRole !== this.#roleFilter) {
+				return false;
+			}
+			if (clipIdFilter && !clip.clipId.toLowerCase().includes(clipIdFilter)) {
+				return false;
+			}
+			if (triggerTypeFilter && clip.meta.triggerType !== triggerTypeFilter) {
+				return false;
+			}
+			if (rolePianoFilter && clip.meta.role !== rolePianoFilter) {
 				return false;
 			}
 			if (!this.#searchQuery) {

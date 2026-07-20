@@ -1,17 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import {
-	resolveLegacyFlatClipsDir,
-	resolveProjectsDir,
-	resolveProjectsIndexPath,
-	DEFAULT_PROJECT_ID,
-	projectDir,
-	projectClipsDir,
-	projectRawAssetsRoot,
-	projectKeyMapPath,
-	isValidClipId,
-	FLAT_CLIPS_MIGRATION_MARKER
-} from './paths.js';
+import { resolveLegacyFlatClipsDir, resolveProjectsDir, resolveProjectsIndexPath, DEFAULT_PROJECT_ID, projectDir, projectClipsDir, projectRawAssetsRoot, projectKeyMapPath, isValidClipId, FLAT_CLIPS_MIGRATION_MARKER } from './paths.js';
 
 const LEGACY_DOC_NAMES = ['LICENSE-ASSETS.md', 'README.md'];
 

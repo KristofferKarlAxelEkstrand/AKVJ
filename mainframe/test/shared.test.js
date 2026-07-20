@@ -1,22 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import {
-	CLIP_ID_PATTERN,
-	SAFE_PNG_NAME,
-	isValidClipId,
-	msToFps,
-	fpsToMs,
-	durationsMsToFrameRates,
-	DEFAULT_FALLBACK_FPS,
-	SCALE_MODES,
-	DEFAULT_SCALE_MODE,
-	resolveScaleMode,
-	computeFrameDrawRect,
-	DEFAULT_FRAME_WIDTH,
-	DEFAULT_FRAME_HEIGHT,
-	PLAYBACK_MODES,
-	DEFAULT_PLAYBACK,
-	DEFAULT_FRAME_RATE
-} from '../shared/index.js';
+import { CLIP_ID_PATTERN, SAFE_PNG_NAME, isValidClipId, msToFps, fpsToMs, durationsMsToFrameRates, DEFAULT_FALLBACK_FPS, SCALE_MODES, DEFAULT_SCALE_MODE, resolveScaleMode, computeFrameDrawRect, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, PLAYBACK_MODES, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE } from '../shared/index.js';
 
 describe('mainframe/shared', () => {
 	test('isValidClipId matches CLIP_ID_PATTERN rules', () => {

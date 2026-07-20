@@ -74,14 +74,22 @@ try {
     process.exit(0);
   }
 
-  // Update status to done if YAML frontmatter exists
-  let content = fs.readFileSync(sourcePath, 'utf8');
-  if (content.startsWith('---')) {
-    content = content.replace(/status:\s*\S+/, 'status: done');
-    fs.writeFileSync(sourcePath, content);
+  // Move first, then rewrite. Rewriting the source before the rename leaves the
+  // task mutated in place if the move fails.
+  fs.renameSync(sourcePath, destPath);
+
+  // Mark done inside the frontmatter block only — an unanchored replace would
+  // edit the first `status:` anywhere in the file, including prose in the body.
+  const content = fs.readFileSync(destPath, 'utf8');
+  const frontmatterMatch = content.match(/^(---\r?\n)([\s\S]*?)(\r?\n---)/);
+  if (frontmatterMatch) {
+    const [, opening, body, closing] = frontmatterMatch;
+    const updatedBody = /^status:/m.test(body)
+      ? body.replace(/^status:.*$/m, 'status: done')
+      : `${body}\nstatus: done`;
+    fs.writeFileSync(destPath, opening + updatedBody + closing + content.slice(frontmatterMatch[0].length));
   }
 
-  fs.renameSync(sourcePath, destPath);
   console.log(`Successfully moved ${targetFile} to tasks/done/ and marked as done`);
 } catch (error) {
   console.error(`Error moving file: ${error.message}`);

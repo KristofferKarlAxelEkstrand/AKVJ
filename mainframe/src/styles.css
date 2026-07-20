@@ -1,12 +1,13 @@
 /* Document baseline only — component styles live in per-element SCSS. */
 :root {
-	--bg: #12141a;
+	--page-bg: #2a2a2a;
 	--surface: #1c2030;
 	--ink: #e8e6e1;
 	--muted: #9a968c;
 	--accent: #d9773a;
 	--line: #2f3548;
 	--ok: #6fbf73;
+	--warn: #b8860b;
 	--err: #e07171;
 	--font: 'Segoe UI', 'IBM Plex Sans', sans-serif;
 }
@@ -22,7 +23,7 @@ html {
 }
 
 body {
-	background: #2a2a2a;
+	background: var(--page-bg);
 	color: var(--ink);
 	font-family: var(--font);
 	line-height: 1.45;

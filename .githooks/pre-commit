@@ -1,0 +1,48 @@
+#!/bin/sh
+# Guard rails for a repo worked on by autonomous agents.
+#
+# Every agent runs with permissions fully bypassed (`yolo` / `bypassPermissions`),
+# so "do not commit", "do not touch the supervisor" and "never commit secrets"
+# are prompt text — a rule an agent can forget mid-turn, not a control. This
+# hook is the enforcement: it runs regardless of which CLI made the change.
+#
+# The human overrides with AKVJ_HUMAN=1, e.g.
+#   AKVJ_HUMAN=1 git commit -m "..."
+#
+# Install (run-team does this automatically at pre-flight):
+#   git config core.hooksPath .githooks
+
+if [ "$AKVJ_HUMAN" = "1" ]; then
+    exit 0
+fi
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+fail() {
+    echo "pre-commit: $1" >&2
+    echo "" >&2
+    echo "The human owns commits (spec/process/collaboration-protocol.md → Git & Commits)." >&2
+    echo "If you are the human: AKVJ_HUMAN=1 git commit ..." >&2
+    exit 1
+}
+
+# 1. Secrets. Nothing here is ever a legitimate commit.
+secrets=$(echo "$staged" | grep -Ei '(^|/)\.env($|\.)|\.pem$|\.p12$|(^|/)id_rsa|credentials\.json$' || true)
+[ -n "$secrets" ] && fail "refusing to commit credentials: $(echo "$secrets" | tr '\n' ' ')"
+
+# 2. Content that looks like a live key, wherever it is.
+if git diff --cached -U0 | grep -qE '^\+.*(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----)'; then
+    fail "staged diff contains something shaped like a live credential"
+fi
+
+# 3. The supervisor. These files decide whether agents wake at all, and an agent
+#    editing them is the one change nobody else is watching.
+supervisor=$(echo "$staged" | grep -E '^\.agents/workflows/scripts/(run-team|await-messages\.js|control-center)$|^\.github/workflows/' || true)
+[ -n "$supervisor" ] && fail "refusing to commit supervisor/CI files: $(echo "$supervisor" | tr '\n' ' ')"
+
+# 4. Binary assets — the protocol reserves these for the human either way.
+binaries=$(echo "$staged" | grep -Ei '\.(png|jpg|jpeg|gif|zip|mp4|mov)$' || true)
+[ -n "$binaries" ] && fail "refusing to commit binary assets: $(echo "$binaries" | tr '\n' ' ')"
+
+exit 0

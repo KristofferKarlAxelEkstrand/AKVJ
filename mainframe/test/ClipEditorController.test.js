@@ -34,16 +34,6 @@ function mountEditorDom({ mockClipFrames = true } = {}) {
 			<div id="clip-editor-status"></div>
 			<input id="clip-frames-global-duration" type="number" value="1000" />
 			<button type="button" id="clip-frames-set-all-duration">Set all</button>
-			<select id="clip-frames-fps-preset">
-				<option value="">—</option>
-				<option value="6">6</option>
-				<option value="12" selected>12</option>
-				<option value="15">15</option>
-				<option value="24">24</option>
-				<option value="25">25</option>
-				<option value="30">30</option>
-			</select>
-			<button type="button" id="clip-frames-apply-fps-preset">Apply FPS</button>
 			<select id="clip-frames-global-bake-scale">
 				<option value="">—</option>
 				<option value="fit" selected>fit</option>
@@ -247,12 +237,6 @@ describe('ClipEditorController', () => {
 		setAll.click();
 		expect(document.getElementById('clip-frames').getDurationsMs()).toEqual([250, 250]);
 		expect(globalInput.value).toBe('250');
-	});
-
-	test('FPS preset applies the same ms as Set all (1000/fps) and disables when mixed', async () => {
-		// FPS preset UI removed as part of timing alignment - now using ms-based timing directly
-		// This test is no longer applicable
-		expect(true).toBe(true);
 	});
 
 	test('sync mode toggle shows beat fields; custom beats only for custom length', () => {

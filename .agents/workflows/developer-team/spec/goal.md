@@ -1,3 +1,13 @@
+---
+id: goal
+title: Goal & Vision
+status: draft
+owner: human
+maintainer: overseer
+approved:
+verified: 2026-07-20
+---
+
 # Overarching Goal: The Server Split & Vision
 
 The goal of this project is to maintain a strict architectural split between two highly decoupled realms: `akvj` and `mainframe`.
@@ -29,4 +39,4 @@ Still open / not yet built:
 - The user runs AKVJ for their own live sets, occasionally club nights, driven from **FL Studio** sending MIDI over a single dedicated MIDI-out device, aiming to use the full 16-channel range (untested so far — worth keeping in mind when auditing channel-routing code). Playback is meant to track the music closely (near 1:1), so **MIDI clock reliability and BPM-sync accuracy matter a lot** — this is a real, active use case, not a theoretical one.
 - AKVJ is currently their primary visual tool; they're separately exploring DMX-style lighting control as a parallel (not integrated, not urgent) system.
 - **Explicit priority signal**: the user wants the team to nail the fundamentals before building more on top. In their words, the **clip format is the backbone** and matters more right now than the Project format/feature, because Projects will be built on top of clips — get the clip format solid and testable first. They also want to actually start testing what exists rather than keep adding scope.
-- **Feature idea, not yet spec'd**: the user floated using monochrome (grayscale/black-and-white) clips as a reusable base for a family of effects, and fleshed it out further (2026-07-17): (1) grayscale-driven pixel displacement — 50% gray = no shift, values above/below shift pixels proportionally, similar to a displacement map; (2) grayscale-driven soft/smooth fades, as opposed to hard-cut effects. Drew an explicit analogy to bitmasks. Clarified to the user that this isn't as separate from bitmasks as they thought: `Compositor.js`'s multi-bit mask blending (2/4/8-bit) already treats mask pixels as grayscale for smooth crossfades — only 1-bit is a hard threshold — so this could extend existing machinery rather than needing a new pipeline. See `[FEATURE-IDEA]-grayscale-displacement-and-fade-effects.md` for full detail. Not scoped further per the user's own "think about it" — proper design pass needed once clip-format/MIDI-clock hardening is further along.
+- **Feature idea, not yet spec'd**: the user floated using monochrome (grayscale/black-and-white) clips as a reusable base for a family of effects, and fleshed it out further (2026-07-17): (1) grayscale-driven pixel displacement — 50% gray = no shift, values above/below shift pixels proportionally, similar to a displacement map; (2) grayscale-driven soft/smooth fades, as opposed to hard-cut effects. Drew an explicit analogy to bitmasks. Clarified to the user that this isn't as separate from bitmasks as they thought: `Compositor.js`'s multi-bit mask blending (2/4/8-bit) already treats mask pixels as grayscale for smooth crossfades — only 1-bit is a hard threshold — so this could extend existing machinery rather than needing a new pipeline. Full detail: `.agents/workflows/developer-team/tasks/done/82-grayscale-displacement-fade-effects.md`. Not scoped further per the user's own "think about it" — proper design pass needed once clip-format/MIDI-clock hardening is further along.

@@ -3,7 +3,7 @@
 ## Status: Complete (2026-07-19)
 
 ## Spec
-`.agents/workflows/developer-team/spec/featue-how-sync-to-bpm-works-for-clips.md`
+`.agents/workflows/developer-team/spec/clip-timing-sync.md`
 
 ## Summary
 Redesigns how the already-shipped Clip Timing & Sync feature (Tasks 136-149) computes

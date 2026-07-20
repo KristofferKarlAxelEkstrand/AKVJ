@@ -3,7 +3,7 @@
 ## Status: Done (2026-07-18)
 
 ## Spec
-`.agents/workflows/developer-team/spec/feature-keybed-for-mapping.md`
+`.agents/workflows/developer-team/spec/mapping.md`
 
 ## Summary
 Evolve the piano roll from click-to-assign into a visual velocity mapping editor with draggable regions, breakpoint handles, drag-and-drop from clip list, and bottom-sticky positioning.

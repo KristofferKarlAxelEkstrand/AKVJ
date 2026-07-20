@@ -9,7 +9,6 @@
 
 # Ignore generated clip pipeline output
 /.cache
-/akvj/src/public/clips
 /akvj/src/public/projects
 /akvj/src/public/active-project.json
 
@@ -18,5 +17,10 @@
 
 # Ignore agent tooling and test attachments
 /.agents
+/.devin
 /.vitest-attachments
+/test-results
+
+# Ignore documentation that is not source code
+/docs
 

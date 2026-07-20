@@ -12,6 +12,12 @@ export const DEFAULT_FRAME_HEIGHT = 135;
 /** Default scale mode for clip frames. */
 export const DEFAULT_SCALE_MODE = 'fit';
 
+/** Default scaling (interpolation) for clip frames. */
+export const DEFAULT_SCALING = 'nearest';
+
+/** Supported scaling (interpolation) modes. */
+export const SCALING_MODES = Object.freeze(['nearest', 'smooth']);
+
 /** Default placement offset from screen center (pixels). */
 export const DEFAULT_PLACEMENT = Object.freeze({ x: 0, y: 0 });
 

@@ -144,19 +144,19 @@ describe('Clip', () => {
 	});
 
 	test('random and shuffle playback ignore syncBeats and do not subscribe to MIDI clock', () => {
-	for (const playback of ['random', 'shuffle']) {
-		const subscribe = vi.fn();
-		const clockSource = { bpmSource: 'clock', subscribe };
-		const clip = new Clip(defaultOptions({ playback, syncBeats: 1, clockSource }));
+		for (const playback of ['random', 'shuffle']) {
+			const subscribe = vi.fn();
+			const clockSource = { bpmSource: 'clock', subscribe };
+			const clip = new Clip(defaultOptions({ playback, syncBeats: 1, clockSource }));
 
-		clip.reset();
+			clip.reset();
 
-		expect(subscribe).not.toHaveBeenCalled();
-		clip.destroy();
-	}
-});
+			expect(subscribe).not.toHaveBeenCalled();
+			clip.destroy();
+		}
+	});
 
-describe('constructor', () => {
+	describe('constructor', () => {
 		test('throws if frames is missing or less than 1', () => {
 			expect(() => new Clip(defaultOptions({ frames: 0 }))).toThrow('Clip requires frames >= 1');
 			expect(() => new Clip(defaultOptions({ frames: undefined }))).toThrow('Clip requires frames >= 1');
@@ -228,6 +228,84 @@ describe('constructor', () => {
 			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
 			expect(clip.currentFrame).toBeGreaterThan(0);
 			mockNow.mockRestore();
+		});
+	});
+
+	describe('Clip — frameDurationsMs priority', () => {
+		test('constructor accepts frameDurationsMs and passes it to ClipTiming', () => {
+			const ctx = createMockDrawContext();
+			const mockNow = vi.spyOn(performance, 'now');
+			mockNow.mockReturnValue(0);
+
+			const clip = new Clip(
+				defaultOptions({
+					displayContext: ctx,
+					frames: 2,
+					framesPerRow: 2,
+					playback: 'once',
+					frameRatesForFrames: { 0: 1000, 1: 1000 }, // 1ms per frame if FPS were used
+					frameDurationsMs: { 0: 50, 1: 100 } // ms intervals should win
+				})
+			);
+
+			clip.renderToContext(ctx, 0);
+			expect(clip.currentFrame).toBe(0);
+
+			// 40ms has not reached the 50ms frame 0 duration
+			clip.renderToContext(ctx, 40);
+			expect(clip.currentFrame).toBe(0);
+
+			// 50ms exactly reaches the frame 0 duration -> advance to frame 1
+			clip.renderToContext(ctx, 50);
+			expect(clip.currentFrame).toBe(1);
+
+			mockNow.mockRestore();
+		});
+
+		test('clip with both frameRatesForFrames and frameDurationsMs advances using ms intervals', () => {
+			const ctx = createMockDrawContext();
+			const clip = new Clip(
+				defaultOptions({
+					displayContext: ctx,
+					frames: 4,
+					framesPerRow: 4,
+					playback: 'once',
+					frameRatesForFrames: { 0: 1000, 1: 1000, 2: 1000, 3: 1000 },
+					frameDurationsMs: { 0: 50, 1: 100, 2: 25, 3: 75 }
+				})
+			);
+
+			clip.renderToContext(ctx, 0);
+			expect(clip.currentFrame).toBe(0);
+
+			clip.renderToContext(ctx, 50);
+			expect(clip.currentFrame).toBe(1);
+
+			clip.renderToContext(ctx, 150); // 50 + 100
+			expect(clip.currentFrame).toBe(2);
+
+			clip.renderToContext(ctx, 175); // + 25
+			expect(clip.currentFrame).toBe(3);
+		});
+
+		test('handles frameDurationsMs: null without throwing', () => {
+			const ctx = createMockDrawContext();
+			const clip = new Clip(
+				defaultOptions({
+					displayContext: ctx,
+					frames: 2,
+					framesPerRow: 2,
+					playback: 'once',
+					frameDurationsMs: null,
+					frameRatesForFrames: { 0: 1000 }
+				})
+			);
+
+			clip.renderToContext(ctx, 0);
+			expect(clip.currentFrame).toBe(0);
+
+			clip.renderToContext(ctx, 1);
+			expect(clip.currentFrame).toBe(1);
 		});
 	});
 

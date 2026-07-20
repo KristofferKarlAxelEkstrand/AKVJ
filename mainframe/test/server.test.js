@@ -193,6 +193,29 @@ describe('DELETE /api/clips/:clipId', () => {
 		expect(status).toBe(400);
 		expect(data.error).toBe('Invalid clipId');
 	});
+
+	test('prunes mapping slots that reference the deleted clip', async () => {
+		await fetchJson('PUT', '/api/mapping', {
+			mapping: [
+				{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' },
+				{ channel: 2, note: 5, velocity: 10, clipId: 'delete-me' }
+			]
+		});
+
+		const { status, data } = await fetchJson('DELETE', '/api/clips/delete-me');
+		expect(status).toBe(200);
+		expect(data.ok).toBe(true);
+
+		const { data: mappingData } = await fetchJson('GET', '/api/mapping');
+		expect(mappingData.mapping).toHaveLength(1);
+		expect(mappingData.mapping[0].clipId).toBe('test-clip-a');
+
+		const put = await fetchJson('PUT', '/api/mapping', {
+			mapping: [{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' }]
+		});
+		expect(put.status).toBe(200);
+		expect(put.data.ok).toBe(true);
+	});
 });
 
 describe('POST /api/clips', () => {
@@ -353,8 +376,7 @@ describe('POST /api/clips', () => {
 
 describe('POST /api/expand-gif', () => {
 	/** 2×2 two-frame animated GIF; delays 100ms and 250ms. */
-	const ANIMATED_GIF_2FRAME =
-		'R0lGODlhAgACAPAAAP8AAAAAACH5BAAKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAAgACAAACAoRRACH5BAAZAAAALAAAAAACAAIAgAD/AAAAAAIChFEAOw==';
+	const ANIMATED_GIF_2FRAME = 'R0lGODlhAgACAPAAAP8AAAAAACH5BAAKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAAgACAAACAoRRACH5BAAZAAAALAAAAAACAAIAgAD/AAAAAAIChFEAOw==';
 
 	test('expands animated GIF into PNG frames with delays', async () => {
 		const { status, data } = await fetchJson('POST', '/api/expand-gif', {
@@ -372,6 +394,32 @@ describe('POST /api/expand-gif', () => {
 		const { status, data } = await fetchJson('POST', '/api/expand-gif', {});
 		expect(status).toBe(400);
 		expect(data.error).toMatch(/image/i);
+	});
+
+	test('accepts body.gif as an alias for body.image', async () => {
+		const { status, data } = await fetchJson('POST', '/api/expand-gif', { gif: ANIMATED_GIF_2FRAME });
+		expect(status).toBe(200);
+		expect(data.animated).toBe(true);
+		expect(data.frames).toHaveLength(2);
+	});
+
+	test('accepts body.data as an alias for body.image', async () => {
+		const { status, data } = await fetchJson('POST', '/api/expand-gif', { data: ANIMATED_GIF_2FRAME });
+		expect(status).toBe(200);
+		expect(data.animated).toBe(true);
+		expect(data.frames).toHaveLength(2);
+	});
+
+	test('rejects empty/whitespace-only base64 image', async () => {
+		const { status, data } = await fetchJson('POST', '/api/expand-gif', { image: '   ' });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/invalid image/i);
+	});
+
+	test('returns 400 when expandGifBuffer throws', async () => {
+		const { status, data } = await fetchJson('POST', '/api/expand-gif', { image: 'not-a-gif' });
+		expect(status).toBe(400);
+		expect(data.error).toBeDefined();
 	});
 });
 
@@ -518,7 +566,10 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 			triggerType: 'latch',
 			triggerGroup: 'masks',
 			bitDepth: 4,
-			frameDurationBeats: [0.25],
+			sync: 'beat',
+			syncLength: 'custom',
+			syncBeats: 1,
+			beatsPerBar: 3,
 			syncOptionalMeta: true
 		});
 		expect(created.status).toBe(201);
@@ -527,7 +578,10 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		expect(meta.triggerType).toBe('latch');
 		expect(meta.triggerGroup).toBe('masks');
 		expect(meta.bitDepth).toBe(4);
-		expect(meta.frameDurationBeats).toEqual([0.25]);
+		expect(meta.sync).toBe('beat');
+		expect(meta.syncLength).toBe('custom');
+		expect(meta.syncBeats).toBe(1);
+		expect(meta.beatsPerBar).toBe(3);
 
 		const updated = await fetchJson('PUT', '/api/clips/frames-api-clip', {
 			retrigger: true,
@@ -535,7 +589,10 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 			triggerGroup: null,
 			role: null,
 			bitDepth: null,
-			frameDurationBeats: 0.5
+			sync: 'free',
+			syncLength: null,
+			syncBeats: null,
+			beatsPerBar: null
 		});
 		expect(updated.status).toBe(200);
 		expect(updated.data.meta.retrigger).toBe(true);
@@ -543,7 +600,10 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		expect(updated.data.meta.triggerGroup).toBeUndefined();
 		expect(updated.data.meta.role).toBeUndefined();
 		expect(updated.data.meta.bitDepth).toBeUndefined();
-		expect(updated.data.meta.frameDurationBeats).toBe(0.5);
+		expect(updated.data.meta.sync).toBe('free');
+		expect(updated.data.meta.syncLength).toBeUndefined();
+		expect(updated.data.meta.syncBeats).toBeUndefined();
+		expect(updated.data.meta.beatsPerBar).toBeUndefined();
 	});
 });
 
@@ -595,6 +655,21 @@ describe('PUT /api/clips/:clipId', () => {
 		});
 		expect(status).toBe(400);
 		expect(data.error).toBe('Invalid clipId');
+	});
+
+	test.each([
+		{ body: { frames: 'banana' }, label: 'frames string' },
+		{ body: { framesPerRow: 'banana' }, label: 'framesPerRow string' },
+		{ body: { playback: 'banana' }, label: 'invalid playback' },
+		{ body: { frameRatesForFrames: 'banana' }, label: 'frameRatesForFrames string' },
+		{ body: { sync: 'banana' }, label: 'invalid sync' },
+		{ body: { sync: 'beat' }, label: 'beat sync missing syncLength' },
+		{ body: { placement: { x: 'nope' } }, label: 'placement.x non-numeric' },
+		{ body: { bitDepth: 16 }, label: 'invalid bitDepth' }
+	])('returns 400 for invalid meta value shape: $label', async ({ body }) => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', body);
+		expect(status).toBe(400);
+		expect(data.error).toBeDefined();
 	});
 });
 
@@ -680,7 +755,6 @@ describe('Projects API', () => {
 		expect(updated.status).toBe(200);
 		expect(updated.data.mapping).toEqual([{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' }]);
 	});
-
 
 	test('createProject seeds clips from copyFrom project', async () => {
 		await fs.mkdir(path.join(testClipsDir, 'seed-source-clip'), { recursive: true });
@@ -788,10 +862,7 @@ describe('POST /api/clips/:clipId/recompile', () => {
 		const clipId = 'recompile-no-raw';
 		await fs.mkdir(path.join(testClipsDir, clipId), { recursive: true });
 		await fs.writeFile(path.join(testClipsDir, clipId, 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
-		await fs.writeFile(
-			path.join(testClipsDir, clipId, 'meta.json'),
-			JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 })
-		);
+		await fs.writeFile(path.join(testClipsDir, clipId, 'meta.json'), JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 }));
 		await fs.rm(path.join(testRawAssetsDir, clipId), { recursive: true, force: true });
 
 		const { status, data } = await fetchJson('POST', `/api/clips/${clipId}/recompile`, {});
@@ -853,5 +924,149 @@ describe('Malformed JSON request bodies', () => {
 		const { status, data } = await fetchJsonRaw('POST', '/api/expand-gif', '{ bad');
 		expect(status).toBe(400);
 		expect(data.error).toBe('Invalid JSON in request body');
+	});
+});
+
+describe('GET /api/clips/:clipId/sprite edge cases', () => {
+	afterEach(async () => {
+		await fs.rm(path.join(testClipsDir, 'sprite-missing'), { recursive: true, force: true });
+		await fs.rm(path.join(testClipsDir, 'sprite-fallback'), { recursive: true, force: true });
+	});
+
+	test('returns 404 with message when sprite PNG is missing', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'sprite-missing'), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, 'sprite-missing', 'meta.json'), JSON.stringify({ png: 'other.png', frames: 1, framesPerRow: 1 }));
+
+		const { status, data } = await fetchJson('GET', '/api/clips/sprite-missing/sprite');
+		expect(status).toBe(404);
+		expect(data.error).toContain('other.png');
+		expect(data.error).toContain('sprite-missing');
+	});
+
+	test('falls back to sprite.png when meta.png is missing', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'sprite-fallback'), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, 'sprite-fallback', 'meta.json'), JSON.stringify({ frames: 1, framesPerRow: 1 }));
+		await fs.writeFile(path.join(testClipsDir, 'sprite-fallback', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+
+		const response = await fetch(`${baseUrl}/api/clips/sprite-fallback/sprite`);
+		expect(response.status).toBe(200);
+		expect(response.headers.get('content-type')).toBe('image/png');
+		const buffer = Buffer.from(await response.arrayBuffer());
+		expect(buffer.length).toBeGreaterThan(0);
+	});
+});
+
+describe('PUT /api/clips/:clipId meta edge cases', () => {
+	afterEach(async () => {
+		for (const id of ['bad-meta', 'no-meta', 'unreadable-meta', 'invalid-png']) {
+			await fs.rm(path.join(testClipsDir, id), { recursive: true, force: true });
+		}
+	});
+
+	test('returns 400 when png is updated to an invalid/traversing filename', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'invalid-png'), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, 'invalid-png', 'meta.json'), JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1 }));
+		await fs.writeFile(path.join(testClipsDir, 'invalid-png', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/invalid-png', { png: '../evil.png' });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/invalid png filename/i);
+	});
+
+	test('returns 400 when meta.json is invalid JSON', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'bad-meta'), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, 'bad-meta', 'meta.json'), '{ not json');
+		await fs.writeFile(path.join(testClipsDir, 'bad-meta', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/bad-meta', { frames: 2 });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/invalid meta\.json/i);
+	});
+
+	test('returns 404 when the clip has no meta.json', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'no-meta'), { recursive: true });
+		await fs.writeFile(path.join(testClipsDir, 'no-meta', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/no-meta', { frames: 2 });
+		expect(status).toBe(404);
+		expect(data.error).toMatch(/no meta\.json/i);
+	});
+
+	test('returns 400 when meta.json is unreadable', async () => {
+		await fs.mkdir(path.join(testClipsDir, 'unreadable-meta'), { recursive: true });
+		await fs.mkdir(path.join(testClipsDir, 'unreadable-meta', 'meta.json'));
+		await fs.writeFile(path.join(testClipsDir, 'unreadable-meta', 'sprite.png'), Buffer.from(PNG_4x4, 'base64'));
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/unreadable-meta', { frames: 2 });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/invalid meta\.json/i);
+	});
+});
+
+describe('GET /api/clips/:clipId/frames edge cases', () => {
+	test('returns 404 for a clip that does not exist', async () => {
+		const { status, data } = await fetchJson('GET', '/api/clips/no-such-clip-ever/frames');
+		expect(status).toBe(404);
+		expect(data.error).toMatch(/not found/i);
+	});
+});
+
+describe('PUT /api/clips/:clipId/frames edge cases', () => {
+	test('returns 404 for a clip that does not exist', async () => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/no-such-clip-ever/frames', {
+			frames: [PNG_4x4]
+		});
+		expect(status).toBe(404);
+		expect(data.error).toMatch(/not found/i);
+	});
+});
+
+describe('POST /api/clips/:clipId/recompile edge cases', () => {
+	afterEach(async () => {
+		await fs.rm(path.join(testClipsDir, 'recompile-scale'), { recursive: true, force: true });
+		await fs.rm(path.join(testClipsDir, 'recompile-durations'), { recursive: true, force: true });
+		await fs.rm(path.join(testRawAssetsDir, 'recompile-scale'), { recursive: true, force: true });
+		await fs.rm(path.join(testRawAssetsDir, 'recompile-durations'), { recursive: true, force: true });
+	});
+
+	test('reads scaleMode from existing meta.json when request body omits it', async () => {
+		await fetchJson('POST', '/api/clips', {
+			clipId: 'recompile-scale',
+			frames: [PNG_4x4, PNG_4x4],
+			targetWidth: 16,
+			targetHeight: 9,
+			scaleMode: 'cover'
+		});
+
+		const { status, data } = await fetchJson('POST', '/api/clips/recompile-scale/recompile', {
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		expect(status).toBe(200);
+		expect(data.ok).toBe(true);
+
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'recompile-scale', 'meta.json'), 'utf8'));
+		expect(meta.scaleMode).toBe('cover');
+		expect(meta.frameWidth).toBe(8);
+		expect(meta.frameHeight).toBe(8);
+	});
+
+	test('converts frameDurations to frameRatesForFrames and applies them', async () => {
+		await fetchJson('POST', '/api/clips', {
+			clipId: 'recompile-durations',
+			frames: [PNG_4x4, PNG_4x4],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+
+		const { status, data } = await fetchJson('POST', '/api/clips/recompile-durations/recompile', {
+			frameDurations: [100, 50]
+		});
+		expect(status).toBe(200);
+		expect(data.ok).toBe(true);
+
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'recompile-durations', 'meta.json'), 'utf8'));
+		expect(meta.frameRatesForFrames['0']).toBe(10);
+		expect(meta.frameRatesForFrames['1']).toBe(20);
 	});
 });

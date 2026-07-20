@@ -12,12 +12,12 @@ import { collectNestedKeyMapErrors } from '../../../server/mappingService.js';
  */
 export async function validateKeyMap(sourceDir, validClips, keyMapPath) {
 	const validIds = new Set(validClips.map(clip => clip.clipId));
-	const keyMap = await loadKeyMap(keyMapPath ?? path.join(sourceDir, 'key-map.json'));
-	if (keyMap.errors) {
-		return { errors: keyMap.errors };
+	const keyMapResult = await loadKeyMap(keyMapPath ?? path.join(sourceDir, 'key-map.json'));
+	if (keyMapResult.errors) {
+		return { errors: keyMapResult.errors };
 	}
 
-	return { errors: collectNestedKeyMapErrors(keyMap.data, validIds) };
+	return { errors: collectNestedKeyMapErrors(keyMapResult.keyMap, validIds) };
 }
 
 async function loadKeyMap(keyMapPath) {
@@ -39,5 +39,5 @@ async function loadKeyMap(keyMapPath) {
 	if (!keyMap || typeof keyMap !== 'object' || Array.isArray(keyMap)) {
 		return { errors: [{ path: 'key-map.json', errors: ['Must be a JSON object keyed by channel number'] }] };
 	}
-	return { data: keyMap };
+	return { keyMap };
 }

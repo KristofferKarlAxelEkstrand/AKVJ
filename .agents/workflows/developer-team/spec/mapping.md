@@ -1,0 +1,98 @@
+---
+id: mapping
+title: MIDI Mapping & Piano Roll
+status: draft
+owner: human
+maintainer: overseer
+approved:
+verified: 2026-07-20
+supersedes: [feature-keybed-for-mapping]
+---
+
+# MIDI Mapping & Piano Roll
+
+`<piano-roll>` is how a set gets mapped: 128 `<piano-key>` children, a channel selector, and four
+modes. It is the visual face of `key-map.json` — the file format itself is in
+[clip-format.md](clip-format.md).
+
+Implementation: `mainframe/src/js/PianoRoll.js`, `PianoKey.js`, `src/scss/PianoRoll.scss`.
+
+## Modes
+
+| Mode | Behaviour |
+| --- | --- |
+| `edit` | The mapping workflow: drop clips onto keys, drag velocity breakpoints, right-click to remove |
+| `select` | Click a key, the note number is dispatched. Nothing else. |
+| `filter` | Select-like, but the selection drives clip-list filtering |
+| `play` | Sticky-toggle keys dispatch `noteon`/`noteoff` for testing mappings |
+
+`edit`, `filter`, and `play` have mode buttons in the UI; `select` is set programmatically by
+consumers that want a bare note picker.
+
+The roll is `position: sticky` to the **bottom** of the viewport, so it stays under the cursor as
+a drop target while the clip list scrolls above it. CSS only — no scroll listeners.
+
+## Velocity regions
+
+Each key is a vertical strip: velocity 0 at the bottom, 127 at the top. Every clip mapped to that
+key occupies a rectangular region spanning its velocity range, filled with a colour swatch derived
+from clip identity plus the clip id where the region is tall enough to show it.
+
+Between adjacent regions sits a draggable handle with a grab target several pixels tall. Dragging
+it moves the velocity boundary between the two clips and shows a live velocity readout; on release
+the roll dispatches `mappingchange`.
+
+**Regions have a minimum size.** `MIN_REGION_VELOCITY` is 2 velocity units (`PianoKey.js:8`), and
+a drop that would push any region below it is rejected. This is the practical cap on clips per
+key — roughly 64, not the theoretical 128.
+
+## Editing gestures
+
+**Drop a clip on a key.** Clip list entries are `draggable` and carry the clip id in
+`dataTransfer`. The drop's Y position decides both the new clip's velocity and its insertion index
+among existing regions; breakpoints are then redistributed evenly across all N clips
+(`round(128 × i / N)`). The form-based add/update controls remain for precise manual entry.
+
+**Right-click a region** to remove that mapping. The remaining regions redistribute evenly across
+the freed range, the same way a drop does.
+
+## Events
+
+All events bubble from `PianoKey` through `PianoRoll` to the consumer.
+
+| Event | Mode | Detail |
+| --- | --- | --- |
+| `keyclick` | all | `{ note, clipId, velocity, isActive, mode, action, mappings }` |
+| `noteon` / `noteoff` | play | `{ note, clipId, velocity, mappings }` |
+| `mappingadd` | edit | `{ clipId, note, channel, velocity, mappings }` |
+| `mappingchange` | edit | `{ channel, note, oldVelocity, newVelocity, clipId }` |
+| `mappingremove` | edit | `{ channel, note, clipId, velocity, mappings }` |
+| `channelchange` | all | `{ channel }` |
+| `pianoroll:mode-changed` | all | `{ mode }` |
+| `pianoroll:filter-changed` | filter | `{ filters }` |
+
+`mappings` carries the **full recomputed** list of `{ clipId, velocity }` for that note and
+channel, because adding or removing a clip shifts every other breakpoint on the key.
+`mappingchange` stays single-entry — dragging a handle moves exactly one boundary.
+
+Keys dispatch `*request` variants (`mappingaddrequest`, `mappingchangerequest`,
+`mappingremoverequest`, `keyclickrequest`) upward; `PianoRoll` validates and re-dispatches them as
+the public events above.
+
+## Saving
+
+The mapping table and the roll both write through `PUT /api/mapping`, which validates every entry
+against the project's pipeline-ready clips before writing `key-map.json`. An entry pointing at a
+clip that is missing or incomplete is rejected — the whole save fails, not just that row.
+
+## Not built yet
+
+- **Clip thumbnails** inside velocity regions (colour swatch + id today).
+- **Batch selection** across cells, and undo/redo — see `epics/todo/piano-roll-modes.md`.
+- **Hover-× or drag-out removal** — right-click is the only removal gesture.
+
+## Changelog
+
+- 2026-07-20 — Written as current truth from `feature-keybed-for-mapping.md`. Records the shipped
+  four-mode set (the proposal had three), the `MIN_REGION_VELOCITY` drop rejection (the proposal
+  said never refuse a drop), and the request/public event split.

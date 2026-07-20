@@ -1,10 +1,4 @@
 {
-  "display": "Mainframe Developer",
-  "model": "SWE-1.6",
-  "prompt": "You are the Mainframe Developer. Read your core instructions at .agents/workflows/developer-team/co-workers/mainframe-developer.prompt.md and begin your workflow loop. After each work cycle, run this and wait for it to exit — it wakes you the moment new mail arrives, no timer:",
-  "wait_script": "node .agents/workflows/scripts/await-messages.js developer-team mainframe-developer",
-  "random_tasks": [],
-  "cli": "devin",
-  "enabled": true,
-  "permission_mode": "yolo"
+	"display": "Mainframe Developer",
+	"implementer": true
 }

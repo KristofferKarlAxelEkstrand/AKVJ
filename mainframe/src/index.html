@@ -8,12 +8,19 @@
 	</head>
 	<body>
 		<akvj-mainframe>
-			<nav class="tabs" role="tablist">
-				<a href="/library" class="tab is-active" data-tab="library" role="tab" aria-selected="true">Library</a>
-				<a href="/clip/edit" class="tab" data-tab="editor" role="tab" aria-selected="false">Clip editor</a>
-				<a href="/key-map" class="tab" data-tab="mapping" role="tab" aria-selected="false">Mapping</a>
-				<a href="/projects" class="tab" data-tab="projects" role="tab" aria-selected="false">Projects</a>
-			</nav>
+			<header class="mainframe-header">
+				<a class="mainframe-brand" href="/library" aria-label="AKVJ home">
+					<span class="mainframe-logo" aria-hidden="true">◭</span>
+					<span class="mainframe-brand-name">AKVJ</span>
+				</a>
+				<nav class="tabs" role="tablist" aria-label="Mainframe navigation">
+					<a href="/library" class="tab is-active" data-tab="library" role="tab" aria-selected="true">Library</a>
+					<a href="/clip/edit" class="tab" data-tab="editor" role="tab" aria-selected="false">Clip editor</a>
+					<a href="/key-map" class="tab" data-tab="mapping" role="tab" aria-selected="false">Key map</a>
+					<a href="/projects" class="tab" data-tab="projects" role="tab" aria-selected="false">Projects</a>
+					<a href="/settings" class="tab" data-tab="settings" role="tab" aria-selected="false">Settings</a>
+				</nav>
+			</header>
 
 			<main>
 				<section id="panel-library" class="panel is-active" role="tabpanel">
@@ -27,8 +34,8 @@
 							<button type="button" id="refresh-library">Refresh</button>
 						</div>
 					</div>
-					<piano-roll id="library-piano-roll" mode="select" channel="1" channel-select></piano-roll>
 					<akvj-clip-list id="clip-list" class="clip-list"></akvj-clip-list>
+					<piano-roll id="library-piano-roll" mode="filter" channel="1" channel-select></piano-roll>
 				</section>
 
 				<section id="panel-clip-editor" class="panel" role="tabpanel" hidden>
@@ -40,12 +47,9 @@
 						</div>
 					</div>
 					<form id="clip-editor-form" class="clip-editor-form">
-						<div id="clip-editor-drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Drop PNG, JPG, or GIF frames here or click to browse">
-							<p class="drop-zone-text">Drop PNG, JPG, or GIF frames here or click to browse</p>
-							<input id="clip-editor-files" name="files" type="file" accept="image/png,image/jpeg,image/gif,.png,.jpg,.jpeg,.gif" multiple hidden />
-						</div>
 						<p class="hint">Add images append; use Clear frames to replace.</p>
 						<akvj-staging-preview id="clip-editor-staging-preview"></akvj-staging-preview>
+						<preview-clip id="clip-editor-preview"></preview-clip>
 						<div class="clip-frames-toolbar">
 							<label>
 								All frames (ms)
@@ -95,7 +99,7 @@
 								</label>
 							</div>
 						</div>
-						<clip-frames id="clip-frames"></clip-frames>
+						<clip-frames-upload-panel id="clip-frames-upload-panel"></clip-frames-upload-panel>
 						<label>
 							Name
 							<clip-name-input id="clip-editor-name" name="name" placeholder="Neon Skull"></clip-name-input>
@@ -217,15 +221,8 @@
 						<button type="button" id="add-mapping">Add / update</button>
 					</div>
 					<p id="mapping-status" class="status" aria-live="polite"></p>
-					<p class="hint">Edit: click empty keys to assign, click velocity bands to select. Play: sticky toggle to try mappings. Each roll has its own channel.</p>
-					<div class="piano-roll-dock">
-						<piano-roll id="mapping-piano-roll" mode="edit" channel="1" channel-select></piano-roll>
-						<div class="piano-channel-bar">
-							<span>Play / test</span>
-							<button type="button" id="clear-play-notes">Clear notes</button>
-						</div>
-						<piano-roll id="play-piano-roll" mode="play" channel="1" channel-select></piano-roll>
-					</div>
+					<p class="hint">Edit: click empty keys to assign, click velocity bands to select.</p>
+					<piano-roll id="mapping-piano-roll" mode="edit" channel="1" channel-select></piano-roll>
 				</section>
 
 				<section id="panel-projects" class="panel" role="tabpanel" hidden>
@@ -235,6 +232,13 @@
 					<p class="hint">Projects share the clip library; each project has its own MIDI key-map.</p>
 					<project-chooser id="project-chooser"></project-chooser>
 					<p id="projects-status" class="status" aria-live="polite"></p>
+				</section>
+
+				<section id="panel-settings" class="panel" role="tabpanel" hidden>
+					<div class="panel-head">
+						<h2>Settings</h2>
+					</div>
+					<p class="hint">Global settings and preferences will live here.</p>
 				</section>
 			</main>
 

@@ -1,4 +1,5 @@
-import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT } from './effectConstants.js';
+import { MAX_MIDI_VELOCITY } from '../../core/midiConstants.js';
+import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
 
 /**
  * Glitch effect: randomly displace pixels horizontally within the same row.

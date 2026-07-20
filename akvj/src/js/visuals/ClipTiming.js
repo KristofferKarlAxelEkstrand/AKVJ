@@ -113,7 +113,11 @@ class ClipTiming {
 		}
 
 		const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
-		const bpm = Math.max(minBPM, this.#bpmProvider());
+		const maxBPM = settings.bpm.max > minBPM ? settings.bpm.max : minBPM;
+		let bpm = this.#bpmProvider();
+		if (Number.isFinite(bpm)) {
+			bpm = Math.min(Math.max(bpm, minBPM), maxBPM);
+		}
 		const targetDuration = (this.#syncBeats * MS_PER_MINUTE) / bpm;
 		const speedMultiplier = targetDuration / this.#naturalDuration;
 		return naturalInterval * speedMultiplier;
@@ -136,18 +140,18 @@ class ClipTiming {
 			this.#lastTimestamp = timestamp;
 		}
 
-		let elapsed = timestamp - this.#lastTimestamp;
-		while (elapsed > 0) {
-			const interval = this.getFrameInterval(this.#currentFrameIndex);
-			if (elapsed < interval) {
+		let elapsedMs = timestamp - this.#lastTimestamp;
+		while (elapsedMs > 0) {
+			const intervalMs = this.getFrameInterval(this.#currentFrameIndex);
+			if (elapsedMs < intervalMs) {
 				break;
 			}
-			elapsed -= interval;
+			elapsedMs -= intervalMs;
 			if (!onAdvance()) {
 				break;
 			}
 		}
-		this.#lastTimestamp = timestamp - Math.max(0, elapsed);
+		this.#lastTimestamp = timestamp - Math.max(0, elapsedMs);
 	}
 
 	/**
@@ -239,7 +243,7 @@ class ClipTiming {
 			for (const [frameIndex, durationMs] of Object.entries(frameDurationsMs)) {
 				const numericFrameIndex = Number(frameIndex);
 				if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
-					console.warn(`Clip: frame duration key ${frameIndex} is not a valid frame index; skipping`);
+					console.warn(`ClipTiming: frame duration key ${frameIndex} is not a valid frame index; skipping`);
 					continue;
 				}
 				if (typeof durationMs === 'number' && durationMs > 0) {
@@ -247,7 +251,7 @@ class ClipTiming {
 					// Also compute FPS for backward compatibility using utility
 					this.#frameRatesForFrames[numericFrameIndex] = msToFps(durationMs);
 				} else {
-					console.warn(`Clip: invalid frame duration for frame ${frameIndex}: ${durationMs}; skipping`);
+					console.warn(`ClipTiming: invalid frame duration for frame ${frameIndex}: ${durationMs}; skipping`);
 				}
 			}
 		}
@@ -257,13 +261,13 @@ class ClipTiming {
 			for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames ?? {})) {
 				const numericFrameIndex = Number(frameIndex);
 				if (!Number.isInteger(numericFrameIndex) || numericFrameIndex < 0 || numericFrameIndex >= frames) {
-					console.warn(`Clip: frame rate key ${frameIndex} is not a valid frame index; skipping`);
+					console.warn(`ClipTiming: frame rate key ${frameIndex} is not a valid frame index; skipping`);
 					continue;
 				}
 				if (typeof frameRate === 'number' && frameRate > 0) {
 					this.#frameRatesForFrames[numericFrameIndex] = frameRate;
 				} else {
-					console.warn(`Clip: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
+					console.warn(`ClipTiming: invalid frame rate for frame ${frameIndex}: ${frameRate}; skipping`);
 				}
 			}
 		}
@@ -285,13 +289,13 @@ class ClipTiming {
 	 * @returns {number} Duration in milliseconds
 	 */
 	#computeNaturalDuration(frames) {
-		let total = 0;
+		let totalMs = 0;
 		for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
 			// Use ms values directly when available
-			const interval = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
-			total += interval;
+			const intervalMs = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
+			totalMs += intervalMs;
 		}
-		return total;
+		return totalMs;
 	}
 
 	/**
@@ -304,12 +308,12 @@ class ClipTiming {
 	 */
 	#computeCumulativeProportions(frames) {
 		const proportions = [];
-		let elapsed = 0;
+		let elapsedMs = 0;
 		for (let frameIndex = 0; frameIndex < frames; frameIndex++) {
-			proportions.push(this.#naturalDuration > 0 ? elapsed / this.#naturalDuration : 0);
+			proportions.push(this.#naturalDuration > 0 ? elapsedMs / this.#naturalDuration : 0);
 			// Use ms values directly when available
-			const interval = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
-			elapsed += interval;
+			const intervalMs = this.#frameDurationsMs[frameIndex] ?? MS_PER_SECOND / (this.#frameRatesForFrames[frameIndex] ?? this.#defaultFrameRate);
+			elapsedMs += intervalMs;
 		}
 		return proportions;
 	}
@@ -365,9 +369,9 @@ class ClipTiming {
 
 		this.#pulseCount++;
 		const rawProgress = this.#pulseCount / this.#totalPulses;
-		const continues = onAdvance(this.#toUniformProgress(rawProgress));
+		const playbackContinues = onAdvance(this.#toUniformProgress(rawProgress));
 
-		if (rawProgress >= 1 && continues) {
+		if (rawProgress >= 1 && playbackContinues) {
 			this.#pulseCount %= this.#totalPulses;
 		}
 	}

@@ -1,11 +1,41 @@
 #!/bin/bash
 
 # Configuration
-WORKFLOWS_DIR="/workspaces/AKVJ/.agents/workflows"
-DEFAULT_MODEL="SWE-1.6"
-DEVIN_PERMISSION_MODE="yolo"
-CLAUDE_PERMISSION_MODE="bypassPermissions"
-AKVJ_ROOT="/workspaces/AKVJ"
+# Repo root is derived from this script's location (.agents/workflows/scripts/run-team)
+# so the team runs from any checkout path, matching how scripts/root.js derives REPO_ROOT.
+SCRIPT_PATH="$(realpath "${BASH_SOURCE[0]}")"
+AKVJ_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/../../.." && pwd)"
+WORKFLOWS_DIR="$AKVJ_ROOT/.agents/workflows"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+DEVIN_DEFAULT_MODEL="SWE-1.7 Max"
+
+# shellcheck source=lib/cli-tools.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/cli-tools.sh"
+
+# shellcheck source=lib/team-session.sh
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/lib/team-session.sh"
+
+# A stale heartbeat only means "not currently asleep" — see monitor_workflow.
+STALE_HEARTBEAT_SECONDS=300
+# How long a pane may hold a live CLI with no heartbeat before we treat it as
+# wedged rather than busy. Must comfortably exceed a long working turn.
+HUNG_AGENT_SECONDS=1800
+RESTART_COOLDOWN_SECONDS=120
+# Floor for one-shot CLI loops (claude / copilot / antigravity). An unauthenticated
+# binary exits in milliseconds; if wait_script also returns fast, bare `while true`
+# spins and pane_current_command almost always shows the CLI — so pane_has_live_cli
+# reports "alive" and the monitor cannot intervene until HUNG_AGENT_SECONDS.
+ONESHOT_MIN_LOOP_SECONDS=30
+# How long mail/tasks may sit untouched before detect-stalled-work.js nudges
+# the agent that owns them.
+STALLED_WORK_SECONDS=600
+# Flap guard. Restarting forever on a cooldown is not recovery — an agent that
+# dies this often is broken in a way a restart does not fix, and the loop just
+# hides it. Past this many restarts inside the window we stop and ask the human.
+FLAP_MAX_RESTARTS=3
+FLAP_WINDOW_SECONDS=900
 
 # Check for required dependencies
 if ! command -v jq &> /dev/null; then
@@ -18,13 +48,94 @@ if ! command -v tmux &> /dev/null; then
     exit 1
 fi
 
-# Find available CLI binaries (non-fatal — only fail if the chosen cli is missing at launch time)
-DEVIN_BIN=$(find ~/.devin-server/bin -name "devin" -type f 2>/dev/null | head -1)
-CLAUDE_BIN=$(command -v claude 2>/dev/null)
+# ---------------------------------------------------------------------------
+# Supported agent CLIs.
+#
+# The cli name used in *.prompt.json is not always the binary name — that map is
+# `cli_tools_bin` in lib/cli-tools.sh, the one place it is written down.
+#
+# This list is narrower than the lib's CLI_TOOLS_KNOWN on purpose: hosting an
+# unattended agent needs a permission mode and launch flags, not just a binary
+# path. `cursor` is detectable and has a model catalog but no entry in
+# cli_default_permission_mode, so it cannot be launched here.
+#
+# Discovery is non-fatal — a missing binary only fails the agents that ask for
+# that cli, at pre-flight and at launch.
+# ---------------------------------------------------------------------------
 
-[ -n "$DEVIN_BIN" ]  && echo "Found devin:  $DEVIN_BIN"
-[ -n "$CLAUDE_BIN" ] && echo "Found claude: $CLAUDE_BIN"
-[ -z "$DEVIN_BIN" ] && [ -z "$CLAUDE_BIN" ] && echo "Warning: neither devin nor claude found in PATH"
+SUPPORTED_CLIS=(devin claude copilot antigravity)
+
+is_supported_cli() {
+    local candidate="$1" supported
+    for supported in "${SUPPORTED_CLIS[@]}"; do
+        [ "$candidate" = "$supported" ] && return 0
+    done
+    return 1
+}
+
+# Only devin holds a session open across turns. The others run a single prompt
+# and exit, so they get wrapped in a shell loop with the wait script as the
+# blocking step — see launch_agent_in_pane.
+cli_is_persistent() { [ "$1" = "devin" ]; }
+
+# Every agent runs unattended, so each default is that CLI's "never prompt me"
+# setting. Model default is per-CLI too: an empty value means "pass no --model
+# and let the CLI choose", since model names are not portable between CLIs.
+cli_default_permission_mode() {
+    case "$1" in
+        devin)       echo "yolo" ;;
+        claude)      echo "bypassPermissions" ;;
+        copilot)     echo "allow-all-tools" ;;
+        antigravity) echo "dangerously-skip-permissions" ;;
+    esac
+}
+
+cli_default_model() {
+    case "$1" in
+        devin) echo "$DEVIN_DEFAULT_MODEL" ;;
+        *)     echo "" ;;
+    esac
+}
+
+cli_valid_permission_modes() {
+    case "$1" in
+        devin)       echo "yolo default" ;;
+        claude)      echo "bypassPermissions default acceptEdits" ;;
+        copilot)     echo "allow-all-tools allow-all default" ;;
+        antigravity) echo "dangerously-skip-permissions accept-edits plan default" ;;
+    esac
+}
+
+cli_permission_mode_is_valid() {
+    local cli="$1" mode="$2" valid
+    for valid in $(cli_valid_permission_modes "$cli"); do
+        [ "$mode" = "$valid" ] && return 0
+    done
+    return 1
+}
+
+# `--ensure` is built to run from cron on the happy path, where it does nothing
+# and should say nothing. Announcing four CLI paths every few minutes would turn
+# a health guard into a mail spammer. `--stop` and `--list` have nothing to do
+# with which CLIs are installed either.
+QUIET_DISCOVERY=""
+case "${1:-}" in
+    --ensure | --stop | --list | -l) QUIET_DISCOVERY="1" ;;
+esac
+
+# The found count comes from the loop rather than from a hand-listed set of
+# variables, so a CLI added to SUPPORTED_CLIS counts towards "any found" without
+# a second edit somewhere else.
+FOUND_ANY=""
+for cli_name in "${SUPPORTED_CLIS[@]}"; do
+    cli_found=$(cli_tools_bin "$cli_name")
+    [ -z "$cli_found" ] && continue
+    FOUND_ANY="1"
+    [ -z "$QUIET_DISCOVERY" ] && printf "Found %-12s %s\n" "$cli_name" "$cli_found"
+done
+if [ -z "$FOUND_ANY" ]; then
+    echo "Warning: none of ${SUPPORTED_CLIS[*]} were found"
+fi
 
 # Change to AKVJ directory
 cd "$AKVJ_ROOT" || { echo "Error: Cannot cd to $AKVJ_ROOT"; exit 1; }
@@ -44,8 +155,11 @@ read_json() {
         return 1
     fi
 
+    # Explicit null test rather than jq's `//` operator: `//` also substitutes the
+    # default for `false`, which silently turned `"enabled": false` into `true`.
+    # The default is passed as data (--arg), not interpolated into the program text.
     local value
-    value=$(jq -r "${key} // \"${default}\"" "$file" 2>/dev/null)
+    value=$(jq -r --arg fallback "$default" "(${key}) as \$v | if \$v == null then \$fallback else \$v end" "$file" 2>/dev/null)
     if [ -z "$value" ] || [ "$value" = "null" ]; then
         echo "$default"
         return 1
@@ -164,47 +278,57 @@ validate_all_agents() {
         fi
 
         local startup_prompt cli wait_script
-        startup_prompt=$(read_json "$config_file" '.prompt' '')
+        startup_prompt=$(node .agents/workflows/scripts/generate-prompt.js "$workflow" "$agent_name")
         cli=$(read_json "$config_file" '.cli' 'devin')
         wait_script=$(read_json "$config_file" '.wait_script' '')
+        [ -z "$wait_script" ] && wait_script="node .agents/workflows/scripts/await-messages.js \"$workflow\" \"$agent_name\""
 
         if [ -z "$startup_prompt" ]; then
             errors+=("[$agent_name] prompt is empty")
         fi
 
-        if [ "$cli" != "devin" ] && [ "$cli" != "claude" ]; then
-            errors+=("[$agent_name] cli must be 'devin' or 'claude', got '$cli'")
+        if ! is_supported_cli "$cli"; then
+            errors+=("[$agent_name] cli must be one of: ${SUPPORTED_CLIS[*]} — got '$cli'")
             continue
         fi
 
-        if [ "$cli" = "claude" ] && [ -z "$CLAUDE_BIN" ]; then
-            errors+=("[$agent_name] cli=$cli but claude binary not found in PATH")
-        fi
-        if [ "$cli" = "devin" ] && [ -z "$DEVIN_BIN" ]; then
-            errors+=("[$agent_name] cli=$cli but devin binary not found in ~/.devin-server/bin")
+        if [ -z "$(cli_tools_bin "$cli")" ]; then
+            errors+=("[$agent_name] cli=$cli but its binary was not found — $(cli_tools_install_hint "$cli")")
         fi
 
         local permission_mode
         permission_mode=$(read_json "$config_file" '.permission_mode' '')
-        if [ -n "$permission_mode" ]; then
-            if [ "$cli" = "devin" ]; then
-                case "$permission_mode" in
-                    yolo|default) ;;
-                    *) errors+=("[$agent_name] unknown permission_mode '$permission_mode' for cli=devin (expected: yolo, default)") ;;
-                esac
-            elif [ "$cli" = "claude" ]; then
-                case "$permission_mode" in
-                    bypassPermissions|default|acceptEdits) ;;
-                    *) errors+=("[$agent_name] unknown permission_mode '$permission_mode' for cli=claude (expected: bypassPermissions, default, acceptEdits)") ;;
-                esac
+        if [ -n "$permission_mode" ] && ! cli_permission_mode_is_valid "$cli" "$permission_mode"; then
+            errors+=("[$agent_name] unknown permission_mode '$permission_mode' for cli=$cli (expected: $(cli_valid_permission_modes "$cli"))")
+        fi
+
+        # Model names are not portable between CLIs. Reject leftovers from
+        # copy-pasted configs (e.g. SWE-* on copilot) using the catalog that
+        # control-center refreshes with `m`.
+        local model model_check model_rc
+        model=$(read_json "$config_file" '.model' '')
+        if [ -n "$model" ]; then
+            model_check=$(cli_tools_validate_model "$cli" "$model")
+            model_rc=$?
+            if [ "$model_rc" -ne 0 ]; then
+                errors+=("[$agent_name] $model_check")
+            elif [[ "$model_check" == warning:* ]]; then
+                warnings+=("[$agent_name] ${model_check#warning: }")
             fi
         fi
 
+        # copilot's own help: --allow-all-tools is "required for non-interactive
+        # mode". Without it the agent stops on the first tool confirmation with
+        # nobody at the pane to answer.
+        if [ "$cli" = "copilot" ] && [ "$permission_mode" = "default" ]; then
+            warnings+=("[$agent_name] cli=copilot with permission_mode 'default' will block on tool confirmations — use allow-all-tools")
+        fi
+
         if [ -z "$wait_script" ]; then
-            if [ "$cli" = "claude" ]; then
-                errors+=("[$agent_name] wait_script is empty — required for cli=claude (loop has no blocking step without it)")
-            else
+            if cli_is_persistent "$cli"; then
                 warnings+=("[$agent_name] wait_script is empty")
+            else
+                errors+=("[$agent_name] wait_script is empty — required for cli=$cli (loop has no blocking step without it)")
             fi
         fi
     done
@@ -225,10 +349,87 @@ validate_all_agents() {
     fi
 }
 
+# Quote a value so it is safe to embed in a command string sent to a live shell
+# (tmux send-keys). Plain '%s' single-quote wrapping breaks on any apostrophe in
+# the value — a model name or path containing ' would end the quote and execute
+# the rest as shell. printf %q produces a reusable shell literal instead.
+shell_quote() {
+    printf '%q' "$1"
+}
+
+# Translate the config's permission_mode into that CLI's own flags.
+# Prints nothing when the mode needs no flag (copilot/antigravity "default").
+cli_permission_args() {
+    local cli="$1" mode="$2"
+    [ -n "$mode" ] || return 0
+
+    case "$cli" in
+        devin|claude)
+            printf -- '--permission-mode %q' "$mode" ;;
+        copilot)
+            case "$mode" in
+                allow-all)       printf -- "--allow-all" ;;
+                allow-all-tools) printf -- "--allow-all-tools" ;;
+            esac ;;
+        antigravity)
+            case "$mode" in
+                dangerously-skip-permissions) printf -- "--dangerously-skip-permissions" ;;
+                accept-edits|plan)            printf -- '--mode %q' "$mode" ;;
+            esac ;;
+    esac
+}
+
+# Build the command for ONE turn of a non-persistent CLI.
+#
+# How the prompt is handed over differs per CLI: claude reads stdin, while
+# copilot's --prompt and antigravity's --print each require the text as an
+# argument value (neither falls back to stdin). The unexpanded "$(cat …)" is
+# deliberate — the pane's own shell expands it, so a long prompt never has to
+# survive tmux send-keys as literal keystrokes.
+#
+# antigravity's --print defaults to a 5 minute timeout, which would cut off any
+# ordinary working turn. It is pinned to the same ceiling the health monitor
+# uses to declare an agent wedged, so the CLI never gives up before we do.
+#
+# Every interpolated value uses %q — see shell_quote — so apostrophes in model
+# names or prompt paths cannot break out of the pane command.
+cli_turn_command() {
+    local cli="$1" bin="$2" model="$3" prompt_file="$4" permission_mode="$5"
+
+    local model_args="" permission_args
+    [ -n "$model" ] && printf -v model_args -- '--model %q' "$model"
+    permission_args=$(cli_permission_args "$cli" "$permission_mode")
+
+    case "$cli" in
+        claude)      printf '%q %s %s < %q' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
+        copilot)     printf '%q %s %s --prompt "$(cat %q)"' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
+        antigravity) printf '%q %s %s --print-timeout %qs --print "$(cat %q)"' \
+                         "$bin" "$model_args" "$permission_args" "$HUNG_AGENT_SECONDS" "$prompt_file" ;;
+    esac
+}
+
+# Shell loop for one-shot CLIs: turn → wait → (optional floor sleep) → repeat.
+#
+# The floor exists so an instantly-exiting CLI plus a fast wait_script cannot
+# hot-spin. Without it, pane_has_live_cli keeps seeing the flickering binary and
+# the health monitor treats the agent as busy. A normal turn+wait already lasts
+# far longer than ONESHOT_MIN_LOOP_SECONDS, so the sleep is a no-op then.
+oneshot_loop_command() {
+    local turn_cmd="$1"
+    local wait_script="$2"
+    local floor="${3:-$ONESHOT_MIN_LOOP_SECONDS}"
+
+    printf 'while true; do _loop_start=$(date +%%s); %s; %s; _loop_elapsed=$(( $(date +%%s) - _loop_start )); [ "$_loop_elapsed" -lt %d ] && sleep $(( %d - _loop_elapsed )); done' \
+        "$turn_cmd" "$wait_script" "$floor" "$floor"
+}
+
 # Launch the right CLI in a tmux pane.
-# For devin: passes --prompt-file and the wait_script is sent as a follow-up command.
-# For claude: runs a shell loop — claude exits after each turn, then the wait script
-#             blocks until new mail arrives, then the loop restarts claude.
+#
+# Persistent CLIs (devin) take the prompt by file and stay running; the wait
+# script is sent afterwards as a follow-up command.
+#
+# One-shot CLIs (claude, copilot, antigravity) exit after each turn, so they run
+# in a shell loop: CLI turn -> wait script blocks until new mail -> next turn.
 launch_agent_in_pane() {
     local pane_target="$1"
     local cli="$2"
@@ -237,46 +438,100 @@ launch_agent_in_pane() {
     local wait_script="$5"
     local permission_mode="$6"
 
-    tmux send-keys -t "$pane_target" "cd $AKVJ_ROOT" C-m
+    local bin
+    bin=$(cli_tools_bin "$cli")
+    if [ -z "$bin" ]; then
+        echo "Error: cli is '$cli' but its binary was not found — $(cli_tools_install_hint "$cli")" >&2
+        return 1
+    fi
 
-    if [ "$cli" = "claude" ]; then
-        if [ -z "$CLAUDE_BIN" ]; then
-            echo "Error: cli is 'claude' but claude binary not found in PATH" >&2
-            return 1
-        fi
-        # Claude loop: claude processes one turn then exits; wait script blocks until
-        # new mail; shell loop restarts claude for the next cycle.
-        # printf %s prevents bash from interpreting shell metacharacters ($, backticks, \)
-        # in the variable values when building the command string.
-        local loop_cmd
-        printf -v loop_cmd "while true; do %s --model %s --permission-mode %s < '%s'; %s; done" \
-            "$CLAUDE_BIN" "$model" "$permission_mode" "$prompt_file" "$wait_script"
-        tmux send-keys -t "$pane_target" "$loop_cmd" C-m
-    else
-        # Devin (default)
-        if [ -z "$DEVIN_BIN" ]; then
-            echo "Error: cli is 'devin' but devin binary not found in ~/.devin-server/bin" >&2
-            return 1
-        fi
-        tmux send-keys -t "$pane_target" "$DEVIN_BIN --model $model --permission-mode $permission_mode --prompt-file $prompt_file" C-m
+    tmux send-keys -t "$pane_target" "cd $(shell_quote "$AKVJ_ROOT")" C-m
+
+    if cli_is_persistent "$cli"; then
+        local model_args="" permission_args session_cmd
+        [ -n "$model" ] && printf -v model_args -- '--model %q' "$model"
+        permission_args=$(cli_permission_args "$cli" "$permission_mode")
+
+        printf -v session_cmd '%q %s %s --prompt-file %q' \
+            "$bin" "$model_args" "$permission_args" "$prompt_file"
+        tmux send-keys -t "$pane_target" "$session_cmd" C-m
+
         # Devin needs a moment to initialize; wait before sending the follow-up wait command.
         # This is a pragmatic shell delay — the prompt is already loaded by the time the binary starts.
         if [ -n "$wait_script" ]; then
             sleep 2
             tmux send-keys -t "$pane_target" "$wait_script" C-m
         fi
+    else
+        # turn_cmd is already %q-safe; wait_script is an intentional shell fragment
+        # from config (default includes quoted workflow/agent args).
+        local turn_cmd loop_cmd
+        turn_cmd=$(cli_turn_command "$cli" "$bin" "$model" "$prompt_file" "$permission_mode")
+        loop_cmd=$(oneshot_loop_command "$turn_cmd" "$wait_script")
+        tmux send-keys -t "$pane_target" "$loop_cmd" C-m
     fi
 }
 
 # ---------------------------------------------------------------------------
-# Restart a single agent in an existing tmux session
+# Resolve the tmux target for an agent's pane.
+#
+# Prefers the stable pane id (%N) recorded at launch: tmux renumbers pane
+# *indices* whenever a pane dies, which would silently point a restart at some
+# other agent's pane. Falls back to the recorded index for older tracking files.
 # ---------------------------------------------------------------------------
+resolve_pane_target() {
+    local workflow="$1"
+    local agent_name="$2"
+    local session_name="${workflow}-agents"
+    local pane_tracking_file="$WORKFLOWS_DIR/$workflow/health/${agent_name}-pane.json"
+
+    [ -f "$pane_tracking_file" ] || return 1
+
+    local pane_id
+    pane_id=$(jq -r '.pane_id // empty' "$pane_tracking_file" 2>/dev/null)
+    if [ -n "$pane_id" ]; then
+        # Confirm the pane still exists before handing the id back.
+        if tmux list-panes -a -F '#{pane_id}' 2>/dev/null | grep -qx -- "$pane_id"; then
+            echo "$pane_id"
+            return 0
+        fi
+    fi
+
+    local pane_index
+    pane_index=$(jq -r '.pane_index // empty' "$pane_tracking_file" 2>/dev/null)
+    if [ -n "$pane_index" ]; then
+        echo "$session_name:0.$pane_index"
+        return 0
+    fi
+
+    return 1
+}
+
+# ---------------------------------------------------------------------------
+# Is a CLI process still live in this agent's pane?
+#
+# A dead agent falls back to a bare shell prompt; a live one has its agent CLI
+# (or the node wait script) in the foreground. Used to avoid restarting agents
+# that are simply busy — see the heartbeat note in monitor_workflow.
+# ---------------------------------------------------------------------------
+pane_has_live_cli() {
+    local pane_target="$1"
+
+    local current_command
+    current_command=$(tmux display-message -p -t "$pane_target" '#{pane_current_command}' 2>/dev/null)
+    [ -n "$current_command" ] || return 1
+
+    case "$current_command" in
+        bash|sh|zsh|fish|dash|tmux) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
 restart_agent() {
     local workflow="$1"
     local agent_name="$2"
     local session_name="${workflow}-agents"
     local config_dir="$WORKFLOWS_DIR/$workflow/co-workers"
-    local health_dir="$WORKFLOWS_DIR/$workflow/health"
 
     if ! tmux has-session -t "$session_name" 2>/dev/null; then
         echo "Error: Session '$session_name' is not running"
@@ -289,27 +544,21 @@ restart_agent() {
         return 1
     fi
 
-    local pane_tracking_file="$health_dir/${agent_name}-pane.json"
-    if [ ! -f "$pane_tracking_file" ]; then
-        echo "Error: Pane tracking file not found: $pane_tracking_file"
-        return 1
-    fi
-
-    local pane_index
-    pane_index=$(jq -r '.pane_index' "$pane_tracking_file")
-    if [ -z "$pane_index" ] || [ "$pane_index" = "null" ]; then
-        echo "Error: Could not determine pane index for agent $agent_name"
+    local pane_target
+    pane_target=$(resolve_pane_target "$workflow" "$agent_name")
+    if [ -z "$pane_target" ]; then
+        echo "Error: Could not resolve a live pane for agent $agent_name"
         return 1
     fi
 
     local startup_prompt model wait_script cli permission_mode
-    startup_prompt=$(read_json "$config_file" '.prompt' '')
-    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+    startup_prompt=$(node .agents/workflows/scripts/generate-prompt.js "$workflow" "$agent_name")
     wait_script=$(read_json "$config_file" '.wait_script' '')
+    [ -z "$wait_script" ] && wait_script="node .agents/workflows/scripts/await-messages.js \"$workflow\" \"$agent_name\""
+    # cli first — the model and permission defaults are per-CLI.
     cli=$(read_json "$config_file" '.cli' 'devin')
-    local default_permission_mode
-    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
-    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
+    model=$(read_json "$config_file" '.model' "$(cli_default_model "$cli")")
+    permission_mode=$(read_json "$config_file" '.permission_mode' "$(cli_default_permission_mode "$cli")")
 
     if [ -z "$startup_prompt" ]; then
         echo "Error: No prompt found in $config_file"
@@ -322,19 +571,121 @@ restart_agent() {
     local prompt_file="$WORKFLOWS_DIR/$workflow/.temp/prompt-${agent_name}.txt"
     echo "$startup_prompt" > "$prompt_file"
 
-    echo "Restarting agent: $agent_name (cli=$cli) in pane $pane_index..."
+    echo "Restarting agent: $agent_name (cli=$cli) in pane $pane_target..."
 
     # Kill current process in pane
-    tmux send-keys -t "$session_name:0.$pane_index" C-c
+    tmux send-keys -t "$pane_target" C-c
     sleep 2
 
-    launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode"
+    # Interrupting can take the pane down with it (e.g. a pane whose command was
+    # the agent process itself). Relaunching into a pane that no longer exists
+    # would report success while doing nothing.
+    if ! tmux display-message -p -t "$pane_target" '#{pane_id}' >/dev/null 2>&1; then
+        echo "Error: pane $pane_target for $agent_name did not survive the interrupt — cannot restart in place"
+        return 1
+    fi
+
+    launch_agent_in_pane "$pane_target" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode" || return 1
 
     local display_name
     display_name=$(read_json "$config_file" '.display' "$agent_name")
-    tmux select-pane -t "$session_name:0.$pane_index" -T "$display_name"
+    tmux select-pane -t "$pane_target" -T "$display_name"
 
     echo "Agent $agent_name restarted successfully"
+}
+
+# ---------------------------------------------------------------------------
+# Uptime record and alerts
+#
+# The monitor's knowledge of who died and when used to live entirely in its own
+# stdout, in a tmux window nobody watches. So "QA was down for eleven hours" was
+# unknowable after the fact, and nothing outside this loop could see a problem.
+#
+# Two durable artifacts fix that: an append-only JSONL log of every event, and
+# one alert file per agent that is currently down. The dashboard reads the
+# alerts; a human (or `agents:status`) reads either.
+# ---------------------------------------------------------------------------
+
+uptime_log_path() {
+    echo "$WORKFLOWS_DIR/$1/health/uptime.log"
+}
+
+# log_uptime_event <workflow> <agent> <event> [detail]
+log_uptime_event() {
+    local log
+    log=$(uptime_log_path "$1")
+    mkdir -p "$(dirname "$log")"
+    printf '{"ts":"%s","agent":"%s","event":"%s","detail":"%s"}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "$3" "${4:-}" >> "$log"
+}
+
+# Restarts recorded for an agent inside the window. Counted from the log rather
+# than from memory so the guard survives a monitor restart — an agent that
+# flaps, takes the monitor down with it, and flaps again is exactly the case
+# in-memory counters would miss.
+# count_recent_restarts <workflow> <agent> <window_seconds>
+count_recent_restarts() {
+    local log cutoff count line ts epoch
+    log=$(uptime_log_path "$1")
+    [ -f "$log" ] || { echo 0; return; }
+    cutoff=$(( $(date +%s) - $3 ))
+    count=0
+    while IFS= read -r line; do
+        case "$line" in
+            *"\"agent\":\"$2\""*'"event":"restart"'*) ;;
+            *) continue ;;
+        esac
+        ts=$(printf '%s' "$line" | sed -n 's/.*"ts":"\([^"]*\)".*/\1/p')
+        epoch=$(date -u -d "$ts" +%s 2>/dev/null || echo 0)
+        [ "$epoch" -ge "$cutoff" ] && count=$((count + 1))
+    done < "$log"
+    echo "$count"
+}
+
+# raise_alert <workflow> <agent> <reason>
+raise_alert() {
+    local dir="$WORKFLOWS_DIR/$1/health/alerts"
+    mkdir -p "$dir"
+    printf '{"agent":"%s","since":"%s","reason":"%s"}\n' \
+        "$2" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$3" > "$dir/$2.json"
+}
+
+# clear_alert <workflow> <agent>
+clear_alert() {
+    rm -f "$WORKFLOWS_DIR/$1/health/alerts/$2.json"
+}
+
+# Ask the human, once, about an agent that will not stay up.
+# escalate_flap <workflow> <agent> <restart_count>
+escalate_flap() {
+    local workflow="$1" agent="$2" count="$3"
+    local question="$WORKFLOWS_DIR/$workflow/mail/out/question-$agent-flapping.md"
+    [ -f "$question" ] && return 0
+    mkdir -p "$(dirname "$question")"
+    cat > "$question" <<EOF
+---
+type: question
+from: health-monitor
+created: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+---
+
+# $agent will not stay up
+
+Question: $agent has been restarted $count times in the last $((FLAP_WINDOW_SECONDS / 60)) minutes.
+Restarting again would just repeat the cycle, so the monitor has stopped trying and is leaving it
+down. Its pane and logs are still there to inspect.
+
+Common causes: the CLI is not authenticated, its model name is wrong for its CLI, or its prompt
+makes it exit immediately. \`npm run agents:status\` shows the current state; \`health/uptime.log\`
+has the restart history.
+
+Restart it by hand once the cause is fixed:
+
+    bash .agents/workflows/scripts/run-team --restart $workflow $agent
+
+Answer:
+EOF
+    echo "  ...filed mail/out/question-$agent-flapping.md"
 }
 
 # ---------------------------------------------------------------------------
@@ -342,82 +693,212 @@ restart_agent() {
 # ---------------------------------------------------------------------------
 monitor_workflow() {
     local workflow="$1"
-    local session_name="${workflow}-agents"
     local config_dir="$WORKFLOWS_DIR/$workflow/co-workers"
     local health_dir="$WORKFLOWS_DIR/$workflow/health"
     local heartbeat_dir="$health_dir/heartbeats"
     local restart_request_dir="$health_dir/restart-requests"
+    local awaiting_dir="$health_dir/awaiting"
+    declare -A LAST_RESTART_AT
+    declare -A DEAD_STREAK
+
+    # Heartbeats and restart requests are checked every pass; the stalled-work
+    # scan only needs to keep up with a 10-minute threshold, so it runs once a
+    # minute rather than spawning a node process every pass.
+    local pass=0
+    local stalled_scan_every=6
+    # Memory only needs trimming on a human timescale — every 30 minutes.
+    local memory_compact_every=180
 
     echo "Starting health monitor for workflow: $workflow"
     echo "Press Ctrl+C to stop monitoring"
     echo ""
 
-    mkdir -p "$heartbeat_dir" "$restart_request_dir"
+    mkdir -p "$heartbeat_dir" "$restart_request_dir" "$awaiting_dir" "$health_dir/alerts" "$health_dir/reports"
 
     while true; do
-        # Process restart requests
+        local current_time
+        current_time=$(date +%s)
+
+        # Clear alerts for agents that have come back. An alert nobody retracts
+        # is worse than no alert: the dashboard keeps showing a fire that went
+        # out, and the next real one is indistinguishable from it.
+        for alert_file in "$health_dir/alerts"/*.json; do
+            [ -f "$alert_file" ] || continue
+            local recovered_agent recovered_pid
+            recovered_agent=$(basename "$alert_file" .json)
+            recovered_pid=$(read_json "$heartbeat_dir/$recovered_agent.json" '.pid' '')
+            if [ -n "$recovered_pid" ] && kill -0 "$recovered_pid" 2>/dev/null; then
+                echo "Agent $recovered_agent is back (poller pid $recovered_pid)"
+                clear_alert "$workflow" "$recovered_agent"
+                log_uptime_event "$workflow" "$recovered_agent" "recovered" "poller pid $recovered_pid"
+            fi
+        done
+
+        # Process restart requests. restart_agent() owns prompt generation and
+        # pane resolution — this used to re-implement both against a `.prompt`
+        # config field that no longer exists, which silently dropped every request.
         for request_file in "$restart_request_dir"/*.json; do
             [ -f "$request_file" ] || continue
 
-            local agent_to_restart
+            local agent_to_restart last_restart
             agent_to_restart=$(basename "$request_file" .json)
+
+            # Leave the request in place while cooling down so it is honoured on a
+            # later pass. Deleting it here would silently discard an agent's
+            # explicit "I am stuck" signal.
+            last_restart=${LAST_RESTART_AT[$agent_to_restart]:-0}
+            if [ $((current_time - last_restart)) -lt $RESTART_COOLDOWN_SECONDS ]; then
+                continue
+            fi
+
             echo "Found restart request for: $agent_to_restart"
 
-            local pane_tracking_file="$health_dir/${agent_to_restart}-pane.json"
-            if [ -f "$pane_tracking_file" ]; then
-                local pane_index
-                pane_index=$(jq -r '.pane_index' "$pane_tracking_file")
-                if [ -n "$pane_index" ] && [ "$pane_index" != "null" ]; then
-                    local config_file="$config_dir/${agent_to_restart}.prompt.json"
-                    local startup_prompt model wait_script cli permission_mode
-                    startup_prompt=$(read_json "$config_file" '.prompt' '')
-                    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
-                    wait_script=$(read_json "$config_file" '.wait_script' '')
-                    cli=$(read_json "$config_file" '.cli' 'devin')
-                    local default_permission_mode
-                    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
-                    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
-
-                    if [ -n "$startup_prompt" ]; then
-                        mkdir -p "$WORKFLOWS_DIR/$workflow/.temp"
-
-                        # Stable path so the Claude loop can re-read on every iteration
-                        local prompt_file="$WORKFLOWS_DIR/$workflow/.temp/prompt-${agent_to_restart}.txt"
-                        echo "$startup_prompt" > "$prompt_file"
-
-                        echo "Restarting $agent_to_restart (cli=$cli) in pane $pane_index..."
-                        tmux send-keys -t "$session_name:0.$pane_index" C-c
-                        sleep 2
-                        launch_agent_in_pane "$session_name:0.$pane_index" "$cli" "$model" "$prompt_file" "$wait_script" "$permission_mode"
-
-                        local display_name
-                        display_name=$(read_json "$config_file" '.display' "$agent_to_restart")
-                        tmux select-pane -t "$session_name:0.$pane_index" -T "$display_name"
-
-                        echo "Agent $agent_to_restart restarted"
-                    fi
-                fi
+            local recent_restarts
+            recent_restarts=$(count_recent_restarts "$workflow" "$agent_to_restart" "$FLAP_WINDOW_SECONDS")
+            if [ "$recent_restarts" -ge "$FLAP_MAX_RESTARTS" ]; then
+                echo "  ...$agent_to_restart has restarted $recent_restarts times in ${FLAP_WINDOW_SECONDS}s — not restarting again"
+                rm -f "$request_file"
+                log_uptime_event "$workflow" "$agent_to_restart" "flap" "$recent_restarts restarts in ${FLAP_WINDOW_SECONDS}s"
+                raise_alert "$workflow" "$agent_to_restart" "flapping — $recent_restarts restarts in ${FLAP_WINDOW_SECONDS}s, left down for the human"
+                escalate_flap "$workflow" "$agent_to_restart" "$recent_restarts"
+                continue
             fi
 
             rm -f "$request_file"
+            if restart_agent "$workflow" "$agent_to_restart"; then
+                LAST_RESTART_AT[$agent_to_restart]=$current_time
+                log_uptime_event "$workflow" "$agent_to_restart" "restart" "requested"
+            fi
         done
 
-        # Warn on stale heartbeats (> 5 minutes)
-        local current_time
-        current_time=$(date +%s)
+        # Auto-restart agents that have genuinely died.
+        #
+        # A heartbeat is written by await-messages.js, which only runs while the
+        # agent is *asleep* — so a stale heartbeat means "not currently waiting",
+        # which is equally true of an agent that is busy working. Restarting on
+        # staleness alone kills agents mid-task. The heartbeat is therefore only
+        # a hint: the pane's foreground process is what decides.
+        #   - stale + no CLI in the pane (bare shell) -> dead, restart now.
+        #   - stale + CLI still running                -> busy, leave it alone
+        #     until HUNG_AGENT_SECONDS, which catches a genuinely wedged CLI.
         for heartbeat_file in "$heartbeat_dir"/*.json; do
             [ -f "$heartbeat_file" ] || continue
+
+            local stale_agent
+            stale_agent=$(basename "$heartbeat_file" .json)
+
+            # Prune heartbeats left behind by removed or renamed agents, so they
+            # don't generate a restart attempt (and an error) on every pass.
+            if [ ! -f "$config_dir/${stale_agent}.prompt.json" ]; then
+                echo "Pruning orphaned heartbeat for unknown agent: $stale_agent"
+                rm -f "$heartbeat_file"
+                continue
+            fi
 
             local last_heartbeat age
             last_heartbeat=$(stat -c %Y "$heartbeat_file" 2>/dev/null || stat -f %m "$heartbeat_file" 2>/dev/null)
             age=$((current_time - last_heartbeat))
 
-            if [ $age -gt 300 ]; then
-                local stale_agent
-                stale_agent=$(basename "$heartbeat_file" .json)
-                echo "Warning: Agent $stale_agent heartbeat stale (${age}s old)"
+            # A fresh heartbeat proves a *process* is writing it, not that the
+            # right one is. The poller records its pid; if that pid is gone the
+            # agent is definitively not waiting, however recent the file looks —
+            # which catches a death faster than STALE_HEARTBEAT_SECONDS and,
+            # more importantly, does not depend on the file going stale at all.
+            local heartbeat_pid
+            heartbeat_pid=$(read_json "$heartbeat_file" '.pid' '')
+            if [ -n "$heartbeat_pid" ] && [ "$heartbeat_pid" -eq "$heartbeat_pid" ] 2>/dev/null; then
+                if ! kill -0 "$heartbeat_pid" 2>/dev/null; then
+                    echo "Agent $stale_agent heartbeat is fresh (${age}s) but its poller pid $heartbeat_pid is gone"
+                    age=$((STALE_HEARTBEAT_SECONDS + 1))
+                fi
+            fi
+
+            [ $age -gt $STALE_HEARTBEAT_SECONDS ] || continue
+
+            local pane_target
+            pane_target=$(resolve_pane_target "$workflow" "$stale_agent")
+
+            if [ -n "$pane_target" ] && pane_has_live_cli "$pane_target"; then
+                DEAD_STREAK[$stale_agent]=0
+                if [ $age -le $HUNG_AGENT_SECONDS ]; then
+                    echo "Agent $stale_agent heartbeat stale (${age}s) but CLI is running — assuming it is working"
+                    continue
+                fi
+                echo "Agent $stale_agent heartbeat stale (${age}s) and past hung threshold. Restarting..."
+            else
+                # A claude-loop pane shows a bare shell for a moment between the CLI
+                # exiting and the wait script starting. Requiring two consecutive
+                # observations keeps that instant from being read as a death right
+                # as a long working turn ends.
+                DEAD_STREAK[$stale_agent]=$(( ${DEAD_STREAK[$stale_agent]:-0} + 1 ))
+                if [ "${DEAD_STREAK[$stale_agent]}" -lt 2 ]; then
+                    echo "Agent $stale_agent heartbeat stale (${age}s) and no CLI in its pane — confirming next pass"
+                    continue
+                fi
+                echo "Agent $stale_agent heartbeat stale (${age}s) and no CLI in its pane (confirmed). Restarting..."
+            fi
+
+            local last_restart recent_restarts
+            recent_restarts=$(count_recent_restarts "$workflow" "$stale_agent" "$FLAP_WINDOW_SECONDS")
+            if [ "$recent_restarts" -ge "$FLAP_MAX_RESTARTS" ]; then
+                echo "  ...$stale_agent has restarted $recent_restarts times in ${FLAP_WINDOW_SECONDS}s — leaving it down"
+                log_uptime_event "$workflow" "$stale_agent" "flap" "$recent_restarts restarts in ${FLAP_WINDOW_SECONDS}s"
+                raise_alert "$workflow" "$stale_agent" "flapping — $recent_restarts restarts in ${FLAP_WINDOW_SECONDS}s, left down for the human"
+                escalate_flap "$workflow" "$stale_agent" "$recent_restarts"
+                DEAD_STREAK[$stale_agent]=0
+                continue
+            fi
+
+            last_restart=${LAST_RESTART_AT[$stale_agent]:-0}
+            if [ $((current_time - last_restart)) -ge $RESTART_COOLDOWN_SECONDS ]; then
+                log_uptime_event "$workflow" "$stale_agent" "down" "heartbeat ${age}s, no live poller"
+                raise_alert "$workflow" "$stale_agent" "no live poller (heartbeat ${age}s)"
+                restart_agent "$workflow" "$stale_agent"
+                LAST_RESTART_AT[$stale_agent]=$current_time
+                DEAD_STREAK[$stale_agent]=0
+                log_uptime_event "$workflow" "$stale_agent" "restart" "auto"
+            else
+                echo "  ...within restart cooldown, skipping"
             fi
         done
+
+        # Detect stalled mail/tasks and file restart requests for the agents that
+        # actually own them. detect-stalled-work.js reads each item's frontmatter
+        # assignee and skips anything already in tasks/working-on/, and persists
+        # its own cooldown; the requests it writes are picked up at the top of
+        # this loop. (This used to be inline bash that blindly restarted
+        # team-lead for any aged mail and overseer for any aged task — with a
+        # non-empty backlog being normal, that restarted both every 2 minutes
+        # forever and guaranteed neither could ever drain it.)
+        if [ $((pass % stalled_scan_every)) -eq 0 ]; then
+            # Repair message envelopes first so the stalled scan routes on real
+            # data rather than falling back to "must be the Team Lead's".
+            node "$AKVJ_ROOT/.agents/workflows/scripts/validate-messages.js" "$workflow" --quiet 2>&1 | sed 's/^/[messages] /'
+            node "$AKVJ_ROOT/.agents/workflows/scripts/detect-stalled-work.js" \
+                "$workflow" "$RESTART_COOLDOWN_SECONDS" "$STALLED_WORK_SECONDS" 2>&1 | sed 's/^/[stalled] /'
+            # The snapshot the Health Inspector used to spend a CLI turn on.
+            # Free here, and never more than a minute stale.
+            node "$AKVJ_ROOT/.agents/workflows/scripts/health-report.js" "$workflow" 2>&1 | sed 's/^/[health] /' || true
+        fi
+
+        # Keep agent memory bounded. The agent whose context is being eaten
+        # cannot be the one responsible for trimming it, so the loop does it.
+        if [ $((pass % memory_compact_every)) -eq 0 ]; then
+            node "$AKVJ_ROOT/.agents/workflows/scripts/memory-log.js" compact-all "$workflow" --quiet 2>&1 | sed 's/^/[memory] /'
+        fi
+        pass=$((pass + 1))
+
+        # Surface agents that have reported they are awaiting something.
+        if [ -d "$awaiting_dir" ]; then
+            for awaiting_file in "$awaiting_dir"/*.json; do
+                [ -f "$awaiting_file" ] || continue
+                local awaiting_agent waiting_on
+                awaiting_agent=$(basename "$awaiting_file" .json)
+                waiting_on=$(jq -r '(.waitingOn // "unknown") | if type == "array" then join(", ") else . end' "$awaiting_file" 2>/dev/null || echo "unknown")
+                [ -n "$waiting_on" ] || waiting_on="unknown"
+                echo "Status: $awaiting_agent is awaiting $waiting_on"
+            done
+        fi
 
         sleep 10
     done
@@ -442,6 +923,24 @@ if [ "$1" = "--restart" ] || [ "$1" = "-r" ]; then
     exit $?
 fi
 
+# Stopping a team is not just killing the session. Agents start their pollers as
+# background tasks through their own harness, so a poller is not a child of its
+# pane and survives `tmux kill-session` — then keeps rewriting its heartbeat with
+# a live pid, which is how a stopped team went on reporting itself as up.
+# `stop_team` kills the session and reaps the pollers behind it.
+if [ "$1" = "--stop" ]; then
+    if [ $# -lt 2 ]; then
+        echo "Usage: $0 --stop <workflow>"
+        exit 1
+    fi
+    if ! is_running "$2"; then
+        echo "No session ${2}-agents — reaping any leftover pollers anyway."
+    fi
+    stop_team "$2"
+    echo "Stopped ${2}-agents."
+    exit 0
+fi
+
 if [ "$1" = "--monitor" ] || [ "$1" = "-m" ]; then
     if [ $# -lt 2 ]; then
         echo "Usage: $0 --monitor <workflow>"
@@ -449,6 +948,24 @@ if [ "$1" = "--monitor" ] || [ "$1" = "-m" ]; then
     fi
     monitor_workflow "$2"
     exit 0
+fi
+
+# Start the team only if it is not already running. Idempotent and silent on the
+# happy path, so it is safe to run from cron every few minutes — which is what
+# makes the team survive a host reboot or a session that died with its terminal.
+# Nothing else notices that case today.
+if [ "$1" = "--ensure" ]; then
+    if [ $# -lt 2 ]; then
+        echo "Usage: $0 --ensure <workflow>"
+        exit 1
+    fi
+    if tmux has-session -t "${2}-agents" 2>/dev/null; then
+        exit 0
+    fi
+    echo "Session ${2}-agents is not running — starting it."
+    # Detached: cron and reboot survival must not try to attach (no TTY).
+    # Invoke via bash so a non-executable copy (selftest) still works.
+    AKVJ_TEAM_DETACHED=1 exec bash "$SCRIPT_PATH" "$2"
 fi
 
 if [ $# -eq 0 ]; then
@@ -493,6 +1010,20 @@ fi
 # Validate all agent configs before touching tmux
 validate_all_agents "$WORKFLOW"
 
+# Arm the git guard rails. `core.hooksPath` is per-clone local config, so a fresh
+# checkout has none — and the hooks in .githooks/ are the only thing actually
+# preventing an agent (all of which run with permissions bypassed) from pushing,
+# committing a credential, or editing the supervisor that watches it. Starting a
+# team without them armed is the exact moment that matters.
+if [ -d "$AKVJ_ROOT/.githooks" ]; then
+    current_hooks_path=$(git -C "$AKVJ_ROOT" config --get core.hooksPath 2>/dev/null || true)
+    if [ "$current_hooks_path" != ".githooks" ]; then
+        git -C "$AKVJ_ROOT" config core.hooksPath .githooks
+        echo "Armed git guard rails (core.hooksPath → .githooks)"
+    fi
+    chmod +x "$AKVJ_ROOT"/.githooks/* 2>/dev/null || true
+fi
+
 echo "Starting workflow: $WORKFLOW"
 echo "Found ${#AGENTS[@]} agents: ${AGENTS[*]}"
 echo ""
@@ -501,11 +1032,14 @@ SESSION_NAME="${WORKFLOW}-agents"
 CONFIG_DIR="$WORKFLOWS_DIR/$WORKFLOW/co-workers"
 HEALTH_DIR="$WORKFLOWS_DIR/$WORKFLOW/health"
 
-mkdir -p "$HEALTH_DIR" "$HEALTH_DIR/heartbeats" "$HEALTH_DIR/restart-requests"
+mkdir -p "$HEALTH_DIR" "$HEALTH_DIR/heartbeats" "$HEALTH_DIR/restart-requests" "$HEALTH_DIR/awaiting"
 mkdir -p "$WORKFLOWS_DIR/$WORKFLOW/.temp"
 
-# Kill any existing session and start fresh
-tmux kill-session -t "$SESSION_NAME" 2>/dev/null
+# Kill any existing session and start fresh. Killing the session does not kill
+# the pollers it started — they are background tasks of each agent's harness,
+# not children of a pane — so reap them too, or a restart leaves the previous
+# run's pollers writing heartbeats for agents that no longer own them.
+stop_team "$WORKFLOW"
 tmux new-session -d -s "$SESSION_NAME" -n agents
 
 # Show agent names in pane borders
@@ -518,13 +1052,13 @@ launch_agent() {
     local config_file="${CONFIG_DIR}/${name}.prompt.json"
 
     local startup_prompt model wait_script cli permission_mode
-    startup_prompt=$(read_json "$config_file" '.prompt' '')
-    model=$(read_json "$config_file" '.model' "$DEFAULT_MODEL")
+    startup_prompt=$(node .agents/workflows/scripts/generate-prompt.js "$WORKFLOW" "$name")
     wait_script=$(read_json "$config_file" '.wait_script' '')
+    [ -z "$wait_script" ] && wait_script="node .agents/workflows/scripts/await-messages.js \"$WORKFLOW\" \"$name\""
+    # cli first — the model and permission defaults are per-CLI.
     cli=$(read_json "$config_file" '.cli' 'devin')
-    local default_permission_mode
-    default_permission_mode=$([ "$cli" = "claude" ] && echo "$CLAUDE_PERMISSION_MODE" || echo "$DEVIN_PERMISSION_MODE")
-    permission_mode=$(read_json "$config_file" '.permission_mode' "$default_permission_mode")
+    model=$(read_json "$config_file" '.model' "$(cli_default_model "$cli")")
+    permission_mode=$(read_json "$config_file" '.permission_mode' "$(cli_default_permission_mode "$cli")")
 
     if [ -z "$startup_prompt" ]; then
         echo "Error: No prompt found in $config_file" >&2
@@ -541,7 +1075,15 @@ launch_agent() {
     display_name=$(read_json "$config_file" '.display' "$name")
     tmux select-pane -t "$SESSION_NAME:0.$pane_index" -T "$display_name"
 
-    echo "{\"agent\":\"$name\",\"pane_index\":$pane_index,\"cli\":\"$cli\"}" > "$HEALTH_DIR/${name}-pane.json"
+    # pane_id (%N) is stable for the life of the pane; pane_index is positional
+    # and gets renumbered whenever any earlier pane dies. Record both — restarts
+    # prefer the id and fall back to the index.
+    local pane_id
+    pane_id=$(tmux display-message -p -t "$SESSION_NAME:0.$pane_index" '#{pane_id}')
+
+    jq -n --arg agent "$name" --arg pane_id "$pane_id" --argjson pane_index "$pane_index" --arg cli "$cli" \
+        '{agent: $agent, pane_id: $pane_id, pane_index: $pane_index, cli: $cli}' \
+        > "$HEALTH_DIR/${name}-pane.json"
 }
 
 add_agent() {
@@ -568,7 +1110,7 @@ done
 tmux select-layout -t "$SESSION_NAME" even-horizontal
 
 # Start the health monitor in a dedicated window so it is always running with the team
-tmux new-window -d -t "$SESSION_NAME" -n monitor "$(realpath "$0") --monitor '$WORKFLOW'"
+tmux new-window -d -t "$SESSION_NAME" -n monitor "bash \"$(realpath "$0")\" --monitor '$WORKFLOW'"
 tmux select-pane -t "$SESSION_NAME:monitor" -T " Health Monitor "
 
 echo "Started tmux session '$SESSION_NAME' with ${#AGENTS[@]} agents (+ monitor window)"
@@ -583,8 +1125,14 @@ echo "  Ctrl+B then 1       - Health monitor"
 echo "  Ctrl+B then Arrow   - Switch between panes"
 echo "  Ctrl+B then d       - Detach (leave agents running)"
 echo "  tmux attach -t $SESSION_NAME - Reattach"
-echo "  tmux kill-session -t $SESSION_NAME - Stop all agents"
+echo "  $SCRIPT_PATH --stop $WORKFLOW - Stop all agents"
 echo ""
+# --ensure (and any AKVJ_TEAM_DETACHED=1 caller) must leave the session running
+# without attaching — cron has no TTY, and attach would hang or fail the reboot path.
+if [ "${AKVJ_TEAM_DETACHED:-}" = "1" ]; then
+    echo "Started detached. Reattach with: tmux attach -t $SESSION_NAME"
+    exit 0
+fi
 # If already inside a tmux session use switch-client, otherwise attach
 if [ -n "$TMUX" ]; then
     tmux switch-client -t "$SESSION_NAME"

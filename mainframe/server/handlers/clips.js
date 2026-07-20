@@ -7,6 +7,7 @@ import { loadClipFrameBuffers } from '../frameLoad.js';
 import { durationsMsToFrameRates } from '../../shared/frameTiming.js';
 import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { parseClipFramesBody } from '../clipFramesBody.js';
+import { validateMetaFields } from '../../scripts/clips/lib/validate/meta.js';
 import { listClips, activeProjectId, clipsRootFor } from '../clipCatalog.js';
 import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
 
@@ -148,6 +149,7 @@ export async function handlePutClipFrames(req, res, url) {
 			targetWidth: parsed.targetWidth,
 			targetHeight: parsed.targetHeight,
 			scaleMode: parsed.scaleMode,
+			scaling: parsed.scaling,
 			name: parsed.name,
 			playback: parsed.playback,
 			frameRate: parsed.frameRate,
@@ -156,7 +158,6 @@ export async function handlePutClipFrames(req, res, url) {
 			triggerType: parsed.triggerType,
 			triggerGroup: parsed.triggerGroup,
 			bitDepth: parsed.bitDepth,
-			frameDurationBeats: parsed.frameDurationBeats,
 			sync: parsed.sync,
 			syncLength: parsed.syncLength,
 			syncBeats: parsed.syncBeats,
@@ -201,6 +202,7 @@ export async function handlePostClips(req, res) {
 			targetWidth: parsed.targetWidth,
 			targetHeight: parsed.targetHeight,
 			scaleMode: parsed.scaleMode,
+			scaling: parsed.scaling,
 			name: parsed.name,
 			playback: parsed.playback,
 			frameRate: parsed.frameRate,
@@ -209,7 +211,6 @@ export async function handlePostClips(req, res) {
 			triggerType: parsed.triggerType,
 			triggerGroup: parsed.triggerGroup,
 			bitDepth: parsed.bitDepth,
-			frameDurationBeats: parsed.frameDurationBeats,
 			sync: parsed.sync,
 			syncLength: parsed.syncLength,
 			syncBeats: parsed.syncBeats,
@@ -244,18 +245,19 @@ export async function handleRecompileClip(req, res, url) {
 		return;
 	}
 	const { targetWidth, targetHeight, name, playback, frameRate, role, frameDurations } = body;
-	let { scaleMode } = body;
-	if (!scaleMode) {
+	let { scaleMode, scaling } = body;
+	if (!scaleMode || scaling === undefined) {
 		try {
 			const meta = JSON.parse(await fs.readFile(path.join(targetDir, 'meta.json'), 'utf8'));
-			scaleMode = meta.scaleMode;
+			scaleMode = scaleMode || meta.scaleMode;
+			scaling = scaling !== undefined ? scaling : meta.scaling;
 		} catch {
-			// keep undefined — spritesheet defaults to fit
+			// keep undefined — spritesheet defaults to fit / nearest
 		}
 	}
 	const frameRatesForFrames = Array.isArray(frameDurations) && frameDurations.length > 0 ? durationsMsToFrameRates(frameDurations) : undefined;
 	try {
-		const result = await recompileClip({ clipId, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, role, projectId });
+		const result = await recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, projectId });
 		sendJson(res, 200, { ok: true, ...result });
 	} catch (error) {
 		sendJson(res, 400, { error: error.message });
@@ -278,32 +280,18 @@ export async function handleDeleteClip(_req, res, url) {
 	}
 	await fs.rm(targetDir, { recursive: true });
 	await fs.rm(path.join(projectRawAssetsRoot(projectId), clipId), { recursive: true, force: true });
+
+	const mapping = await readMapping(projectId);
+	const remaining = mapping.filter(entry => entry.clipId !== clipId);
+	if (remaining.length !== mapping.length) {
+		const keyMap = nestMappingEntries(remaining);
+		await fs.writeFile(projectKeyMapPath(projectId), `${JSON.stringify(keyMap, null, '\t')}\n`);
+	}
+
 	sendJson(res, 200, { ok: true, clipId });
 }
 
-const EDITABLE_META_FIELDS = new Set([
-	'name',
-	'frames',
-	'framesPerRow',
-	'playback',
-	'loop',
-	'retrigger',
-	'frameRatesForFrames',
-	'frameDurationBeats',
-	'bitDepth',
-	'role',
-	'png',
-	'triggerType',
-	'triggerGroup',
-	'scaleMode',
-	'frameWidth',
-	'frameHeight',
-	'placement',
-	'sync',
-	'syncLength',
-	'syncBeats',
-	'beatsPerBar'
-]);
+const EDITABLE_META_FIELDS = new Set(['name', 'frames', 'framesPerRow', 'playback', 'loop', 'retrigger', 'frameRatesForFrames', 'bitDepth', 'role', 'png', 'triggerType', 'triggerGroup', 'scaleMode', 'scaling', 'frameWidth', 'frameHeight', 'placement', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
 
 export async function handlePutClipMeta(req, res, url) {
 	const clipId = decodeURIComponent(url.pathname.slice('/api/clips/'.length));
@@ -346,7 +334,12 @@ export async function handlePutClipMeta(req, res, url) {
 			updatedMeta[key] = value;
 		}
 	}
-	if (updatedMeta.png !== currentMeta.png && !SAFE_PNG_NAME.test(path.basename(String(updatedMeta.png)))) {
+	const validationErrors = validateMetaFields(updatedMeta);
+	if (validationErrors.length > 0) {
+		sendJson(res, 400, { error: validationErrors[0] });
+		return;
+	}
+	if (updatedMeta.png !== currentMeta.png && !SAFE_PNG_NAME.test(String(updatedMeta.png))) {
 		sendJson(res, 400, { error: 'Invalid png filename in meta' });
 		return;
 	}

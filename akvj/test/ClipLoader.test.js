@@ -63,7 +63,7 @@ describe('ClipLoader', () => {
 		settings.performance.maxConcurrentClipLoads = originalConcurrency;
 	});
 
-	test('setupClips resolves mapping and loads images using concurrency setting', async () => {
+	test('loadClips resolves mapping and loads images using concurrency setting', async () => {
 		settings.performance.maxConcurrentClipLoads = 1;
 
 		const catalog = {
@@ -74,7 +74,7 @@ describe('ClipLoader', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(clips).toBeTruthy();
 		// DAW channel 1 → code channel 0
 		expect(clips[0][60]).toBeDefined();
@@ -104,7 +104,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '../secret.png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
@@ -119,7 +119,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(clips[0][60][0]).toBeDefined();
 	});
 
@@ -133,7 +133,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('invalid file name'), '....png');
 		expect(clips[0]?.[60]?.[0]).toBeUndefined();
 		consoleWarnSpy.mockRestore();
@@ -149,7 +149,7 @@ describe('ClipLoader - sanitizeFileName (indirect tests)', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith(expect.stringContaining('ignoring clip with non-numeric path keys'), expect.any(Object));
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
@@ -178,7 +178,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(clips[4][0][0]).toBeDefined();
 		expect(clips[5]).toBeUndefined();
 	});
@@ -191,7 +191,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: key-map references unknown clipId', 'missing-clip');
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
@@ -201,7 +201,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		mockFetchCatalogAndLayout({ ok: { png: 'sprite.png', frames: 1, framesPerRow: 1 } }, 'not-an-object');
 		installMockImage();
 		const loader = new ClipLoader({});
-		await expect(loader.setupClips('/clips/clips.json', '/clips/key-map.json')).rejects.toThrow(/must be a JSON object/);
+		await expect(loader.loadClips()).rejects.toThrow(/must be a JSON object/);
 	});
 
 	test('throws when mapping fetch fails', async () => {
@@ -213,7 +213,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		});
 		installMockImage();
 		const loader = new ClipLoader({});
-		await expect(loader.setupClips('/clips/clips.json', '/clips/key-map.json')).rejects.toThrow(/status: 404/);
+		await expect(loader.loadClips()).rejects.toThrow(/status: 404/);
 	});
 
 	test('rejects bare numeric clipIds', async () => {
@@ -226,7 +226,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 		expect(consoleWarnSpy).toHaveBeenCalledWith('ClipLoader: invalid clipId', '5');
 		expect(Object.keys(clips).length).toBe(0);
 		consoleWarnSpy.mockRestore();
@@ -246,7 +246,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 
 		// String mapping: default triggerType
 		const clip1 = clips[0][60][0];
@@ -280,7 +280,7 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 
 		expect(clips[0][60][0]).toBeTruthy();
 		expect(clips[0][61][0]).toBeTruthy();
@@ -312,14 +312,83 @@ describe('ClipLoader - mapping edge cases', () => {
 		installMockImage();
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips();
 
 		// Clip should load successfully without throwing
 		expect(clips[0][60][0]).toBeDefined();
 		expect(clips[0][60][0]).toBeInstanceOf(Object);
 	});
-});
 
+	test('frameDurationsMs array in catalog is preserved and the Clip uses ms timing', async () => {
+		const catalog = {
+			'ms-clip': {
+				png: 'sprite.png',
+				frames: 2,
+				framesPerRow: 2,
+				playback: 'once',
+				frameDurationsMs: [50, 100],
+				retrigger: true
+			}
+		};
+		const keyMap = { 1: { 60: { 0: 'ms-clip' } } };
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage();
+
+		const loader = new ClipLoader({});
+		const clips = await loader.loadClips();
+		const clip = clips[0][60][0];
+
+		const ctx = { drawImage: vi.fn() };
+		clip.renderToContext(ctx, 0);
+		expect(clip.currentFrame).toBe(0);
+
+		clip.renderToContext(ctx, 40);
+		expect(clip.currentFrame).toBe(0);
+
+		clip.renderToContext(ctx, 50);
+		expect(clip.currentFrame).toBe(1);
+	});
+
+	test('mapping overrides can supply frameDurationsMs and it reaches the Clip', async () => {
+		const catalog = {
+			'base-clip': {
+				png: 'sprite.png',
+				frames: 2,
+				framesPerRow: 2,
+				playback: 'once',
+				frameRatesForFrames: { 0: 1000, 1: 1000 },
+				retrigger: true
+			}
+		};
+		const keyMap = {
+			1: {
+				60: { 0: 'base-clip' },
+				61: { 0: { clipId: 'base-clip', frameDurationsMs: [50, 100] } }
+			}
+		};
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage();
+
+		const loader = new ClipLoader({});
+		const clips = await loader.loadClips();
+
+		// Base slot uses FPS (1ms per frame)
+		const baseClip = clips[0][60][0];
+		const ctx = { drawImage: vi.fn() };
+		baseClip.renderToContext(ctx, 0);
+		baseClip.renderToContext(ctx, 1);
+		expect(baseClip.currentFrame).toBe(1);
+
+		// Overridden slot uses ms timing (50ms for frame 0)
+		const overrideClip = clips[0][61][0];
+		overrideClip.renderToContext(ctx, 0);
+		expect(overrideClip.currentFrame).toBe(0);
+		overrideClip.renderToContext(ctx, 40);
+		expect(overrideClip.currentFrame).toBe(0);
+		overrideClip.renderToContext(ctx, 50);
+		expect(overrideClip.currentFrame).toBe(1);
+	});
+});
 
 describe('ClipLoader - project load path', () => {
 	let originalFetch;
@@ -334,7 +403,7 @@ describe('ClipLoader - project load path', () => {
 		globalThis.Image = originalImage;
 	});
 
-	test('setupClipsFromProject fetches project-scoped catalog and key-map', async () => {
+	test('loadClipsFromProject fetches project-scoped catalog and key-map', async () => {
 		const catalog = {
 			'neon-skull': { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
@@ -344,7 +413,7 @@ describe('ClipLoader - project load path', () => {
 		installMockImage(loadedSrcs);
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClipsFromProject('demo');
+		const clips = await loader.loadClipsFromProject('demo');
 
 		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
 		expect(fetchUrls.some(url => url.includes('/projects/demo/clips/clips.json'))).toBe(true);
@@ -354,12 +423,12 @@ describe('ClipLoader - project load path', () => {
 		expect(loadedSrcs.some(src => src.includes('/projects/demo/clips/neon-skull/sprite.png'))).toBe(true);
 	});
 
-	test('setupClipsFromProject throws on invalid projectId', async () => {
+	test('loadClipsFromProject throws on invalid projectId', async () => {
 		const loader = new ClipLoader({});
-		await expect(loader.setupClipsFromProject('../etc')).rejects.toThrow(/Invalid project ID/);
+		await expect(loader.loadClipsFromProject('../etc')).rejects.toThrow(/Invalid project ID/);
 	});
 
-	test('setupClips uses active project URLs instead of legacy args', async () => {
+	test('loadClips uses active project URLs instead of legacy args', async () => {
 		const catalog = {
 			'live-clip': { png: 'sheet.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
 		};
@@ -369,7 +438,7 @@ describe('ClipLoader - project load path', () => {
 		installMockImage(loadedSrcs);
 
 		const loader = new ClipLoader({});
-		const clips = await loader.setupClips('/clips/clips.json', '/clips/key-map.json');
+		const clips = await loader.loadClips('/clips/clips.json', '/clips/key-map.json');
 
 		const fetchUrls = globalThis.fetch.mock.calls.map(call => String(call[0]));
 		expect(fetchUrls.some(url => url.includes('/projects/live-set/clips/clips.json'))).toBe(true);
@@ -381,7 +450,7 @@ describe('ClipLoader - project load path', () => {
 	});
 });
 
-describe('ClipLoader - destroy()', () => {
+describe('ClipLoader - destroyClips()', () => {
 	test('calls destroy on every nested clip once', () => {
 		const a = { destroy: vi.fn() };
 		const b = { destroy: vi.fn() };
@@ -390,18 +459,18 @@ describe('ClipLoader - destroy()', () => {
 			1: { 61: { 0: b } }
 		};
 		const loader = new ClipLoader({});
-		loader.destroy(clips);
+		loader.destroyClips(clips);
 		expect(a.destroy).toHaveBeenCalledTimes(1);
 		expect(b.destroy).toHaveBeenCalledTimes(1);
 	});
 
-	test('destroy(null) and destroy(undefined) do not throw', () => {
+	test('destroyClips(null) and destroyClips(undefined) do not throw', () => {
 		const loader = new ClipLoader({});
-		expect(() => loader.destroy(null)).not.toThrow();
-		expect(() => loader.destroy(undefined)).not.toThrow();
+		expect(() => loader.destroyClips(null)).not.toThrow();
+		expect(() => loader.destroyClips(undefined)).not.toThrow();
 	});
 
-	test('continues destroying siblings when one destroy() throws', () => {
+	test('continues destroying siblings when one clip.destroy() throws', () => {
 		const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const exploding = {
 			destroy: vi.fn(() => {
@@ -413,7 +482,7 @@ describe('ClipLoader - destroy()', () => {
 			0: { 60: { 0: exploding, 64: survivor } }
 		};
 		const loader = new ClipLoader({});
-		expect(() => loader.destroy(clips)).not.toThrow();
+		expect(() => loader.destroyClips(clips)).not.toThrow();
 		expect(exploding.destroy).toHaveBeenCalledTimes(1);
 		expect(survivor.destroy).toHaveBeenCalledTimes(1);
 		expect(errorSpy).toHaveBeenCalledWith('Failed to destroy clip:', expect.any(Error));

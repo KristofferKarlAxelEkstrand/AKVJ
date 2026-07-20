@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const WEB_SERVER_TIMEOUT_MS = 30000;
+
 /**
  * Playwright E2E test configuration for AKVJ + Mainframe.
  *
@@ -31,13 +33,13 @@ export default defineConfig({
 		{
 			command: 'npm run akvj',
 			port: 8888,
-			timeout: 30000,
+			timeout: WEB_SERVER_TIMEOUT_MS,
 			reuseExistingServer: !process.env.CI
 		},
 		{
 			command: 'npm run mainframe',
 			port: 9999,
-			timeout: 30000,
+			timeout: WEB_SERVER_TIMEOUT_MS,
 			reuseExistingServer: !process.env.CI
 		}
 	]

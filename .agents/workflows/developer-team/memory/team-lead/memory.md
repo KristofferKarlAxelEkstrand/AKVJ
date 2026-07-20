@@ -27,7 +27,7 @@ This file serves as your persistent memory. Update it as you delegate tasks, tra
   2026-07-18, unclaimed as of last check.
 - Backlog (mainframe domain, not yet dispatched — mainframe-developer had unclaimed work each time):
   Task 190 (clip-editor naming sweep — dropped the ticket's tag-prefix item, already covered by
-  `spec/code-standards.md:13` which forbids mass-renaming), Task 192 (test coverage for per-image
+  `AGENTS.md`, which forbids mass-renaming), Task 192 (test coverage for per-image
   scale/placement compositing in `ClipFrame.js`/`StagingPreview.js`, medium priority).
 - Task 82 (grayscale/demo-scene effects, akvj domain) intentionally NOT dispatched even when
   akvj-developer is idle — its own text says "needs proper design discussion before implementation."
@@ -35,7 +35,7 @@ This file serves as your persistent memory. Update it as you delegate tasks, tra
 
 ## Judgment calls worth remembering
 - When a `[NIT]`/ticket's suggested fix conflicts with an already-documented spec rule, check
-  `spec/code-standards.md` (and siblings) before batching it into a task — don't blindly action every
+  `AGENTS.md` and `spec/` before batching it into a task — don't blindly action every
   finding. Cite the rule and exclude the conflicting item rather than silently dropping it.
 - Dispatch the next epic phase as soon as the prior phase's `[REPORT]` confirms tests pass + matches
   spec, without waiting for formal QA sign-off — phase dependency is about the implementation existing

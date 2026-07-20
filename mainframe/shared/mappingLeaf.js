@@ -110,10 +110,7 @@ export function parseFlatMappingEntry(entry) {
 		return { ok: false, error: 'mapping entry must be an object' };
 	}
 	if (typeof entry.clipId === 'string') {
-		const overrides =
-			entry.overrides && typeof entry.overrides === 'object' && !Array.isArray(entry.overrides) && Object.keys(entry.overrides).length > 0
-				? entry.overrides
-				: null;
+		const overrides = entry.overrides && typeof entry.overrides === 'object' && !Array.isArray(entry.overrides) && Object.keys(entry.overrides).length > 0 ? entry.overrides : null;
 		return { ok: true, clipId: entry.clipId, overrides };
 	}
 	return parseMappingLeaf(entry.clipId);

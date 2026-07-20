@@ -1,6 +1,6 @@
 # The Nitpicker — Conventions Cheatsheet
 
-Distilled from `../../spec/code-standards.md` and `AGENTS.md`. Keep this current; it's my fast
+Distilled from the repo-root `AGENTS.md`, the single source of truth for code standards. Keep this current; it's my fast
 reference during sweeps.
 
 ## Naming

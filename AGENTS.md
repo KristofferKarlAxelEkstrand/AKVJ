@@ -1,6 +1,8 @@
 # AKVJ - AI Agent Instructions
 
-This file is the single source of truth for AI coding agents working with the AKVJ (Adventure Kid Video Jockey) codebase. It is agent-agnostic and applies to all AI tools (Copilot, Claude, Cursor, Windsurf, etc.).
+This file is the single source of truth for **how code is written** in the AKVJ (Adventure Kid Video Jockey) codebase. It is agent-agnostic and applies to all AI tools (Copilot, Claude, Cursor, Windsurf, etc.).
+
+**What the product does** lives in the specs, indexed at `.agents/workflows/developer-team/spec/README.md`. Those describe how AKVJ works today and are approved by the human; if code and an approved spec disagree, raise it rather than picking a side.
 
 ## Agent Quick-Start
 
@@ -61,7 +63,7 @@ AKVJ is a real-time VJ (Video Jockey) application for live performance visuals. 
 
 ## Key Files
 
-npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), `midi-mcp/` (MIDI spec MCP server for agents), per-project clips under `projects/{id}/clips/`.
+npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), per-project clips under `projects/{id}/clips/`.
 
 | File                                          | Purpose                                                     |
 | --------------------------------------------- | ----------------------------------------------------------- |
@@ -98,7 +100,6 @@ npm run clips:watch      # Watch mode for clip changes
 npm run clips:clean      # Remove cache and generated output
 npm run clips:new        # Scaffold new clip (requires clipId arg)
 npm run mainframe        # Mainframe UI + API (localhost:9999 / 7777)
-npm run midi:extract     # Rebuild the MIDI spec knowledge base (midi-mcp/data/)
 ```
 
 ## MIDI Mapping
@@ -134,24 +135,33 @@ Each velocity slot is either a bare clip id string (`"my-clip"`) or an object
 
 Key fields in `meta.json`:
 
-| Field                 | Type          | Description                                                                         |
-| --------------------- | ------------- | ----------------------------------------------------------------------------------- |
-| `png`                 | string        | Sprite sheet filename                                                               |
-| `frames`              | number        | Total frames (canonical field; `numberOfFrames` accepted as legacy alias)           |
-| `framesPerRow`        | number        | Frames per row in sprite sheet                                                      |
-| `playback`            | string        | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
-| `retrigger`           | boolean       | Restart on re-trigger                                                               |
-| `frameRatesForFrames` | object        | FPS per frame index (Free / wall-clock timing)                                      |
-| `frameDurationBeats`  | number/array  | BPM-synced timing (beats per frame); also produced by expanding `sync` fields       |
-| `sync`                | string        | Optional; `"free"` (default) or `"beat"` — author-facing sync mode                  |
-| `syncLength`          | string        | Required when `sync` is `"beat"`; preset (`1/4 beat`…`8 bars`) or `"custom"`      |
-| `syncBeats`           | number        | Required when `syncLength` is `"custom"` — total musical length in beats            |
-| `beatsPerBar`         | number        | Optional; time-signature numerator for bar presets (default `4`)                    |
-| `bitDepth`            | number        | For masks: 1, 2, 4, or 8                                                            |
-| `role`                | string        | Optional; `"bitmask"` for mixer masks                                               |
-| `triggerType`         | string        | Optional; `"momentary"` (default), `"latch"`, or `"one-shot"`                       |
-| `triggerGroup`        | string/number | Optional; choke group name — triggering a clip stops all others in the same group   |
-| `name`                | string        | Optional; human-readable clip name                                                  |
+| Field                 | Type           | Description                                                                         |
+| --------------------- | -------------- | ----------------------------------------------------------------------------------- |
+| `png`                 | string         | Sprite sheet filename                                                               |
+| `frames`              | number         | Total frames (canonical field; `numberOfFrames` accepted as legacy alias)           |
+| `framesPerRow`        | number         | Frames per row in sprite sheet                                                      |
+| `frameWidth`          | number         | Cell width in pixels (default 240)                                                  |
+| `frameHeight`         | number         | Cell height in pixels (default 135)                                                 |
+| `scaleMode`           | string         | How the cell fills the canvas: `fit`, `cover`, `stretch`, `none`, `pattern`         |
+| `scaling`             | string         | Frame interpolation: `nearest` (default, pixel-art) or `smooth` (bilinear)          |
+| `placement`           | object `{x,y}` | Offset from center in pixels; ignored when `scaleMode: "stretch"`                   |
+| `playback`            | string         | Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`) |
+| `retrigger`           | boolean        | Restart on re-trigger                                                               |
+| `frameRatesForFrames` | object         | FPS per frame index (Free / wall-clock timing)                                      |
+| `frameDurationsMs`    | array          | Per-frame milliseconds, one per frame; takes priority over `frameRatesForFrames`    |
+| `sync`                | string         | Optional; `"free"` (default) or `"beat"` — author-facing sync mode                  |
+| `syncLength`          | string         | Required when `sync` is `"beat"`; preset (`1/4 beat`…`8 bars`) or `"custom"`        |
+| `syncBeats`           | number         | Required when `syncLength` is `"custom"` — total musical length in beats            |
+| `beatsPerBar`         | number         | Optional; time-signature numerator for bar presets (default `4`)                    |
+| `bitDepth`            | number         | For masks: 1, 2, 4, or 8                                                            |
+| `role`                | string         | Optional; `"bitmask"` for mixer masks                                               |
+| `triggerType`         | string         | Optional; `"momentary"` (default), `"latch"`, or `"one-shot"`                       |
+| `triggerGroup`        | string/number  | Optional; choke group name — triggering a clip stops all others in the same group   |
+| `name`                | string         | Optional; human-readable clip name                                                  |
+
+`frameDurationBeats` is **not** a field — the pipeline rejects it. Beat sync scales the whole clip
+via `sync` / `syncLength` / `syncBeats`; full behaviour in
+`.agents/workflows/developer-team/spec/clip-timing-sync.md`.
 
 ## Clip Structure
 
@@ -190,10 +200,37 @@ projects/{projectId}/key-map.json
 ### Design Patterns
 
 - **Custom Elements**: `<adventure-kid-video-jockey>` with proper lifecycle (`connectedCallback`, `disconnectedCallback`)
+- **Light DOM only**: Do **not** use Shadow DOM (`attachShadow`). Style and compose through the light DOM so shared CSS and host-page theming work. (See the `custom-elements-frontend` skill.)
+- **Tag naming (mainframe)**: `akvj-*` only for top-level app shells that appear once in the page shell (`akvj-staging-preview`, `akvj-clip-list`, `akvj-mapping-table`). Unprefixed tags for reusable leaf widgets (`clip-frames`, `clip-name-input`, `user-message`, `piano-roll`). Do not mass-rename existing tags; follow this for new elements so the mix stops growing.
 - **Private Class Fields**: Use `#fieldName` for encapsulation
-- **Event-Based Communication**: `AppState` extends `EventTarget` for loose coupling
+- **Event-Based Communication**: `AppState` extends `EventTarget` for loose coupling. Custom elements communicate upwards exclusively via bubbling custom events (`this.dispatchEvent(new CustomEvent('action', { bubbles: true, composed: true, detail: {…} }))`) — do not couple children to parents by passing down callbacks or manager references.
 - **Unsubscribe Pattern**: `subscribe()` returns unsubscribe function for cleanup
 - **Cached Active Clips**: `LayerGroup` caches sorted active clips with a dirty flag
+
+### CSS Ownership
+
+Styling belongs to the component that uses it, not to a global stylesheet.
+
+- **One stylesheet per custom element**, scoped under that element so it can change without surprising other pages. Use SCSS — not as licence to build a global design-system layer.
+- **No component chrome in global CSS.** No growing dump of shared class rules for tabs, editors, piano keys, lists, and the like.
+- **Allowed global baseline only**: the box-sizing model plus minimal page-shell resets (`body` margin/font) that are genuinely document-level.
+
+```css
+html {
+    box-sizing: border-box;
+}
+*,
+*:before,
+*:after {
+    box-sizing: inherit;
+}
+```
+
+### Judgement
+
+- **Avoid over-engineering.** Before implementing, ask whether the solution is more complex than the problem. Over-engineering costs more in maintenance than it ever saves.
+- **KISS.** Build a robust feature set, implement it simply. Readable standard code beats a clever abstraction.
+- **Incremental over rewrite.** Keep refactors small and focused on structure, without changing behaviour unexpectedly.
 
 ### Error Handling
 
@@ -296,15 +333,6 @@ Reusable skills live in `.agents/skills/` following the [Agent Skills](https://a
 
 Run `.agents/scripts/link-skills.sh` after adding or removing skills to sync symlinks. Edit skills only in `.agents/skills/` — agent-native dirs (`.claude/skills/`, `.cursor/skills/`, `.windsurf/skills/`) are symlinks.
 
-## MIDI Spec MCP Server (`midi-mcp/`)
-
-A stdio MCP server exposing the MIDI 1.0 / MIDI 2.0 / Web MIDI specifications to AI agents. See [midi-mcp/README.md](midi-mcp/README.md).
-
-- Tools: `search_spec_data` (protocol/tier filters, page-anchored results), `read_spec_doc` (page-range reads), `list_spec_docs`, `fetch_online_resource`.
-- The extracted corpus `midi-mcp/data/` is generated by `npm run midi:extract` and **committed** — never hand-edit it; curated content lives in `midi-mcp/reference/`.
-- Raw source PDFs in `.midi-raw-data/` are local-only (gitignored).
-- **Never use `console.log` in midi-mcp server code** — stdout is the JSON-RPC stream; use `console.error`.
-
 ## Communication Style
 
 All agent messages, task files, and docs must be short and direct. Say what happened, what is needed, move on.
@@ -316,11 +344,11 @@ All agent messages, task files, and docs must be short and direct. Say what happ
 - **If the reader can infer it, cut it.** Don't restate the task you were given.
 - **~10 lines max** for normal messages. Longer = something went wrong.
 
-Templates and before/after examples: `.agents/workflows/developer-team/drafts/comunication-style.md`.
+Message formats and the envelope every developer-team message carries: `.agents/workflows/developer-team/co-workers/_shared/messaging.md`.
 
 ## Security & Boundaries
 
-- **Never hand-edit `akvj/src/public/clips/`** — it's fully generated by `npm run clips` from source files in `clips/` and will be silently overwritten on the next build.
+- **Never hand-edit `akvj/src/public/projects/{projectId}/clips/`** — it's fully generated by `npm run clips` from source files in `projects/{projectId}/clips/` and will be silently overwritten on the next build.
 - **Never commit `.env` files or MIDI-device-specific local config.**
 - Commit conventions and the PR workflow live in [CONTRIBUTING.md](CONTRIBUTING.md) — don't duplicate them here.
 
@@ -362,9 +390,9 @@ npm run test                   # run unit tests
 npm run build                  # ensure build succeeds
 ```
 
-4. Pre-commit hooks and IDE tooling
+4. IDE tooling and manual verification
 
-- A Husky pre-commit hook runs `lint-staged` to auto-format and lint staged files.
+- No pre-commit hooks are configured; use IDE format-on-save and manually run `npm run lint` and `npm run format:prettier` before committing.
 - Workspace VS Code settings enable `editor.formatOnSave` and `editor.codeActionsOnSave` for quick formatting and fixing on save.
 
 ## Troubleshooting
@@ -377,7 +405,7 @@ Common issues and steps to investigate:
     - Verify MIDI device is connected. Use `getConnectedDevices()` from the `midi` singleton to list device names.
 
 - Black canvas or clips not loading
-    - Confirm `akvj/src/public/clips/clips.json` exists and was generated: `npm run clips`.
+    - Confirm `akvj/src/public/projects/{projectId}/clips/clips.json` exists and was generated: `npm run clips`.
     - Look for the console message: "JSON for clips loaded".
     - Verify the build step was successful and static assets are present.
 
@@ -492,7 +520,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + s
 
 ### Best Practices for AI Agents in the Container
 
-1. **Never assume MIDI works** — When testing, use the fake MIDI utilities in `test/utils/fake-midi.js` rather than expecting real hardware
+1. **Never assume MIDI works** — When testing, use the fake MIDI utilities in `akvj/test/utils/fakeMidi.js` rather than expecting real hardware
 2. **Run validation commands, not browser tests** — Use `npm run lint && npm run test && npm run build` to validate changes. Do not attempt to launch a browser.
 3. **Use `npm run clips` for clip changes** — The full pipeline (validate, optimize, generate, copy) works in-container
 4. **Be patient with `npm install`** — The first install takes ~13 seconds. `sharp` downloads prebuilt binaries; no native compilation needed.

@@ -63,7 +63,6 @@ export class ClipEditorController {
 		this.#clipIdHint = document.getElementById('clip-editor-clip-id-hint');
 		this.#clipEditorHeading = document.getElementById('clip-editor-heading');
 		this.#submitButton = document.getElementById('clip-editor-submit');
-		this.#clipFramesElement = document.getElementById('clip-frames');
 		this.#stagingPreview = document.getElementById('clip-editor-staging-preview');
 		this.#statusElement = document.getElementById('clip-editor-status');
 		this.#globalDurationInput = document.getElementById('clip-frames-global-duration');
@@ -85,9 +84,70 @@ export class ClipEditorController {
 	#clipIdHint;
 	#clipEditorHeading;
 	#submitButton;
-	#clipFramesElement;
 	#stagingPreview;
 	#statusElement;
+	#clipFramesListenersAttached = false;
+
+	/**
+	 * Lazily resolve the inner <clip-frames> element, which may be created by
+	 * <clip-frames-upload-panel> after this controller is constructed.
+	 * @returns {HTMLElement|null}
+	 */
+	get #clipFramesElement() {
+		return document.getElementById('clip-frames');
+	}
+
+	/**
+	 * Attach listeners to the dynamic <clip-frames> element once it exists.
+	 * The element is rendered by <clip-frames-upload-panel>, so it may not be
+	 * available at construction time.
+	 */
+	#attachClipFramesListeners() {
+		const clipFrames = this.#clipFramesElement;
+		if (!clipFrames || this.#clipFramesListenersAttached) {
+			return;
+		}
+		this.#clipFramesListenersAttached = true;
+
+		clipFrames.addEventListener('framesreordered', event => {
+			const order = event.detail.indices;
+			this.#stagedFiles = order.map(originalIndex => this.#stagedFiles[originalIndex]);
+			this.#stagedFrameUrls = order.map(originalIndex => this.#stagedFrameUrls[originalIndex]);
+			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? 1000);
+			this.#stagedBakeConfigs = order.map(originalIndex => this.#stagedBakeConfigs[originalIndex] ?? resolveFrameBakeConfig({}));
+			this.#framesDirty = true;
+			this.syncGlobalDurationControl();
+			this.syncGlobalBakeScaleControl();
+			this.updateStagingPreview();
+		});
+		clipFrames.addEventListener('durationchange', () => {
+			this.#stagedDurationsMs = clipFrames.getDurationsMs();
+			this.#framesDirty = true;
+			this.syncGlobalDurationControl();
+			this.updateStagingPreview();
+		});
+		clipFrames.addEventListener('bakeconfigchange', () => {
+			this.#stagedBakeConfigs = clipFrames.getBakeConfigs();
+			this.#framesDirty = true;
+			this.syncGlobalBakeScaleControl();
+			this.updateStagingPreview();
+		});
+		clipFrames.addEventListener('frameremove', event => {
+			const index = event.detail.frameIndex;
+			this.#stagedFiles.splice(index, 1);
+			this.#stagedDurationsMs.splice(index, 1);
+			this.#stagedBakeConfigs.splice(index, 1);
+			if (this.#stagedFrameUrls[index]) {
+				URL.revokeObjectURL(this.#stagedFrameUrls[index]);
+				this.#stagedFrameUrls.splice(index, 1);
+			}
+			this.#framesDirty = true;
+			this.syncStagedFramesUi();
+		});
+		clipFrames.addEventListener('framescleared', () => {
+			this.clearStagedFrames();
+		});
+	}
 
 	/** Wire DOM listeners once after construction. */
 	bindEventListeners() {
@@ -102,7 +162,7 @@ export class ClipEditorController {
 		});
 		document.getElementById('clip-frames-clear').addEventListener('click', () => {
 			this.clearStagedFrames();
-			this.#clipFramesElement.clearAll();
+			this.#clipFramesElement?.clearAll();
 			this.#clearProgressStatus();
 		});
 
@@ -154,44 +214,7 @@ export class ClipEditorController {
 			this.refreshGeneratedClipId();
 		});
 
-		this.#clipFramesElement.addEventListener('framesreordered', event => {
-			const order = event.detail.indices;
-			this.#stagedFiles = order.map(originalIndex => this.#stagedFiles[originalIndex]);
-			this.#stagedFrameUrls = order.map(originalIndex => this.#stagedFrameUrls[originalIndex]);
-			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? 1000);
-			this.#stagedBakeConfigs = order.map(originalIndex => this.#stagedBakeConfigs[originalIndex] ?? resolveFrameBakeConfig({}));
-			this.#framesDirty = true;
-			this.syncGlobalDurationControl();
-			this.syncGlobalBakeScaleControl();
-			this.updateStagingPreview();
-		});
-		this.#clipFramesElement.addEventListener('durationchange', () => {
-			this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
-			this.#framesDirty = true;
-			this.syncGlobalDurationControl();
-			this.updateStagingPreview();
-		});
-		this.#clipFramesElement.addEventListener('bakeconfigchange', () => {
-			this.#stagedBakeConfigs = this.#clipFramesElement.getBakeConfigs();
-			this.#framesDirty = true;
-			this.syncGlobalBakeScaleControl();
-			this.updateStagingPreview();
-		});
-		this.#clipFramesElement.addEventListener('frameremove', event => {
-			const index = event.detail.frameIndex;
-			this.#stagedFiles.splice(index, 1);
-			this.#stagedDurationsMs.splice(index, 1);
-			this.#stagedBakeConfigs.splice(index, 1);
-			if (this.#stagedFrameUrls[index]) {
-				URL.revokeObjectURL(this.#stagedFrameUrls[index]);
-				this.#stagedFrameUrls.splice(index, 1);
-			}
-			this.#framesDirty = true;
-			this.syncStagedFramesUi();
-		});
-		this.#clipFramesElement.addEventListener('framescleared', () => {
-			this.clearStagedFrames();
-		});
+		this.#attachClipFramesListeners();
 
 		this.#globalDurationApply?.addEventListener('click', () => {
 			this.applyGlobalDurationToAllFrames();
@@ -322,6 +345,10 @@ export class ClipEditorController {
 	async submit() {
 		if (this.#stagedFiles.length === 0) {
 			this.#reportOutcome('error', 'Cannot save with zero frames — add at least one image');
+			return;
+		}
+		if (!this.#clipFramesElement) {
+			this.#reportOutcome('error', 'Clip frames element is not ready');
 			return;
 		}
 		this.#setStatus(this.#statusElement, this.#editingClipId ? 'Saving…' : 'Uploading…');
@@ -455,7 +482,7 @@ export class ClipEditorController {
 				});
 				if (result.animated) {
 					const expandedFiles = await Promise.all(result.frames.map((frameDataUrl, index) => dataUrlToFile(frameDataUrl, `gif-frame-${String(index).padStart(4, '0')}.png`)));
-					const expandedDurations = result.durationsMs.map(ms => Number(ms) || (1000 / DEFAULT_FALLBACK_FPS));
+					const expandedDurations = result.durationsMs.map(ms => Number(ms) || 1000 / DEFAULT_FALLBACK_FPS);
 					this.#stagedFiles = [...this.#stagedFiles, ...expandedFiles];
 					this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...expandedDurations];
 					this.#stagedBakeConfigs = [...this.#stagedBakeConfigs, ...expandedFiles.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))];
@@ -541,6 +568,12 @@ export class ClipEditorController {
 	 * Refresh clip-frames + staging preview after staged-file changes.
 	 */
 	syncStagedFramesUi() {
+		const clipFrames = this.#clipFramesElement;
+		if (!clipFrames) {
+			this.#attachClipFramesListeners();
+			return;
+		}
+
 		if (this.#stagedFiles.length === 0) {
 			this.#stagedDurationsMs = [];
 			this.#stagedBakeConfigs = [];
@@ -549,7 +582,7 @@ export class ClipEditorController {
 			}
 			this.#stagedFrameUrls = [];
 			this.#stagingPreview.loadFrames([]);
-			this.#clipFramesElement.loadFrames([]);
+			clipFrames.loadFrames([]);
 			this.syncGlobalDurationControl();
 			this.syncGlobalBakeScaleControl();
 			return;
@@ -559,6 +592,12 @@ export class ClipEditorController {
 	}
 
 	updateClipFrames() {
+		const clipFrames = this.#clipFramesElement;
+		if (!clipFrames) {
+			this.#attachClipFramesListeners();
+			return;
+		}
+
 		for (const url of this.#stagedFrameUrls) {
 			URL.revokeObjectURL(url);
 		}
@@ -572,7 +611,7 @@ export class ClipEditorController {
 			durationMs: this.#stagedDurationsMs[index] ?? 1000,
 			bakeConfig: this.#stagedBakeConfigs[index]
 		}));
-		this.#clipFramesElement.loadFrames(frames);
+		clipFrames.loadFrames(frames);
 		this.syncGlobalDurationControl();
 		this.syncGlobalBakeScaleControl();
 	}

@@ -2,15 +2,6 @@
  * Shared constants for pixel-level visual effects.
  */
 
-/** Maximum value for any MIDI data byte (velocity, CC value, note, etc.). */
-export const MAX_MIDI_DATA_BYTE = 127;
-
-/** Maximum MIDI velocity value (0-127). Alias of MAX_MIDI_DATA_BYTE. */
-export const MAX_MIDI_VELOCITY = MAX_MIDI_DATA_BYTE;
-
-/** Maximum MIDI note value (0-127). */
-export const MAX_MIDI_NOTE = 127;
-
 /** Number of channels in an RGBA pixel (red, green, blue, alpha). */
 export const RGBA_CHANNEL_COUNT = 4;
 

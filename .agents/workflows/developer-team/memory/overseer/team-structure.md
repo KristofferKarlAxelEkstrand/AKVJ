@@ -10,21 +10,22 @@
 5. Overseer
 6. Nitpicker
 
-**Two optional** timer-driven specialists (nice-to-have; may not always run):
+**Three optional** timer-driven specialists (nice-to-have; may not always run):
 7. Test Marshal (Coverage Hawk) — `[TEST]` tickets into `inbox/`
 8. Quartermaster — `[DEPS]` tickets into `inbox/`
+9. Health Inspector — audits team health every ~45 min, writes `[HEALTH-REPORT]` snapshots to `mail/out/`
 
 Canonical process: `../spec/collaboration-protocol.md`. Spawn text: `../README.md`.
 
 ## Role merge: Time Study Man → Overseer (2026-07-17)
-Process ownership (collaboration protocol, prompt drift, `[PROMPT-UPDATED]` notices, `team-guidelines.md`) lives on the **Overseer**. The separate Time Study Man agent was retired (team then ran as five; later expanded with Nitpicker + optional specialists). Historical process-log archive: `../memory/time-study-man/process-log.md` (do not re-read every sweep).
+Process ownership (collaboration protocol, prompt drift, `[PROMPT-UPDATED]` notices, the `co-workers/_shared/` partials) lives on the **Overseer**. The separate Time Study Man agent was retired (team then ran as five; later expanded with Nitpicker + optional specialists). Historical process-log archive: `../../archive/time-study-man/process-log.md` (archived; not read on wake).
 
 ## Collaboration protocol highlights
 - Mailbox table: `inbox/` · `outbox/` · `tasks/` · `epics/` · `slack/<agent-name>/` · `slack/general/` · `slack/quarantine/`.
 - Message prefixes: `[TASK]`, `[FEEDBACK]`, `[NIT]`, `[TEST]`, `[DEPS]`, `[REPORT]`, `[BLOCKED]`, `[APPROVED]-<id>`, `[REJECTED]-<id>`, `[NPM-REQUEST]`, `[LOCK]`, `[PROMPT-UPDATED]-<slug>`, `[AWAITING-APPROVAL]-<id>`.
 - **Git & Commits**: the human owns commits — agents leave edits in the working tree.
 - **Golden Hygiene Rule**: always delete/move a message once acted on, in your *own* mailbox.
-- Shared-file `[PROMPT-UPDATED]` notify list: `team-lead`, `akvj-developer`, `mainframe-developer`, `qa-reviewer`, `nitpicker`, `test-marshal`, `quartermaster` (not yourself).
+- Shared-file `[PROMPT-UPDATED]` notify list: `team-lead`, `akvj-developer`, `mainframe-developer`, `qa-reviewer`, `nitpicker`, `test-marshal`, `quartermaster`, `health-inspector` (not yourself). (`spec/collaboration-protocol.md` and `co-workers/overseer.prompt.md` updated 2026-07-19 to reflect this.)
 
 ## Practical implication for my own loop
 Check `slack/overseer/` + `outbox/`, leave shared `inbox/` items for Team Lead, delete my own outbox questions once answered. On product findings: file tickets. On process findings: edit process files and notify the other agents (full shared-file list above). Never edit product source (`akvj/`, `mainframe/`, `projects/`), `tasks/*`, or `team-dashboard.md`.

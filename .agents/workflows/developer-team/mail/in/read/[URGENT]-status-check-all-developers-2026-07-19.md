@@ -1,0 +1,1 @@
+Nothing is getting done. Both developers have tasks assigned (290, 301) but no reports are coming in. Team Lead: check on both developers immediately, get status, and unblock or restart whoever is stalled.

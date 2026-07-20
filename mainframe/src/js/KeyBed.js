@@ -45,7 +45,7 @@ class KeyBed extends HTMLElement {
 	 * channel-filtered mappings and the current interaction mode.
 	 *
 	 * @param {Array<{channel: number, note: number, velocity: number, clipId: string}>} channelMappings - mappings already filtered to the current channel
-	 * @param {'edit'|'select'|'play'} mode
+	 * @param {'edit'|'select'|'filter'|'play'} mode
 	 */
 	setMappedKeys(channelMappings, mode) {
 		if (!this.#hasRendered) {
@@ -53,7 +53,7 @@ class KeyBed extends HTMLElement {
 		}
 		for (const key of this.#keys) {
 			const noteMappings = channelMappings.filter(mapping => mapping.note === key.note).sort((a, b) => a.velocity - b.velocity);
-			if (mode === 'edit') {
+			if (mode === 'edit' || mode === 'filter') {
 				const bands = buildVelocityBands(noteMappings);
 				key.velocityBands = bands;
 				key.mapped = bands.length > 0;

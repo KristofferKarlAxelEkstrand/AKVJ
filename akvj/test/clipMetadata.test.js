@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { normalizeClipMetadata, PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_TRIGGER_TYPE } from '../src/js/visuals/clipMetadata.js';
+import { normalizeClipMetadata, PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_SCALING, DEFAULT_PLAYBACK, DEFAULT_TRIGGER_TYPE } from '../src/js/visuals/clipMetadata.js';
 
 describe('normalizeClipMetadata', () => {
 	test('returns empty object for null/undefined input', () => {
@@ -71,10 +71,12 @@ describe('normalizeClipMetadata', () => {
 		expect(result.triggerGroup).toBeNull();
 		expect(result.bitDepth).toBeNull();
 		expect(result.scaleMode).toBe(DEFAULT_SCALE_MODE);
+		expect(result.scaling).toBe(DEFAULT_SCALING);
 		expect(result.frameWidth).toBe(DEFAULT_FRAME_WIDTH);
 		expect(result.frameHeight).toBe(DEFAULT_FRAME_HEIGHT);
 		expect(result.role).toBeNull();
 		expect(result.name).toBeNull();
+		expect(result.frameDurationsMs).toBeNull();
 		expect(result.frameRatesForFrames).toBeNull();
 		expect(result.syncBeats).toBeNull();
 	});
@@ -89,6 +91,7 @@ describe('normalizeClipMetadata', () => {
 			triggerGroup: 'choke-1',
 			bitDepth: 4,
 			scaleMode: 'cover',
+			scaling: 'smooth',
 			frameWidth: 120,
 			frameHeight: 68,
 			role: 'bitmask',
@@ -105,12 +108,19 @@ describe('normalizeClipMetadata', () => {
 		expect(result.triggerGroup).toBe('choke-1');
 		expect(result.bitDepth).toBe(4);
 		expect(result.scaleMode).toBe('cover');
+		expect(result.scaling).toBe('smooth');
 		expect(result.frameWidth).toBe(120);
 		expect(result.frameHeight).toBe(68);
 		expect(result.role).toBe('bitmask');
 		expect(result.name).toBe('My Clip');
+		expect(result.frameDurationsMs).toBeNull();
 		expect(result.frameRatesForFrames).toEqual({ 0: 12, 3: 24 });
 		expect(result.syncBeats).toBe(6);
+	});
+
+	test('invalid scaling falls back to nearest', () => {
+		const result = normalizeClipMetadata({ frames: 1, framesPerRow: 1, scaling: 'bilinear' });
+		expect(result.scaling).toBe(DEFAULT_SCALING);
 	});
 
 	test('does not mutate input object', () => {
@@ -333,36 +343,36 @@ describe('normalizeClipMetadata — sync resolution', () => {
 	});
 });
 
-describe('normalizeClipMetadata — frameDurationsMs conversion', () => {
-	test('frameDurationsMs converts to frameRatesForFrames (FPS = 1000 / durationMs)', () => {
+describe('normalizeClipMetadata — frame timing', () => {
+	test('frameDurationsMs is preserved as a {frameIndex: ms} object', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 4,
 			framesPerRow: 4,
 			frameDurationsMs: { 0: 50, 1: 100, 2: 33.33, 3: 25 }
 		});
-		expect(normalized.frameRatesForFrames[0]).toBe(20); // 1000 / 50
-		expect(normalized.frameRatesForFrames[1]).toBe(10); // 1000 / 100
-		expect(normalized.frameRatesForFrames[2]).toBeCloseTo(30.003, 3); // 1000 / 33.33 (approximate due to floating-point)
-		expect(normalized.frameRatesForFrames[3]).toBe(40); // 1000 / 25
+		expect(normalized.frameDurationsMs).toEqual({ 0: 50, 1: 100, 2: 33.33, 3: 25 });
+		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
-	test('frameDurationsMs with single frame converts correctly', () => {
+	test('frameDurationsMs arrays are normalized to {frameIndex: ms} objects', () => {
 		const normalized = normalizeClipMetadata({
-			frames: 1,
-			framesPerRow: 1,
-			frameDurationsMs: { 0: 16.67 }
+			frames: 4,
+			framesPerRow: 4,
+			frameDurationsMs: [50, 100, 33.33, 25]
 		});
-		expect(normalized.frameRatesForFrames[0]).toBeCloseTo(60, 1); // 1000 / 16.67 ≈ 60
+		expect(normalized.frameDurationsMs).toEqual({ 0: 50, 1: 100, 2: 33.33, 3: 25 });
+		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
-	test('frameRatesForFrames takes priority over frameDurationsMs', () => {
+	test('frameDurationsMs takes priority over frameRatesForFrames', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 2,
 			framesPerRow: 2,
 			frameRatesForFrames: { 0: 30, 1: 60 },
 			frameDurationsMs: { 0: 100, 1: 50 }
 		});
-		expect(normalized.frameRatesForFrames).toEqual({ 0: 30, 1: 60 });
+		expect(normalized.frameDurationsMs).toEqual({ 0: 100, 1: 50 });
+		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
 	test('backward compatibility: frameRatesForFrames-only clips work unchanged', () => {
@@ -371,24 +381,47 @@ describe('normalizeClipMetadata — frameDurationsMs conversion', () => {
 			framesPerRow: 3,
 			frameRatesForFrames: { 0: 12, 1: 24, 2: 30 }
 		});
+		expect(normalized.frameDurationsMs).toBeNull();
 		expect(normalized.frameRatesForFrames).toEqual({ 0: 12, 1: 24, 2: 30 });
 	});
 
-	test('invalid frameDurationsMs (zero or negative) are skipped', () => {
+	test('invalid frameDurationsMs entries are skipped, not converted to bad FPS', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 4,
+			framesPerRow: 4,
+			frameDurationsMs: { 0: 50, 1: 0, 2: -10, 3: 'invalid' }
+		});
+		expect(normalized.frameDurationsMs).toEqual({ 0: 50 });
+		expect(normalized.frameRatesForFrames).toBeNull();
+	});
+
+	test('invalid frameDurationsMs array entries are skipped', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 3,
 			framesPerRow: 3,
-			frameDurationsMs: { 0: 50, 1: 0, 2: -10 }
+			frameDurationsMs: [50, 0, -10]
 		});
-		expect(normalized.frameRatesForFrames).toEqual({ 0: 20 });
+		expect(normalized.frameDurationsMs).toEqual({ 0: 50 });
+		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
-	test('empty frameDurationsMs results in null frameRatesForFrames', () => {
+	test('empty frameDurationsMs results in null for both fields', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 2,
 			framesPerRow: 2,
 			frameDurationsMs: {}
 		});
+		expect(normalized.frameDurationsMs).toBeNull();
+		expect(normalized.frameRatesForFrames).toBeNull();
+	});
+
+	test('empty frameDurationsMs array results in null for both fields', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: []
+		});
+		expect(normalized.frameDurationsMs).toBeNull();
 		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
@@ -397,15 +430,28 @@ describe('normalizeClipMetadata — frameDurationsMs conversion', () => {
 			frames: 2,
 			framesPerRow: 2
 		});
+		expect(normalized.frameDurationsMs).toBeNull();
 		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 
-	test('non-object frameDurationsMs is ignored', () => {
+	test('non-object frameDurationsMs is ignored and falls back to frameRatesForFrames', () => {
+		const normalized = normalizeClipMetadata({
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: 'invalid',
+			frameRatesForFrames: { 0: 12, 1: 24 }
+		});
+		expect(normalized.frameDurationsMs).toBeNull();
+		expect(normalized.frameRatesForFrames).toEqual({ 0: 12, 1: 24 });
+	});
+
+	test('non-object frameDurationsMs with no FPS results in null for both fields', () => {
 		const normalized = normalizeClipMetadata({
 			frames: 2,
 			framesPerRow: 2,
 			frameDurationsMs: 'invalid'
 		});
+		expect(normalized.frameDurationsMs).toBeNull();
 		expect(normalized.frameRatesForFrames).toBeNull();
 	});
 });

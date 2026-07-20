@@ -3,10 +3,7 @@ import sharp from 'sharp';
 import { expandGifBuffer } from '../server/gifExpand.js';
 
 /** 2×2 two-frame animated GIF; delays 100ms and 250ms. */
-const ANIMATED_GIF_2FRAME = Buffer.from(
-	'R0lGODlhAgACAPAAAP8AAAAAACH5BAAKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAAgACAAACAoRRACH5BAAZAAAALAAAAAACAAIAgAD/AAAAAAIChFEAOw==',
-	'base64'
-);
+const ANIMATED_GIF_2FRAME = Buffer.from('R0lGODlhAgACAPAAAP8AAAAAACH5BAAKAAAAIf8LTkVUU0NBUEUyLjADAQAAACwAAAAAAgACAAACAoRRACH5BAAZAAAALAAAAAACAAIAgAD/AAAAAAIChFEAOw==', 'base64');
 
 describe('expandGifBuffer', () => {
 	it('treats a static GIF as one still', async () => {

@@ -31,12 +31,6 @@ describe('MaskManager', () => {
 		expect(mm.getBitDepth()).toBeNull();
 	});
 
-	test('handlesChannel returns true for mixer channel only', () => {
-		expect(mm.handlesChannel(settings.channelMapping.mixer)).toBe(true);
-		expect(mm.handlesChannel(0)).toBe(false);
-		expect(mm.handlesChannel(99)).toBe(false);
-	});
-
 	test('noteOn with wrong channel returns false', () => {
 		const clip = createMockMaskClip();
 		mm.setClips({ [settings.channelMapping.mixer]: { 60: { 0: clip } } });

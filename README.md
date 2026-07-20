@@ -13,7 +13,8 @@ AKVJ transforms MIDI input into layer-grouped visual clips using a sophisticated
     - Channel 10: Mixed output effects (applied to mixed Layer Group A and Layer Group B output)
     - Channels 11-12: Layer Group C (overlay layer for logos, persistent graphics)
     - Channel 13: Global effects (applied to entire output after Layer Group C)
-    - Channels 14-16: Reserved
+    - Channel 14: Project selection (note → project switch, latched)
+    - Channels 15-16: Reserved
 - **MIDI Note (0-127)**: Selects specific clip within a channel
 - **MIDI Velocity (0-127)**: Chooses velocity variant for dynamic expression
 
@@ -85,32 +86,29 @@ AKVJ uses a modular, component-based architecture built with vanilla JavaScript:
 
 ## Clip System
 
-AKVJ uses PNG sprite sheets + JSON metadata. Clips live in a **flat bucket** by `clipId`; MIDI placement is defined in `clips/key-map.json` (DAW channels 1–16).
+AKVJ uses PNG sprite sheets + JSON metadata. Clips live per project under `projects/{projectId}/clips/{clipId}/`; MIDI placement is defined in `projects/{projectId}/key-map.json` (DAW channels 1–16).
 
 ### Directory Structure
 
 ```
-clips/                           # Shared source bucket (version controlled)
-├── {clipId}/                    # e.g. neon-skull or c1-n0-v0
-│   ├── sprite.png
-│   └── meta.json                # optional role: "bitmask"
-├── key-map.json             # MIDI → clipId (channel/note/velocity)
-└── LICENSE-ASSETS.md
+projects/{projectId}/clips/{clipId}/    # Source clip folders (version controlled)
+├── meta.json                           # optional role: "bitmask"
+└── sprite.png
 
-.cache/clips/                    # Optimized assets (generated, git-ignored)
+projects/{projectId}/key-map.json       # MIDI → clipId (channel/note/velocity)
+
+.cache/clips/                           # Optimized assets (generated, git-ignored)
 └── {clipId}/…
 
-akvj/src/public/clips/      # Runtime assets for the VJ app (generated)
-├── {clipId}/…
-├── clips.json                   # Flat catalog keyed by clipId
-└── key-map.json
+akvj/src/public/projects/{projectId}/clips/  # Runtime assets for the VJ app (generated)
+└── {clipId}/…
 ```
 
 The clip pipeline (`npm run clips`):
 
-- Validates the flat bucket + `key-map.json`
+- Validates clip metadata + `key-map.json` for each project
 - Optimizes PNGs into `.cache/clips/`
-- Generates `clips.json` and copies mapping + assets into `akvj/src/public/clips/`
+- Generates `clips.json` and copies mapping + assets into `akvj/src/public/projects/{projectId}/clips/`
 
 ### Clip Metadata (JSON)
 
@@ -118,9 +116,9 @@ Each clip folder contains a JSON file with the following structure:
 
 ```json
 {
-    "numberOfFrames": 64,
+    "frames": 64,
     "framesPerRow": 8,
-    "loop": true,
+    "playback": "loop",
     "retrigger": true,
     "frameRatesForFrames": {
         "0": 2,
@@ -131,9 +129,9 @@ Each clip folder contains a JSON file with the following structure:
 
 ### Properties
 
-- **`numberOfFrames`**: Total frames in the sprite sheet
+- **`frames`**: Total frames in the sprite sheet (canonical; `numberOfFrames` accepted as legacy alias)
 - **`framesPerRow`**: Frames per horizontal row in the sprite sheet
-- **`loop`**: Whether clip loops continuously
+- **`playback`**: Playback mode (`once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub`)
 - **`retrigger`**: Whether clip restarts when note is retriggered
 - **`frameRatesForFrames`**: Custom frame rates for specific frames (frames per second)
 - **`frameDurationBeats`**: BPM-synced timing - beats per frame (number or array)
@@ -153,16 +151,7 @@ This plays each frame for half a beat (250ms at 120 BPM). When MIDI clock is act
 
 ### Velocity Variants
 
-Each note can contain multiple velocity variants for dynamic expression:
-
-```
-| Velocity Range | Variant | Use Case |
-|----------------|---------|----------|
-| 1-63          | 0       | Soft touch |
-| 64-127        | 6       | Hard hit |
-```
-
-The system automatically selects the appropriate velocity variant based on MIDI input velocity.
+Each note can contain multiple velocity variants for dynamic expression. Velocity slots are defined per placement in `projects/{projectId}/key-map.json`, and the engine selects the appropriate variant for each incoming MIDI velocity. See `akvj/src/js/utils/velocitySelection.js` for the selection logic.
 
 Velocity selection rules
 
@@ -196,11 +185,11 @@ Installation takes ~13 seconds and hoists shared tooling via npm workspaces.
 
 ## Maintenance packages
 
-| Package      | Port               | Purpose                                        |
-| ------------ | ------------------ | ---------------------------------------------- |
-| `akvj/`      | 8888               | Live VJ engine (Vite, Web MIDI, 60fps render)  |
-| `mainframe/` | 9999 UI · 7777 API | Clip bucket + key-map authoring            |
-| `clips/`     | —                  | Shared source clip bucket + `key-map.json` |
+| Package      | Port               | Purpose                                       |
+| ------------ | ------------------ | --------------------------------------------- |
+| `akvj/`      | 8888               | Live VJ engine (Vite, Web MIDI, 60fps render) |
+| `mainframe/` | 9999 UI · 7777 API | Clip bucket + key-map authoring               |
+|              | `projects/`        | —                                             | Per-project clip buckets + `key-map.json` |
 
 ## Development
 
@@ -235,14 +224,14 @@ npm run mainframe
 
 AKVJ/
 ├── package.json # npm workspaces root
-├── clips/ # Shared clip bucket + key-map.json
+├── projects/ # Per-project clip buckets + key-map.json
 ├── akvj/ # Live VJ engine
 │ ├── src/ # Vite app (main.js, js/, public/)
-│ ├── scripts/clips/ # Validate / optimize / generate pipeline
 │ ├── test/ # Vitest unit + visual tests
 │ └── package.json
 ├── mainframe/ # Set authoring UI + local API
 │ ├── src/ # Vanilla Vite UI
+│ ├── scripts/clips/ # Validate / optimize / generate pipeline
 │ ├── server/ # Node http/fs API (no Express)
 │ └── package.json
 ├── docs/
@@ -279,7 +268,7 @@ npm run clips                            # Validate, optimize, generate, copy to
 npm run clips:validate                   # Validate bucket + key-map only
 npm run clips:watch                      # Watch for clip changes and rebuild
 npm run clips:clean                      # Remove cache and generated output
-npm run clips:new -- neon-skull          # Scaffold clips/{clipId}/meta.json
+npm run clips:new -- neon-skull          # Scaffold projects/default/clips/{clipId}/meta.json
 npm run clips:spritesheet                # Generate sprite sheet from frames
 npm run migrate:clips                    # One-shot nested→flat migration (if needed)
 ```
@@ -300,8 +289,8 @@ AKVJ is optimized for real-time visual performance:
 ### Adding New Clips
 
 1. **Create clip**: `npm run clips:new -- my-clip` (or use Mainframe Upload)
-2. **Add `sprite.png`** and update `meta.json` (`numberOfFrames`, `framesPerRow`, timing)
-3. **Map MIDI**: edit `clips/key-map.json` or use Mainframe Mapping (DAW channels 1–16)
+2. **Add `sprite.png`** and update `meta.json` (`frames`, `framesPerRow`, timing)
+3. **Map MIDI**: edit `projects/{projectId}/key-map.json` or use Mainframe Mapping (DAW channels 1–16)
 4. **Rebuild**: `npm run clips`
 5. **Test**: `npm run akvj` in Chrome and trigger via MIDI
 
@@ -329,4 +318,4 @@ All source code in this repository (including .js, .html, .css, and .md files) i
 
 ### Clip Assets
 
-All clip assets (including all .png and .json files under `clips/` and generated `akvj/src/public/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.
+All clip assets (including all .png and .json files under `projects/{projectId}/clips/` and generated `akvj/src/public/projects/{projectId}/clips/`) are **proprietary and All Rights Reserved**. These assets are included for demonstration purposes only. See [clips/LICENSE-ASSETS.md](clips/LICENSE-ASSETS.md) for the full terms.

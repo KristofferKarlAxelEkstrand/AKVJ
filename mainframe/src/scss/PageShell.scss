@@ -1,6 +1,57 @@
 // Page-level chrome that is not yet a custom element (tabs, panels, forms).
 // Keep this thin — new UI chrome should land on custom elements instead.
 
+.mainframe-header {
+	align-items: center;
+	border-bottom: 1px solid var(--line);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	justify-content: space-between;
+	padding: 0.5rem 1rem;
+}
+
+.mainframe-brand {
+	align-items: center;
+	color: var(--ink);
+	display: flex;
+	font-size: 1.25rem;
+	font-weight: 700;
+	gap: 0.5rem;
+	text-decoration: none;
+}
+
+.mainframe-logo {
+	color: var(--accent, #d9773a);
+	font-size: 1.5rem;
+	line-height: 1;
+}
+
+.mainframe-brand-name {
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+}
+
+.mainframe-header .tabs {
+	flex: 1;
+	justify-content: flex-end;
+	margin: 0;
+	min-width: 0;
+	padding: 0;
+}
+
+@media (max-width: 768px) {
+	.mainframe-header {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.mainframe-header .tabs {
+		justify-content: flex-start;
+		width: 100%;
+	}
+}
+
 .tabs {
 	display: flex;
 	gap: 0.5rem;
@@ -19,8 +70,8 @@
 }
 
 .tab.is-active {
-	border-color: var(--accent);
-	color: var(--accent);
+	border-color: var(--accent, #d9773a);
+	color: var(--accent, #d9773a);
 }
 
 main {
@@ -64,11 +115,11 @@ main {
 }
 
 .clip-summary--all-ready {
-	color: var(--ok, #2a7d2a);
+	color: var(--ok, #6fbf73);
 }
 
 .clip-summary--has-incomplete {
-	color: var(--warn, #b8860b);
+	color: var(--warn);
 }
 
 .clip-search {
@@ -100,7 +151,7 @@ button:not(.tab) {
 }
 
 button:not(.tab):hover {
-	border-color: var(--accent);
+	border-color: var(--accent, #d9773a);
 }
 
 .clip-editor-form,
@@ -137,13 +188,13 @@ button:not(.tab):hover {
 
 .drop-zone:hover,
 .drop-zone:focus-visible {
-	border-color: var(--accent, #646cff);
+	border-color: var(--accent, #d9773a);
 	outline: none;
 }
 
 .drop-zone.is-dragover {
-	background: color-mix(in srgb, var(--accent, #646cff) 10%, transparent);
-	border-color: var(--accent, #646cff);
+	background: color-mix(in srgb, var(--accent, #d9773a) 10%, transparent);
+	border-color: var(--accent, #d9773a);
 }
 
 .drop-zone-text {
@@ -196,25 +247,9 @@ select {
 }
 
 .status.is-ok {
-	color: var(--ok);
+	color: var(--ok, #6fbf73);
 }
 
 .status.is-err {
-	color: var(--err);
-}
-
-.piano-channel-bar {
-	align-items: center;
-	display: flex;
-	gap: 0.5rem;
-	margin-bottom: 0.75rem;
-}
-
-.piano-channel {
-	background: var(--surface);
-	border: 1px solid var(--line);
-	color: var(--ink);
-	font: inherit;
-	font-size: 0.85rem;
-	padding: 0.3rem 0.4rem;
+	color: var(--err, #e07171);
 }

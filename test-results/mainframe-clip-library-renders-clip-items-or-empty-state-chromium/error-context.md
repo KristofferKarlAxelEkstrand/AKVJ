@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> clip library renders clip items or empty state
-- Location: e2e/mainframe.spec.js:31:1
+- Location: e2e/mainframe.spec.js:38:1
 
 # Error details
 

@@ -22,7 +22,7 @@ class MaskManager {
 	/** @type {number|null} */
 	#currentBitDepth = null;
 
-	/** @type {Object} */
+	/** @type {Object<string, Object<string, Clip>>} */
 	#maskClips = {};
 
 	/** @type {Map<number, number[]>} */
@@ -33,21 +33,12 @@ class MaskManager {
 
 	/**
 	 * Set the loaded mask clips
-	 * @param {Object} clips - All clip data keyed by channel/note/velocity
+	 * @param {Object<string, Object<string, Object<string, Clip>>>} clips - All clip data keyed by channel, then note, then velocity threshold
 	 */
 	setClips(clips) {
 		const mixerClips = clips[this.#mixerChannel];
 		this.#maskClips = mixerClips || {};
 		this.#velocityCache = buildVelocityCache(this.#maskClips);
-	}
-
-	/**
-	 * Check if this manager handles a specific channel
-	 * @param {number} channel - MIDI channel
-	 * @returns {boolean}
-	 */
-	handlesChannel(channel) {
-		return channel === this.#mixerChannel;
 	}
 
 	/**

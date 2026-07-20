@@ -1,5 +1,6 @@
 import { describe, test, expect, vi } from 'vitest';
 import LayerManager from '../src/js/visuals/LayerManager.js';
+import { MAX_MIDI_DATA_BYTE } from '../src/js/core/midiConstants.js';
 
 describe('LayerManager', () => {
 	test('setClips distributes to layer groups', () => {
@@ -308,5 +309,107 @@ describe('LayerManager - clearClips (expanded)', () => {
 		lm.clearClips();
 		expect(lm.getEffectsManager().hasMixedOutputEffects()).toBe(false);
 		expect(lm.getEffectsManager().hasGlobalEffects()).toBe(false);
+	});
+});
+
+describe('LayerManager - scrub CC handling', () => {
+	test('CC 16 routes normalized value to LayerGroup A', () => {
+		const lm = new LayerManager();
+		const layerGroupA = lm.getLayerGroupA();
+		const layerGroupB = lm.getLayerGroupB();
+		const layerGroupC = lm.getLayerGroupC();
+		const maskManager = lm.getMaskManager();
+
+		const aSpy = vi.spyOn(layerGroupA, 'setScrubPosition');
+		const bSpy = vi.spyOn(layerGroupB, 'setScrubPosition');
+		const cSpy = vi.spyOn(layerGroupC, 'setScrubPosition');
+		const maskSpy = vi.spyOn(maskManager, 'setScrubPosition');
+
+		lm.handleControlChange({ detail: { controller: 16, value: 64 } });
+
+		expect(aSpy).toHaveBeenCalledWith(64 / MAX_MIDI_DATA_BYTE);
+		expect(bSpy).not.toHaveBeenCalled();
+		expect(cSpy).not.toHaveBeenCalled();
+		expect(maskSpy).not.toHaveBeenCalled();
+	});
+
+	test('CC 17 routes normalized value to LayerGroup B', () => {
+		const lm = new LayerManager();
+		const layerGroupA = lm.getLayerGroupA();
+		const layerGroupB = lm.getLayerGroupB();
+		const layerGroupC = lm.getLayerGroupC();
+		const maskManager = lm.getMaskManager();
+
+		const aSpy = vi.spyOn(layerGroupA, 'setScrubPosition');
+		const bSpy = vi.spyOn(layerGroupB, 'setScrubPosition');
+		const cSpy = vi.spyOn(layerGroupC, 'setScrubPosition');
+		const maskSpy = vi.spyOn(maskManager, 'setScrubPosition');
+
+		lm.handleControlChange({ detail: { controller: 17, value: 64 } });
+
+		expect(bSpy).toHaveBeenCalledWith(64 / MAX_MIDI_DATA_BYTE);
+		expect(aSpy).not.toHaveBeenCalled();
+		expect(cSpy).not.toHaveBeenCalled();
+		expect(maskSpy).not.toHaveBeenCalled();
+	});
+
+	test('CC 18 routes normalized value to LayerGroup C', () => {
+		const lm = new LayerManager();
+		const layerGroupA = lm.getLayerGroupA();
+		const layerGroupB = lm.getLayerGroupB();
+		const layerGroupC = lm.getLayerGroupC();
+		const maskManager = lm.getMaskManager();
+
+		const aSpy = vi.spyOn(layerGroupA, 'setScrubPosition');
+		const bSpy = vi.spyOn(layerGroupB, 'setScrubPosition');
+		const cSpy = vi.spyOn(layerGroupC, 'setScrubPosition');
+		const maskSpy = vi.spyOn(maskManager, 'setScrubPosition');
+
+		lm.handleControlChange({ detail: { controller: 18, value: 64 } });
+
+		expect(cSpy).toHaveBeenCalledWith(64 / MAX_MIDI_DATA_BYTE);
+		expect(aSpy).not.toHaveBeenCalled();
+		expect(bSpy).not.toHaveBeenCalled();
+		expect(maskSpy).not.toHaveBeenCalled();
+	});
+
+	test('CC 19 routes normalized value to MaskManager', () => {
+		const lm = new LayerManager();
+		const layerGroupA = lm.getLayerGroupA();
+		const layerGroupB = lm.getLayerGroupB();
+		const layerGroupC = lm.getLayerGroupC();
+		const maskManager = lm.getMaskManager();
+
+		const aSpy = vi.spyOn(layerGroupA, 'setScrubPosition');
+		const bSpy = vi.spyOn(layerGroupB, 'setScrubPosition');
+		const cSpy = vi.spyOn(layerGroupC, 'setScrubPosition');
+		const maskSpy = vi.spyOn(maskManager, 'setScrubPosition');
+
+		lm.handleControlChange({ detail: { controller: 19, value: 64 } });
+
+		expect(maskSpy).toHaveBeenCalledWith(64 / MAX_MIDI_DATA_BYTE);
+		expect(aSpy).not.toHaveBeenCalled();
+		expect(bSpy).not.toHaveBeenCalled();
+		expect(cSpy).not.toHaveBeenCalled();
+	});
+
+	test('unmapped CC does not route to any scrub target', () => {
+		const lm = new LayerManager();
+		const layerGroupA = lm.getLayerGroupA();
+		const layerGroupB = lm.getLayerGroupB();
+		const layerGroupC = lm.getLayerGroupC();
+		const maskManager = lm.getMaskManager();
+
+		const aSpy = vi.spyOn(layerGroupA, 'setScrubPosition');
+		const bSpy = vi.spyOn(layerGroupB, 'setScrubPosition');
+		const cSpy = vi.spyOn(layerGroupC, 'setScrubPosition');
+		const maskSpy = vi.spyOn(maskManager, 'setScrubPosition');
+
+		lm.handleControlChange({ detail: { controller: 99, value: 64 } });
+
+		expect(aSpy).not.toHaveBeenCalled();
+		expect(bSpy).not.toHaveBeenCalled();
+		expect(cSpy).not.toHaveBeenCalled();
+		expect(maskSpy).not.toHaveBeenCalled();
 	});
 });

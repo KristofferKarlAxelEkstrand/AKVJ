@@ -60,6 +60,6 @@ export default [
 	},
 	// Ignore artifact folders
 	{
-		ignores: ['**/dist/**', '**/node_modules/**', '**/src/public/**', 'clips/**', '.cache/**', '.temp-repos/**']
+		ignores: ['**/dist/**', '**/node_modules/**', '**/src/public/**', '.cache/**']
 	}
 ];

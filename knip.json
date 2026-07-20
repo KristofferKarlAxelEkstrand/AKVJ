@@ -1,7 +1,9 @@
 {
 	"ignore": [".agents/**"],
-	"entry": ["e2e/**/*.spec.js", "playwright.config.js"],
 	"workspaces": {
+		".": {
+			"entry": ["e2e/**/*.spec.js"]
+		},
 		"akvj": {
 			"entry": ["test/**/*.test.js"],
 			"project": ["src/**/*.js", "test/**/*.js"],

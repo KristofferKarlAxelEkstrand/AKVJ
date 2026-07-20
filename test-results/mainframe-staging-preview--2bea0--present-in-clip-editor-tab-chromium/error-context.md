@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> staging preview element is present in clip editor tab
-- Location: e2e/mainframe.spec.js:72:1
+- Location: e2e/mainframe.spec.js:103:1
 
 # Error details
 

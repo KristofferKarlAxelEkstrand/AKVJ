@@ -1,0 +1,48 @@
+@use 'transparencyChecker';
+
+preview-clip {
+	display: block;
+
+	.preview-clip {
+		border: 1px solid var(--line);
+		border-radius: 2px;
+		padding: 0.5rem;
+	}
+
+	.preview-clip-canvas {
+		@include transparencyChecker.transparency-checker(8px);
+		display: block;
+		height: auto;
+		image-rendering: pixelated;
+		max-width: 100%;
+	}
+
+	.preview-clip-controls {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		margin-top: 0.5rem;
+	}
+
+	.preview-clip-play {
+		font-size: 0.85rem;
+		padding: 0.35rem 0.7rem;
+	}
+
+	.preview-clip-speed {
+		font-size: 0.85rem;
+		padding: 0.3rem 0.4rem;
+	}
+
+	.preview-clip-frame-label {
+		color: var(--muted);
+		font-size: 0.85rem;
+	}
+
+	.preview-clip-progress {
+		display: block;
+		margin-top: 0.5rem;
+		width: 100%;
+	}
+}

@@ -19,7 +19,7 @@ class LayerGroup {
 	/** @type {Map<number, Map<number, Clip>>} */
 	#activeClips = new Map();
 
-	/** @type {Object} */
+	/** @type {Object<string, Object<string, Object<string, Clip>>>} */
 	#loadedClips = {};
 
 	/** @type {Map<number, Map<number, number[]>>} */
@@ -31,7 +31,7 @@ class LayerGroup {
 	/** @type {boolean} Flag indicating cache needs rebuild */
 	#isClipCacheDirty = true;
 
-	/** @type {Map<string, Map<string, {channel: number, note: number}>>} Choke group → active note slots keyed by `${channel}:${note}` */
+	/** @type {Map<string, Map<string, {channel: number, note: number}>>} Trigger group → active note slots keyed by `${channel}:${note}` */
 	#triggerGroups = new Map();
 
 	/**
@@ -48,7 +48,7 @@ class LayerGroup {
 
 	/**
 	 * Set the loaded clips reference and build velocity cache
-	 * @param {Object} clips - Clip data keyed by channel/note/velocity
+	 * @param {Object<string, Object<string, Object<string, Clip>>>} clips - Clip data keyed by channel, then note, then velocity threshold
 	 */
 	setClips(clips) {
 		this.#loadedClips = clips;
@@ -66,7 +66,7 @@ class LayerGroup {
 	/**
 	 * Handle MIDI note on event - activate clip
 	 * Supports trigger types: momentary (default), latch, one-shot
-	 * Supports choke groups: triggering a clip stops all others in the same group
+	 * Trigger group: triggering a clip chokes all other clips in the same trigger group
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
@@ -100,9 +100,9 @@ class LayerGroup {
 			this.#removeFromTriggerGroup(existingClip, channel, note);
 		}
 
-		// Choke group: stop all other clips in the same trigger group
+		// Trigger group: triggering a clip chokes all other clips in the same trigger group
 		if (clip.triggerGroup) {
-			this.#stopChokeGroupMembers(clip.triggerGroup, channel, note);
+			this.#stopOtherClipsInTriggerGroup(clip.triggerGroup, channel, note);
 		}
 
 		clip.reset();
@@ -266,7 +266,7 @@ class LayerGroup {
 	}
 
 	/**
-	 * Add a clip to its trigger group for choke group tracking.
+	 * Add a clip to its trigger group.
 	 * @param {Clip} clip
 	 * @param {number} channel
 	 * @param {number} note
@@ -304,12 +304,12 @@ class LayerGroup {
 	}
 
 	/**
-	 * Stop all clips in a choke group except the one being triggered.
-	 * @param {string} triggerGroup - The choke group name
+	 * Stop all clips in a trigger group except the one being triggered.
+	 * @param {string} triggerGroup - The trigger group name
 	 * @param {number} excludeChannel - Channel of the triggering clip (to skip)
 	 * @param {number} excludeNote - Note of the triggering clip (to skip)
 	 */
-	#stopChokeGroupMembers(triggerGroup, excludeChannel, excludeNote) {
+	#stopOtherClipsInTriggerGroup(triggerGroup, excludeChannel, excludeNote) {
 		const groupMembers = this.#triggerGroups.get(triggerGroup);
 		if (!groupMembers) {
 			return;

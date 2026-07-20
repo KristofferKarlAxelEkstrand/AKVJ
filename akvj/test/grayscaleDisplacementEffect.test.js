@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach } from 'vitest';
 import grayscaleDisplacementEffect from '../src/js/visuals/effects/grayscaleDisplacementEffect.js';
-import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT } from '../src/js/visuals/effects/effectConstants.js';
+import { MAX_MIDI_VELOCITY } from '../src/js/core/midiConstants.js';
+import { RGBA_CHANNEL_COUNT } from '../src/js/visuals/effects/effectConstants.js';
 
 const WIDTH = 4;
 const HEIGHT = 4;

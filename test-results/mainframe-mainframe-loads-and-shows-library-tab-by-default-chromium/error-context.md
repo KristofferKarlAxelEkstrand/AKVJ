@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> mainframe loads and shows library tab by default
-- Location: e2e/mainframe.spec.js:23:1
+- Location: e2e/mainframe.spec.js:30:1
 
 # Error details
 

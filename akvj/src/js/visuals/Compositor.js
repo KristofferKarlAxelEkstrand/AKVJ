@@ -16,7 +16,7 @@ const BIT_DEPTH_MIXING = {
 	/** 4-bit max level value */
 	MAX_LEVEL_4BIT: 15,
 	/** 8-bit: full 256 levels for smooth blending */
-	MAX_VALUE_8BIT: 255
+	MAX_LEVEL_8BIT: 255
 };
 
 /**
@@ -61,6 +61,18 @@ class Compositor {
 	/** @type {ImageData|null} */
 	#mixedImageData = null;
 
+	/** @type {Uint8ClampedArray|null} */
+	#layerGroupAData = null;
+
+	/** @type {Uint8ClampedArray|null} */
+	#layerGroupBData = null;
+
+	/** @type {Uint8ClampedArray|null} */
+	#maskData = null;
+
+	/** @type {number} */
+	#pixelCount = 0;
+
 	/** @type {{layerGroupA: Uint8ClampedArray, layerGroupB: Uint8ClampedArray, mask: Uint8ClampedArray, output: Uint8ClampedArray}} Reused every frame to avoid GC allocation */
 	#pixelBuffers = { layerGroupA: null, layerGroupB: null, mask: null, output: null };
 
@@ -76,7 +88,9 @@ class Compositor {
 		this.#canvasWidth = width;
 		this.#canvasHeight = height;
 		this.#renderingConfig = renderingConfig;
+		this.#pixelCount = width * height;
 		this.#initOffscreenCanvases();
+		this.#ensurePixelBuffers();
 	}
 
 	get ctxA() {
@@ -101,13 +115,14 @@ class Compositor {
 
 	/**
 	 * Create an off-screen canvas with the configured dimensions and settings.
+	 * @param {boolean} [willReadFrequently=false] - Hint to the UA that this canvas will be read with getImageData frequently.
 	 * @returns {{ canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D }} The canvas and its 2D context
 	 */
-	#createOffscreenCanvas() {
+	#createOffscreenCanvas(willReadFrequently = false) {
 		const canvas = document.createElement('canvas');
 		canvas.width = this.#canvasWidth;
 		canvas.height = this.#canvasHeight;
-		const ctx = canvas.getContext('2d');
+		const ctx = canvas.getContext('2d', { willReadFrequently });
 		if (ctx) {
 			ctx.imageSmoothingEnabled = this.#renderingConfig.imageSmoothingEnabled;
 			ctx.imageSmoothingQuality = this.#renderingConfig.imageSmoothingQuality;
@@ -120,14 +135,10 @@ class Compositor {
 	 * Initialize off-screen canvases for layer group compositing.
 	 */
 	#initOffscreenCanvases() {
-		({ canvas: this.#canvasA, ctx: this.#ctxA } = this.#createOffscreenCanvas());
-		({ canvas: this.#canvasB, ctx: this.#ctxB } = this.#createOffscreenCanvas());
-		({ ctx: this.#ctxMask } = this.#createOffscreenCanvas());
-		({ canvas: this.#canvasMixed, ctx: this.#ctxMixed } = this.#createOffscreenCanvas());
-
-		if (this.#ctxMixed) {
-			this.#mixedImageData = this.#ctxMixed.createImageData(this.#canvasWidth, this.#canvasHeight);
-		}
+		({ canvas: this.#canvasA, ctx: this.#ctxA } = this.#createOffscreenCanvas(true));
+		({ canvas: this.#canvasB, ctx: this.#ctxB } = this.#createOffscreenCanvas(true));
+		({ ctx: this.#ctxMask } = this.#createOffscreenCanvas(true));
+		({ canvas: this.#canvasMixed, ctx: this.#ctxMixed } = this.#createOffscreenCanvas(true));
 	}
 
 	/**
@@ -200,23 +211,35 @@ class Compositor {
 	 * @param {number} bitDepth - Mask bit depth (1, 2, 4, or 8)
 	 */
 	#mixWithMask(bitDepth) {
-		const layerGroupAImageData = this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const layerGroupBImageData = this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
-		const maskImageData = this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight);
+		this.#ensurePixelBuffers();
 
-		this.#ensureMixedImageData();
+		this.#layerGroupAData.set(this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
+		this.#layerGroupBData.set(this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
+		this.#maskData.set(this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
 
-		this.#pixelBuffers.layerGroupA = layerGroupAImageData.data;
-		this.#pixelBuffers.layerGroupB = layerGroupBImageData.data;
-		this.#pixelBuffers.mask = maskImageData.data;
+		this.#pixelBuffers.layerGroupA = this.#layerGroupAData;
+		this.#pixelBuffers.layerGroupB = this.#layerGroupBData;
+		this.#pixelBuffers.mask = this.#maskData;
 		this.#pixelBuffers.output = this.#mixedImageData.data;
 
-		const pixelCount = this.#canvasWidth * this.#canvasHeight;
-		this.#mixPixels(this.#pixelBuffers, pixelCount, bitDepth);
+		this.#mixPixels(this.#pixelBuffers, this.#pixelCount, bitDepth);
 		this.#ctxMixed.putImageData(this.#mixedImageData, 0, 0);
 	}
 
-	#ensureMixedImageData() {
+	/**
+	 * Create or resize the persistent pixel buffers used by the compositor.
+	 * Called whenever the canvas dimensions change.
+	 */
+	#ensurePixelBuffers() {
+		this.#pixelCount = this.#canvasWidth * this.#canvasHeight;
+		const expectedLength = this.#pixelCount * RGBA_CHANNEL_COUNT;
+
+		if (!this.#layerGroupAData || this.#layerGroupAData.length !== expectedLength) {
+			this.#layerGroupAData = new Uint8ClampedArray(expectedLength);
+			this.#layerGroupBData = new Uint8ClampedArray(expectedLength);
+			this.#maskData = new Uint8ClampedArray(expectedLength);
+		}
+
 		if (!this.#mixedImageData || this.#mixedImageData.width !== this.#canvasWidth || this.#mixedImageData.height !== this.#canvasHeight) {
 			this.#mixedImageData = this.#ctxMixed.createImageData(this.#canvasWidth, this.#canvasHeight);
 		}
@@ -258,7 +281,7 @@ class Compositor {
 		buffers.output[idx] = sourcePixels[idx];
 		buffers.output[idx + 1] = sourcePixels[idx + 1];
 		buffers.output[idx + 2] = sourcePixels[idx + 2];
-		buffers.output[idx + 3] = Math.max(buffers.layerGroupA[idx + 3], buffers.layerGroupB[idx + 3]);
+		buffers.output[idx + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[idx + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[idx + RGBA_CHANNEL_COUNT - 1]);
 	}
 
 	#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel) {
@@ -273,7 +296,7 @@ class Compositor {
 		if (bitDepth === 4) {
 			return { divisor: BIT_DEPTH_MIXING.DIVISOR_4BIT, maxLevel: BIT_DEPTH_MIXING.MAX_LEVEL_4BIT };
 		}
-		return { divisor: 1, maxLevel: BIT_DEPTH_MIXING.MAX_VALUE_8BIT };
+		return { divisor: 1, maxLevel: BIT_DEPTH_MIXING.MAX_LEVEL_8BIT };
 	}
 
 	#blendPixel(buffers, idx, blendFactor) {
@@ -295,6 +318,11 @@ class Compositor {
 		this.#canvasMixed = null;
 		this.#ctxMixed = null;
 		this.#mixedImageData = null;
+		this.#layerGroupAData = null;
+		this.#layerGroupBData = null;
+		this.#maskData = null;
+		this.#pixelCount = 0;
+		this.#pixelBuffers = { layerGroupA: null, layerGroupB: null, mask: null, output: null };
 	}
 }
 

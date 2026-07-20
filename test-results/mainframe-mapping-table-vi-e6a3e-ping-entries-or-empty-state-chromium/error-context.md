@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> mapping table view loads and displays mapping entries or empty state
-- Location: e2e/mainframe.spec.js:90:1
+- Location: e2e/mainframe.spec.js:121:1
 
 # Error details
 

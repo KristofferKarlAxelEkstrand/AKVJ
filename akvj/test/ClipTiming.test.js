@@ -70,6 +70,17 @@ describe('ClipTiming', () => {
 			expect(timing.getFrameInterval(0)).toBeCloseTo((1 * MS_PER_MINUTE) / minBPM, 6);
 		});
 
+		test('clamps BPM to settings.bpm.max', () => {
+			const timing = new ClipTiming({
+				frameRatesForFrames: {},
+				syncBeats: 1,
+				frames: 1,
+				bpmProvider: () => 1000
+			});
+			const maxBPM = settings.bpm.max;
+			expect(timing.getFrameInterval(0)).toBeCloseTo((1 * MS_PER_MINUTE) / maxBPM, 6);
+		});
+
 		test('recomputes with the current BPM on every call (no stale caching)', () => {
 			let bpm = 120;
 			const timing = new ClipTiming({
@@ -244,13 +255,6 @@ describe('ClipTiming', () => {
 			// A further pulse (e.g. arriving before the caller unsubscribes) stays clamped at 1.
 			handlers[EVENT_MIDI_CLOCK]();
 			expect(onAdvance).toHaveBeenNthCalledWith(25, 1);
-		});
-
-		test('random/shuffle: sync fields are irrelevant — not exercised here (Clip.js never enables BPM sync for them)', () => {
-			// ClipTiming itself is playback-mode-agnostic; the exclusion for
-			// random/shuffle lives in Clip.js, which never passes syncBeats through
-			// for those modes. Documented here for traceability with the spec.
-			expect(true).toBe(true);
 		});
 	});
 

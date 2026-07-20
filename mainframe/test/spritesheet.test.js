@@ -156,7 +156,10 @@ describe('createClipFromFrames', () => {
 			targetHeight: 4,
 			scaleMode: 'fit'
 		});
-		const sprite = await sharp(path.join(clipsDir, 'alpha-clip', 'sprite.png')).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+		const sprite = await sharp(path.join(clipsDir, 'alpha-clip', 'sprite.png'))
+			.ensureAlpha()
+			.raw()
+			.toBuffer({ resolveWithObject: true });
 		expect(sprite.info.channels).toBe(4);
 		// Corner pixel of letterboxed fit should be transparent
 		expect(sprite.data[3]).toBe(0);

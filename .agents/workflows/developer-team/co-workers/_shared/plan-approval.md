@@ -1,0 +1,3 @@
+## Plan-Approval Gate
+
+If a task's own text explicitly asks you to share a plan and wait for approval before building, do **not** implement. Write the plan to `.agents/workflows/developer-team/mail/out/question-<task-id>-<slug>.md` in `Question:` / `Answer:` format, send an `[AWAITING-APPROVAL]-<task-id>.md` message to `.agents/workflows/developer-team/slack/team-lead/`, and sleep. Only start once you receive a genuinely fresh `task` for it — that is what approval looks like. Never proceed on a timeout or a guess. This is a hard rule: a task once shipped 42 minutes after its plan went out with no answer ever received, and the rework cost was real.

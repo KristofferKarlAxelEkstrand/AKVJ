@@ -7,6 +7,8 @@ import appState, { EVENT_BPM_CHANGED, EVENT_MIDI_CONNECTION_CHANGED, EVENT_MIDI_
 const MAX_LOG_ENTRIES = 8;
 const NOTES_PER_OCTAVE = 12;
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+const MIDI_CONNECTED_COLOR = '#0f0';
+const MIDI_DISCONNECTED_COLOR = '#f00';
 
 const OVERLAY_HTML = `
 		<div class="debug-header">DEBUG <span class="debug-hint">(D to toggle)</span></div>
@@ -83,12 +85,12 @@ class DebugOverlay {
 	#updateMIDIStatus(connected) {
 		if (this.#midiStatusElement) {
 			this.#midiStatusElement.textContent = connected ? 'Connected' : 'Disconnected';
-			this.#midiStatusElement.style.color = connected ? '#0f0' : '#f00';
+			this.#midiStatusElement.style.color = connected ? MIDI_CONNECTED_COLOR : MIDI_DISCONNECTED_COLOR;
 		}
 	}
 
 	#addLogEntry(type, message) {
-		this.#midiLogEntries.unshift({ type, message, time: performance.now() });
+		this.#midiLogEntries.unshift({ type, message });
 		if (this.#midiLogEntries.length > MAX_LOG_ENTRIES) {
 			this.#midiLogEntries.pop();
 		}

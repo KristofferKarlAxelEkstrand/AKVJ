@@ -12,7 +12,7 @@
  * - Velocity (0-127) controls effect intensity
  */
 import settings from '../core/settings.js';
-import { MAX_MIDI_NOTE } from './effects/effectConstants.js';
+import { MAX_MIDI_NOTE } from '../core/midiConstants.js';
 
 /**
  * Effect type based on note range
@@ -27,6 +27,13 @@ import { MAX_MIDI_NOTE } from './effects/effectConstants.js';
  * @property {EffectType} type - Effect type based on note range
  */
 
+/**
+ * Effect note range
+ * @typedef {Object} EffectRange
+ * @property {number} min - Minimum MIDI note for this range
+ * @property {number} max - Maximum MIDI note for this range
+ */
+
 class EffectsManager {
 	/** @type {number} */
 	#mixedOutputEffectsChannel = settings.channelMapping.mixedOutputEffects;
@@ -34,7 +41,7 @@ class EffectsManager {
 	/** @type {number} */
 	#globalEffectsChannel = settings.channelMapping.globalEffects;
 
-	/** @type {Object} */
+	/** @type {Record<string, EffectRange>} */
 	#effectRanges = settings.effectRanges;
 
 	/**

@@ -83,7 +83,13 @@ describe('Pipeline full build', () => {
 			await writeClip(clips, `${projectId}-clip`);
 			await fs.writeFile(path.join(projectsDir, projectId, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: `${projectId}-clip` } } }, null, '\t'));
 		}
-		await fs.writeFile(path.join(projectsDir, 'index.json'), JSON.stringify([{ id: 'default', name: 'Default' }, { id: 'other', name: 'Other' }]));
+		await fs.writeFile(
+			path.join(projectsDir, 'index.json'),
+			JSON.stringify([
+				{ id: 'default', name: 'Default' },
+				{ id: 'other', name: 'Other' }
+			])
+		);
 		await fs.writeFile(activeProjectPath, JSON.stringify({ project: 'default' }));
 
 		const pipeline = new Pipeline({ projectsDir, cacheRoot, publicRoot, activeProjectPath });
@@ -105,7 +111,13 @@ describe('Pipeline full build', () => {
 			await writeClip(clips, `${projectId}-clip`);
 			await fs.writeFile(path.join(projectsDir, projectId, 'key-map.json'), JSON.stringify({ 1: { 0: { 0: `${projectId}-clip` } } }, null, '\t'));
 		}
-		await fs.writeFile(path.join(projectsDir, 'index.json'), JSON.stringify([{ id: 'alpha', name: 'A' }, { id: 'beta', name: 'B' }]));
+		await fs.writeFile(
+			path.join(projectsDir, 'index.json'),
+			JSON.stringify([
+				{ id: 'alpha', name: 'A' },
+				{ id: 'beta', name: 'B' }
+			])
+		);
 		await fs.writeFile(activeProjectPath, JSON.stringify({ project: 'alpha' }));
 
 		const pipeline = new Pipeline({ projectsDir, cacheRoot, publicRoot, activeProjectPath });

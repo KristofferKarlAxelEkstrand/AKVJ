@@ -68,18 +68,7 @@ export function validateMappingEntry(entry, index, readyClips, seenSlots) {
 	if (!parsed.ok) {
 		throw new Error(`Mapping[${index}]: ${parsed.error}`);
 	}
-	if (
-		!Number.isInteger(entry?.channel) ||
-		entry.channel < 1 ||
-		entry.channel > 16 ||
-		!Number.isInteger(entry?.note) ||
-		entry.note < 0 ||
-		entry.note > 127 ||
-		!Number.isInteger(entry?.velocity) ||
-		entry.velocity < 0 ||
-		entry.velocity > 127 ||
-		!isValidClipId(parsed.clipId)
-	) {
+	if (!Number.isInteger(entry?.channel) || entry.channel < 1 || entry.channel > 16 || !Number.isInteger(entry?.note) || entry.note < 0 || entry.note > 127 || !Number.isInteger(entry?.velocity) || entry.velocity < 0 || entry.velocity > 127 || !isValidClipId(parsed.clipId)) {
 		throw new Error(`Mapping[${index}]: needs channel (1–16), note/velocity (0–127), and a valid clipId`);
 	}
 	const overrideErrors = collectMappingOverrideErrors(parsed.overrides);

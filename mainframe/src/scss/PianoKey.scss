@@ -137,4 +137,8 @@ piano-key {
 	&.is-dragging-handle {
 		cursor: ns-resize;
 	}
+
+	.velocity-region.is-filtered-out {
+		opacity: 0.25;
+	}
 }

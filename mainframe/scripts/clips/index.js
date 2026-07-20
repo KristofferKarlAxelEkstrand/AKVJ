@@ -91,7 +91,8 @@ export async function run(options = {}) {
 
 	await pipeline.run(options);
 
-	const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+	const MS_PER_SECOND = 1000;
+	const elapsed = ((performance.now() - startTime) / MS_PER_SECOND).toFixed(2);
 	console.log(`Done in ${elapsed}s`);
 }
 

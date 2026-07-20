@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> tab navigation switches between Library, Clip editor, and Mapping
-- Location: e2e/mainframe.spec.js:45:1
+- Location: e2e/mainframe.spec.js:52:1
 
 # Error details
 

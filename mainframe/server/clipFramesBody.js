@@ -22,37 +22,16 @@ export function decodeFrameDataUrls(frames) {
  *   playback: unknown,
  *   frameRate: unknown,
  *   scaleMode: unknown,
+ *   scaling: unknown,
  *   frameRatesForFrames: Record<string, number>|undefined,
  *   retrigger: unknown,
  *   triggerType: unknown,
  *   triggerGroup: unknown,
- *   bitDepth: unknown,
- *   frameDurationBeats: unknown
+ *   bitDepth: unknown
  * }}
  */
 export function parseClipFramesBody(body) {
-	const {
-		role,
-		frames,
-		targetWidth,
-		targetHeight,
-		name,
-		playback,
-		frameRate,
-		scaleMode,
-		frameDurations,
-		retrigger,
-		triggerType,
-		triggerGroup,
-		bitDepth,
-		frameDurationBeats,
-		sync,
-		syncLength,
-		syncBeats,
-		beatsPerBar,
-		placement,
-		frameBakeConfigs
-	} = body ?? {};
+	const { role, frames, targetWidth, targetHeight, name, playback, frameRate, scaleMode, frameDurations, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, placement, scaling, frameBakeConfigs } = body ?? {};
 	const frameBuffers = Array.isArray(frames) && frames.length > 0 ? decodeFrameDataUrls(frames) : null;
 	const frameRatesForFrames = Array.isArray(frameDurations) && frameDurations.length > 0 ? durationsMsToFrameRates(frameDurations) : undefined;
 	return {
@@ -70,12 +49,12 @@ export function parseClipFramesBody(body) {
 		triggerType,
 		triggerGroup,
 		bitDepth,
-		frameDurationBeats,
 		sync,
 		syncLength,
 		syncBeats,
 		beatsPerBar,
 		placement,
+		scaling,
 		frameBakeConfigs: Array.isArray(frameBakeConfigs) ? frameBakeConfigs : undefined
 	};
 }

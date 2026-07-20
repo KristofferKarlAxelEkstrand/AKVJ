@@ -77,31 +77,29 @@ Then add `sprite.png`, map the clip in `key-map.json`, and run `npm run clips`.
     "framesPerRow": 8,
     "playback": "loop",
     "retrigger": true,
-    "frameDurationsMs": [
-        83.33
-    ]
+    "frameDurationsMs": [83.33]
 }
 ```
 
 ### Fields
 
-| Field                 | Type          | Required | Description                                                                                          |
-| --------------------- | ------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `png`                 | string        | yes      | Sprite sheet filename (typically `sprite.png`)                                                       |
-| `frames`              | number        | yes      | Total frames (`numberOfFrames` accepted as legacy alias)                                             |
-| `framesPerRow`        | number        | yes      | Frames per row in sprite sheet                                                                       |
-| `playback`            | string        | no       | Playback mode: `once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub` (default: `loop`) |
-| `retrigger`           | boolean       | no       | Restart on re-trigger (default: `true`)                                                              |
-| `frameDurationsMs`    | array         | no       | Duration in ms per frame (e.g. `[83.33]`)                                                            |
-| `sync`                | string        | no       | Sync mode: `"free"` (default) or `"beat"` for BPM-synced clips                                       |
-| `syncLength`          | string        | no       | When `sync: "beat"`: preset like `"1 bar"` or `"custom"`                                             |
-| `syncBeats`           | number        | no       | When `syncLength: "custom"`: total beats for the clip                                                |
-| `beatsPerBar`         | number        | no       | Time signature numerator for bar presets (default: 4)                                                |
-| `bitDepth`            | number        | no       | For masks: 1, 2, 4, or 8                                                                             |
-| `role`                | string        | no       | `"bitmask"` for mixer mask clips                                                                     |
-| `triggerType`         | string        | no       | `momentary` (default), `latch`, or `one-shot`                                                        |
-| `triggerGroup`        | string/number | no       | Choke group — triggering a clip stops all others in the same group                                   |
-| `name`                | string        | no       | Human-readable clip name                                                                             |
+| Field              | Type          | Required | Description                                                                                          |
+| ------------------ | ------------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `png`              | string        | yes      | Sprite sheet filename (typically `sprite.png`)                                                       |
+| `frames`           | number        | yes      | Total frames (`numberOfFrames` accepted as legacy alias)                                             |
+| `framesPerRow`     | number        | yes      | Frames per row in sprite sheet                                                                       |
+| `playback`         | string        | no       | Playback mode: `once`, `loop`, `pingpong`, `random`, `reverse`, `shuffle`, `scrub` (default: `loop`) |
+| `retrigger`        | boolean       | no       | Restart on re-trigger (default: `true`)                                                              |
+| `frameDurationsMs` | array         | no       | Duration in ms per frame (e.g. `[83.33]`)                                                            |
+| `sync`             | string        | no       | Sync mode: `"free"` (default) or `"beat"` for BPM-synced clips                                       |
+| `syncLength`       | string        | no       | When `sync: "beat"`: preset like `"1 bar"` or `"custom"`                                             |
+| `syncBeats`        | number        | no       | When `syncLength: "custom"`: total beats for the clip                                                |
+| `beatsPerBar`      | number        | no       | Time signature numerator for bar presets (default: 4)                                                |
+| `bitDepth`         | number        | no       | For masks: 1, 2, 4, or 8                                                                             |
+| `role`             | string        | no       | `"bitmask"` for mixer mask clips                                                                     |
+| `triggerType`      | string        | no       | `momentary` (default), `latch`, or `one-shot`                                                        |
+| `triggerGroup`     | string/number | no       | Choke group — triggering a clip stops all others in the same group                                   |
+| `name`             | string        | no       | Human-readable clip name                                                                             |
 
 ### Legacy fields
 
@@ -129,4 +127,4 @@ From repo root:
 npm run clips
 ```
 
-Pipeline: validate flat bucket → optimize → generate flat `clips.json` → copy `key-map.json` + assets to `akvj/src/public/clips/` (generated; do not hand-edit).
+Pipeline: validate project clip bucket → optimize → generate `clips.json` → copy `key-map.json` + assets to `akvj/src/public/projects/default/clips/` (generated; do not hand-edit).

@@ -3,9 +3,9 @@
  * UI uses milliseconds natively; frameRatesForFrames is kept for backward compatibility.
  */
 
-import { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, SYNC_MODES, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS } from './clipSchema.js';
+import { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, SYNC_MODES, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_SCALING, SCALING_MODES, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS } from './clipSchema.js';
 
-export { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS };
+export { DEFAULT_SYNC_MODE, DEFAULT_BEATS_PER_BAR, SYNC_LENGTH_PRESETS, DEFAULT_PLACEMENT, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_SCALING, SCALING_MODES, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, DEFAULT_TRIGGER_TYPE, VALID_BIT_DEPTHS };
 
 /**
  * Map clip meta into editor form values (legacy-safe defaults).
@@ -25,6 +25,7 @@ export function editorValuesFromMeta(meta = {}) {
 		frameWidth: Number(meta.frameWidth) > 0 ? Number(meta.frameWidth) : DEFAULT_FRAME_WIDTH,
 		frameHeight: Number(meta.frameHeight) > 0 ? Number(meta.frameHeight) : DEFAULT_FRAME_HEIGHT,
 		scaleMode: typeof meta.scaleMode === 'string' && meta.scaleMode ? meta.scaleMode : DEFAULT_SCALE_MODE,
+		scaling: typeof meta.scaling === 'string' && SCALING_MODES.includes(meta.scaling) ? meta.scaling : DEFAULT_SCALING,
 		placement: resolvePlacement(meta.placement),
 		frameRate: Number(firstRate) > 0 ? Number(firstRate) : DEFAULT_FRAME_RATE,
 		retrigger: meta.retrigger !== false,
@@ -54,6 +55,9 @@ export function metaPatchFromEditor(values) {
 		retrigger: values.retrigger === true,
 		triggerType: values.triggerType || DEFAULT_TRIGGER_TYPE
 	};
+	if (typeof values.scaling === 'string' && SCALING_MODES.includes(values.scaling)) {
+		patch.scaling = values.scaling;
+	}
 
 	if (values.name) {
 		patch.name = values.name;
@@ -101,6 +105,9 @@ export function optionalMetaFromEditor(values) {
 		triggerType: values.triggerType || DEFAULT_TRIGGER_TYPE,
 		placement: resolvePlacement(values.placement)
 	};
+	if (typeof values.scaling === 'string' && SCALING_MODES.includes(values.scaling)) {
+		optional.scaling = values.scaling;
+	}
 	if (values.triggerGroup) {
 		optional.triggerGroup = values.triggerGroup;
 	}

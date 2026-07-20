@@ -1,7 +1,7 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import defaultSettings from '../src/js/core/settings.js';
 import { createAppState, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_MIDI_CONNECTION_CHANGED, EVENT_CLIPS_LOADED_CHANGED, EVENT_PROJECT_SWITCH, EVENT_ACTIVE_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, BPM_SOURCE_CLOCK } from '../src/js/core/AppState.js';
-import { MAX_MIDI_DATA_BYTE } from '../src/js/visuals/effects/effectConstants.js';
+import { MAX_MIDI_DATA_BYTE } from '../src/js/core/midiConstants.js';
 
 /** @returns {typeof defaultSettings} */
 function createTestSettings(overrides = {}) {

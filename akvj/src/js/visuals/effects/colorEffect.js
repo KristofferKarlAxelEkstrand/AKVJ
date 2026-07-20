@@ -1,4 +1,5 @@
-import { MAX_MIDI_VELOCITY, RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
+import { MAX_MIDI_VELOCITY } from '../../core/midiConstants.js';
+import { RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
 import { getEffectVariant } from './effectVariant.js';
 
 /**

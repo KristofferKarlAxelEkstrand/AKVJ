@@ -247,11 +247,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('scrub slider updates frame label', async () => {
-		const files = [
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' }),
-			new File(['c'], 'frame2.png', { type: 'image/png' })
-		];
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' }), new File(['c'], 'frame2.png', { type: 'image/png' })];
 
 		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
 		global.URL.revokeObjectURL = vi.fn();
@@ -313,11 +309,7 @@ describe('StagingPreview', () => {
 	});
 
 	test('holds each frame for its per-frame durationMs (not a global frameRate)', async () => {
-		const files = [
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' }),
-			new File(['c'], 'frame2.png', { type: 'image/png' })
-		];
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' }), new File(['c'], 'frame2.png', { type: 'image/png' })];
 		const durationsMs = [100, 400, 100];
 
 		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
@@ -632,23 +624,19 @@ describe('StagingPreview bake/placement drawing', () => {
 		const restoreImage = installSolidImageMock({ width: 8, height: 8, fill: [255, 0, 0, 255] });
 		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
 
-		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 0, y: 0 }, [
-			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
-		]);
+		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 0, y: 0 }, [{ scaleMode: 'none', placement: { x: 0, y: 0 } }]);
 		element.querySelector('button.clip-preview-play').click();
 
 		const canvas = element.querySelector('canvas');
 		const baseline = firstOpaquePixel(previewCtx.getImageData(0, 0, canvas.width, canvas.height));
 		expect(baseline).not.toBeNull();
 
-		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 10, y: 6 }, [
-			{ scaleMode: 'none', placement: { x: 0, y: 0 } }
-		]);
+		await element.loadFrames([file], 32, 32, [1000], 'loop', 'none', { x: 10, y: 6 }, [{ scaleMode: 'none', placement: { x: 0, y: 0 } }]);
 		element.querySelector('button.clip-preview-play').click();
 
 		const shifted = previewCtx.getImageData(0, 0, canvas.width, canvas.height);
-		const atBaseline = shifted.data[((baseline.y * canvas.width + baseline.x) * 4) + 3];
-		const atOffset = shifted.data[(((baseline.y + 6) * canvas.width + (baseline.x + 10)) * 4) + 3];
+		const atBaseline = shifted.data[(baseline.y * canvas.width + baseline.x) * 4 + 3];
+		const atOffset = shifted.data[((baseline.y + 6) * canvas.width + (baseline.x + 10)) * 4 + 3];
 		expect(atBaseline).toBe(0);
 		expect(atOffset).toBe(255);
 
@@ -657,10 +645,7 @@ describe('StagingPreview bake/placement drawing', () => {
 
 	test('per-frame bakeConfigs are honored when scrubbing frames', async () => {
 		const restoreImage = installSolidImageMock({ width: 4, height: 4, fill: [0, 255, 0, 255] });
-		const files = [
-			new File(['a'], 'frame0.png', { type: 'image/png' }),
-			new File(['b'], 'frame1.png', { type: 'image/png' })
-		];
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })];
 
 		await element.loadFrames(files, 40, 40, [1000, 1000], 'loop', 'none', { x: 0, y: 0 }, [
 			{ scaleMode: 'none', placement: { x: 0, y: 0 } },
@@ -689,23 +674,17 @@ describe('StagingPreview bake/placement drawing', () => {
 		const restoreImage = installSolidImageMock({ width: 4, height: 4, fill: [0, 0, 255, 255] });
 		const file = new File(['pixel'], 'frame0.png', { type: 'image/png' });
 
-		await element.loadFrames([file], 16, 16, [1000], 'loop', 'fit', { x: 0, y: 0 }, [
-			{ scaleMode: 'fit' }
-		]);
+		await element.loadFrames([file], 16, 16, [1000], 'loop', 'fit', { x: 0, y: 0 }, [{ scaleMode: 'fit' }]);
 		element.querySelector('button.clip-preview-play').click();
 		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 16 && call.sourceHeight === 16)).toBe(true);
 
 		previewCtx.drawCalls.length = 0;
-		await element.loadFrames([file], 300, 200, [1000], 'loop', 'fit', { x: 0, y: 0 }, [
-			{ scaleMode: 'fit' }
-		]);
+		await element.loadFrames([file], 300, 200, [1000], 'loop', 'fit', { x: 0, y: 0 }, [{ scaleMode: 'fit' }]);
 		element.querySelector('button.clip-preview-play').click();
 		expect(previewCtx.drawCalls.some(call => call.sourceWidth === 300 && call.sourceHeight === 200)).toBe(true);
 
 		previewCtx.drawCalls.length = 0;
-		await element.loadFrames([file], 16, 16, [1000], 'loop', 'pattern', { x: 3, y: 5 }, [
-			{ scaleMode: 'none' }
-		]);
+		await element.loadFrames([file], 16, 16, [1000], 'loop', 'pattern', { x: 3, y: 5 }, [{ scaleMode: 'none' }]);
 		element.querySelector('button.clip-preview-play').click();
 		const canvas = element.querySelector('canvas');
 		expect(canvas.width).toBe(240);

@@ -8,6 +8,7 @@ import settings from '../core/settings.js';
 import ClipTiming from './ClipTiming.js';
 import PlaybackController from './PlaybackController.js';
 import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawScaled, drawStretch } from './clipDrawRect.js';
+import { DEFAULT_SCALING, SCALING_MODES } from './clipMetadata.js';
 
 export { MAX_PATTERN_TILES_PER_FRAME };
 
@@ -23,6 +24,7 @@ class Clip {
 	#canvasWidth;
 	#canvasHeight;
 	#scaleMode;
+	#scaling;
 	#placement;
 
 	// Trigger behavior (private, accessed via getters)
@@ -44,6 +46,7 @@ class Clip {
 	 * @param {number} options.framesPerRow
 	 * @param {string} [options.playback='loop']
 	 * @param {Object} [options.frameRatesForFrames={ 0: 1 }]
+	 * @param {Object|null} [options.frameDurationsMs=null] - Frame index → ms per frame (takes priority over frameRatesForFrames)
 	 * @param {number|null} [options.syncBeats=null] - Total clip duration in beats for
 	 *   `sync: "beat"` clips; ignored for 'random'/'shuffle' playback (sync doesn't apply)
 	 * @param {boolean} [options.retrigger=true]
@@ -51,11 +54,12 @@ class Clip {
 	 * @param {string} [options.triggerType='momentary']
 	 * @param {string|number|null} [options.triggerGroup=null]
 	 * @param {string} [options.scaleMode='fit']
+	 * @param {string} [options.scaling='nearest'] - Interpolation mode ('nearest' | 'smooth')
 	 * @param {{ x: number, y: number }} [options.placement={ x: 0, y: 0 }]
 	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
 	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
 	 */
-	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
+	constructor({ displayContext: _displayContext, image, frames, framesPerRow, playback = 'loop', frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
 		this.#validateConstructorParams(frames, framesPerRow);
 		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
 		this.#initDimensions(image, frames, framesPerRow);
@@ -65,12 +69,13 @@ class Clip {
 		this.#canvasWidth = settings.canvas.width;
 		this.#canvasHeight = settings.canvas.height;
 		this.#scaleMode = scaleMode;
+		this.#scaling = SCALING_MODES.includes(scaling) ? scaling : DEFAULT_SCALING;
 		this.#placement = placement;
 
 		// Sync does not apply to non-deterministic playback modes — never engage
 		// clock-driven progress tracking for them, regardless of clip metadata.
 		const isNonDeterministic = playback === 'random' || playback === 'shuffle';
-		this.#timing = new ClipTiming({ frameRatesForFrames, syncBeats: isNonDeterministic ? null : syncBeats, frames, bpmProvider, clockSource });
+		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationsMs, syncBeats: isNonDeterministic ? null : syncBeats, frames, bpmProvider, clockSource });
 		this.#playback = new PlaybackController({ frames, playback });
 	}
 
@@ -139,9 +144,9 @@ class Clip {
 	 * @returns {boolean}
 	 */
 	#advanceNextFrame() {
-		const continues = this.#advancePlayback();
+		const playbackContinues = this.#advancePlayback();
 		this.#timing.setCurrentFrameIndex(this.#playback.frame);
-		return continues;
+		return playbackContinues;
 	}
 
 	/**
@@ -149,11 +154,11 @@ class Clip {
 	 * @returns {boolean}
 	 */
 	#advancePlayback() {
-		const continues = this.#playback.advance();
-		if (!continues) {
+		const playbackContinues = this.#playback.advance();
+		if (!playbackContinues) {
 			this.#timing.unsubscribeFromClock();
 		}
-		return continues;
+		return playbackContinues;
 	}
 
 	/**
@@ -181,6 +186,10 @@ class Clip {
 		if (!this.#image || !ctx || this.#playback.isFinished) {
 			return;
 		}
+
+		const isSmooth = this.#scaling === 'smooth';
+		ctx.imageSmoothingEnabled = isSmooth;
+		ctx.imageSmoothingQuality = isSmooth ? 'high' : settings.rendering.imageSmoothingQuality;
 
 		const drawFrame = Math.min(this.#playback.frame, this.#numberOfFrames - 1);
 		const frameRow = Math.floor(drawFrame / this.#framesPerRow);
@@ -222,7 +231,7 @@ class Clip {
 	}
 
 	/**
-	 * Get the trigger group (choke group) for this clip.
+	 * Get the trigger group for this clip.
 	 * @returns {string|number|null}
 	 */
 	get triggerGroup() {
@@ -235,6 +244,14 @@ class Clip {
 	 */
 	get playbackMode() {
 		return this.#playback.playbackMode;
+	}
+
+	/**
+	 * Get the current frame index (for tests / diagnostics).
+	 * @returns {number}
+	 */
+	get currentFrame() {
+		return this.#playback.frame;
 	}
 
 	/**

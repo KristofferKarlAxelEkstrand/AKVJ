@@ -5,8 +5,10 @@ import './ClipList.js';
 import { ClipEditorController } from './ClipEditorController.js';
 import './MappingTable.js';
 import './StagingPreview.js';
+import './PreviewClip.js';
 import './ClipFrame.js';
 import './ClipFrames.js';
+import './ClipFramesUploadPanel.js';
 import './UserMessage.js';
 import './UserMessages.js';
 import './ClipNameInput.js';
@@ -18,7 +20,7 @@ import './ProjectChooser.js';
 import { api } from './apiClient.js';
 import { SimpleRouter } from './SimpleRouter.js';
 import { editClipPath } from './clipEditorRoute.js';
-import mainframeState, { EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from './mainframeState.js';
+import mainframeState, { EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PIANOROLL_FILTERS_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from './mainframeState.js';
 import { reportBootApiError, reportFailedClipDelete, reportFailedClipOpen } from './shellUserFeedback.js';
 
 /**
@@ -43,6 +45,11 @@ class AkvjMainframe extends HTMLElement {
 		}
 		this.#isInitialized = true;
 
+		// Ensure nested custom elements are upgraded before we query them.
+		if (typeof customElements !== 'undefined' && customElements.upgrade) {
+			customElements.upgrade(this);
+		}
+
 		const root = this;
 
 		/** @type {import('./ClipEditorController.js').ClipEditorController|null} */
@@ -52,7 +59,8 @@ class AkvjMainframe extends HTMLElement {
 			library: root.querySelector('#panel-library'),
 			editor: root.querySelector('#panel-clip-editor'),
 			mapping: root.querySelector('#panel-mapping'),
-			projects: root.querySelector('#panel-projects')
+			projects: root.querySelector('#panel-projects'),
+			settings: root.querySelector('#panel-settings')
 		};
 
 		const clipListElement = root.querySelector('#clip-list');
@@ -60,7 +68,6 @@ class AkvjMainframe extends HTMLElement {
 		const mappingTableElement = root.querySelector('#mapping-table');
 		const libraryPianoRoll = root.querySelector('#library-piano-roll');
 		const mappingPianoRoll = root.querySelector('#mapping-piano-roll');
-		const playPianoRoll = root.querySelector('#play-piano-roll');
 
 		const clipSearchInput = root.querySelector('#clip-search');
 		clipSearchInput.addEventListener('input', () => {
@@ -94,10 +101,12 @@ class AkvjMainframe extends HTMLElement {
 			mainframeState.searchQuery = '';
 			mainframeState.roleFilter = '';
 			mainframeState.sortMode = 'name';
+			mainframeState.pianorollFilters = {};
 			clipSearchInput.value = '';
 			clipRoleChoices.roleFilter = '';
 			clipSortChoices.sortMode = 'name';
 			libraryPianoRoll.clearSelection();
+			libraryPianoRoll.resetFilters();
 		});
 
 		// Mapping clip list - independent filter/search/sort state
@@ -177,8 +186,13 @@ class AkvjMainframe extends HTMLElement {
 			clipEditor.open(event.detail.clipId);
 		});
 
+		mappingClipListElement.addEventListener('clipdelete', event => {
+			deleteClip(event.detail.clipId);
+		});
+
 		function updateFilterVisibility() {
-			const hasActiveFilter = mainframeState.searchQuery !== '' || mainframeState.roleFilter !== '';
+			const hasPianorollFilters = Object.values(mainframeState.pianorollFilters).some(value => value !== '' && value !== false);
+			const hasActiveFilter = mainframeState.searchQuery !== '' || mainframeState.roleFilter !== '' || hasPianorollFilters;
 			clearFiltersButton.hidden = !hasActiveFilter;
 		}
 
@@ -194,7 +208,8 @@ class AkvjMainframe extends HTMLElement {
 			library: '/library',
 			editor: '/clip/edit',
 			mapping: '/key-map',
-			projects: '/projects'
+			projects: '/projects',
+			settings: '/settings'
 		};
 
 		const router = new SimpleRouter();
@@ -231,6 +246,7 @@ class AkvjMainframe extends HTMLElement {
 		});
 		router.add('/key-map', () => showView('mapping'));
 		router.add('/projects', () => showView('projects'));
+		router.add('/settings', () => showView('settings'));
 		router.setNotFound(() => router.replace('/library'));
 
 		function switchTab(tabName) {
@@ -388,25 +404,8 @@ class AkvjMainframe extends HTMLElement {
 			}
 		});
 
-		playPianoRoll.addEventListener('noteon', event => {
-			const { note, clipId } = event.detail;
-			const label = clipId ? ` → ${clipId}` : '';
-			setStatus(root.querySelector('#mapping-status'), `Note on ${note}${label}`, 'is-ok');
-			if (import.meta.env.DEV) {
-				console.log('[play] noteon', event.detail);
-			}
-		});
-
-		playPianoRoll.addEventListener('noteoff', event => {
-			const { note } = event.detail;
-			setStatus(root.querySelector('#mapping-status'), `Note off ${note}`, '');
-			if (import.meta.env.DEV) {
-				console.log('[play] noteoff', event.detail);
-			}
-		});
-
-		root.querySelector('#clear-play-notes').addEventListener('click', () => {
-			playPianoRoll.clearSelection();
+		libraryPianoRoll.addEventListener('pianoroll:filter-changed', event => {
+			mainframeState.pianorollFilters = event.detail.filters;
 		});
 
 		mappingPianoRoll.addEventListener('channelchange', event => {
@@ -415,10 +414,14 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		function updatePianoRolls() {
-			// Mappings are shared; each roll keeps its own channel (independent instances).
+			// Mappings are shared; each roll keeps its own channel.
 			libraryPianoRoll.mappings = mainframeState.mappings;
 			mappingPianoRoll.mappings = mainframeState.mappings;
-			playPianoRoll.mappings = mainframeState.mappings;
+		}
+
+		function updatePianoRollClips() {
+			libraryPianoRoll.clips = mainframeState.clips;
+			mappingPianoRoll.clips = mainframeState.clips;
 		}
 
 		this.#unsubscribers.push(
@@ -426,6 +429,7 @@ class AkvjMainframe extends HTMLElement {
 				renderLibrary();
 				renderMappingClipList();
 				fillClipSelect();
+				updatePianoRollClips();
 			})
 		);
 
@@ -460,6 +464,13 @@ class AkvjMainframe extends HTMLElement {
 		this.#unsubscribers.push(
 			mainframeState.subscribe(EVENT_SORT_MODE_CHANGED, event => {
 				clipListElement.sortMode = event.detail.sortMode;
+			})
+		);
+
+		this.#unsubscribers.push(
+			mainframeState.subscribe(EVENT_PIANOROLL_FILTERS_CHANGED, event => {
+				clipListElement.pianorollFilters = event.detail.filters;
+				updateFilterVisibility();
 			})
 		);
 
@@ -595,15 +606,17 @@ class AkvjMainframe extends HTMLElement {
 			loadLibrary().catch(error => console.error(error));
 		});
 
-		clipEditor = new ClipEditorController({
-			setStatus,
-			onLibraryChanged: () => loadLibrary(),
-			router
+		queueMicrotask(() => {
+			clipEditor = new ClipEditorController({
+				setStatus,
+				onLibraryChanged: () => loadLibrary(),
+				router
+			});
+			clipEditor.bindEventListeners();
 		});
-		clipEditor.bindEventListeners();
 
 		clipListElement.addEventListener('clipedit', event => {
-			clipEditor.open(event.detail.clipId);
+			clipEditor?.open(event.detail.clipId);
 		});
 
 		root.querySelector('#add-mapping').addEventListener('click', () => {

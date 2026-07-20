@@ -71,9 +71,11 @@ const BIT_DEPTH_PNG_OPTIONS = {
 
 const STANDARD_PNG_OPTIONS = { palette: true, quality: 80, effort: 10 };
 
+const DEFAULT_1BIT_THRESHOLD = 128;
+
 function applyBitDepthPipeline(pipeline, bitDepth) {
 	if (bitDepth === 1) {
-		return pipeline.grayscale().threshold(128).png(BIT_DEPTH_PNG_OPTIONS[1]);
+		return pipeline.grayscale().threshold(DEFAULT_1BIT_THRESHOLD).png(BIT_DEPTH_PNG_OPTIONS[1]);
 	}
 	const options = BIT_DEPTH_PNG_OPTIONS[bitDepth];
 	if (options) {

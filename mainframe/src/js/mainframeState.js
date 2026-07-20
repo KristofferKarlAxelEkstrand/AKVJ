@@ -4,6 +4,7 @@ const EVENT_CHANNEL_CHANGED = 'channelChanged';
 const EVENT_SEARCH_CHANGED = 'searchChanged';
 const EVENT_ROLE_FILTER_CHANGED = 'roleFilterChanged';
 const EVENT_SORT_MODE_CHANGED = 'sortModeChanged';
+const EVENT_PIANOROLL_FILTERS_CHANGED = 'pianorollFiltersChanged';
 const EVENT_PROJECTS_CHANGED = 'projectsChanged';
 const EVENT_ACTIVE_PROJECT_CHANGED = 'activeProjectChanged';
 const EVENT_USER_MESSAGE = 'userMessage';
@@ -31,6 +32,7 @@ class MainframeState extends EventTarget {
 	#searchQuery = '';
 	#roleFilter = '';
 	#sortMode = 'name';
+	#pianorollFilters = {};
 
 	#dispatchStateEvent(eventName, detail) {
 		this.dispatchEvent(new CustomEvent(eventName, { detail }));
@@ -135,6 +137,24 @@ class MainframeState extends EventTarget {
 	}
 
 	/**
+	 * @param {object} filters
+	 */
+	set pianorollFilters(filters) {
+		const next = filters && typeof filters === 'object' ? filters : {};
+		if (JSON.stringify(this.#pianorollFilters) !== JSON.stringify(next)) {
+			this.#pianorollFilters = next;
+			this.#dispatchStateEvent(EVENT_PIANOROLL_FILTERS_CHANGED, { filters: next });
+		}
+	}
+
+	/**
+	 * @returns {object}
+	 */
+	get pianorollFilters() {
+		return this.#pianorollFilters;
+	}
+
+	/**
 	 * @param {Array<{id: string, name: string}>} projects
 	 */
 	set projects(projects) {
@@ -225,6 +245,7 @@ class MainframeState extends EventTarget {
 		this.#searchQuery = '';
 		this.#roleFilter = '';
 		this.#sortMode = 'name';
+		this.#pianorollFilters = {};
 	}
 }
 
@@ -268,17 +289,4 @@ export function createMainframeState() {
 	return new MainframeState();
 }
 
-export {
-	MainframeState,
-	mainframeState as default,
-	messages,
-	EVENT_CLIPS_CHANGED,
-	EVENT_MAPPINGS_CHANGED,
-	EVENT_CHANNEL_CHANGED,
-	EVENT_SEARCH_CHANGED,
-	EVENT_ROLE_FILTER_CHANGED,
-	EVENT_SORT_MODE_CHANGED,
-	EVENT_PROJECTS_CHANGED,
-	EVENT_ACTIVE_PROJECT_CHANGED,
-	EVENT_USER_MESSAGE
-};
+export { MainframeState, mainframeState as default, messages, EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PIANOROLL_FILTERS_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED, EVENT_USER_MESSAGE };

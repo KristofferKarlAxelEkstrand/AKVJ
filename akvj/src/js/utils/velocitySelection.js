@@ -64,7 +64,7 @@ export function findVelocityThreshold(velocities, velocity) {
  * Combines velocity cache lookup, velocity clip selection, and clip lookup.
  *
  * @public
- * @param {Object<string, Object<string, Clip>} clipsByNote - Clips keyed by note, then velocity threshold
+ * @param {Object<string, Object<string, Clip>>} clipsByNote - Clips keyed by note, then velocity threshold
  * @param {number} note - MIDI note (0-127)
  * @param {number} velocity - MIDI velocity (0-127)
  * @param {Map<number, number[]>} velocityCache - Map of note number -> sorted velocity threshold array

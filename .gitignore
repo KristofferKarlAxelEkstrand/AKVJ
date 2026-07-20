@@ -50,7 +50,6 @@ test-bug-*.js
 
 # Clip pipeline outputs
 .cache/
-/akvj/src/public/clips/
 /akvj/src/public/projects/
 /akvj/src/public/active-project.json
 

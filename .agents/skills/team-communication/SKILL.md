@@ -2,14 +2,14 @@
 name: team-communication
 description: >-
   Writes a message to the developer team by creating a markdown update in
-  .agents/workflows/developer-team/inbox/. Use when the user says "mail the
+  .agents/workflows/developer-team/mail/in/. Use when the user says "mail the
   team", "send a message to the team", "write a message in the inbox", or
   "post a team update".
 ---
 
 # Team Communication
 
-Drop a short, direct message in `.agents/workflows/developer-team/inbox/` for the workflow agents to process.
+Drop a short, direct message in `.agents/workflows/developer-team/mail/in/` for the workflow agents to process.
 
 ## When to Use
 
@@ -21,7 +21,7 @@ Drop a short, direct message in `.agents/workflows/developer-team/inbox/` for th
 
 ## Procedure
 
-1. Create a new markdown file in `.agents/workflows/developer-team/inbox/`.
+1. Create a new markdown file in `.agents/workflows/developer-team/mail/in/`.
 2. Use a short filename: `team-update-<topic>.md`.
 3. Write the message (see template below).
 4. If the user provided a draft, format it — don't replace it.

@@ -60,12 +60,65 @@ function resolveArgs(args) {
     }
 
     const workflowRoot = path.join(REPO_ROOT, '.agents/workflows', workflow);
-    const dirs = [path.join(workflowRoot, 'slack', agent)];
-    for (const extra of args.slice(2)) {
-        dirs.push(path.join(workflowRoot, extra));
+
+    /**
+     * Every agent watches the broadcast folder as well as its own mailbox.
+     *
+     * A change to a shared file used to be announced by hand-copying one notice
+     * into every agent's folder — the protocol listed them by name, and that
+     * list silently went stale twice as the team grew. Appending the folder here
+     * rather than in each config means a new agent is reachable the moment it
+     * exists, with nothing to remember.
+     *
+     * @param {string[]} dirs
+     * @returns {string[]}
+     */
+    const withBroadcast = dirs => {
+        const broadcastDir = path.join(workflowRoot, 'slack', 'all');
+        // Created on demand: this folder is appended to every agent's watch
+        // list without being declared anywhere, and a missing watch directory
+        // is fatal to the poller. A workflow that has never used a broadcast
+        // must not fail to start because of one.
+        try {
+            fs.mkdirSync(broadcastDir, { recursive: true });
+        } catch {
+            // If it cannot be created, the existence check below reports it.
+        }
+        return dirs.includes(broadcastDir) ? dirs : [...dirs, broadcastDir];
+    };
+
+    // CLI extra args take precedence (backwards compat), but if none are
+    // given, read watch_folders from the agent's config JSON.
+    const cliExtras = args.slice(2);
+    if (cliExtras.length > 0) {
+        const dirs = [path.join(workflowRoot, 'slack', agent)];
+        for (const extra of cliExtras) {
+            dirs.push(path.join(workflowRoot, extra));
+        }
+        return { dirs: withBroadcast(dirs), workflow, agent };
     }
 
-    return { dirs, workflow, agent };
+    // Read watch_folders from config
+    const configPath = path.join(workflowRoot, 'co-workers', `${agent}.prompt.json`);
+    let watchFolders = null;
+    try {
+        if (fs.existsSync(configPath)) {
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            if (Array.isArray(config.watch_folders) && config.watch_folders.length > 0) {
+                watchFolders = config.watch_folders;
+            }
+        }
+    } catch {
+        // Fall through to default
+    }
+
+    if (watchFolders) {
+        const dirs = watchFolders.map(folder => path.join(workflowRoot, folder));
+        return { dirs: withBroadcast(dirs), workflow, agent };
+    }
+
+    // Default: the agent's own slack folder, plus the broadcast folder.
+    return { dirs: withBroadcast([path.join(workflowRoot, 'slack', agent)]), workflow, agent };
 }
 
 const argInfo = resolveArgs(rawArgs);
@@ -76,6 +129,83 @@ if (argInfo === null) {
 }
 
 const { dirs, workflow: workflowName, agent: shorthandAgent } = argInfo;
+
+const HEALTH_DIR = path.join(REPO_ROOT, '.agents/workflows', workflowName, 'health');
+const HEARTBEAT_DIR = path.join(HEALTH_DIR, 'heartbeats');
+
+// ---------------------------------------------------------------------------
+// Poller ownership
+//
+// Restarting an agent's chat does not kill the poller its previous session
+// started. Two pollers on one mailbox then do real damage, not just noise:
+// they race on the shared state file (a lost update can burn the retry budget
+// that exists to rescue dropped mail), one file wakes both sessions, and —
+// worst — the orphan keeps rewriting `health/heartbeats/<agent>.json` every 30
+// seconds. The health monitor reads that file's age as proof of life, so a
+// session that is actually gone looks alive indefinitely and is never
+// restarted. That is the shape of the ~11.5-hour QA stall in the protocol's
+// changelog, and the reason it previously took a human running `ps` to notice.
+//
+// The newest poller wins. Each one claims the lock at startup; an older
+// incarnation sees a pid that is not its own on its next tick and exits. No
+// process kills another, no startup refusal can wedge a legitimate restart, and
+// the system converges to exactly one poller per agent within ~2 seconds.
+// ---------------------------------------------------------------------------
+
+/** @returns {string} */
+function lockFilePath(agent) {
+    return path.join(REPO_ROOT, '.agents/workflows', workflowName, '.temp', `.await-lock-${agent}.json`);
+}
+
+/**
+ * Claim ownership of this agent's mailbox for this process.
+ *
+ * @param {string} lockPath
+ * @param {string} agent
+ */
+function claimPollerLock(lockPath, agent) {
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+    const previous = readPollerLock(lockPath);
+    if (previous !== null && previous.pid !== process.pid && isProcessAlive(previous.pid)) {
+        console.log(`[lock] taking over ${path.basename(lockPath)} from pid ${previous.pid} (older poller will exit within ~2s)`);
+    }
+    try {
+        fs.writeFileSync(lockPath, JSON.stringify({ pid: process.pid, agent, claimedAt: Date.now() }, null, 2));
+    } catch (error) {
+        console.error(`[lock] could not claim poller lock: ${error.message}`);
+    }
+}
+
+/** @returns {{pid: number} | null} */
+function readPollerLock(lockPath) {
+    try {
+        const parsed = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+        return typeof parsed?.pid === 'number' ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+/** @returns {boolean} */
+function isProcessAlive(pid) {
+    try {
+        process.kill(pid, 0);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Still the owner? A newer poller claiming the lock means this one is the
+ * leftover of a session that has already been replaced.
+ *
+ * @returns {boolean}
+ */
+function ownsPollerLock(lockPath) {
+    const lock = readPollerLock(lockPath);
+    return lock === null || lock.pid === process.pid;
+}
 
 // Validate directories exist
 for (const dir of dirs) {
@@ -96,6 +226,10 @@ for (const dir of dirs) {
 
 const MINUTE = 60 * 1000;
 
+// Applied only to roles without a random wake, so every role has some scheduled
+// path back to life even if a wake is missed.
+const DEFAULT_FALLBACK_WAKE_MINUTES = 60;
+
 /**
  * @typedef {Object} RoleConfig
  * @property {string} display   Human name shown in logs.
@@ -105,6 +239,7 @@ const MINUTE = 60 * 1000;
  * @property {number} mission_chance  0..1 probability of a special mission on a random wake.
  * @property {string[]} random_tasks  Optional pool of themed special missions.
  * @property {boolean} random_wake    Whether random wake is enabled.
+ * @property {number} fallback_wake_minutes  Safety-net wake for roles without a random wake; 0 disables.
  */
 
 /**
@@ -130,6 +265,23 @@ function resolveAgentName(watchedDirs, shorthandAgent) {
 }
 
 const agentName = resolveAgentName(dirs, shorthandAgent);
+const AWAITING_FILE = path.join(HEALTH_DIR, 'awaiting', `${agentName}.json`);
+const POLLER_LOCK = lockFilePath(agentName);
+claimPollerLock(POLLER_LOCK, agentName);
+
+/**
+ * Stand down when a newer poller has claimed this mailbox.
+ *
+ * Exits without touching the heartbeat or the awaiting file: those now belong
+ * to the new owner, and clearing them would make a live agent look dead.
+ */
+function exitIfSuperseded() {
+    if (ownsPollerLock(POLLER_LOCK)) {
+        return;
+    }
+    console.log(`[lock] a newer poller owns ${agentName}; this one is a leftover and is exiting.`);
+    process.exit(0);
+}
 
 /**
  * Read complete role configuration from the agent's JSON config file
@@ -145,7 +297,8 @@ function readRoleConfig(agentName, workflow) {
         max_wait_minutes: 20,
         mission_chance: 0,
         random_tasks: [],
-        random_wake: false
+        random_wake: false,
+        fallback_wake_minutes: DEFAULT_FALLBACK_WAKE_MINUTES
     };
 
     try {
@@ -202,6 +355,15 @@ function readRoleConfig(agentName, workflow) {
             }
         }
 
+        // Safety-net wake for roles with no random wake. Set to 0 to opt out.
+        let fallbackWakeMinutes = config.fallback_wake_minutes !== undefined
+            ? Number(config.fallback_wake_minutes)
+            : defaultConfig.fallback_wake_minutes;
+        if (!Number.isFinite(fallbackWakeMinutes) || fallbackWakeMinutes < 0) {
+            console.warn(`Invalid fallback_wake_minutes (${config.fallback_wake_minutes}) for ${agentName}, using default`);
+            fallbackWakeMinutes = defaultConfig.fallback_wake_minutes;
+        }
+
         return {
             display: config.display || defaultConfig.display,
             sweep: config.sweep || defaultConfig.sweep,
@@ -209,7 +371,8 @@ function readRoleConfig(agentName, workflow) {
             max_wait_minutes: maxWaitMinutes,
             mission_chance: missionChance,
             random_tasks: randomTasks,
-            random_wake: randomWake
+            random_wake: randomWake,
+            fallback_wake_minutes: fallbackWakeMinutes
         };
     } catch (error) {
         console.error(`Error reading config for ${agentName}: ${error.message}, using defaults`);
@@ -229,23 +392,58 @@ function pickMission() {
 // State file for tracking seen files (prevents instant re-trigger on existing files).
 // Lives in the team's .temp/ folder (gitignored). Derived from the watched directories
 // so concurrent agents don't share the same file
-// (e.g. team-lead watches slack/team-lead + inbox → .await-state-team-lead-inbox.json).
+// (e.g. team-lead watches slack/team-lead + mail/in → .await-state-team-lead-in.json).
 const stateSlug = dirs.map(d => path.basename(d)).join('-');
 const stateWorkflow = workflowName || resolveWorkflowFromDirs(dirs);
 const stateFile = path.join(REPO_ROOT, '.agents/workflows', stateWorkflow, '.temp', `.await-state-${stateSlug}.json`);
 fs.mkdirSync(path.dirname(stateFile), { recursive: true });
-let seenFiles = new Map();
+
+// How many times a single unchanged file may wake the agent.
+//
+// A wake is recorded *before* the agent has actually read anything — this
+// process exits the moment it spots the file, and the CLI turn happens
+// afterwards. If that turn dies (crash, harness timeout, restart), a
+// write-once "seen" mark would bury the message forever: the file sits in the
+// mailbox and nothing ever wakes the agent for it again. Allowing a second
+// wake recovers exactly that case. It stays bounded so a file an agent
+// deliberately leaves in place can never become a wake loop.
+const MAX_WAKES_PER_FILE = 2;
+
+/** @type {Map<string, {sig: string, wakes: number}>} */
+const seenFiles = new Map();
 let needsBaseline = false;
+
+/**
+ * Normalize a persisted entry. Older state files stored a bare signature string.
+ * @param {unknown} entry
+ * @returns {{sig: string, wakes: number} | null}
+ */
+function normalizeEntry(entry) {
+    if (typeof entry === 'string') {
+        return { sig: entry, wakes: MAX_WAKES_PER_FILE };
+    }
+    if (entry && typeof entry === 'object' && typeof entry.sig === 'string') {
+        return { sig: entry.sig, wakes: Number(entry.wakes) || 0 };
+    }
+    return null;
+}
 
 try {
     const raw = fs.readFileSync(stateFile, 'utf8');
     const parsed = JSON.parse(raw);
-    seenFiles = new Map(Object.entries(parsed));
-    if (seenFiles.size === 0) {
-        needsBaseline = true;
+    for (const [filePath, entry] of Object.entries(parsed)) {
+        const normalized = normalizeEntry(entry);
+        if (normalized !== null) {
+            seenFiles.set(filePath, normalized);
+        }
     }
+    // An empty state file is *not* a first run — it means this poller has run
+    // before and the mailbox happened to be empty. Baselining here would mark
+    // anything that arrived while the agent was down as already seen, silently
+    // swallowing exactly the mail a restart is supposed to pick up.
 } catch {
-    // No state file yet — first run, treat all existing files as seen (baseline)
+    // No readable state file — genuine first run. Treat what is already on disk
+    // as seen, so startup does not wake on every pre-existing file.
     needsBaseline = true;
 }
 
@@ -261,6 +459,31 @@ function saveState() {
     } catch {
         // Non-critical — don't block on state save errors
     }
+}
+
+/**
+ * May an unchanged file in this directory wake the agent more than once?
+ *
+ * Retries exist to recover mail whose handling turn died (see MAX_WAKES_PER_FILE),
+ * and they rely on the Golden Hygiene Rule: a handled file is deleted or moved,
+ * so anything still sitting there was probably never handled. `mail/out/` is the
+ * exception — a question legitimately waits there until a human answers it, and
+ * the answer edit changes the signature and wakes the agent on its own. Retrying
+ * there would just re-wake the asker about its own unanswered question.
+ *
+ * @param {string} absDir
+ * @returns {boolean}
+ */
+function allowsWakeRetry(absDir) {
+    const parts = absDir.split(path.sep);
+    if (parts.at(-2) === 'mail' && parts.at(-1) === 'out') {
+        return false;
+    }
+    // `slack/all/` is shared, so readers do not delete what they have handled —
+    // a broadcast legitimately stays in place until its author prunes it. The
+    // retry that exists for un-handled personal mail would therefore re-wake
+    // every agent on the team a second time, for nothing.
+    return !(parts.at(-2) === 'slack' && parts.at(-1) === 'all');
 }
 
 function fileSignature(filePath) {
@@ -290,7 +513,7 @@ function baselineExistingFiles() {
                 const fullPath = path.join(absDir, entry.name);
                 const sig = fileSignature(fullPath);
                 if (sig !== null) {
-                    seenFiles.set(fullPath, sig);
+                    seenFiles.set(fullPath, { sig, wakes: MAX_WAKES_PER_FILE });
                     seeded += 1;
                 }
             }
@@ -303,6 +526,7 @@ function baselineExistingFiles() {
 }
 
 function checkDirectories() {
+    exitIfSuperseded();
     let foundNew = false;
 
     for (const dir of dirs) {
@@ -318,12 +542,23 @@ function checkDirectories() {
             for (const file of files) {
                 const fullPath = path.join(absDir, file);
                 const sig = fileSignature(fullPath);
-                const key = fullPath;
-                const prevSig = seenFiles.get(key);
+                if (sig === null) {
+                    continue;
+                }
 
-                if (sig !== null && sig !== prevSig) {
+                const maxWakes = allowsWakeRetry(absDir) ? MAX_WAKES_PER_FILE : 1;
+                const previous = seenFiles.get(fullPath);
+                const isChanged = previous === undefined || previous.sig !== sig;
+                const isUnacknowledged = previous !== undefined && previous.sig === sig && previous.wakes < maxWakes;
+
+                if (isChanged) {
                     newFiles.push(file);
-                    seenFiles.set(key, sig);
+                    seenFiles.set(fullPath, { sig, wakes: 1 });
+                } else if (isUnacknowledged) {
+                    // Still here, unchanged, and a previous wake never resulted in
+                    // the file being handled — the agent's turn most likely died.
+                    newFiles.push(file);
+                    seenFiles.set(fullPath, { sig, wakes: previous.wakes + 1 });
                 }
             }
 
@@ -343,6 +578,7 @@ function checkDirectories() {
     }
 
     if (foundNew) {
+        clearAwaiting();
         process.exit(0);
     }
 }
@@ -356,35 +592,88 @@ if (needsBaseline) {
 // 2. Check immediately on startup (only truly new/changed files will wake us)
 checkDirectories();
 
-let randomTimeoutMs = null;
+// Roles without a random wake (Team Lead, the developers, QA) used to have
+// exactly one way to ever run again: a brand-new file landing in a watched
+// folder. Any wake they missed was therefore unrecoverable — nothing else was
+// scheduled to look. They now get a slow safety-net wake as well; finding an
+// empty mailbox and going straight back to sleep is cheap.
+let wakeTimeoutMs = null;
+let wakeLabel = role.sweep;
 
 if (role.random_wake) {
     const minMs = role.min_wait_minutes * MINUTE;
     const maxMs = role.max_wait_minutes * MINUTE;
-    randomTimeoutMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+    wakeTimeoutMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+} else if (role.fallback_wake_minutes > 0) {
+    wakeTimeoutMs = role.fallback_wake_minutes * MINUTE;
+    wakeLabel = 'mailbox re-check';
 }
 
 console.log(`Listening for new messages in: ${dirs.join(', ')}...`);
-if (role.random_wake && randomTimeoutMs !== null) {
-    console.log(`${role.display} will also wake for a ${role.sweep} in ~${Math.round(randomTimeoutMs / MINUTE)} min if it stays quiet...`);
+if (wakeTimeoutMs !== null) {
+    console.log(`${role.display} will also wake for a ${wakeLabel} in ~${Math.round(wakeTimeoutMs / MINUTE)} min if it stays quiet...`);
+}
+
+function writeHeartbeat() {
+    // A leftover poller writing this file is what makes a dead session look
+    // alive to the monitor, so ownership is checked before the write, not after.
+    exitIfSuperseded();
+
+    const heartbeat = {
+        ts: Date.now(),
+        agent: agentName,
+        display: role.display,
+        pid: process.pid
+    };
+
+    try {
+        const awaitingRaw = fs.readFileSync(AWAITING_FILE, 'utf8');
+        const awaiting = JSON.parse(awaitingRaw);
+        if (awaiting && (awaiting.waitingOn || awaiting.reason)) {
+            heartbeat.awaiting = awaiting;
+        }
+    } catch {
+        // No awaiting status set.
+    }
+
+    try {
+        fs.mkdirSync(HEARTBEAT_DIR, { recursive: true });
+        fs.writeFileSync(path.join(HEARTBEAT_DIR, `${agentName}.json`), JSON.stringify(heartbeat, null, 2));
+    } catch (error) {
+        console.error(`[heartbeat] failed to write heartbeat for ${agentName}: ${error.message}`);
+    }
+
+    console.log(`[heartbeat] ${role.display} still listening (${dirs.join(', ')})...`);
+}
+
+function clearAwaiting() {
+    try {
+        if (fs.existsSync(AWAITING_FILE)) {
+            fs.rmSync(AWAITING_FILE);
+        }
+    } catch {
+        // Non-critical — ignore cleanup errors.
+    }
 }
 
 // 2. Poll every 2 seconds. This is 100% reliable across all OS filesystems.
 setInterval(checkDirectories, 2000);
 
 // 3. Heartbeat every 30 seconds — gives the harness visible proof the process is alive.
-setInterval(() => {
-    console.log(`[heartbeat] ${role.display} still listening (${dirs.join(', ')})...`);
-}, 30000);
+setInterval(writeHeartbeat, 30000);
 
-// 4. Random timeout to wake up anyway — optionally with a themed special mission.
-if (role.random_wake && randomTimeoutMs !== null) {
+// Send an immediate heartbeat so the monitor sees us right away.
+writeHeartbeat();
+
+// 4. Timed wake — a themed sweep for proactive roles, a plain mailbox re-check
+//    for everyone else so no role can become permanently unreachable.
+if (wakeTimeoutMs !== null) {
     setTimeout(() => {
-        const mission = pickMission();
+        const mission = role.random_wake ? pickMission() : null;
         console.log(`\n========================================`);
-        console.log(`RANDOM ${role.sweep.toUpperCase()} TRIGGERED!`);
+        console.log(`${role.random_wake ? 'RANDOM ' : ''}${wakeLabel.toUpperCase()} TRIGGERED!`);
         console.log(`========================================\n`);
-        console.log(`${role.display} waking up for a ${role.sweep} (idle timeout)...`);
+        console.log(`${role.display} waking up for a ${wakeLabel} (idle timeout)...`);
         if (mission) {
             console.log(`\n----------------------------------------`);
             console.log(`🎲 SPECIAL MISSION (optional focus for THIS sweep):`);
@@ -393,8 +682,9 @@ if (role.random_wake && randomTimeoutMs !== null) {
             console.log(`----------------------------------------\n`);
         }
         saveState();
+        clearAwaiting();
         process.exit(0);
-    }, randomTimeoutMs);
+    }, wakeTimeoutMs);
 }
 
 // Handle manual cancellation gracefully

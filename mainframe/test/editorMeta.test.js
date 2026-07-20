@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE } from '../src/js/editorMeta.js';
+import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_SCALING } from '../src/js/editorMeta.js';
 
 describe('editorMeta', () => {
 	test('hydrates editor fields from meta including optional fields', () => {
@@ -24,6 +24,7 @@ describe('editorMeta', () => {
 			frameWidth: 16,
 			frameHeight: 9,
 			scaleMode: 'cover',
+			scaling: DEFAULT_SCALING,
 			placement: { x: 0, y: 0 },
 			frameRate: 8,
 			retrigger: false,
@@ -45,6 +46,7 @@ describe('editorMeta', () => {
 			frameWidth: DEFAULT_FRAME_WIDTH,
 			frameHeight: DEFAULT_FRAME_HEIGHT,
 			scaleMode: DEFAULT_SCALE_MODE,
+			scaling: DEFAULT_SCALING,
 			placement: { x: 0, y: 0 },
 			frameRate: 12,
 			retrigger: true,
@@ -141,6 +143,23 @@ describe('editorMeta', () => {
 			beatsPerBar: 4,
 			syncBeats: null
 		});
+	});
+
+	test('metaPatchFromEditor preserves scaling when provided', () => {
+		expect(
+			metaPatchFromEditor({
+				playback: 'loop',
+				scaleMode: 'fit',
+				scaling: 'smooth',
+				frameWidth: 240,
+				frameHeight: 135,
+				placement: { x: 0, y: 0 },
+				retrigger: true,
+				triggerType: 'momentary',
+				triggerGroup: '',
+				sync: 'free'
+			})
+		).toMatchObject({ scaling: 'smooth' });
 	});
 
 	test('optionalMetaFromEditor includes sync flag and bitmask depth', () => {

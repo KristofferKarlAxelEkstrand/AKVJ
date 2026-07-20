@@ -4,13 +4,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-	optimize,
-	optimizeFile,
-	finalizeOptimizedFile,
-	handleOptimizeError,
-	copyClipJsonFiles
-} from '../scripts/clips/lib/optimize.js';
+import { optimize, optimizeFile, finalizeOptimizedFile, handleOptimizeError, copyClipJsonFiles } from '../scripts/clips/lib/optimize.js';
 import { hashFile, writeHashFile } from '../scripts/clips/lib/hash.js';
 import { PNG_1x1 } from './utils/pngFixtures.js';
 
@@ -98,9 +92,7 @@ describe('scripts/clips/lib/optimize.js', () => {
 		await fs.writeFile(sourcePath, PNG_1x1);
 		await fs.writeFile(tempFilePath, Buffer.alloc(8, 9));
 
-		await expect(handleOptimizeError(sourcePath, cachePath, tempFilePath, true, new Error('sharp failed'))).rejects.toThrow(
-			/optimize error: sharp failed/
-		);
+		await expect(handleOptimizeError(sourcePath, cachePath, tempFilePath, true, new Error('sharp failed'))).rejects.toThrow(/optimize error: sharp failed/);
 		await expect(fs.access(tempFilePath)).rejects.toMatchObject({ code: 'ENOENT' });
 		expect(await fs.readFile(cachePath)).toEqual(PNG_1x1);
 	});

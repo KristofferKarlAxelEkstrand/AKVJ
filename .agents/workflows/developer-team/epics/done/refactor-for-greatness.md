@@ -14,7 +14,7 @@ This is a **technical** refactor pass (naming, structure, duplication, coupling)
 Grounded in `spec/` so we refactor toward the stated vision, not away from it:
 
 - **`goal.md`** — Keep `akvj` and `mainframe` strictly decoupled. The only bridge is shared JSON under `projects/` (per-project clips + key-maps; formerly a top-level `clips/` tree — see Wave 2 / Task 128). **They must never share JS module imports.** Also: the **clip format is the backbone** and matters more right now than Projects; get it solid and testable first, and start testing what exists rather than adding scope.
-- **`clip-schema.md`** — Human-first (KISS). Any change that makes `meta.json` harder to hand-write is a bad change. Same format read/written by human, `mainframe`, and `akvj`.
+- **`spec/clip-format.md`** — Human-first (KISS). Any change that makes `meta.json` harder to hand-write is a bad change. Same format read/written by human, `mainframe`, and `akvj`.
 - **`code-standards.md`** — SRP + SLAP (not arbitrary line limits), event-driven decoupling via `EventTarget`, custom-events-up, `#private` fields, magic numbers → named constants, descriptive domain naming.
 - **`aesthetics.md`** — `akvj` = zero UI, pixel-perfect, hot path stays lean. `mainframe` = minimal, functional.
 
@@ -50,7 +50,7 @@ Per `goal.md`, the clip format matters most. Today the "format" logic is smeared
 
 ### 0.4 Get the format under test
 
-Per the user's "start testing what exists": once normalization is centralized, add round-trip tests — hand-written `meta.json` → load → save → identical human-readable output (KISS invariant from `clip-schema.md`).
+Per the user's "start testing what exists": once normalization is centralized, add round-trip tests — hand-written `meta.json` → load → save → identical human-readable output (KISS invariant from `spec/clip-format.md`).
 
 ---
 
@@ -108,7 +108,7 @@ God-class: constructor validation + FPS timing + BPM sync + per-clip clock subsc
 
 ## Mainframe (`mainframe/`)
 
-Product direction (unified clip editor via routing; create + edit share one surface) is **already correct** and matches `spec/feature-edit-clip.md` + `spec/clip-upload-edit-feature.md`. The debt is **god modules** and **domain logic duplicated across server / pipeline / frontend**. Full audit: [mainframe audit](77f9f7d2-6a87-4dca-a53b-025632dad7fc).
+Product direction (unified clip editor via routing; create + edit share one surface) is **already correct** and matches `spec/clip-editor.md`. The debt is **god modules** and **domain logic duplicated across server / pipeline / frontend**. Full audit: [mainframe audit](77f9f7d2-6a87-4dca-a53b-025632dad7fc).
 
 ### M1. `server/index.js` (~804 lines) — split the god file
 
@@ -130,7 +130,7 @@ Holds HTTP plumbing, routing, clip catalog logic, key-map flatten/nest/validate,
 Router + library + mapping + projects + upload staging + GIF expand + frame reorder + submit branching all live here. Staging state is module globals (`stagedFiles`, `stagedDurationsMs`, `stagedFrameUrls`, `framesDirty`, `loadedFrameWidth`…), untestable without loading all of `main.js`.
 
 - Extract `ClipEditorController.js` (or a `<akvj-clip-editor-panel>` custom element) owning staging state, hydrate (`hydrateClipEditor`), and submit (create vs meta-only-PUT vs frames-PUT). `main.js` becomes router → controller wiring only.
-- This directly serves `feature-edit-clip.md` §"Implementation notes" (URL-driven hydrate/reset, one editor surface).
+- This directly serves `spec/clip-editor.md` §"Implementation notes" (URL-driven hydrate/reset, one editor surface).
 
 ### M4. Retire legacy `<akvj-clip-editor>`
 
@@ -148,7 +148,7 @@ Server imports frontend `src/` today: `server/index.js` → `src/js/frameTiming.
 
 `CLIP_ID_PATTERN` (`/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/`) is copy-pasted in ≥6 places (`server/paths.js`, `src/js/clipEditorRoute.js`, `scripts/clips/new.js`, `validate/index.js`, `validateMapping.js`, `generate.js`); `SAFE_PNG_NAME` exists in both `server/index.js` and `paths.js` (only `paths.js` used).
 
-- One source for these per realm (the `mainframe/shared/` from M5). The spec (`clip-upload-edit-feature.md` §1) wants a plain, path-safe unique id — centralizing the regex makes "reject empties/dupes" consistent.
+- One source for these per realm (the `mainframe/shared/` from M5). The spec (`spec/clip-editor.md` §1) wants a plain, path-safe unique id — centralizing the regex makes "reject empties/dupes" consistent.
 
 ### M7. `server/spritesheet.js` triplicated resolution block
 
@@ -215,7 +215,7 @@ Each of the above is independently shippable and testable. Prefer landing 1–4 
 
 ## Explicitly out of scope for this pass
 
-- Any change to on-disk clip JSON shape that hurts hand-editability (`clip-schema.md`).
+- Any change to on-disk clip JSON shape that hurts hand-editability (`spec/clip-format.md`).
 - Introducing a shared JS import between `akvj` and `mainframe` (`goal.md`).
 - New features (Projects logic, grayscale-displacement effects, MIDI-clock behavior changes) — this is structure only; do those on the cleaned base.
 - Changing the 60fps render pipeline's behavior; refactors there must be perf-neutral.

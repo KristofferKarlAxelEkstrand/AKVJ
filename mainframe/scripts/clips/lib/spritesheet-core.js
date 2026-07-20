@@ -44,7 +44,12 @@ export async function normalizeFrameBuffers(sharpLib, frameBuffers) {
  */
 export async function assertReadableFrames(sharpLib, frameBuffers) {
 	for (const buf of frameBuffers) {
-		const meta = await sharpLib(buf).metadata();
+		let meta;
+		try {
+			meta = await sharpLib(buf).metadata();
+		} catch {
+			throw new Error('Could not read frame dimensions');
+		}
 		if (!meta.width || !meta.height) {
 			throw new Error('Could not read frame dimensions');
 		}
@@ -64,9 +69,7 @@ export async function assertReadableFrames(sharpLib, frameBuffers) {
 export async function resizeFrames(sharpLib, frameBuffers, targetWidth, targetHeight, scaleModeOrConfigs = 'fit') {
 	return Promise.all(
 		frameBuffers.map((buf, index) => {
-			const config = Array.isArray(scaleModeOrConfigs)
-				? resolveFrameBakeConfig(scaleModeOrConfigs[index], targetWidth, targetHeight)
-				: resolveFrameBakeConfig({ scaleMode: scaleModeOrConfigs }, targetWidth, targetHeight);
+			const config = Array.isArray(scaleModeOrConfigs) ? resolveFrameBakeConfig(scaleModeOrConfigs[index], targetWidth, targetHeight) : resolveFrameBakeConfig({ scaleMode: scaleModeOrConfigs }, targetWidth, targetHeight);
 			return fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, config);
 		})
 	);
@@ -82,18 +85,10 @@ export async function resizeFrames(sharpLib, frameBuffers, targetWidth, targetHe
  * @returns {Promise<Buffer>}
  */
 export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, scaleModeOrConfig = 'fit') {
-	const config =
-		typeof scaleModeOrConfig === 'string'
-			? resolveFrameBakeConfig({ scaleMode: scaleModeOrConfig }, targetWidth, targetHeight)
-			: resolveFrameBakeConfig(scaleModeOrConfig, targetWidth, targetHeight);
+	const config = typeof scaleModeOrConfig === 'string' ? resolveFrameBakeConfig({ scaleMode: scaleModeOrConfig }, targetWidth, targetHeight) : resolveFrameBakeConfig(scaleModeOrConfig, targetWidth, targetHeight);
 
 	if (config.scaleMode === 'custom') {
-		const sized = await sharpLib(buf)
-			.ensureAlpha()
-			.resize(config.width, config.height, { fit: 'fill' })
-			.ensureAlpha()
-			.png()
-			.toBuffer();
+		const sized = await sharpLib(buf).ensureAlpha().resize(config.width, config.height, { fit: 'fill' }).ensureAlpha().png().toBuffer();
 		return compositeContentOntoCell(sharpLib, sized, targetWidth, targetHeight, config.placement);
 	}
 
@@ -104,11 +99,7 @@ export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, s
 		return base.resize(targetWidth, targetHeight, { fit: 'fill' }).ensureAlpha().png().toBuffer();
 	}
 	if (mode === 'fit') {
-		const fitted = await base
-			.resize(targetWidth, targetHeight, { fit: 'contain', background: TRANSPARENT })
-			.ensureAlpha()
-			.png()
-			.toBuffer();
+		const fitted = await base.resize(targetWidth, targetHeight, { fit: 'contain', background: TRANSPARENT }).ensureAlpha().png().toBuffer();
 		return applyPlacementToCellSizedBuffer(sharpLib, fitted, targetWidth, targetHeight, config.placement);
 	}
 	if (mode === 'cover') {
@@ -146,7 +137,12 @@ async function applyPlacementToCellSizedBuffer(sharpLib, cellBuffer, targetWidth
  * @returns {Promise<Buffer>}
  */
 export async function compositeContentOntoCell(sharpLib, contentBuf, targetWidth, targetHeight, placement, contentIsFullCell = false) {
-	const contentMeta = await sharpLib(contentBuf).metadata();
+	let contentMeta;
+	try {
+		contentMeta = await sharpLib(contentBuf).metadata();
+	} catch {
+		throw new Error('Could not read content dimensions');
+	}
 	const contentWidth = contentMeta.width;
 	const contentHeight = contentMeta.height;
 	if (!contentWidth || !contentHeight) {
@@ -189,10 +185,7 @@ export async function compositeContentOntoCell(sharpLib, contentBuf, targetWidth
 	}
 
 	if (extractLeft !== 0 || extractTop !== 0 || extractWidth !== contentWidth || extractHeight !== contentHeight) {
-		input = await sharpLib(contentBuf)
-			.extract({ left: extractLeft, top: extractTop, width: extractWidth, height: extractHeight })
-			.png()
-			.toBuffer();
+		input = await sharpLib(contentBuf).extract({ left: extractLeft, top: extractTop, width: extractWidth, height: extractHeight }).png().toBuffer();
 	}
 
 	return sharpLib({

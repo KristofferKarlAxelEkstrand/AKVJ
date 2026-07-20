@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> mapping add form fields are present with correct defaults
-- Location: e2e/mainframe.spec.js:120:1
+- Location: e2e/mainframe.spec.js:154:1
 
 # Error details
 

@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import { clipDir, rawAssetsDir, isValidClipId, DEFAULT_PROJECT_ID } from './paths.js';
 import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveTargetDimensions, resolveFrameRate, resolvePlayback, resolveFramesPerRow } from '../scripts/clips/lib/spritesheet-core.js';
 import { resolveScaleMode } from '../shared/frameFit.js';
-import { resolvePlacement } from '../shared/clipSchema.js';
+import { resolvePlacement, DEFAULT_SCALING, SCALING_MODES } from '../shared/clipSchema.js';
 
 /**
  * Build a horizontal/grid spritesheet from image frame buffers and write clip folder.
@@ -23,7 +23,7 @@ import { resolvePlacement } from '../shared/clipSchema.js';
  * @param {Record<string, number>} [options.frameRatesForFrames] - Per-frame FPS (from ms durations)
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
+export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -54,6 +54,7 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 			frameRate: resolvedFrameRate,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
+			scaling,
 			frameWidth: resolvedTargetWidth,
 			frameHeight: resolvedTargetHeight,
 			placement,
@@ -61,7 +62,6 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 			triggerType,
 			triggerGroup,
 			bitDepth,
-			frameDurationBeats,
 			sync,
 			syncLength,
 			syncBeats,
@@ -90,7 +90,7 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
  * @param {string} [options.role]
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, role, projectId = DEFAULT_PROJECT_ID }) {
+export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -128,6 +128,7 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
 			frameRate: resolvedFrameRate,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
+			scaling,
 			frameWidth: resolvedTargetWidth,
 			frameHeight: resolvedTargetHeight
 		},
@@ -155,7 +156,7 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
  * @param {string} [options.role]
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, name, playback, frameRate, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, frameDurationBeats, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
+export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -193,6 +194,7 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 			frameRate: resolvedFrameRate,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
+			scaling,
 			frameWidth: resolvedTargetWidth,
 			frameHeight: resolvedTargetHeight,
 			placement,
@@ -200,7 +202,6 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 			triggerType,
 			triggerGroup,
 			bitDepth,
-			frameDurationBeats,
 			sync,
 			syncLength,
 			syncBeats,
@@ -277,6 +278,10 @@ async function overwriteClipFiles(clipId, clipOptions, sheet, frameCount, frames
 	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(mergedMeta, null, '\t')}\n`);
 }
 
+function resolveScaling(scaling) {
+	return SCALING_MODES.includes(scaling) ? scaling : DEFAULT_SCALING;
+}
+
 function buildClipMeta(clipOptions, frameCount, framesPerRow) {
 	const frameRatesForFrames = clipOptions.frameRatesForFrames && typeof clipOptions.frameRatesForFrames === 'object' && !Array.isArray(clipOptions.frameRatesForFrames) ? clipOptions.frameRatesForFrames : { 0: clipOptions.frameRate || DEFAULT_FRAME_RATE };
 	const meta = {
@@ -291,6 +296,9 @@ function buildClipMeta(clipOptions, frameCount, framesPerRow) {
 		frameHeight: clipOptions.frameHeight || DEFAULT_TARGET_HEIGHT,
 		placement: resolvePlacement(clipOptions.placement)
 	};
+	if (clipOptions.scaling !== undefined) {
+		meta.scaling = resolveScaling(clipOptions.scaling);
+	}
 	if (clipOptions.name) {
 		meta.name = clipOptions.name;
 	}
@@ -299,9 +307,6 @@ function buildClipMeta(clipOptions, frameCount, framesPerRow) {
 	}
 	if (clipOptions.triggerGroup !== null && clipOptions.triggerGroup !== undefined && String(clipOptions.triggerGroup).trim()) {
 		meta.triggerGroup = String(clipOptions.triggerGroup).trim();
-	}
-	if (clipOptions.frameDurationBeats !== null && clipOptions.frameDurationBeats !== undefined) {
-		meta.frameDurationBeats = clipOptions.frameDurationBeats;
 	}
 	if (clipOptions.sync === 'beat' || clipOptions.sync === 'free') {
 		meta.sync = clipOptions.sync;
@@ -344,11 +349,7 @@ function syncOptionalMetaFields(mergedMeta, newMeta, clipOptions) {
 	} else {
 		delete mergedMeta.triggerGroup;
 	}
-	if ('frameDurationBeats' in newMeta) {
-		mergedMeta.frameDurationBeats = newMeta.frameDurationBeats;
-	} else {
-		delete mergedMeta.frameDurationBeats;
-	}
+	delete mergedMeta.frameDurationBeats;
 	applySyncedTimingFields(mergedMeta, newMeta, clipOptions);
 	if (newMeta.role === 'bitmask') {
 		mergedMeta.role = 'bitmask';

@@ -65,12 +65,7 @@ describe('mappingService', () => {
 	});
 
 	test('assertValidFlatMapping rejects beat sync without syncLength', () => {
-		expect(() =>
-			assertValidFlatMapping(
-				[{ channel: 1, note: 0, velocity: 0, clipId: 'clip-a', overrides: { sync: 'beat' } }],
-				new Set(['clip-a'])
-			)
-		).toThrow(/syncLength is required/);
+		expect(() => assertValidFlatMapping([{ channel: 1, note: 0, velocity: 0, clipId: 'clip-a', overrides: { sync: 'beat' } }], new Set(['clip-a']))).toThrow(/syncLength is required/);
 	});
 
 	test('assertValidFlatMapping rejects unknown clip', () => {

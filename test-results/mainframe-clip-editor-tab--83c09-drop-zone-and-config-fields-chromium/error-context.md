@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> clip editor tab has drag-and-drop zone and config fields
-- Location: e2e/mainframe.spec.js:61:1
+- Location: e2e/mainframe.spec.js:79:1
 
 # Error details
 

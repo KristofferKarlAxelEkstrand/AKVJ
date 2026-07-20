@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> mapping table has correct column headers
-- Location: e2e/mainframe.spec.js:107:1
+- Location: e2e/mainframe.spec.js:141:1
 
 # Error details
 

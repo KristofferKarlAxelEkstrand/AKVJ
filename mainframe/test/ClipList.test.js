@@ -246,4 +246,34 @@ describe('ClipList — grouped category rendering', () => {
 		mapButton = element.querySelector('.clip-map');
 		expect(mapButton).not.toBeNull();
 	});
+
+	test('pianorollFilters clipId filters clips', () => {
+		element.clips = [
+			{ clipId: 'kick', meta: { name: 'Kick' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'snare', meta: { name: 'Snare' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { clipId: 'kick' };
+		expect(element.querySelectorAll('clip-instance').length).toBe(1);
+		expect(element.querySelector('clip-instance').clip.clipId).toBe('kick');
+	});
+
+	test('pianorollFilters triggerType filters clips', () => {
+		element.clips = [
+			{ clipId: 'a', meta: { triggerType: 'momentary' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'b', meta: { triggerType: 'latch' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { triggerType: 'latch' };
+		expect(element.querySelectorAll('clip-instance').length).toBe(1);
+		expect(element.querySelector('clip-instance').clip.clipId).toBe('b');
+	});
+
+	test('pianorollFilters role filters clips', () => {
+		element.clips = [
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'clip', meta: { role: '' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { role: 'bitmask' };
+		expect(element.querySelectorAll('clip-instance').length).toBe(1);
+		expect(element.querySelector('clip-instance').clip.clipId).toBe('mask');
+	});
 });

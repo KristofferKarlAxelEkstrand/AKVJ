@@ -63,13 +63,7 @@ describe('ProjectCatalog', () => {
 		test('returns filtered valid entries', async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
-				json: async () => [
-					{ id: 'good', name: 'Good' },
-					{ id: '../bad', name: 'Bad' },
-					{ id: 99, name: 'Nope' },
-					null,
-					{ id: 'also-good', name: 'Also' }
-				]
+				json: async () => [{ id: 'good', name: 'Good' }, { id: '../bad', name: 'Bad' }, { id: 99, name: 'Nope' }, null, { id: 'also-good', name: 'Also' }]
 			});
 			await expect(catalog.fetchProjectsIndex()).resolves.toEqual([
 				{ id: 'good', name: 'Good' },

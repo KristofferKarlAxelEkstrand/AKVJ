@@ -763,5 +763,164 @@ describe('PianoRoll', () => {
 		key.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
 		expect(handler).toHaveBeenCalledTimes(2);
 	});
-});
 
+	test('renders mode selector buttons Edit, Filter, Play left of channel picker', () => {
+		element.channelSelect = true;
+		const buttons = element.querySelectorAll('.piano-roll-mode-button');
+		expect(buttons.length).toBe(3);
+		expect([...buttons].map(button => button.textContent)).toEqual(['Edit', 'Filter', 'Play']);
+
+		const toolbar = element.querySelector('.piano-roll-toolbar');
+		const modeGroup = toolbar.querySelector('.piano-roll-mode-group');
+		const channelBar = toolbar.querySelector('.piano-roll-channel-bar');
+		expect(toolbar.firstElementChild).toBe(modeGroup);
+		expect(toolbar.lastElementChild).toBe(channelBar);
+	});
+
+	test('clicking a mode button changes mode and dispatches pianoroll:mode-changed', () => {
+		element.mode = 'edit';
+		const events = [];
+		element.addEventListener('pianoroll:mode-changed', event => events.push(event.detail.mode));
+
+		const filterButton = element.querySelector('.piano-roll-mode-button[data-mode="filter"]');
+		filterButton.click();
+
+		expect(element.mode).toBe('filter');
+		expect(events).toEqual(['filter']);
+	});
+
+	test('active mode button has is-active class and aria-selected', () => {
+		element.mode = 'play';
+		const activeButton = element.querySelector('.piano-roll-mode-button.is-active');
+		expect(activeButton.dataset.mode).toBe('play');
+		expect(activeButton.getAttribute('aria-selected')).toBe('true');
+
+		const editButton = element.querySelector('.piano-roll-mode-button[data-mode="edit"]');
+		expect(editButton.classList.contains('is-active')).toBe(false);
+		expect(editButton.getAttribute('aria-selected')).toBe('false');
+	});
+
+	test('mode change toggles view container visibility', () => {
+		element.mode = 'edit';
+		expect(element.querySelector('.piano-roll-edit-view').hidden).toBe(false);
+		expect(element.querySelector('.piano-roll-filter-view').hidden).toBe(true);
+		expect(element.querySelector('.piano-roll-play-view').hidden).toBe(true);
+
+		element.mode = 'filter';
+		expect(element.querySelector('.piano-roll-edit-view').hidden).toBe(true);
+		expect(element.querySelector('.piano-roll-filter-view').hidden).toBe(false);
+		expect(element.querySelector('.piano-roll-play-view').hidden).toBe(true);
+
+		element.mode = 'play';
+		expect(element.querySelector('.piano-roll-edit-view').hidden).toBe(true);
+		expect(element.querySelector('.piano-roll-filter-view').hidden).toBe(true);
+		expect(element.querySelector('.piano-roll-play-view').hidden).toBe(false);
+	});
+
+	test('edit mode tooltip shows clip metadata on velocity region hover', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.clips = [{ clipId: 'soft', meta: { name: 'Soft kick', triggerType: 'momentary' } }];
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'soft' }];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		const region = key.querySelector('.velocity-region');
+		const tooltip = element.querySelector('.piano-roll-tooltip');
+
+		region.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 0, clientY: 0 }));
+
+		expect(tooltip.hidden).toBe(false);
+		expect(tooltip.innerHTML).toContain('soft');
+		expect(tooltip.innerHTML).toContain('Soft kick');
+		expect(tooltip.innerHTML).toContain('momentary');
+
+		region.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
+		expect(tooltip.hidden).toBe(true);
+	});
+
+	test('filter mode renders filter controls and summary', () => {
+		element.mode = 'filter';
+		expect(element.querySelector('.piano-roll-filter-controls')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-clip-id')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-trigger')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-role')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-layer-group')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-populated input')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-clear')).not.toBeNull();
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).toBe('No active filters');
+	});
+
+	test('setting filters dispatches pianoroll:filter-changed and updates summary', () => {
+		element.mode = 'filter';
+		let detail = null;
+		element.addEventListener('pianoroll:filter-changed', event => {
+			detail = event.detail;
+		});
+
+		element.filters = { clipId: 'kick' };
+
+		expect(detail.filters.clipId).toBe('kick');
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).toContain('clipId: kick');
+		expect(element.querySelector('.piano-roll-filter-clip-id').value).toBe('kick');
+	});
+
+	test('filter mode dims non-matching velocity regions', () => {
+		element.mode = 'filter';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'soft', meta: { triggerType: 'momentary' } },
+			{ clipId: 'hard', meta: { triggerType: 'latch' } }
+		];
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		element.filters = { triggerType: 'latch' };
+
+		const regions = key.querySelectorAll('.velocity-region');
+		const hardRegion = [...regions].find(region => region.dataset.clipId === 'hard');
+		const softRegion = [...regions].find(region => region.dataset.clipId === 'soft');
+
+		expect(hardRegion.classList.contains('is-filtered-out')).toBe(false);
+		expect(softRegion.classList.contains('is-filtered-out')).toBe(true);
+	});
+
+	test('filter mode dims unmapped keys when showOnlyPopulated is true', () => {
+		element.mode = 'filter';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'only' }];
+
+		element.filters = { showOnlyPopulated: true };
+
+		const keys = element.querySelectorAll('piano-key');
+		expect(keys[60].classList.contains('is-dimmed')).toBe(false);
+		expect(keys[61].classList.contains('is-dimmed')).toBe(true);
+	});
+
+	test('clear filters resets state and controls', () => {
+		element.mode = 'filter';
+		element.filters = { clipId: 'kick', triggerType: 'momentary' };
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).not.toBe('No active filters');
+
+		element.resetFilters();
+
+		expect(element.filters.clipId).toBe('');
+		expect(element.querySelector('.piano-roll-filter-clip-id').value).toBe('');
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).toBe('No active filters');
+	});
+
+	test('mode switch to filter and back preserves channel and mappings', () => {
+		element.mode = 'edit';
+		element.channel = 3;
+		element.mappings = [{ channel: 3, note: 48, velocity: 0, clipId: 'kick' }];
+
+		element.mode = 'filter';
+		expect(element.channel).toBe(3);
+		expect(element.mappings).toEqual([{ channel: 3, note: 48, velocity: 0, clipId: 'kick' }]);
+
+		element.mode = 'edit';
+		expect(element.channel).toBe(3);
+	});
+});

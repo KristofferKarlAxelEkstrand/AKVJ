@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> clip sort choices has all options
-- Location: e2e/mainframe.spec.js:78:1
+- Location: e2e/mainframe.spec.js:109:1
 
 # Error details
 

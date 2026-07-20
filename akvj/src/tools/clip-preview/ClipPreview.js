@@ -1,7 +1,7 @@
 /**
  * Clip Preview Tool
  *
- * Loads and plays clips from the flat clips.json catalog (keyed by clipId).
+ * Loads and plays clips from a per-project clips.json catalog (keyed by clipId).
  */
 import { normalizeClipMetadata } from '../../js/visuals/clipMetadata.js';
 

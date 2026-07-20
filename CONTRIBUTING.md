@@ -43,7 +43,7 @@ We recommend using VS Code with the recommended extensions to automatically form
 
 - `editor.formatOnSave` with Prettier as default formatter
 - `editor.codeActionsOnSave` enabled to allow ESLint and Stylelint auto-fix on save
-- A `pre-commit` Husky hook that runs `lint-staged` to auto-format and lint staged files
+- No pre-commit hooks are configured; run `npm run lint` and `npm run format:prettier` before committing
 
 Recommended extensions (install via the VS Code Extensions pane or `code --install-extension`):
 
@@ -90,7 +90,7 @@ npm run akvj           # Test in browser
 
 ### 4. Commit
 
-Pre-commit hooks will automatically run ESLint and Prettier on staged files.
+No pre-commit hooks are configured; run `npm run lint` and `npm run format:prettier` before committing.
 
 ```bash
 git add .

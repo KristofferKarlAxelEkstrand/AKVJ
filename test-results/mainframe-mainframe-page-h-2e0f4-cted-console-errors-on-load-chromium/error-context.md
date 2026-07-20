@@ -7,7 +7,7 @@
 # Test info
 
 - Name: mainframe.spec.js >> mainframe page has no unexpected console errors on load
-- Location: e2e/mainframe.spec.js:163:1
+- Location: e2e/mainframe.spec.js:212:1
 
 # Error details
 

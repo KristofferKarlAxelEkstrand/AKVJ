@@ -75,9 +75,7 @@ class StagingPreview extends HTMLElement {
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
 		this.#scaleMode = resolveScaleMode(scaleMode);
 		this.#placement = resolvePlacement(placement);
-		this.#bakeConfigs = (files || []).map((_, index) =>
-			resolveFrameBakeConfig(Array.isArray(bakeConfigs) ? bakeConfigs[index] : undefined, this.#targetWidth, this.#targetHeight)
-		);
+		this.#bakeConfigs = (files || []).map((_, index) => resolveFrameBakeConfig(Array.isArray(bakeConfigs) ? bakeConfigs[index] : undefined, this.#targetWidth, this.#targetHeight));
 		this.#playbackSpeed = 1;
 		this.#shuffleState = null;
 		this.#pingpongState = null;
@@ -237,17 +235,7 @@ class StagingPreview extends HTMLElement {
 			const rect = computeFrameDrawRect(this.#targetWidth, this.#targetHeight, this.#canvas.width, this.#canvas.height, this.#scaleMode);
 			const placeX = this.#scaleMode === 'stretch' ? 0 : this.#placement.x;
 			const placeY = this.#scaleMode === 'stretch' ? 0 : this.#placement.y;
-			this.#ctx.drawImage(
-				cell,
-				rect.sx,
-				rect.sy,
-				rect.sWidth,
-				rect.sHeight,
-				Math.floor(rect.dx + placeX),
-				Math.floor(rect.dy + placeY),
-				rect.dWidth,
-				rect.dHeight
-			);
+			this.#ctx.drawImage(cell, rect.sx, rect.sy, rect.sWidth, rect.sHeight, Math.floor(rect.dx + placeX), Math.floor(rect.dy + placeY), rect.dWidth, rect.dHeight);
 		}
 
 		this.#frameLabel.textContent = `Frame ${this.#currentFrame + 1} / ${this.#stagedImages.length}`;
@@ -280,17 +268,7 @@ class StagingPreview extends HTMLElement {
 		const rect = computeFrameDrawRect(srcW, srcH, cell.width, cell.height, mode);
 		const placeX = mode === 'stretch' ? 0 : bake.placement.x;
 		const placeY = mode === 'stretch' ? 0 : bake.placement.y;
-		cellCtx.drawImage(
-			img,
-			rect.sx,
-			rect.sy,
-			rect.sWidth,
-			rect.sHeight,
-			Math.floor(rect.dx + placeX),
-			Math.floor(rect.dy + placeY),
-			rect.dWidth,
-			rect.dHeight
-		);
+		cellCtx.drawImage(img, rect.sx, rect.sy, rect.sWidth, rect.sHeight, Math.floor(rect.dx + placeX), Math.floor(rect.dy + placeY), rect.dWidth, rect.dHeight);
 	}
 
 	/**
@@ -369,7 +347,7 @@ class StagingPreview extends HTMLElement {
 	}
 
 	#getFrameInterval() {
-		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? (1000 / DEFAULT_FALLBACK_FPS);
+		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? 1000 / DEFAULT_FALLBACK_FPS;
 		return durationMs / this.#playbackSpeed;
 	}
 

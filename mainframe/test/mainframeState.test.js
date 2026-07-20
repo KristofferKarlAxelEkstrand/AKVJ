@@ -1,15 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import {
-	createMainframeState,
-	EVENT_CLIPS_CHANGED,
-	EVENT_MAPPINGS_CHANGED,
-	EVENT_CHANNEL_CHANGED,
-	EVENT_SEARCH_CHANGED,
-	EVENT_ROLE_FILTER_CHANGED,
-	EVENT_SORT_MODE_CHANGED,
-	EVENT_PROJECTS_CHANGED,
-	EVENT_ACTIVE_PROJECT_CHANGED
-} from '../src/js/mainframeState.js';
+import { createMainframeState, EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from '../src/js/mainframeState.js';
 
 describe('MainframeState', () => {
 	/** @type {import('../src/js/mainframeState.js').MainframeState} */

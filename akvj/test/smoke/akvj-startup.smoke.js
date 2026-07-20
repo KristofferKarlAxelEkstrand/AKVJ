@@ -37,23 +37,27 @@ describe('AKVJ server startup', () => {
 		}
 	});
 
-	it('responds with HTTP 200 within 10 seconds', async () => {
-		const deadline = Date.now() + TIMEOUT_MS;
+	it(
+		'responds with HTTP 200 within 10 seconds',
+		async () => {
+			const deadline = Date.now() + TIMEOUT_MS;
 
-		const akvjProc = spawn('npm', ['run', 'akvj'], {
-			cwd: REPO_ROOT,
-			stdio: ['ignore', 'pipe', 'pipe'],
-			detached: true
-		});
-		processes.push(akvjProc);
+			const akvjProc = spawn('npm', ['run', 'akvj'], {
+				cwd: REPO_ROOT,
+				stdio: ['ignore', 'pipe', 'pipe'],
+				detached: true
+			});
+			processes.push(akvjProc);
 
-		akvjProc.stdout?.on('data', chunk => process.stdout.write(`[akvj] ${chunk}`));
-		akvjProc.stderr?.on('data', chunk => process.stderr.write(`[akvj] ${chunk}`));
+			akvjProc.stdout?.on('data', chunk => process.stdout.write(`[akvj] ${chunk}`));
+			akvjProc.stderr?.on('data', chunk => process.stderr.write(`[akvj] ${chunk}`));
 
-		const ok = await pollUrl(AKVJ_URL, deadline, {
-			pollIntervalMs: POLL_INTERVAL_MS,
-			fetchTimeoutMs: FETCH_TIMEOUT_MS
-		});
-		expect(ok, `AKVJ dev server did not respond with HTTP 200 at ${AKVJ_URL} within ${TIMEOUT_MS}ms`).toBe(true);
-	}, TIMEOUT_MS + 5000);
+			const ok = await pollUrl(AKVJ_URL, deadline, {
+				pollIntervalMs: POLL_INTERVAL_MS,
+				fetchTimeoutMs: FETCH_TIMEOUT_MS
+			});
+			expect(ok, `AKVJ dev server did not respond with HTTP 200 at ${AKVJ_URL} within ${TIMEOUT_MS}ms`).toBe(true);
+		},
+		TIMEOUT_MS + 5000
+	);
 });

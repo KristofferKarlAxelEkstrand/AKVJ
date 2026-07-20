@@ -1,6 +1,6 @@
 /**
- * ClipLoader - Loads clip assets via key-map.json + flat clips.json catalog,
- * then builds the nested {channel: {note: {velocity: Clip}}} tree used by LayerGroup.
+ * ClipLoader - Loads clip assets via per-project key-map.json + clips.json catalog,
+ * then builds the nested {channel: {note: {velocityThreshold: Clip}}} tree used by LayerGroup.
  * Project resolution is delegated to ProjectCatalog.
  */
 import Clip from './Clip.js';
@@ -33,7 +33,7 @@ class ClipLoader {
 		if (!filename || typeof filename !== 'string') {
 			return '';
 		}
-		
+
 		// Reject null bytes and other control characters
 		for (let i = 0; i < filename.length; i++) {
 			const charCode = filename.charCodeAt(i);
@@ -42,31 +42,31 @@ class ClipLoader {
 				return '';
 			}
 		}
-		
+
 		// Reject excessively long filenames (DoS protection)
 		if (filename.length > 255) {
 			console.warn('ClipLoader: invalid file name (exceeds maximum length)', filename);
 			return '';
 		}
-		
+
 		// Reject leading/trailing dots and spaces
 		if (/^[.\s]|[.\s]$/.test(filename)) {
 			console.warn('ClipLoader: invalid file name (has leading/trailing dots or spaces)', filename);
 			return '';
 		}
-		
+
 		// Reject consecutive dots (path traversal attempt)
 		if (/\.\./.test(filename)) {
 			console.warn('ClipLoader: invalid file name (contains consecutive dots)', filename);
 			return '';
 		}
-		
+
 		// Reject path separators
 		if (/[/\\]/.test(filename)) {
 			console.warn('ClipLoader: invalid file name (contains path separators)', filename);
 			return '';
 		}
-		
+
 		const filenameMatch = filename.match(/^([a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?\.(png|jpg|jpeg|gif))$/i);
 		if (!filenameMatch) {
 			console.warn('ClipLoader: invalid file name (must be alphanumeric with .png/.jpg/.jpeg/.gif extension)', filename);
@@ -131,18 +131,18 @@ class ClipLoader {
 	#validateImageDimensions(image) {
 		const { maxImageWidth, maxImageHeight, maxTotalPixels } = settings.performance;
 		const { width, height } = image;
-		
+
 		if (width > maxImageWidth || height > maxImageHeight) {
 			console.warn(`ClipLoader: image dimensions ${width}x${height} exceed maximum allowed ${maxImageWidth}x${maxImageHeight}`);
 			return false;
 		}
-		
+
 		const totalPixels = width * height;
 		if (totalPixels > maxTotalPixels) {
 			console.warn(`ClipLoader: image total pixels ${totalPixels} exceed maximum allowed ${maxTotalPixels}`);
 			return false;
 		}
-		
+
 		return true;
 	}
 
@@ -159,12 +159,14 @@ class ClipLoader {
 				framesPerRow: normalized.framesPerRow,
 				playback: normalized.playback,
 				frameRatesForFrames: normalized.frameRatesForFrames ?? undefined,
+				frameDurationsMs: normalized.frameDurationsMs ?? undefined,
 				syncBeats: normalized.syncBeats,
 				retrigger: normalized.retrigger,
 				bitDepth: normalized.bitDepth,
 				triggerType: normalized.triggerType,
 				triggerGroup: normalized.triggerGroup,
 				scaleMode: normalized.scaleMode,
+				scaling: normalized.scaling,
 				placement: normalized.placement
 			});
 		} catch (error) {
@@ -286,16 +288,16 @@ class ClipLoader {
 		return this.#projectCatalog.buildProjectClipsJsonUrl(projectId);
 	}
 
-	// ── Clip setup ──
+	// ── Clip loading ──
 
 	/**
-	 * Set up all clips from key map + flat catalog URLs.
+	 * Load all clips from key map + flat catalog URLs.
 	 * Uses the active project's clips.json + key-map when available.
 	 * @param {string} [clipsJsonUrl] - Flat catalog URL (defaults to settings / active project)
 	 * @param {string} [keyMapJsonUrl] - Key map URL (defaults to settings, overridden by active project)
-	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocity
+	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocityThreshold
 	 */
-	async setupClips(clipsJsonUrl = settings.performance.clipsJsonUrl, keyMapJsonUrl = settings.performance.keyMapJsonUrl) {
+	async loadClips(clipsJsonUrl = settings.performance.clipsJsonUrl, keyMapJsonUrl = settings.performance.keyMapJsonUrl) {
 		const activeProjectId = await this.fetchActiveProjectId();
 		this.#projectCatalog.setActiveProjectId(activeProjectId ?? 'default');
 		const effectiveKeyMapUrl = activeProjectId ? this.buildProjectKeyMapUrl(activeProjectId) : keyMapJsonUrl;
@@ -304,12 +306,12 @@ class ClipLoader {
 	}
 
 	/**
-	 * Set up clips from a specific project's key-map and clips catalog.
+	 * Load clips from a specific project's key-map and clips catalog.
 	 * Used for live project switching via MIDI.
 	 * @param {string} projectId - Project ID to load
-	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocity
+	 * @returns {Promise<Object>} Nested clips object keyed by code channel/note/velocityThreshold
 	 */
-	async setupClipsFromProject(projectId) {
+	async loadClipsFromProject(projectId) {
 		this.#projectCatalog.setActiveProjectId(projectId);
 		const keyMapUrl = this.buildProjectKeyMapUrl(projectId);
 		const catalogUrl = this.buildProjectClipsJsonUrl(projectId);
@@ -347,7 +349,7 @@ class ClipLoader {
 	 * Supports two mapping value formats:
 	 * - String: `"clipId"` (backward compatible)
 	 * - Object: `{ clipId, triggerType?, triggerGroup?, sync?, syncLength?, syncBeats?, beatsPerBar? }`
-	 * @param {Object} keyMap - Nested {channel: {note: {velocity: clipId|mappingObject}}}
+	 * @param {Object} keyMap - Nested {channel: {note: {velocityThreshold: clipId|mappingObject}}}
 	 * @param {Object} clipsCatalog - Flat clip metadata catalog
 	 * @returns {Function[]} Array of async load functions
 	 */
@@ -355,14 +357,14 @@ class ClipLoader {
 		const loadTasks = [];
 		for (const [channel, notes] of Object.entries(keyMap)) {
 			for (const [note, velocities] of Object.entries(notes)) {
-				for (const [velocity, mappingValue] of Object.entries(velocities)) {
+				for (const [velocityThreshold, mappingValue] of Object.entries(velocities)) {
 					const { clipId, overrides } = this.#parseMappingValue(mappingValue);
 					const clipMetadata = clipsCatalog[clipId];
 					if (!clipMetadata) {
 						console.warn('ClipLoader: key-map references unknown clipId', clipId);
 						continue;
 					}
-					loadTasks.push(() => this.#loadMappedClip(channel, note, velocity, clipId, clipMetadata, overrides));
+					loadTasks.push(() => this.#loadMappedClip(channel, note, velocityThreshold, clipId, clipMetadata, overrides));
 				}
 			}
 		}
@@ -412,14 +414,14 @@ class ClipLoader {
 		const clips = {};
 		let clipCount = 0;
 		const maxActiveClips = settings.performance?.maxActiveClips ?? 512;
-		
+
 		for (const loadResult of loadResults) {
 			if (loadResult) {
 				if (clipCount >= maxActiveClips) {
 					console.warn(`ClipLoader: reached maximum active clip limit (${maxActiveClips}), skipping remaining clips`);
 					break;
 				}
-				
+
 				const { channel, note, velocityThreshold, clip } = loadResult;
 				clips[channel] ??= {};
 				clips[channel][note] ??= {};
@@ -427,19 +429,19 @@ class ClipLoader {
 				clipCount++;
 			}
 		}
-		
+
 		if (clipCount >= maxActiveClips) {
 			console.warn(`ClipLoader: loaded ${clipCount} clips (at maximum limit)`);
 		}
-		
+
 		return clips;
 	}
 
 	/**
-	 * Destroy loaded image resources from clips object.
+	 * Destroy loaded clips in an external clips object.
 	 * @param {Object} clips
 	 */
-	destroy(clips) {
+	destroyClips(clips) {
 		if (!clips) {
 			return;
 		}
