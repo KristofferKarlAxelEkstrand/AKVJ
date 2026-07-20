@@ -1,5 +1,7 @@
 # The Nitpicker — Findings Log
 
+### 2026-07-20 14:47 — Woke on [PROMPT-UPDATED]-aesthetics-scaling-lock (left in slack/all). Preview already nearest-locked; FEATURE covers ingest. Filed [NIT]-preview-nearest-lock-docs (StagingPreview/PreviewClip JSDoc + clip-format scaling caveat) and asked Overseer about clip-format. Next: akvj/src/js/utils/ or validate/.
+
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -132,32 +134,50 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-19 | frameTiming.js | bare `1000` ms-per-second → `MS_PER_SECOND` (unit honesty) | [NIT]-mainframe-shared-unit-honesty-sweep-2026-07-19.md [2026, 07, 19, 1000]
 - 2026-07-19 | frameTiming.js | JSDoc `[fallbackFps=12]` → `[fallbackFps=DEFAULT_FALLBACK_FPS]` (stale default) | [NIT]-mainframe-shared-unit-honesty-sweep-2026-07-19.md [2026, 07, 19, 12]
 - 2026-07-19 | `e2e/` + root config (`akvj.spec.js`, `mainframe.spec.js`, `playwright.config.js`, `eslint.config.js`, `knip.json`, `package.json`) | Filed 2 nits in [NIT]-e2e-and-roo… [2026, 07, 19]
+- 2026-07-19 | mainframe.spec.js | bare `15000` timeout → `E2E_TIMEOUT_MS` (magic number) | [NIT]-e2e-and-root-config-magic-numbers-sweep-2026-07-19.md [2026, 07, 19]
+- 2026-07-19 | playwright.config.js | bare `30000` webServer timeout → `WEB_SERVER_TIMEOUT_MS` (magic number) | [NIT]-e2e-and-root-config-magic-numbers-sweep-2026-07-19.md [2026, 07, 19]
+- 2026-07-19 | `monorepo-scripts/` (`check-line-endings.js`, `check-utf8.js`, `sort-package-json.js`, `lib/gitTrackedTextFiles.js`, `lib/report.js`, tests, `vitest.config.js`) | No n… [2026, 07, 19]
+- 2026-07-20 | `specs/docs` re-check (`code-standards.md`, `clip-schema.md`, `collaboration-protocol.md`, `README.md`) | Filed 5 nits in [NIT]-specs-docs-readme-stale-sweep-2026-07-2… [2026, 07, 20, 14]
+- 2026-07-20 | `mainframe/src/js/` (focused on editor/preview/piano UI) | Filed 7 nits in [NIT]-mainframe-js-magic-numbers-sweep-2026-07-20.md (bare `1000` default frame duration in … [2026, 07, 20]
+- Area: `projects/default/README.md, akvj/vite.config.js`
+- Refs: 329
+- Area: `akvj/src/js/ui/, akvj/src/js/utils/`
+- Refs: DebugOverlay.js:128,133; velocitySelection.js:14,21; UserMessages.js:112,134,158
+- Area: `akvj/src/js/visuals/`
+- Refs: 18,51,62,70,92,174,193,324,350,10,24,62,105,117,124,125,136,141,146,166,179,180,190,193,195,204,221
+- Area: `akvj/src/js/visuals/effects`
+- Refs: 67,78,104,131,137,42,26
+- Area: `akvj/src/js/visuals/effects/`
+- Area: `mainframe/server/handlers/`
+- Area: `mainframe/src/js/KeyBed.js,syncTiming.js,PianoRoll.js`
+- Refs: 63,46,494,50,730
+- Area: `spec/mapping.md,mainframe/src/js/MappingTable.js`
 
 ## Recent
 
-- 2026-07-19 | mainframe.spec.js | bare `15000` timeout → `E2E_TIMEOUT_MS` (magic number) | [NIT]-e2e-and-root-config-magic-numbers-sweep-2026-07-19.md
+- Refs: 18,61,78,6,61-63
 
-- 2026-07-19 | playwright.config.js | bare `30000` webServer timeout → `WEB_SERVER_TIMEOUT_MS` (magic number) | [NIT]-e2e-and-root-config-magic-numbers-sweep-2026-07-19.md
+- Area: `akvj/src/js/visuals/clipDrawRect.js`
 
-- 2026-07-19 | `monorepo-scripts/` (`check-line-endings.js`, `check-utf8.js`, `sort-package-json.js`, `lib/gitTrackedTextFiles.js`, `lib/report.js`, tests, `vitest.config.js`) | No new nits found. Clean sweep: focused helpers, good constants, and clear tests. Next: rotate to `specs/docs` re-check (`code-standards.md`, `clip-schema.md`, `collaboration-protocol.md`, `README.md`), or any brand-new stable files that appear.
+- Refs: 87,99,205
 
-- 2026-07-20 | `specs/docs` re-check (`code-standards.md`, `clip-schema.md`, `collaboration-protocol.md`, `README.md`) | Filed 5 nits in [NIT]-specs-docs-readme-stale-sweep-2026-07-20.md (`README.md` channel 14 project-selection mapping missing; `clips/{clipId}/` directory tree → `projects/{projectId}/clips/{clipId}/`; `numberOfFrames` → canonical `frames`; boolean `loop` → `playback` enum; pipeline tree points to `akvj/scripts/clips/` instead of `mainframe/scripts/clips/`; velocity variant table oversimplified). `code-standards.md`, `clip-schema.md`, and `collaboration-protocol.md` are clean. Celebrated crisp, human-first spec language. Prior `inbox/`/`outbox/` stale-reference nit in `collaboration-protocol.md` is resolved. Next: rotate to `mainframe/src/js/` (big area, overdue), or any brand-new stable files that appear.
+- Area: `mainframe/server/`
 
-- 2026-07-20 | `mainframe/src/js/` (focused on editor/preview/piano UI) | Filed 7 nits in [NIT]-mainframe-js-magic-numbers-sweep-2026-07-20.md (bare `1000` default frame duration in `ClipEditorController.js`/`ClipFrame.js`/`ClipFrames.js`; bare `240`/`135` default dimensions in `ClipEditorController.js`; imported but unused `DEFAULT_FRAME_WIDTH`/`DEFAULT_FRAME_HEIGHT` in `StagingPreview.js`; duplicated `1000 / DEFAULT_FALLBACK_FPS` fallback in `StagingPreview.js`/`PreviewClip.js`; hard-coded `velocity: 100` in `PianoRoll.js`; bare `360` hue in `PianoKey.js`). Next: rotate to `akvj/src/js/ui/` + `akvj/src/js/utils/` re-check, or any brand-new stable files that appear.
+- Refs: 9,11,79,3,35
 
-- Area: `projects/default/README.md, akvj/vite.config.js`
+- Area: `mainframe/shared/frameFit.js`
 
-- Refs: 329
+- Refs: 7,13,15
 
-- Area: `akvj/src/js/ui/, akvj/src/js/utils/`
+- Area: `e2e/,mainframe/test/MappingTable.test.js`
 
-- Refs: DebugOverlay.js:128,133; velocitySelection.js:14,21; UserMessages.js:112,134,158
+- Refs: 167,41,56,103
 
-- Area: `akvj/src/js/visuals/`
+- Area: `mainframe/src/js/StagingPreview.js,PreviewClip.js,spec/clip-format.md`
 
-- Refs: 18,51,62,70,92,174,193,324,350,10,24,62,105,117,124,125,136,141,146,166,179,180,190,193,195,204,221
+- Refs: 9,11,59
 
-### 2026-07-20 12:57 — Swept akvj/src/js/visuals/effects/ (13 files) and filed [NIT]-akvj-visuals-effects-magic-numbers-2026-07-20.md: 5 nits in grayscaleDisplacementEffect.js, grayscaleBlendEffect.js, colorEffect.js, splitEffect.js (mid-gray 128, chromatic shift 4, bit-depth lookup table, min posterize levels, split note interval). No out-of-lane findings.
+### 2026-07-20 14:48 — Processed [ANSWER]-clip-format-scaling-preview-lock (deleted); clip-format scaling fixed — marked done on preview-nearest NIT. Broadcast left in slack/all. Utils clean. Swept validate/; filed [NIT]-validate-jsdoc-result-shapes (ValidationResult.dir + errors.clipId vs path). Next: mainframe/scripts/clips/lib/optimize or generate.
 
-- Area: `akvj/src/js/visuals/effects`
-- Refs: 67,78,104,131,137,42,26
+- Area: `mainframe/scripts/clips/lib/validate/`
+- Refs: 10,15,34,85,121

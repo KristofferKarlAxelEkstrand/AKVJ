@@ -43,7 +43,7 @@ We recommend using VS Code with the recommended extensions to automatically form
 
 - `editor.formatOnSave` with Prettier as default formatter
 - `editor.codeActionsOnSave` enabled to allow ESLint and Stylelint auto-fix on save
-- No pre-commit hooks are configured; run `npm run lint` and `npm run format:prettier` before committing
+- Tracked git guard rails live in `.githooks/` (armed by `run-team` via `core.hooksPath`); they do not run lint/format — still run `npm run lint` and `npm run format:prettier` before committing
 
 Recommended extensions (install via the VS Code Extensions pane or `code --install-extension`):
 
@@ -90,7 +90,16 @@ npm run akvj           # Test in browser
 
 ### 4. Commit
 
-No pre-commit hooks are configured; run `npm run lint` and `npm run format:prettier` before committing.
+Run `npm run lint` and `npm run format:prettier` before committing (the hooks do not do this).
+
+Tracked hooks in `.githooks/` are armed when you start the agent team (`run-team` sets `core.hooksPath`). They block agent-unsafe commits/pushes — not formatting:
+
+| Hook         | Refuses                                                                                                                                                   |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pre-commit` | `.env` / credential-shaped diffs, supervisor scripts (`run-team`, `await-messages.js`, `control-center`), `.github/workflows/`, binary assets (PNG, etc.) |
+| `pre-push`   | every push                                                                                                                                                |
+
+Override as the human: `AKVJ_HUMAN=1 git commit …` / `AKVJ_HUMAN=1 git push`. Or set hooks manually: `git config core.hooksPath .githooks`.
 
 ```bash
 git add .

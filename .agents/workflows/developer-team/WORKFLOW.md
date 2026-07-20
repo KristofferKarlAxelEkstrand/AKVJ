@@ -63,7 +63,7 @@ Only `display` is required — everything else has a default.
   "display": "Human Readable Name",
   "enabled": true,               // Optional: set false to skip this agent without deleting the config
   "model": "SWE-1.6",            // Optional: model name — must belong to this cli's catalog (control-center `m`); omit to let the CLI choose
-  "cli": "devin",                // Optional: devin | claude | copilot | antigravity (default devin)
+  "cli": "devin",                // Optional: devin | claude | copilot | antigravity | cursor (default devin)
   "permission_mode": "yolo",     // Optional: permission mode passed to the CLI — see table below
   "watch_folders": ["slack/team-lead", "mail/in"],  // Optional: folders that wake this agent (default: slack/<agent>)
   "wait_script": "node .../await-messages.js ...",  // Optional: defaults to await-messages.js for this workflow + agent
@@ -79,12 +79,13 @@ Only `display` is required — everything else has a default.
 
 **Supported CLIs:**
 
-| `cli`         | Binary         | Default `permission_mode`      | Other accepted modes        |
-| ------------- | -------------- | ------------------------------ | --------------------------- |
-| `devin`       | `devin`        | `yolo`                         | `default`                   |
-| `claude`      | `claude`       | `bypassPermissions`            | `default`, `acceptEdits`    |
-| `copilot`     | `copilot`      | `allow-all-tools`              | `allow-all`, `default`      |
-| `antigravity` | `agy`          | `dangerously-skip-permissions` | `accept-edits`, `plan`, `default` |
+| `cli`         | Binary         | Default `permission_mode`      | Other accepted modes                          |
+| ------------- | -------------- | ------------------------------ | --------------------------------------------- |
+| `devin`       | `devin`        | `yolo`                         | `default`                                     |
+| `claude`      | `claude`       | `bypassPermissions`            | `default`, `acceptEdits`                      |
+| `copilot`     | `copilot`      | `allow-all-tools`              | `allow-all`, `default`                        |
+| `antigravity` | `agy`          | `dangerously-skip-permissions` | `accept-edits`, `plan`, `default`             |
+| `cursor`      | `cursor-agent` | `force`                        | `yolo`, `auto-review`, `plan`, `ask`, `default` |
 
 Defaults are the unattended setting for each CLI — agents run with no human at the pane.
 
@@ -92,13 +93,20 @@ Defaults are the unattended setting for each CLI — agents run with no human at
 belongs to another CLI (classic copy-paste: `"cli": "copilot"` with leftover `"model": "SWE-1.7 Max"`)
 fails before tmux starts. Refresh the catalog from control-center (`m`).
 
-`devin` keeps one session open for the whole run. `claude`, `copilot`, and `antigravity` run a single
-prompt and exit, so they run in a shell loop: CLI turn → `wait_script` blocks until new mail → next
-turn. That makes `wait_script` mandatory for those three (it is the only blocking step), and its
-default already covers it. The loop also enforces `ONESHOT_MIN_LOOP_SECONDS` (default 30) so an
-instantly-exiting CLI (e.g. unauthenticated copilot/agy) plus a fast wait cannot hot-spin — without
-that floor, `pane_has_live_cli` keeps seeing the flickering binary and the monitor treats the agent
-as busy until `HUNG_AGENT_SECONDS`.
+`devin`, `antigravity`, and `cursor` keep one session open for the whole run
+(`agy --prompt-interactive` / `cursor-agent` live TUI, plus workspace pins). The composed
+sleep-step tells them to background `await-messages` themselves — do not type into an
+attached pane or you will interrupt the TUI.
+
+`claude` and `copilot` run a single prompt and exit, so they run in a shell loop: CLI turn →
+`wait_script` blocks until new mail → next turn. That makes `wait_script` mandatory for those
+two (it is the only blocking step), and its default already covers it. The loop also enforces
+`ONESHOT_MIN_LOOP_SECONDS` (default 30) so an instantly-exiting CLI (e.g. unauthenticated
+copilot) plus a fast wait cannot hot-spin — without that floor, `pane_has_live_cli` keeps seeing
+the flickering binary and the monitor treats the agent as busy until `HUNG_AGENT_SECONDS`.
+
+Cursor Grok effort/speed is **not** a separate config field — pick the variant via the model ID
+(e.g. `cursor-grok-4.5-high`, `cursor-grok-4.5-high-fast`, `cursor-grok-4.5-low`).
 
 Install missing CLIs from control-center's `i` menu (`npm run control-center`). Auth status and
 login hints appear on the CLI TOOLS panel; re-probe auth with `u`, refresh models with `m`.

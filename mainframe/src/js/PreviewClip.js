@@ -1,12 +1,12 @@
 import '../scss/PreviewClip.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 import { computeFrameDrawRect } from './frameFit.js';
-import { DEFAULT_FALLBACK_FPS } from './frameTiming.js';
+import { DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
 import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2];
-const FALLBACK_MS = 1000 / DEFAULT_FALLBACK_FPS;
+const FALLBACK_MS = DEFAULT_FALLBACK_FRAME_DURATION_MS;
 
 /**
  * PreviewClip — reusable custom element that previews a clip on a canvas,

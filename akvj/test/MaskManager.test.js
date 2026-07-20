@@ -5,6 +5,7 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import MaskManager from '../src/js/visuals/MaskManager.js';
 import settings from '../src/js/core/settings.js';
+import withSettings from './utils/withSettings.js';
 
 function createMockMaskClip(bitDepth = 1) {
 	return {
@@ -178,6 +179,20 @@ describe('MaskManager', () => {
 
 			mm.setScrubPosition(0.5);
 			expect(clip.setScrubPosition).not.toHaveBeenCalled();
+		});
+	});
+
+	test('constructor settings injection lets withSettings override mixer channel', () => {
+		withSettings({ channelMapping: { mixer: 99 } }, patched => {
+			const local = new MaskManager({ settings: patched });
+			const clip = createMockMaskClip(2);
+			local.setClips({ 99: { 60: { 0: clip } } });
+
+			expect(local.noteOn(99, 60, 127)).toBe(true);
+			expect(local.getCurrentMask()).toBe(clip);
+			expect(local.getBitDepth()).toBe(2);
+			// Default mixer channel (4) must not activate when constructor used channel 99
+			expect(local.noteOn(4, 60, 127)).toBe(false);
 		});
 	});
 });

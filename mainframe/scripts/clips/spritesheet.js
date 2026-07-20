@@ -19,6 +19,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { writeJsonAtomic } from '../../server/writeJsonAtomic.js';
 import { renderSpriteSheet, DEFAULT_FRAME_RATE } from './lib/spritesheet-core.js';
 
 /**
@@ -125,7 +126,7 @@ export async function writeMetaFile(outputDir, frameCount, framesPerRow, frameRa
 		retrigger: true,
 		frameRatesForFrames: { 0: frameRate }
 	};
-	await fs.writeFile(path.join(outputDir, 'meta.json'), JSON.stringify(meta, null, '\t'));
+	await writeJsonAtomic(path.join(outputDir, 'meta.json'), meta);
 	console.log(`\nCreated:`);
 	console.log(`  ${path.join(outputDir, 'sprite.png')}`);
 	console.log(`  ${path.join(outputDir, 'meta.json')}`);

@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLegacyFlatClipsDir, resolveProjectsDir, resolveProjectsIndexPath, DEFAULT_PROJECT_ID, projectDir, projectClipsDir, projectRawAssetsRoot, projectKeyMapPath, isValidClipId, FLAT_CLIPS_MIGRATION_MARKER } from './paths.js';
+import { writeJsonAtomic } from './writeJsonAtomic.js';
 
 const LEGACY_DOC_NAMES = ['LICENSE-ASSETS.md', 'README.md'];
 
@@ -53,7 +54,7 @@ export async function migrateFlatClipsToDefaultProject() {
 	try {
 		await fs.access(resolveProjectsIndexPath());
 	} catch {
-		await fs.writeFile(resolveProjectsIndexPath(), `${JSON.stringify([{ id: DEFAULT_PROJECT_ID, name: 'Default' }], null, '\t')}\n`);
+		await writeJsonAtomic(resolveProjectsIndexPath(), [{ id: DEFAULT_PROJECT_ID, name: 'Default' }]);
 	}
 
 	const defaultClips = projectClipsDir(DEFAULT_PROJECT_ID);
@@ -68,7 +69,7 @@ export async function migrateFlatClipsToDefaultProject() {
 		try {
 			await fs.copyFile(legacyKeyMap, projectKeyMapPath(DEFAULT_PROJECT_ID));
 		} catch {
-			await fs.writeFile(projectKeyMapPath(DEFAULT_PROJECT_ID), `${JSON.stringify({}, null, '\t')}\n`);
+			await writeJsonAtomic(projectKeyMapPath(DEFAULT_PROJECT_ID), {});
 		}
 	}
 

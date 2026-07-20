@@ -133,7 +133,7 @@ describe('KeyBed', () => {
 		expect(keys[60].velocityBands[2]).toMatchObject({ velocity: 100, clipId: 'hardest' });
 	});
 
-	test('setMappedKeys in select mode (no velocity bands, first clipId only)', () => {
+	test('setMappedKeys in select mode builds the same velocity bands as filter', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 
@@ -143,14 +143,18 @@ describe('KeyBed', () => {
 		];
 
 		keyBed.setMappedKeys(channelMappings, 'select');
+		const selectBands = keyBed.keys[60].velocityBands;
 
-		const keys = keyBed.keys;
-		expect(keys[60].mapped).toBe(true);
-		expect(keys[60].clipId).toBe('soft');
-		expect(keys[60].velocityBands).toEqual([]);
+		keyBed.setMappedKeys(channelMappings, 'filter');
+		const filterBands = keyBed.keys[60].velocityBands;
+
+		expect(selectBands).toEqual(filterBands);
+		expect(selectBands).toHaveLength(2);
+		expect(keyBed.keys[60].mapped).toBe(true);
+		expect(keyBed.keys[60].clipId).toBe('soft');
 	});
 
-	test('setMappedKeys in play mode (same as select mode)', () => {
+	test('setMappedKeys in play mode clears velocity bands (first clipId only)', () => {
 		const keyBed = new KeyBed();
 		document.body.append(keyBed);
 

@@ -1,206 +1,25 @@
 # AKVJ Project Specification
 
-This document describes how AKVJ should work. AI agents should read this to understand the intended behavior when implementing features.
+This file is an **entry point**, not the product truth. Detailed behaviour lives elsewhere so it does not drift out of sync with the code.
 
----
+## Where to read
 
-## Application Purpose
+| Need                                                                                        | Source                                                                                      |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| How code is written (vanilla JS, MIDI channel table, clip `meta.json` fields, commands)     | [`AGENTS.md`](AGENTS.md)                                                                    |
+| How the product works today (clips, timing/sync, mapping, aesthetics, akvj/mainframe split) | [`.agents/workflows/developer-team/spec/`](.agents/workflows/developer-team/spec/README.md) |
+| Contributing / git guard rails                                                              | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                        |
 
-AKVJ is a live performance visual tool for musicians and VJs. It displays animated visuals in response to MIDI input, creating a real-time visual experience synchronized with music.
+Only specs marked `status: approved` are binding. Draft specs are informative context.
 
----
+## One-sentence product map
 
-## Core Behavior
+- **`akvj/`** — live 240×135 / 60fps VJ engine; MIDI in → canvas out; essentially no UI (fullscreen via Enter, Space, or double-click).
+- **`mainframe/`** — backoffice for clip authoring, mapping, and projects.
+- **Bridge** — shared on-disk projects only (`projects/{projectId}/clips/`, `key-map.json`, `projects/index.json`, `active-project.json`). The pipeline copies into `akvj/src/public/` (generated; do not hand-edit). No shared JS imports between the two packages.
 
-### MIDI Input → Visual Output
+## Do not use this file for
 
-1. **Note On**: When a MIDI note is pressed, immediately display the corresponding clip
-2. **Note Off**: When a MIDI note is released, stop the clip (behavior depends on clip settings)
-3. **Velocity**: Higher velocity may select a different clip variant or intensity
-
-### Layer Group System
-
-- **16 channels** mapped to layer groups (shown as DAW channels 1-16; the build pipeline converts source folder names from 1-16 to code channels 0-15):
-    - Channels 1-4: Layer Group A (primary clip deck)
-    - Channel 5: Mixer (B&W bitmask for Layer Group A and Layer Group B crossfading)
-    - Channels 6-9: Layer Group B (secondary clip deck)
-    - Channel 10: Mixed output effects (applied to mixed Layer Group A and Layer Group B output)
-    - Channels 11-12: Layer Group C (overlay layer)
-    - Channel 13: Global effects (applied to entire output)
-    - Channel 14: Project selection (note → project switch, latched)
-    - Channels 15-16: Reserved
-- Layer groups composite in order: Layer Group A + Layer Group B mixed → Mixed output effects → Layer Group C → Global effects
-- Multiple notes can be active simultaneously on different channels
-
-### Clip Playback
-
-- Clips are sprite-based (PNG sheets)
-- Each clip can have custom frame rates per frame
-- Clips can loop or play once
-- Retrigger behavior is configurable per clip
-- **BPM Sync**: Clips can sync to tempo using `frameDurationBeats`
-    - Uses MIDI clock pulses (24 PPQN) when available (configurable via `settings.midi.ppqn`)
-    - Falls back to time-based BPM calculation
-
-### Effects System
-
-- Effects are triggered via channels 10 (mixed output effects) and 13 (global effects)
-- Note ranges select effect type: split, mirror, offset, color, glitch, strobe
-- Velocity controls effect intensity
-- Effects are NOT latched (Note Off disables immediately)
-
-### Mask/Crossfade System
-
-- Channel 5 controls the Layer Group A and Layer Group B crossfade mask
-- B&W clips act as crossfade masks between Layer Group A and Layer Group B
-- `bitDepth` controls blend levels (1=hard cut, 8=smooth gradient)
-- Masks ARE latched (stay active until new mask triggered)
-
----
-
-## Visual Design
-
-### Canvas
-
-- Resolution: 240x135 pixels (16:9 aspect ratio)
-- Pixel-perfect rendering (no anti-aliasing)
-- Black background by default
-- Scales to fit viewport while maintaining aspect ratio
-
-### Aesthetic
-
-- Pixel art style
-- Sharp edges, no smoothing
-- High contrast visuals work best for live performance
-
----
-
-## Performance Requirements
-
-### Targets
-
-- **60fps** at all times
-- **<20ms** MIDI-to-visual latency
-- Smooth playback with multiple simultaneous clips
-
-### Constraints
-
-- No heavy computations in the render loop
-- Preload all clip assets
-- Efficient memory usage (clean up unused resources)
-
----
-
-## Future Features
-
-Use this section to describe features you want to add. AI can reference this when implementing.
-
-### Planned
-
-- [ ] Song/scene selection within a project via dedicated MIDI channel (two-tier: Project = show, Song = scene)
-
-### Projects
-
-A **Project** is a named gig/show that owns its own clip set (including bitmasks), key-map, and optional settings. Creating a project deep-copies clips from `default` (or another `copyFrom` project) into an editable fork.
-
-#### Project Structure
-
-```
-projects/
-  index.json              # [{ "id": "default", "name": "Default" }, ...]
-  {projectId}/
-    clips/{clipId}/
-      meta.json
-      sprite.png
-    .raw-assets/{clipId}/…  # Editable source frames (Mainframe)
-    key-map.json            # MIDI-to-clip mapping for this project
-    settings.json           # Project-level settings overrides (optional)
-active-project.json       # { "project": "default" }
-```
-
-Public (built) mirror under `akvj/src/public/`:
-
-```
-projects/{projectId}/clips/… + clips.json + key-map.json
-projects/index.json
-active-project.json
-```
-
-#### MIDI Project Selection
-
-- **Channel**: DAW channel 14 (code channel 13) — dedicated project selection channel
-- **Note → Project**: Note number maps to project index in `projects/index.json` (Note 0 = first project, Note 1 = second, etc.)
-- **Behavior**: Latched — project stays active until a different project note is pressed
-- **Velocity**: Ignored (any velocity > 0 triggers switch)
-
-#### Live Switching Behavior
-
-1. MIDI project note received on DAW channel 14
-2. **Freeze** current frame (render loop keeps drawing last frame without updating clips)
-3. Show `<akvj-loading-overlay>` — simple centered loading bar
-4. **Background load** new project's clips (non-blocking, render loop continues)
-5. Once loaded: destroy old clips, set new clips, hide overlay, resume rendering
-6. If load fails: hide overlay, resume with old clips, log error
-
-#### Settings Split
-
-**General (global, not per-project):**
-
-- `canvas` (width, height)
-- `midi` (commands, system real-time, ppqn)
-- `bpm` (default, min, max, clock timeout, CC mapping)
-- `channelMapping` (channel → layer group assignments)
-- `scrub` (CC assignments)
-- `effectRanges` (note range boundaries)
-- `rendering` (imageSmoothing, backgroundColor)
-
-**Project-level (overridable per-project via `settings.json`):**
-
-- `effectParams` (glitch intensity, posterize levels, split count, etc.)
-- Future: per-project effect tuning, custom background color
-
----
-
-## User Experience
-
-### Target Users
-
-- Musicians performing live
-- VJs at events
-- Visual artists
-
-### Usage Context
-
-- Live performance (reliability is critical)
-- Dark environments (high contrast visuals)
-- MIDI controller input (keyboard, pad controller, DAW)
-
----
-
-## Technical Decisions
-
-Document important decisions here so AI understands the reasoning.
-
-### Why Vanilla JavaScript?
-
-- Minimal dependencies = fewer things to break
-- Direct control over performance
-- No framework overhead in render loop
-
-### Why Custom Elements?
-
-- Native browser API
-- Encapsulates the component
-- Works without build step if needed
-
-### Why 240x135 Resolution?
-
-- 16:9 aspect ratio
-- Pixel art aesthetic
-- Scales well to any display size
-
----
-
-## Notes
-
-Add any additional notes, reminders, or context here that would help AI understand your vision.
+- Clip timing or BPM sync field names — see `AGENTS.md` and `spec/clip-timing-sync.md` (`sync` / `syncLength` / `syncBeats`; there is no `frameDurationBeats`).
+- Full MIDI channel or `meta.json` tables — see `AGENTS.md`.
+- Open product questions (e.g. settings global vs per-project) — tracked in `spec/goal.md`; the human owns those decisions.

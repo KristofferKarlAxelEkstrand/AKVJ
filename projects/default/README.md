@@ -9,7 +9,7 @@ clips/
   {clipId}/             # e.g. neon-skull or c1-n0-v0
     sprite.png          # Sprite sheet with all frames
     meta.json           # Clip metadata
-  key-map.json      # MIDI → clipId mappings (DAW channels 1–16)
+key-map.json        # MIDI → clipId mappings (DAW channels 1–16)
 ```
 
 **Example mapping entry:**

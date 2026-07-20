@@ -6,55 +6,53 @@
 
 All 10 agents up.
 
-## 📋 Backlog (15)
-- **328-qa-reviewer-project-review.md**: Task 328: QA reviewer project review lane check (Priority: medium)
-- **334-mainframe-js-magic-numbers.md**: Task 334: Mainframe JS magic-number sweep (Priority: medium)
-- **338-akvj-compositor-layer-group-b-intent.md**: Task 338: AKVJ Compositor Layer Group B rendering intent (Priority: high)
-- **339-akvj-clip-loader-image-cache.md**: Task 339: AKVJ ClipLoader duplicate image load cache (Priority: medium)
-- **340-akvj-settings-injection.md**: Task 340: AKVJ MaskManager/Midi settings injection (Priority: medium)
-- **343-mainframe-atomic-json-writes.md**: Task 343: Mainframe atomic JSON writes (Priority: high)
-- **344-mainframe-oversized-body-413.md**: Task 344: Mainframe oversized body should return 413 (Priority: high)
-- **345-nitpicker-readme-vite-config-nits.md**: Task 345: Fix README and vite config nits (Priority: medium)
-- **346-add-regression-tests-human-review.md**: Task 346: Add regression tests for human review findings (Priority: medium)
-- **347-akvj-overlay-utility-naming-cleanups.md**: Task 347: AKVJ overlay and utility naming cleanups (Priority: medium)
-- **349-akvj-core-helpers-coverage.md**: Task 349: AKVJ core / utility helper coverage (Priority: medium)
-- **353-akvj-visuals-internal-naming.md**: Task 353: AKVJ visuals internal naming cleanup (Priority: medium)
-- **354-workflow-scripts-ops-coverage.md**: Task 354: Add workflow scripts ops-coverage tests (Priority: medium)
-- **355-akvj-visuals-effects-magic-numbers.md**: Task 355: AKVJ visuals effects magic-number naming (Priority: medium)
-- **356-engines-smoke-test-wiring.md**: Task 356: Workspace engines and unreferenced smoke test (Priority: medium)
+## 📋 Backlog (13)
+- **338-akvj-compositor-layer-group-b-intent.md**: Task 338: AKVJ Compositor Layer Group B rendering intent (PARKED) (Priority: high)
+- **359-akvj-visuals-effects-nits.md**: Nit Sweep: visuals/effects magic numbers (Priority: low)
+- **361-generate-mainframe-ui-visual-references.md**: Task 361: Generate missing visual reference screenshots for Mainframe UI (Priority: medium)
+- **362-mainframe-server-handlers-naming-sweep.md**: Task 362: Nitpicker Findings: `mainframe/server/handlers/` (Priority: low)
+- **364-mainframe-keybed-pianoroll-naming.md**: Task 364: KeyBed + PianoRoll naming sweep (Priority: medium)
+- **365-mainframe-scaling-coverage.md**: Task 365: Mainframe `scaling` metadata plumbing coverage (Priority: medium)
+- **366-mainframe-mappingtable-slot-wording.md**: Task 366: MappingTable “slot” → “mapping” wording (Priority: low)
+- **369-akvj-drawScaled-scaleMode-rename.md**: Task 369: Rename `drawScaled` to avoid `scaling` collision (Priority: medium)
+- **370-mainframe-writeJsonAtomic-param-rename.md**: Task 370: Rename `writeJsonAtomic` param `data` → `value` (Priority: low)
+- **374-mainframe-resolveScaleMode-jsdoc-pattern.md**: Task 374: `resolveScaleMode` JSDoc include `pattern` (Priority: low)
+- **377-mainframe-ingest-soft-resize-kernels.md**: Task 377: Soft kernels on clip ingest downscale (Priority: medium)
+- **378-mainframe-preview-nearest-jsdoc.md**: Task 378: Preview nearest-lock JSDoc (PreviewClip / StagingPreview) (Priority: low)
+- **379-mainframe-preview-nearest-lock-tests.md**: Task 379: Assert preview forces `imageSmoothingEnabled = false` (Priority: medium)
 
 ## 🚀 In Progress
 ### akvj-developer
-- **352-akvj-frameDurationsMs-priority.md**: Task 352: AKVJ `frameDurationsMs` priority and BPM clamp
+- **368-akvj-visual-grayscale-effects.md**: Task 368: Visual suite — grayscaleDisplacement + grayscaleBlend screenshots
 
 **Slack / Active Files:**
-- [TASK]-352-akvj-frameDurationsMs-priority.md
+- [TASK]-368-akvj-visual-grayscale-effects.md
 
 ### mainframe-developer
-- *No tasks assigned in frontmatter*
-
-**Slack / Active Files:**
-- [TASK]-350-mainframe-frameDurationBeats-write-path.md
+- **372-mainframe-state-pianoroll-filters.md**: Task 372: Unit-test `mainframeState.pianorollFilters`
 
 ### utility-developer
-- **348-workflow-scripts-unit-tests.md**: Task 348: Add workflow scripts unit tests
+- **376-fix-agents-status-eqeqeq.md**: Task 376: Fix `agents-status.js` eqeqeq (blocks root lint)
+
+**Slack / Active Files:**
+- [TASK]-376-fix-agents-status-eqeqeq.md
 
 ## 🔍 Pending QA Audit
 - *No tasks pending review*
 
 ## ✅ Done (Recent 15)
-- **350-mainframe-frameDurationBeats-write-path.md**: Task 350: Mainframe still writes rejected `frameDurationBeats`
-- **342-mainframe-put-clip-meta-validation.md**: Task 342: Mainframe PUT /api/clips meta validation
-- **337-akvj-compositor-gc-optimization.md**: Task 337: AKVJ Compositor GC optimization
-- **351-eslint-config-dead-ignores.md**: Task 351: Remove dead ignores from `eslint.config.js`
-- **341-mainframe-delete-clip-prune-mapping.md**: Task 341: Mainframe clip delete must prune mapping slots
-- **335-akvj-legacy-clips-cleanup.md**: Task 335: AKVJ legacy flat-clip path cleanup
-- **326-mainframe-project-review.md**: Task 326: Mainframe project review lane check
-- **336-repo-wide-prettier-cleanup.md**: Task 336: Fix CI prettier drift
-- **331-quartermaster-project-review.md**: Task 331: Quartermaster project review lane check
-- **330-test-marshal-project-review.md**: Task 330: Test Marshal project review lane check
-- **329-nitpicker-project-review.md**: Task 329: Nitpicker project review lane check
-- **333-readme-stale-sweep.md**: Task 333: README.md stale relative to AGENTS.md / clip-schema.md
-- **325-mainframe-server-spritesheet-hook-timeout.md**: Task 325: Mainframe `server.test.js` and `spritesheet.test.js` hook timeouts
-- **322-e2e-and-root-config-magic-numbers.md**: Task 322: E2E + root config magic-number sweep
-- **327-akvj-project-review.md**: Task 327: AKVJ project review lane check
+- **375-mainframe-pianoroll-layer-role-filters.md**: Task 375: PianoRoll `layerGroup` / `role` filter mask tests
+- **367-mainframe-select-filter-alias.md**: Task 367: Align `select`≡`filter` in KeyBed + fix stale tests
+- **373-refresh-project-specification-md.md**: Task 373: Refresh root PROJECT-SPECIFICATION.md
+- **346-add-regression-tests-human-review.md**: Task 346: Add regression tests for human review findings
+- **344-mainframe-oversized-body-413.md**: Task 344: Mainframe oversized body should return 413
+- **328-qa-reviewer-project-review.md**: Task 328: QA reviewer project review lane check
+- **360-fix-lint-clipeditorcontroller.md**: Task 360: Fix lint error in ClipEditorController
+- **343-mainframe-atomic-json-writes.md**: Task 343: Mainframe atomic JSON writes
+- **371-e2e-visual-piano-roll-coverage.md**: Task 371: E2E + visual coverage for piano-roll / key-bed
+- **363-health-monitor-skip-disabled-agents.md**: Task 363: Health monitor must skip disabled agents
+- **357-update-contributing-githooks.md**: Task 357: Update docs for githooks
+- **345-nitpicker-readme-vite-config-nits.md**: Task 345: Fix README and vite config nits
+- **334-mainframe-js-magic-numbers.md**: Task 334: Mainframe JS magic-number sweep
+- **358-akvj-visuals-clipDrawRect-coverage.md**: Add direct unit tests for clipDrawRect.js
+- **355-akvj-visuals-effects-magic-numbers.md**: Task 355: AKVJ visuals effects magic-number naming

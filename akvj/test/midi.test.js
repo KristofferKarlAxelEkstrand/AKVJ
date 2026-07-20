@@ -254,4 +254,44 @@ describe('MIDI', () => {
 		consoleErrorSpy.mockRestore();
 		midi.destroy();
 	});
+
+	test('uses injected appState and settings for message limits', async () => {
+		const env = recreateEnv([{ id: 'inj-1', name: 'Injected MIDI' }]);
+
+		vi.resetModules();
+		const { default: Midi } = await import('../src/js/midi-input/Midi.js');
+		const { default: defaultSettings } = await import('../src/js/core/settings.js');
+
+		const dispatchMIDINoteOn = vi.fn();
+		const fakeAppState = {
+			midiConnected: false,
+			error: vi.fn(),
+			dispatchMIDINoteOn,
+			dispatchMIDINoteOff: vi.fn(),
+			dispatchMIDIControlChange: vi.fn(),
+			dispatchMIDIClock: vi.fn(),
+			dispatchMIDIStart: vi.fn(),
+			dispatchMIDIContinue: vi.fn(),
+			dispatchMIDIStop: vi.fn(),
+			dispatchProjectSelection: vi.fn()
+		};
+		const injectedSettings = {
+			...defaultSettings,
+			midi: { ...defaultSettings.midi, maxMessageLength: 2 },
+			channelMapping: { ...defaultSettings.channelMapping }
+		};
+
+		const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const midi = new Midi({ appState: fakeAppState, settings: injectedSettings });
+		await midi.ready;
+
+		const fakeInput = env.getInputById('inj-1');
+		invokeListeners(fakeInput, 'midimessage', { data: new Uint8Array([0x90, 60, 127]) });
+
+		expect(dispatchMIDINoteOn).not.toHaveBeenCalled();
+		expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('exceeds maximum 2'));
+
+		warnSpy.mockRestore();
+		midi.destroy();
+	});
 });

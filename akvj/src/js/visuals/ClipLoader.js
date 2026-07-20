@@ -178,7 +178,7 @@ class ClipLoader {
 	/**
 	 * Load a single mapped clip into a MIDI slot.
 	 */
-	async #loadMappedClip(dawChannel, note, velocityThreshold, clipId, clipMetadata, overrides = null) {
+	async #loadMappedClip(dawChannel, note, velocityThreshold, clipId, clipMetadata, overrides = null, imageCache = new Map()) {
 		const validation = this.#validateMappingEntry(dawChannel, note, velocityThreshold, clipId, clipMetadata);
 		if (!validation) {
 			return null;
@@ -186,7 +186,12 @@ class ClipLoader {
 		const { safeClipId, imagePath, codeChannel } = validation;
 
 		try {
-			const image = await this.#loadImage(imagePath);
+			let imagePromise = imageCache.get(safeClipId);
+			if (!imagePromise) {
+				imagePromise = this.#loadImage(imagePath);
+				imageCache.set(safeClipId, imagePromise);
+			}
+			const image = await imagePromise;
 			const mergedMetadata = overrides ? { ...clipMetadata, ...overrides } : clipMetadata;
 			const clip = this.#createClip(image, mergedMetadata);
 			if (!clip) {
@@ -196,7 +201,8 @@ class ClipLoader {
 				channel: codeChannel,
 				note: String(note),
 				velocityThreshold: String(velocityThreshold),
-				clip
+				clip,
+				clipId: safeClipId
 			};
 		} catch (error) {
 			console.error(`Error loading clip ${safeClipId} for ${dawChannel}/${note}/${velocityThreshold}:`, error);
@@ -339,7 +345,8 @@ class ClipLoader {
 			throw new Error('clips.json must be a flat object keyed by clipId');
 		}
 
-		const loadTasks = this.#buildLoadTasks(keyMap, clipsCatalog);
+		const imageCache = new Map();
+		const loadTasks = this.#buildLoadTasks(keyMap, clipsCatalog, imageCache);
 		const loadResults = await this.#runBatchedLoads(loadTasks);
 		return this.#buildClipsObject(loadResults);
 	}
@@ -353,18 +360,30 @@ class ClipLoader {
 	 * @param {Object} clipsCatalog - Flat clip metadata catalog
 	 * @returns {Function[]} Array of async load functions
 	 */
-	#buildLoadTasks(keyMap, clipsCatalog) {
+	#buildLoadTasks(keyMap, clipsCatalog, imageCache) {
 		const loadTasks = [];
+		const uniqueClips = new Set();
+		const maxActiveClips = settings.performance?.maxActiveClips ?? 512;
+
 		for (const [channel, notes] of Object.entries(keyMap)) {
 			for (const [note, velocities] of Object.entries(notes)) {
 				for (const [velocityThreshold, mappingValue] of Object.entries(velocities)) {
 					const { clipId, overrides } = this.#parseMappingValue(mappingValue);
+
+					if (!uniqueClips.has(clipId)) {
+						if (uniqueClips.size >= maxActiveClips) {
+							console.warn(`ClipLoader: reached maximum active clip limit (${maxActiveClips}) during task generation, skipping remaining clips`);
+							return loadTasks;
+						}
+						uniqueClips.add(clipId);
+					}
+
 					const clipMetadata = clipsCatalog[clipId];
 					if (!clipMetadata) {
 						console.warn('ClipLoader: key-map references unknown clipId', clipId);
 						continue;
 					}
-					loadTasks.push(() => this.#loadMappedClip(channel, note, velocityThreshold, clipId, clipMetadata, overrides));
+					loadTasks.push(() => this.#loadMappedClip(channel, note, velocityThreshold, clipId, clipMetadata, overrides, imageCache));
 				}
 			}
 		}
@@ -412,26 +431,30 @@ class ClipLoader {
 	 */
 	#buildClipsObject(loadResults) {
 		const clips = {};
-		let clipCount = 0;
+		const uniqueClips = new Set();
 		const maxActiveClips = settings.performance?.maxActiveClips ?? 512;
 
 		for (const loadResult of loadResults) {
 			if (loadResult) {
-				if (clipCount >= maxActiveClips) {
-					console.warn(`ClipLoader: reached maximum active clip limit (${maxActiveClips}), skipping remaining clips`);
-					break;
+				const { channel, note, velocityThreshold, clip, clipId } = loadResult;
+
+				if (!uniqueClips.has(clipId)) {
+					if (uniqueClips.size >= maxActiveClips) {
+						console.warn(`ClipLoader: reached maximum active clip limit (${maxActiveClips}), skipping remaining clips`);
+						clip.destroy?.();
+						break;
+					}
+					uniqueClips.add(clipId);
 				}
 
-				const { channel, note, velocityThreshold, clip } = loadResult;
 				clips[channel] ??= {};
 				clips[channel][note] ??= {};
 				clips[channel][note][velocityThreshold] = clip;
-				clipCount++;
 			}
 		}
 
-		if (clipCount >= maxActiveClips) {
-			console.warn(`ClipLoader: loaded ${clipCount} clips (at maximum limit)`);
+		if (uniqueClips.size >= maxActiveClips) {
+			console.warn(`ClipLoader: loaded ${uniqueClips.size} unique clips (at maximum limit)`);
 		}
 
 		return clips;

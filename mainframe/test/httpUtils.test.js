@@ -26,8 +26,32 @@ describe('readBody', () => {
 
 	test('rejects and destroys the request when body exceeds maxBytes', async () => {
 		const req = createMockRequest([Buffer.alloc(100, 1)]);
-		await expect(readBody(req, 50)).rejects.toThrow(/exceeds 50 bytes/);
+		await expect(readBody(req, 50)).rejects.toMatchObject({
+			message: expect.stringMatching(/exceeds 50 bytes/),
+			statusCode: 413
+		});
 		expect(req.destroy).toHaveBeenCalled();
+	});
+
+	test('writes 413 before destroying when a response is provided', async () => {
+		const req = createMockRequest([Buffer.alloc(100, 1)]);
+		const res = createMockResponse();
+		const order = [];
+		res.writeHead.mockImplementation(function writeHead(status, headers) {
+			order.push('writeHead');
+			this.statusCode = status;
+			this.headersSent = true;
+			Object.assign(this.headers, headers || {});
+		});
+		req.destroy.mockImplementation(() => {
+			order.push('destroy');
+		});
+
+		await expect(readBody(req, 50, res)).rejects.toMatchObject({ statusCode: 413 });
+		expect(res.statusCode).toBe(413);
+		expect(JSON.parse(res.body)).toEqual({ error: 'Payload Too Large' });
+		await vi.waitFor(() => expect(req.destroy).toHaveBeenCalled());
+		expect(order.indexOf('writeHead')).toBeLessThan(order.indexOf('destroy'));
 	});
 
 	test('resolves with an empty Buffer for an empty body', async () => {

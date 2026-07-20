@@ -11,23 +11,25 @@ supersedes: [feature-keybed-for-mapping]
 
 # MIDI Mapping & Piano Roll
 
-`<piano-roll>` is how a set gets mapped: 128 `<piano-key>` children, a channel selector, and four
-modes. It is the visual face of `key-map.json` — the file format itself is in
+`<piano-roll>` is how a set gets mapped: a channel selector, four modes, and a `<key-bed>` of 128
+`<piano-key>` children. It is the visual face of `key-map.json` — the file format itself is in
 [clip-format.md](clip-format.md).
 
-Implementation: `mainframe/src/js/PianoRoll.js`, `PianoKey.js`, `src/scss/PianoRoll.scss`.
+Implementation: `mainframe/src/js/PianoRoll.js`, `KeyBed.js`, `PianoKey.js`,
+`mainframe/src/scss/PianoRoll.scss`, `KeyBed.scss`. DOM tree:
+`<piano-roll>` → toolbar / views + `<key-bed>` → 128 × `<piano-key>`.
 
 ## Modes
 
 | Mode | Behaviour |
 | --- | --- |
-| `edit` | The mapping workflow: drop clips onto keys, drag velocity breakpoints, right-click to remove |
-| `select` | Click a key, the note number is dispatched. Nothing else. |
-| `filter` | Select-like, but the selection drives clip-list filtering |
+| `edit` | The mapping workflow: drop clips onto keys, drag velocity breakpoints, right-click or double-click a region to remove |
+| `select` | Legacy API alias for `filter` — same filter view and controls; kept for consumers that set `mode="select"` |
+| `filter` | Click a key to select its note; filter controls (clip id / trigger / role / layer / populated) dim non-matching regions |
 | `play` | Sticky-toggle keys dispatch `noteon`/`noteoff` for testing mappings |
 
-`edit`, `filter`, and `play` have mode buttons in the UI; `select` is set programmatically by
-consumers that want a bare note picker.
+`edit`, `filter`, and `play` have mode buttons in the UI; `select` is still accepted as an attribute
+value and lights the Filter button, but it is not a separate bare note picker.
 
 The roll is `position: sticky` to the **bottom** of the viewport, so it stays under the cursor as
 a drop target while the clip list scrolls above it. CSS only — no scroll listeners.
@@ -53,12 +55,13 @@ key — roughly 64, not the theoretical 128.
 among existing regions; breakpoints are then redistributed evenly across all N clips
 (`round(128 × i / N)`). The form-based add/update controls remain for precise manual entry.
 
-**Right-click a region** to remove that mapping. The remaining regions redistribute evenly across
-the freed range, the same way a drop does.
+**Right-click or double-click a region** to remove that mapping. The remaining regions redistribute
+evenly across the freed range, the same way a drop does.
 
 ## Events
 
-All events bubble from `PianoKey` through `PianoRoll` to the consumer.
+All events bubble from `PianoKey` through `KeyBed` to `PianoRoll` (and then to the consumer).
+`KeyBed` does not re-dispatch — it is the DOM parent that owns the keys.
 
 | Event | Mode | Detail |
 | --- | --- | --- |
@@ -81,18 +84,30 @@ the public events above.
 
 ## Saving
 
-The mapping table and the roll both write through `PUT /api/mapping`, which validates every entry
-against the project's pipeline-ready clips before writing `key-map.json`. An entry pointing at a
+Edits stay in memory until Save. The Mapping page (`AkvjMainframe`) persists via
+`PUT /api/projects/{projectId}/key-map`, which validates every entry against that project's
+pipeline-ready clips before writing `projects/{projectId}/key-map.json`. An entry pointing at a
 clip that is missing or incomplete is rejected — the whole save fails, not just that row.
+
+Legacy `GET`/`PUT /api/mapping` still exists and operates on the **active** project; the UI does
+not use it for save/load anymore.
 
 ## Not built yet
 
 - **Clip thumbnails** inside velocity regions (colour swatch + id today).
 - **Batch selection** across cells, and undo/redo — see `epics/todo/piano-roll-modes.md`.
-- **Hover-× or drag-out removal** — right-click is the only removal gesture.
+- **Hover-× or drag-out removal** — right-click and double-click are the removal gestures today.
 
 ## Changelog
 
+- 2026-07-20 — Fact-fix after KeyBed landed: documented `KeyBed.js` / `KeyBed.scss` and
+  `<key-bed>` in the DOM tree; event path is PianoKey → KeyBed → PianoRoll (KeyBed does not
+  re-dispatch). `select`≡`filter` alias stands; KeyBed `setMappedKeys` still omits `select` from
+  the velocity-band branch — tracked as task 367.
+- 2026-07-20 — Re-verified against `PianoRoll.js` / `PianoKey.js` / `AkvjMainframe.js` / projects
+  key-map handlers: `select` is a filter alias (not a bare picker); removal is right-click **or**
+  double-click; save path is `PUT /api/projects/{id}/key-map` (legacy `/api/mapping` still on
+  server for active project).
 - 2026-07-20 — Written as current truth from `feature-keybed-for-mapping.md`. Records the shipped
   four-mode set (the proposal had three), the `MIN_REGION_VELOCITY` drop rejection (the proposal
   said never refuse a drop), and the request/public event split.

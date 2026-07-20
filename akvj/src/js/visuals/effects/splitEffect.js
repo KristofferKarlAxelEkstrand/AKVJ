@@ -2,6 +2,9 @@ import { transformCopy } from './pixelUtils.js';
 import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
 import { getEffectVariant } from './effectVariant.js';
 
+/** Notes per split-section step when mapping note-in-range to section count. */
+const NOTES_PER_SPLIT_SECTION = 2;
+
 /**
  * Split effect: divide the image into repeating horizontal or vertical sections.
  */
@@ -23,7 +26,7 @@ export default {
 		const { width, height, scratchBuffer } = effectContext;
 		const { effectVariantThreshold, splitMin, splitMax } = effectContext.effectParams;
 		const { noteInRange, isVariantA } = getEffectVariant(effect.note, effectContext.effectRanges.split, effectVariantThreshold);
-		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / 2) + splitMin));
+		const splits = Math.min(splitMax, Math.max(splitMin, Math.floor(noteInRange / NOTES_PER_SPLIT_SECTION) + splitMin));
 
 		if (isVariantA) {
 			applyHorizontalSplit(pixels, width, height, scratchBuffer, splits);

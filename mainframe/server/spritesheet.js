@@ -5,6 +5,7 @@ import { clipDir, rawAssetsDir, isValidClipId, DEFAULT_PROJECT_ID } from './path
 import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveTargetDimensions, resolveFrameRate, resolvePlayback, resolveFramesPerRow } from '../scripts/clips/lib/spritesheet-core.js';
 import { resolveScaleMode } from '../shared/frameFit.js';
 import { resolvePlacement, DEFAULT_SCALING, SCALING_MODES } from '../shared/clipSchema.js';
+import { writeJsonAtomic } from './writeJsonAtomic.js';
 
 /**
  * Build a horizontal/grid spritesheet from image frame buffers and write clip folder.
@@ -255,7 +256,7 @@ async function writeClipFiles(clipId, clipOptions, sheet, frameCount, framesPerR
 	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
 
 	const meta = buildClipMeta(clipOptions, frameCount, framesPerRow);
-	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(meta, null, '\t')}\n`);
+	await writeJsonAtomic(path.join(dir, 'meta.json'), meta);
 }
 
 /**
@@ -275,7 +276,7 @@ async function overwriteClipFiles(clipId, clipOptions, sheet, frameCount, frames
 	}
 	const newMeta = buildClipMeta(clipOptions, frameCount, framesPerRow);
 	const mergedMeta = syncOptionalMetaFields({ ...existingMeta, ...newMeta }, newMeta, clipOptions);
-	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(mergedMeta, null, '\t')}\n`);
+	await writeJsonAtomic(path.join(dir, 'meta.json'), mergedMeta);
 }
 
 function resolveScaling(scaling) {

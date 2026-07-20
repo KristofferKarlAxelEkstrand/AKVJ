@@ -2,7 +2,7 @@ import '../scss/StagingPreview.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 import { computeFrameDrawRect, resolveScaleMode } from './frameFit.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
-import { DEFAULT_FALLBACK_FPS } from './frameTiming.js';
+import { DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
 import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, resolvePlacement } from './clipSchema.js';
 import { resolveFrameBakeConfig } from './frameBake.js';
 
@@ -21,8 +21,8 @@ class StagingPreview extends HTMLElement {
 	#isPlaying = false;
 	#playbackSpeed = 1;
 	#isScrubbing = false;
-	#targetWidth = 240;
-	#targetHeight = 135;
+	#targetWidth = DEFAULT_FRAME_WIDTH;
+	#targetHeight = DEFAULT_FRAME_HEIGHT;
 	/** @type {number[]} Per-frame hold times in ms (UI timing); empty → fall back to default. */
 	#frameDurationsMs = [];
 	#playbackMode = 'loop';
@@ -69,8 +69,8 @@ class StagingPreview extends HTMLElement {
 	 * @param {object[]} [bakeConfigs] - Per-frame bake composition (session-only)
 	 */
 	async loadFrames(files, targetWidth, targetHeight, frameDurationsMs, playbackMode, scaleMode, placement, bakeConfigs) {
-		this.#targetWidth = targetWidth || 240;
-		this.#targetHeight = targetHeight || 135;
+		this.#targetWidth = targetWidth || DEFAULT_FRAME_WIDTH;
+		this.#targetHeight = targetHeight || DEFAULT_FRAME_HEIGHT;
 		this.#frameDurationsMs = this.#normalizeDurationsMs(frameDurationsMs, files?.length ?? 0);
 		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
 		this.#scaleMode = resolveScaleMode(scaleMode);
@@ -337,7 +337,7 @@ class StagingPreview extends HTMLElement {
 	 * @returns {number[]}
 	 */
 	#normalizeDurationsMs(frameDurationsMs, frameCount) {
-		const fallbackMs = 1000 / DEFAULT_FALLBACK_FPS;
+		const fallbackMs = DEFAULT_FALLBACK_FRAME_DURATION_MS;
 		const normalized = [];
 		for (let i = 0; i < frameCount; i++) {
 			const raw = Array.isArray(frameDurationsMs) ? Number(frameDurationsMs[i]) : NaN;
@@ -347,7 +347,7 @@ class StagingPreview extends HTMLElement {
 	}
 
 	#getFrameInterval() {
-		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? 1000 / DEFAULT_FALLBACK_FPS;
+		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? DEFAULT_FALLBACK_FRAME_DURATION_MS;
 		return durationMs / this.#playbackSpeed;
 	}
 

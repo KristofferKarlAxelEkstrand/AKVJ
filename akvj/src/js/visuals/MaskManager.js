@@ -9,7 +9,7 @@
  * - Each note = different transition type
  * - Velocity = variant/intensity of the transition
  */
-import settings from '../core/settings.js';
+import defaultSettings from '../core/settings.js';
 import { buildVelocityCache, resolveClip } from '../utils/velocitySelection.js';
 
 /**
@@ -29,7 +29,11 @@ class MaskManager {
 	#velocityCache = new Map();
 
 	/** @type {number} */
-	#mixerChannel = settings.channelMapping.mixer;
+	#mixerChannel;
+
+	constructor({ settings = defaultSettings } = {}) {
+		this.#mixerChannel = settings.channelMapping.mixer;
+	}
 
 	/**
 	 * Set the loaded mask clips

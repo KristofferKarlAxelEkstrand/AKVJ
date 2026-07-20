@@ -448,6 +448,34 @@ describe('ClipLoader - project load path', () => {
 		expect(clips[0][60][0]).toBeDefined();
 		expect(loadedSrcs.some(src => src.includes('/projects/live-set/clips/live-clip/sheet.png'))).toBe(true);
 	});
+
+	test('decodes each unique clipId image only once across notes, velocities, and channels', async () => {
+		const catalog = {
+			shared: { png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true },
+			other: { png: 'other.png', frames: 1, framesPerRow: 1, playback: 'loop', frameRatesForFrames: { 0: 60 }, retrigger: true }
+		};
+		// Same clipId on two notes, two velocities, and a second channel — plus one distinct clip.
+		const keyMap = {
+			1: { 60: { 0: 'shared', 64: 'shared' }, 61: { 0: 'shared' } },
+			2: { 60: { 0: 'shared' }, 62: { 0: 'other' } }
+		};
+		const loadedSrcs = [];
+		mockFetchCatalogAndLayout(catalog, keyMap);
+		installMockImage(loadedSrcs);
+
+		const loader = new ClipLoader({});
+		const clips = await loader.loadClipsFromProject('demo');
+
+		expect(loadedSrcs.filter(src => src.includes('/projects/demo/clips/shared/sprite.png'))).toHaveLength(1);
+		expect(loadedSrcs.filter(src => src.includes('/projects/demo/clips/other/other.png'))).toHaveLength(1);
+		expect(loadedSrcs).toHaveLength(2);
+		// DAW channels 1→0 and 2→1; all shared slots still resolve
+		expect(clips[0][60][0]).toBeDefined();
+		expect(clips[0][60][64]).toBeDefined();
+		expect(clips[0][61][0]).toBeDefined();
+		expect(clips[1][60][0]).toBeDefined();
+		expect(clips[1][62][0]).toBeDefined();
+	});
 });
 
 describe('ClipLoader - destroyClips()', () => {

@@ -7,6 +7,9 @@ export const DEFAULT_FALLBACK_FPS = 12;
 
 const MS_PER_SECOND = 1000;
 
+export const DEFAULT_FRAME_DURATION_MS = 1000;
+export const DEFAULT_FALLBACK_FRAME_DURATION_MS = MS_PER_SECOND / DEFAULT_FALLBACK_FPS;
+
 /**
  * @param {unknown} delayMs
  * @param {number} [fallbackFps=DEFAULT_FALLBACK_FPS]

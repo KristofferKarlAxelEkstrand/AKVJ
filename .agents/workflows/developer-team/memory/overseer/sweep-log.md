@@ -126,108 +126,83 @@ One line per past finding — read this in full before a sweep.
 - Sweep 2026-07-19 ~21:33 (process sweep) — dashboard desync + health-inspector drift flagged — **Step 1**: `slack/overseer/` empty. `mail/out/` held a Health Inspector status dump (`[HE [288]
 - Sweep 2026-07-19 ~21:55 (product sweep) — product health clean, all tests pass — **Step 1**: `slack/overseer/` and `mail/out/` empty (only `.gitkeep`). No human answers to
 - Sweep 2026-07-19 ~22:38 (process sweep) — protocol updated for Health Inspector, dashboard fixed — **Step 1**: `slack/overseer/` empty. `mail/out/` held a Health Inspector status dump (`[HE
+- Wake 2026-07-19 ~22:40 (message-triggered) — health report cleaned and relayed — **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T22-40-0
+- Sweep 2026-07-19 ~23:34 (product sweep) — tests pass, spec drift fixed — **Step 1**: `slack/overseer/` empty. `mail/out/` held a Health Inspector status dump (`[HE
+- Sweep 2026-07-19 ~23:41 (process sweep) — dashboard desync flagged — **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T23-35-3
+- Sweep 2026-07-20 ~00:05 (product sweep) — all test suites pass, no new bugs — **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T23-35-5
+- Sweep 2026-07-20 ~00:35 (process sweep) — dashboard now consistent — **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-20T00-33-1
+- Sweep 2026-07-20 ~00:59 (product sweep) — mainframe test hook timeouts found, ticket filed — **Step 1**: `slack/overseer/` empty. `mail/out/` empty. No human answers to internalize.
+- Sweep 2026-07-20 ~05:43 UTC (process sweep) — workflow hygiene pass — **Step 1 (messages)**: `slack/overseer/` empty. `mail/out/` empty. Unread broadcast `mail/
+- Wake 2026-07-20 ~05:54 UTC (message-triggered) — health report processed — **Step 1**: `slack/overseer/` empty. `mail/out/` contained `[HEALTH-REPORT]-2026-07-20T05:
+- 2026-07-20 08:37 — message-only wake, mailboxes empty, no sweep requested
+- 2026-07-20 09:26 — Human workflow feedback answer: slack/team-lead path fix attempted; review batching accepted; suggest ready-to-pick queue and 15-min heartbeat; audit prompt/skill folder routing. — Area: `co-workers`
+- 2026-07-20 12:35 — Product sweep: clip-timing-sync spec drift — frameDurationsMs not wired through Clip.js/clipMetadata; filed bug — Area: `akvj/src/js/visuals`
+- 2026-07-20 12:58 — Process sweep: moved Plan-Approval Gate into co-workers/_shared/plan-approval.md; updated akvj/mainframe/utility developer prompts and collaboration-protocol.md; broadcast prompt-updated to slack/all and requested restarts; no product findings. — Area: `co-workers`
+- 2026-07-20 13:21 — Processed human answer on question 355: keep githooks and update CONTRIBUTING.md, human has committed
+- 2026-07-20 13:22 — Product sweep: corrected aesthetics.md imageSmoothingEnabled drift, filed CONTRIBUTING.md update feature
+- 2026-07-20 13:27 — Product sweep: Re-verified clip-format.md against codebase (validate/meta.js, mappingLeaf.js, settings.js). Facts still hold, no drift found. — Area: `spec/clip-format.md`
+- 2026-07-20 13:41 — Process sweep: flipped mode to product, filed ticket for QA mailbox desync on task 339 [339]
+- 2026-07-20 14:09 — Product sweep: re-verified mapping.md (select=filter alias, dblclick remove, PUT projects/.../key-map); filed health-monitor restarting disabled agents; field-tester flap already in mail/out; no new product code bugs — Area: `spec/mapping.md,.agents/workflows/scripts/run-team`
+- 2026-07-20 14:09 — Message wake: answered test-marshal on scaling editor/preview gap; escalated product call to mail/out (recommend ship editor+preview honor) — Area: `mainframe/src/js,spec/aesthetics.md`
+- 2026-07-20 14:12 — Process sweep: answered KeyBed omission + select≡filter (keep alias, task 367); updated mapping.md for KeyBed DOM/events; prompts/protocol clean; health-inspector still flapping (mail/out pending); flipped mode→product — Area: `spec/mapping.md,co-workers` [367]
+- 2026-07-20 14:13 — False-positive wake on unanswered mail/out scaling question; no Answer yet; skipped heavy sweep — Area: `mail/out`
+- 2026-07-20 14:13 — Message wake on own slack/all PROMPT-UPDATED mapping specs; already acted last cycle; left broadcasts; skipped heavy sweep — Area: `slack/all`
+- 2026-07-20 14:16 — Message wake: akvj-developer asked human on task 338 unmasked A/B compositor intent (opt1 A-only); left in mail/out; scaling still unanswered; skipped heavy sweep — Area: `mail/out` [338]
 
 ## Recent
 
-### Wake 2026-07-19 ~22:40 (message-triggered) — health report cleaned and relayed
-- **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T22-40-02-961Z.md` — deleted per `mail/out/` retention.
-- **Health observations relayed to Team Lead** (`slack/team-lead/[REPORT]-overseer-health-observations-2026-07-19.md`):
-  - `mainframe-developer` heartbeat is stale (~51–56 minutes old) while it has `[TASK]-295` assigned.
-  - Health Inspector report shows an `undefined` agent row caused by `health/heartbeats/quartermaster-test.json` (no `display` field).
-  - Report claimed 1 pending `mail/in/` item, but `mail/in/` root is empty (only `read/` subfolder); likely a counting artifact.
-- Message-only wake; no sweep run. `next-sweep-mode.md` remains `product`.
+### 2026-07-20 14:29 — Product sweep (special: goal.md): corrected fullscreen Enter/Space/dblclick + Bridge key-map/public copy; filed FEATURE refresh PROJECT-SPECIFICATION.md; pruned old slack/all prompt-updated; flipped mode→process
 
-### Sweep 2026-07-19 ~23:34 (product sweep) — tests pass, spec drift fixed
-- **Step 1**: `slack/overseer/` empty. `mail/out/` held a Health Inspector status dump (`[HEALTH-REPORT]-2026-07-19T22-40-34-100Z.md`) — deleted per `mail/out/` retention. No human answers to internalize.
-- **Product sweep**:
-  - `npm run test` (akvj + monorepo-scripts): passed (526 + 18 tests).
-  - `npm run lint`: passed (0 errors).
-  - `npm run build` (akvj): passed.
-  - `npm run test -w mainframe`: passed (534 + 218 tests).
-- **Special mission — cross-check `goal.md` against codebase**:
-  - `goal.md` remains accurate: AKVJ visualizer, Mainframe backoffice, project-based bridge (`projects/{projectId}/clips/`, `projects/index.json`, `active-project.json`), no song/scene sub-tier, settings split still open. No high-level drift.
-  - **Spec drift found and fixed**: The `scaling` interpolation field (`nearest`/`smooth`) was recently added to `akvj/src/js/visuals/clipMetadata.js`, `mainframe/shared/clipSchema.js`, `mainframe/src/js/editorMeta.js`, `akvj/src/js/visuals/Clip.js`, and CSS variables were updated, but `clip-schema.md` and `AGENTS.md` still described the old clip metadata table without `scaling`.
-    - Updated `.agents/workflows/developer-team/spec/clip-schema.md`: added `scaling` row to the rendering-fields table and included `scaling` in the legacy-defaults note.
-    - Updated `AGENTS.md`: added `frameWidth`, `frameHeight`, `scaleMode`, `scaling`, and `placement` rows to the Clip Metadata table so agent instructions match the canonical spec.
-- **No new product bugs / performance issues / architectural drift** detected; all product health checks green.
-- **No tickets filed**, no outbox question.
-- Flipped `next-sweep-mode.md` to `process` for the next wake.
+- Area: `spec/goal.md`
+- Refs: 338
 
-### Sweep 2026-07-19 ~23:41 (process sweep) — dashboard desync flagged
-- **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T23-35-36-762Z.md` — deleted per `mail/out/` retention.
-- **Process sweep findings**:
-  - **Dashboard desync**: `slack/general/team-dashboard.md` (generated 23:39:20 UTC) still lists `310-akvj-visuals-scrub-coverage.md` as in-progress under `akvj-developer`, but `tasks/working-on/` now contains only `311-mainframe-ui-worker-timeout-flake.md` and `tasks/done/` contains `310`. `slack/akvj-developer/` is also empty. Filed `slack/team-lead/[REPORT]-overseer-dashboard-desync-2026-07-19.md` recommending a dashboard regeneration.
-  - **Slack mailboxes**: `mainframe-developer` holds `[TASK]-311`, matching `tasks/working-on/`. `qa-reviewer/` empty. `slack/team-lead/` also contains `[REPORT]-310-akvj-visuals-scrub-coverage.md` (likely completion report for the done task).
-  - **Health observations**: latest report showed `mainframe-developer` heartbeat stale (1h 46m) despite having an active task; `health-inspector` and `quartermaster` also flagged stale. This is consistent with the earlier `slack/team-lead/[REPORT]-overseer-health-observations-2026-07-19.md` report and remains a monitoring/watch item.
-  - **Git index/worktree drift**: unchanged; many staged deletions and untracked files in `tasks/`/`slack/` persist.
-- **No process edits** to prompts/protocol this cycle.
-- Flipped `next-sweep-mode.md` to `product` for the next wake.
+### 2026-07-20 14:29 — False wake on own slack/all [PROMPT-UPDATED]-goal-spec; left for other agents; skipped heavy sweep
 
-### Sweep 2026-07-20 ~00:05 (product sweep) — all test suites pass, no new bugs
-- **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-19T23-35-55-911Z.md` — deleted per `mail/out/` retention. No human answers to internalize.
-- **Product sweep**:
-  - `npm run test` (akvj + monorepo-scripts): passed (535 + 18 tests).
-  - `npm run lint`: passed (0 errors).
-  - `npm run build` (akvj): passed.
-  - `npm run test -w mainframe`: passed across three Vitest configs (534 + 81 + 137 tests, all green).
-- **Product-source diffs reviewed**: changes in `ClipLoader.js`, `clipMetadata.js`, `Clip.js`, `editorMeta.js`, `clipSchema.js`, CSS variables, and the new `vitest.ui.heavy.config.js` suite all align with ongoing `scaling` interpolation work and the `311` worker-timeout-flake hardening. No architectural drift or new defects detected.
-- **No new product bugs / performance issues / architectural drift** found.
-- **No tickets filed**, no outbox question.
-- Flipped `next-sweep-mode.md` to `process` for the next wake.
+- Area: `slack/all`
 
-### Sweep 2026-07-20 ~00:35 (process sweep) — dashboard now consistent
-- **Step 1**: `slack/overseer/` empty. `mail/out/` held ` [HEALTH-REPORT]-2026-07-20T00-33-11-087Z.md` — deleted per `mail/out/` retention.
-- **Process sweep findings**:
-  - **Dashboard sync**: `slack/general/team-dashboard.md` has been regenerated and now accurately reflects `tasks/working-on/` (`319` for mainframe-developer, `320` for akvj-developer), `tasks/todo/` (`321`), and `slack/qa-reviewer/` (empty). Previous desync resolved.
-  - **Slack mailboxes**: `akvj-developer` holds `[TASK]-320`, `mainframe-developer` holds `[TASK]-319`; both match `tasks/working-on/`. `qa-reviewer/` empty. `slack/team-lead/` empty.
-  - **Health observations**: latest report showed several stale heartbeats (`akvj-developer` 31m, `health-inspector` 10m, `overseer` 9m, `qa-reviewer` 16m, `quartermaster` 18m, `team-lead` 21m) while `mainframe-developer` and `test-marshal` were active. The report also incorrectly claimed 0 tasks in-progress and no todo, while `tasks/working-on/` has 319/320 and `tasks/todo/` has 321 — likely the Health Inspector itself is stale and should be restarted.
-  - **Git index/worktree drift**: unchanged; many staged deletions and untracked files in `tasks/`/`slack/` persist.
-- **Special mission skipped**: `goal.md` cross-check was already completed in the previous product sweep and the dashboard sync was the more urgent finding.
-- Flipped `next-sweep-mode.md` to `product` for the next wake.
+### 2026-07-20 14:33 — Message wake: TL asked human to commit task 371 mainframe visual baseline PNGs; left in mail/out; skipped heavy sweep
 
-### Sweep 2026-07-20 ~00:59 (product sweep) — mainframe test hook timeouts found, ticket filed
-- **Step 1**: `slack/overseer/` empty. `mail/out/` empty. No human answers to internalize.
-- **Product sweep**:
-  - `npm run test` (akvj + monorepo-scripts): passed (536 + 18 tests).
-  - `npm run lint`: passed (0 errors).
-  - `npm run build` (akvj): passed.
-  - `npm run test -w mainframe`: **failed** in the main Vitest config.
-- **Failure details**:
-  - `test/server.test.js` `beforeAll` hook timed out at 10000ms while importing `../server/index.js` and starting the test server; all 74 server API tests were skipped and the suite failed.
-  - `test/spritesheet.test.js` `beforeEach` hook timed out at 10000ms while creating a temporary clips directory.
-  - Root cause: `mainframe/vitest.config.js` uses `pool: 'threads'` + `fileParallelism: true` with the default `hookTimeout` of 10000ms; heavy setup hooks (file I/O + server startup) exceed this under parallel load. The UI configs (`vitest.ui.config.js`, `vitest.ui.heavy.config.js`) already avoid this with `pool: 'forks'`, `singleFork: true`, `fileParallelism: false`, and `testTimeout: 60000`.
-- **Action taken**: Filed `mail/in/[BUG]-mainframe-server-spritesheet-hook-timeout-2026-07-20.md` with context and recommended fix for Team Lead to triage.
-- **No other product bugs / architectural drift** detected.
-- Flipped `next-sweep-mode.md` to `process` for the next wake.
+- Area: `mail/out`
+- Refs: 371
 
-### Sweep 2026-07-20 ~05:43 UTC (process sweep) — workflow hygiene pass
-- **Step 1 (messages)**: `slack/overseer/` empty. `mail/out/` empty. Unread broadcast `mail/in/team-update-full-project-review.md` asks all roles to run lane checks — left for Team Lead triage; my process sweep satisfies the Overseer lane check.
-- **Idle workflow hygiene**:
-  - `mail/in/read/` trimmed from 46 to 20 files (deleted 26 oldest read tickets per retention table; all were already triaged and captured in `tasks/`/`dashboard`). No durable spec truth missing from the deleted files.
-  - `slack/team-lead/` holds 3 recent files: `[APPROVED]-324-mainframe-non-js-consistency-nits.md`, `[REPORT]-323-akvj-test-trustworthiness-flake-hunt.md`, `[REPORT]-325-mainframe-server-spritesheet-hook-timeout.md` (timestamps ~01:16-01:18 UTC, several hours old relative to now). Team Lead appears not to have processed them yet; flagged as a watch item, not escalated this cycle.
-  - `slack/mainframe-developer/` empty despite 2 active tasks in `tasks/working-on/` — `[TASK]` files were cleaned up after reading (golden hygiene), `tasks/working-on/` is the durable source of truth. No drift.
-- **Prompt/protocol drift**: grepped `co-workers/*.prompt.md` for legacy `inbox/`/`outbox/` paths and `human-inbox` references; none found. All prompts reference `mail/in/`, `mail/out/`, `tasks/todo/`, `tasks/working-on/`, `tasks/done/` consistently with `collaboration-protocol.md`.
-- **No process problems fixed / no tickets filed** this cycle (only cleanup).
-- Flipped `next-sweep-mode.md` to `product` for the next wake.
+### 2026-07-20 14:44 — Ingested human answer on 338: channel-stack redesign epic drafted; no crisp opt1/2; told akvj-dev hold; asked TL to park/split; deleted answered mail/out
 
-### Wake 2026-07-20 ~05:54 UTC (message-triggered) — health report processed
-- **Step 1**: `slack/overseer/` empty. `mail/out/` contained `[HEALTH-REPORT]-2026-07-20T05:47:03.623Z.md` from Health Inspector.
-- **Health report contents**: claimed Team Lead (16242s) and Test Marshal (14375s) heartbeats were stale, and `team-update-full-project-review.md` was stalled 24 minutes in `mail/in/`.
-- **Verification at wake time**: `health/heartbeats/` files for all agents (including team-lead and test-marshal) have fresh mtimes (~05:42–05:54 UTC); `mail/in/` is empty (team update was processed by Team Lead or another agent between report generation and my wake). Report findings are transient and no longer current.
-- **Action**: No restart request or ticket filed. Deleted the processed health report from `mail/out/` to avoid re-trigger.
-- **Next sweep**: skipped heavy product/process sweep per message-only-wake allowance; `next-sweep-mode.md` remains `product` for the next random wake.
+- Area: `epics/drafts,Compositor.js`
+- Refs: 338
 
-### 2026-07-20 08:37 — message-only wake, mailboxes empty, no sweep requested
+### 2026-07-20 14:45 — Ingested flap answers: pruned retired health-inspector alert/heartbeat; field-tester up; fixed agents-status padEnd crash on awaiting arrays; reported speed-loss findings to TL (301s poller deaths + restart storms)
 
-### 2026-07-20 09:26 — Human workflow feedback answer: slack/team-lead path fix attempted; review batching accepted; suggest ready-to-pick queue and 15-min heartbeat; audit prompt/skill folder routing.
+- Area: `.agents/workflows/scripts,health`
+- Refs: 363
 
-- Area: `co-workers`
+### 2026-07-20 14:45 — TL parked 338 in todo; crisp 1-vs-2 lock filed to mail/out; channel stack remains separate epic draft
 
-### 2026-07-20 12:35 — Product sweep: clip-timing-sync spec drift — frameDurationsMs not wired through Clip.js/clipMetadata; filed bug
+- Area: `mail/out`
+- Refs: 338
 
-- Area: `akvj/src/js/visuals`
-- Refs: Clip.js:61,161; clipMetadata.js:79,147; ClipLoader.js:189
+### 2026-07-20 14:45 — False wake on unanswered mail/out 338 compositor lock; skipped heavy sweep
 
-### 2026-07-20 12:58 — Process sweep: moved Plan-Approval Gate into co-workers/_shared/plan-approval.md; updated akvj/mainframe/utility developer prompts and collaboration-protocol.md; broadcast prompt-updated to slack/all and requested restarts; no product findings.
+- Area: `mail/out`
+- Refs: 338
 
-- Area: `co-workers`
+### 2026-07-20 14:46 — Ingested scaling answer: preview always nearest; soft kernels on ingest bake — filed FEATURE; updated aesthetics.md; notified TM+TL
+
+- Area: `spec/aesthetics.md,mainframe/scripts/clips`
+- Refs: 294,365
+
+### 2026-07-20 14:47 — False wake on own aesthetics-scaling-lock broadcast; left for team; skipped heavy sweep
+
+- Area: `slack/all`
+
+### 2026-07-20 14:48 — Answered nitpicker: corrected clip-format.md scaling row for preview-nearest lock; pruned aesthetics broadcast
+
+- Area: `spec/clip-format.md`
+
+### 2026-07-20 14:48 — False wake on own clip-format-scaling broadcast; left for team; skipped heavy sweep
+
+- Area: `slack/all`
+
+### 2026-07-20 14:48 — Stale TL question on clip-format scaling — already fixed; pointed at task 378 for JSDoc
+
+- Area: `spec/clip-format.md`
+- Refs: 378

@@ -10,6 +10,7 @@ import { parseClipFramesBody } from '../clipFramesBody.js';
 import { validateMetaFields } from '../../scripts/clips/lib/validate/meta.js';
 import { listClips, activeProjectId, clipsRootFor } from '../clipCatalog.js';
 import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../mappingService.js';
+import { writeJsonAtomic } from '../writeJsonAtomic.js';
 
 /**
  * @param {string} [projectId]
@@ -41,7 +42,7 @@ export async function writeMapping(mapping, projectId) {
 	assertValidFlatMapping(mapping, readyClips);
 	const keyMap = nestMappingEntries(mapping);
 	await fs.mkdir(await clipsRootFor(id), { recursive: true });
-	await fs.writeFile(projectKeyMapPath(id), `${JSON.stringify(keyMap, null, '\t')}\n`);
+	await writeJsonAtomic(projectKeyMapPath(id), keyMap);
 }
 
 export async function handleGetClips(_req, res) {
@@ -285,7 +286,7 @@ export async function handleDeleteClip(_req, res, url) {
 	const remaining = mapping.filter(entry => entry.clipId !== clipId);
 	if (remaining.length !== mapping.length) {
 		const keyMap = nestMappingEntries(remaining);
-		await fs.writeFile(projectKeyMapPath(projectId), `${JSON.stringify(keyMap, null, '\t')}\n`);
+		await writeJsonAtomic(projectKeyMapPath(projectId), keyMap);
 	}
 
 	sendJson(res, 200, { ok: true, clipId });
@@ -343,6 +344,6 @@ export async function handlePutClipMeta(req, res, url) {
 		sendJson(res, 400, { error: 'Invalid png filename in meta' });
 		return;
 	}
-	await fs.writeFile(currentMetaPath, `${JSON.stringify(updatedMeta, null, '\t')}\n`);
+	await writeJsonAtomic(currentMetaPath, updatedMeta);
 	sendJson(res, 200, { ok: true, clipId, meta: updatedMeta });
 }

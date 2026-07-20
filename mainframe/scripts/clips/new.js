@@ -16,6 +16,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { writeJsonAtomic } from '../../server/writeJsonAtomic.js';
 import { isValidClipId } from '../../shared/clipId.js';
 import { DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE } from '../../shared/clipSchema.js';
 
@@ -51,7 +52,7 @@ export async function createClip(clipId, options = {}) {
 
 	const meta = buildClipMeta(options.role);
 	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(path.join(dir, 'meta.json'), `${JSON.stringify(meta, null, '\t')}\n`);
+	await writeJsonAtomic(path.join(dir, 'meta.json'), meta);
 
 	printCreateInstructions(path.relative(REPO_ROOT, dir) || dir);
 }

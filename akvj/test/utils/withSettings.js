@@ -21,7 +21,7 @@ export default function withSettings(patches, fn) {
 	}
 
 	try {
-		const result = fn();
+		const result = fn(settings);
 		if (result instanceof Promise) {
 			return result.finally(restore);
 		}

@@ -38,46 +38,78 @@ One line per past finding — read this in full before a sweep.
 - Batch 28 (2026-07-19 — stale-leftover guard) — Woken by reappearing `[TASK]-review-317-akvj-generated-output-gitignore.md` in `slack/qa-r
 - Batch 29 (2026-07-19 — stale-leftover guard) — Woken by reappearing `[TASK]-review-318-mainframe-shared-unit-honesty-nits.md` in `slack/q
 - Batch 30 (2026-07-19 — stale-leftover guard) — Woken by reappearing `[TASK]-review-319-*`, `[TASK]-review-320-*`, and `[TASK]-review-321-
+- Batch 31 (2026-07-19 — stale-leftover guard) — Woken by reappearing `[TASK]-review-323-akvj-test-trustworthiness-flake-hunt.md` in `slack
+- Batch 32 (2026-07-19 — real review) — **Task 324**: Mainframe non-JS consistency nits (APPROVED — verified CSS custom-property c [324]
+- Batch 33 (2026-07-20 — real review) — **Task 322**: E2E + root config magic-number sweep (APPROVED — `E2E_TIMEOUT_MS` replaces r [322, 323, 325, 333]
+- 2026-07-20 08:36 — Wake: no review files in slack/qa-reviewer/; going to await.
+- 2026-07-20 09:26 — Approved tasks 326 (mainframe lane check) and 335 (akvj legacy flat-clip cleanup); lint/test/build/clips all pass, no mainframe bleed. — Area: `akvj/src/js/visuals,mainframe` [326]
+- 2026-07-20 09:27 — Approved task 341 (mainframe delete clip prunes mapping); lint and server.test.js pass. — Area: `mainframe/server` [341]
+- 2026-07-20 09:28 — Prompt updated (path routing); exiting to restart session.
+- 2026-07-20 09:28 — Wake: no review files in slack/qa-reviewer/; going to await.
+- 2026-07-20 12:30 — Wake: no review files in slack/qa-reviewer/; all clean.
+- 2026-07-20 12:31 — Empty wake; no review files in slack/qa-reviewer/ or slack/all/.
+- 2026-07-20 13:02 — Approved tasks 337 (akvj Compositor GC buffer reuse) and 342 (mainframe PUT meta validation); lint/test/build pass for both workspaces — Area: `akvj/src/js/visuals,mainframe/server/handlers` [337]
+- 2026-07-20 13:03 — Woken by [PROMPT-UPDATED] broadcast in slack/all; file already consumed, no new reviews; resuming await — Refs: 337,342
+- 2026-07-20 13:23 — Task 352: akvj frameDurationsMs priority over frameRatesForFrames and max BPM clamping (APPROVED) — Area: `akvj/src/js/visuals` [352]
+- 2026-07-20 13:28 — Task 348: Added unit tests for workflow scripts (APPROVED — verified 144 tests pass, filed bug for unrelated lint failure in ClipEditorController.js) — Area: `.agents/workflows/scripts/test` [348]
+- 2026-07-20 13:28 — Woken by [PROMPT-UPDATED] broadcast in slack/all (aesthetics-spec.md); file already consumed, no new reviews; resuming await — Area: `slack/all`
+- 2026-07-20 13:42 — Approved task 339: ClipLoader image cache optimization. — Area: `akvj/src/js/visuals` [339]
+- 2026-07-20 13:44 — Approved task 356: Added engines node >=20 block and removed redundant akvj smoke test. — Area: `akvj, mainframe` [356]
 
 ## Recent
 
-### Batch 31 (2026-07-19 — stale-leftover guard)
-Woken by reappearing `[TASK]-review-323-akvj-test-trustworthiness-flake-hunt.md` in `slack/qa-reviewer/`. Task ID already archived in `tasks/done/` (323). Applied stale-leftover guard: deleted the file without re-reviewing or re-sending a verdict.
+### 2026-07-20 13:45 — Approved task 340: Dependency injection for settings and appState in MaskManager and Midi.
 
-### Batch 32 (2026-07-19 — real review)
-- **Task 324**: Mainframe non-JS consistency nits (APPROVED — verified CSS custom-property cleanup in `mainframe/src/styles.css`, `PageShell.scss`, `MappingTable.scss`; dead `--bg` removed, `--warn`/`--page-bg` used correctly, redundant fallbacks removed; `npm run lint -w mainframe` passed; wrote `[APPROVED]-324-*` to `slack/team-lead/`).
+- Area: `akvj`
+- Refs: 340
 
-### Batch 33 (2026-07-20 — real review)
-- **Task 322**: E2E + root config magic-number sweep (APPROVED — `E2E_TIMEOUT_MS` replaces raw `15000` timeouts in `e2e/mainframe.spec.js`, `WEB_SERVER_TIMEOUT_MS` replaces raw `30000` in `playwright.config.js`; `npm run lint`, `npm run test`, `npm run build`, and `npx playwright test --list` all passed; wrote `[APPROVED]-322-*` to `slack/team-lead/`).
-- **Task 323**: AKVJ test trustworthiness flake hunt (STALE LEFTOVER — already archived in `tasks/done/`; deleted the reappearing review file without re-reviewing).
-- **Task 325**: Mainframe server/spritesheet hook timeouts (APPROVED — `mainframe/vitest.config.js` has `pool: 'forks'`, `forks.singleFork: true`, `testTimeout: 60000`, `hookTimeout: 60000`, `fileParallelism: false`; `npm run lint`, `npm run build -w mainframe`, and targeted `npx vitest run --config mainframe/vitest.config.js` passed; wrote `[APPROVED]-325-*` to `slack/team-lead/`).
-- **Task 333**: README.md stale sweep (APPROVED — README channel mapping, directory tree, meta.json example, pipeline scripts path, and velocity-variants paragraph all aligned with current specs; `await-messages.js` `seenFiles` is now `const`; `npm run lint`, `npm run build`, and `npm run test -w akvj` (536 tests) passed; wrote `[APPROVED]-333-*` to `slack/team-lead/`).
+### 2026-07-20 13:47 — Approved task 347: Naming cleanups in overlay and UI utilities.
 
-### 2026-07-20 08:36 — Wake: no review files in slack/qa-reviewer/; going to await.
+- Area: `akvj`
+- Refs: 347
 
-### 2026-07-20 09:26 — Approved tasks 326 (mainframe lane check) and 335 (akvj legacy flat-clip cleanup); lint/test/build/clips all pass, no mainframe bleed.
+### 2026-07-20 14:19 — Approved 334 (mainframe magic-number constants) and 345 (README tree + vite ESM/poll interval); lint/test/build pass; Pipeline flake under parallel run only
 
-- Area: `akvj/src/js/visuals,mainframe`
-- Refs: 326,335
+- Area: `mainframe/src/js,akvj/vite.config.js,projects/default`
+- Refs: 334,345
 
-### 2026-07-20 09:27 — Approved task 341 (mainframe delete clip prunes mapping); lint and server.test.js pass.
+### 2026-07-20 14:22 — Approved 363 (skip disabled agents in health monitor) and 371 (piano-roll e2e+visual); selftest/workflow/e2e/visual pass
+
+- Area: `.agents/workflows/scripts,e2e,mainframe/test/visual`
+- Refs: 363,371
+
+### 2026-07-20 14:26 — Approved 343 (writeJsonAtomic for mainframe JSON persistence); unit tests 4/4, affected modules clean of direct JSON writeFile
 
 - Area: `mainframe/server`
-- Refs: 341
+- Refs: 343
 
-### 2026-07-20 09:28 — Prompt updated (path routing); exiting to restart session.
+### 2026-07-20 14:26 — Wake on slack/all PROMPT-UPDATED (mapping-spec + keybed); no reviews in qa-reviewer mailbox; resuming await
 
-### 2026-07-20 09:28 — Wake: no review files in slack/qa-reviewer/; going to await.
+- Area: `slack/all`
 
-### 2026-07-20 12:30 — Wake: no review files in slack/qa-reviewer/; all clean.
+### 2026-07-20 14:32 — Lane check 328: queue empty; lint/test/build green; noted untracked 371 screenshots + machine-only done batch; reported to team-lead
 
-### 2026-07-20 12:31 — Empty wake; no review files in slack/qa-reviewer/ or slack/all/.
+- Area: `tasks/done,mainframe/test/visual`
+- Refs: 328
 
-### 2026-07-20 13:02 — Approved tasks 337 (akvj Compositor GC buffer reuse) and 342 (mainframe PUT meta validation); lint/test/build pass for both workspaces
+### 2026-07-20 14:34 — Approved 344 (413 oversized body), 346 (human-review regression tests), 373 (PROJECT-SPECIFICATION pointer); lint + targeted tests pass
 
-- Area: `akvj/src/js/visuals,mainframe/server/handlers`
-- Refs: 337,342
+- Area: `mainframe/server,akvj/test,PROJECT-SPECIFICATION.md`
+- Refs: 344,346,373
 
-### 2026-07-20 13:03 — Woken by [PROMPT-UPDATED] broadcast in slack/all; file already consumed, no new reviews; resuming await
+### 2026-07-20 14:34 — Wake on slack/all PROMPT-UPDATED goal-spec; no reviews in mailbox; resuming await
 
-- Refs: 337,342
+- Area: `slack/all`
+
+### 2026-07-20 14:37 — Approved 367 (select≡filter in KeyBed + PianoRoll tests); lint/build and targeted tests pass
+
+- Area: `mainframe/src/js/KeyBed.js,mainframe/test`
+- Refs: 367
+
+### 2026-07-20 14:47 — Wake on slack/all PROMPT-UPDATED aesthetics-scaling-lock; no reviews; resuming await
+
+- Area: `slack/all`
+
+### 2026-07-20 14:48 — Wake on slack/all PROMPT-UPDATED clip-format-scaling; no reviews; resuming await
+
+- Area: `slack/all`

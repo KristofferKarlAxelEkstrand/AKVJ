@@ -1,5 +1,5 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { createMainframeState, EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from '../src/js/mainframeState.js';
+import { createMainframeState, EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PIANOROLL_FILTERS_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from '../src/js/mainframeState.js';
 
 describe('MainframeState', () => {
 	/** @type {import('../src/js/mainframeState.js').MainframeState} */
@@ -22,6 +22,7 @@ describe('MainframeState', () => {
 		expect(state.searchQuery).toBe('');
 		expect(state.roleFilter).toBe('');
 		expect(state.sortMode).toBe('name');
+		expect(state.pianorollFilters).toEqual({});
 	});
 
 	test('set clips dispatches clipsChanged event', () => {
@@ -106,6 +107,66 @@ describe('MainframeState', () => {
 		expect(callCount).toBe(1);
 	});
 
+	test('set pianorollFilters dispatches once with filters payload on change', () => {
+		let callCount = 0;
+		let eventDetail = null;
+		state.subscribe(EVENT_PIANOROLL_FILTERS_CHANGED, event => {
+			callCount++;
+			eventDetail = event.detail;
+		});
+
+		const next = { clipId: 'kick', triggerType: 'latch' };
+		state.pianorollFilters = next;
+
+		expect(callCount).toBe(1);
+		expect(eventDetail).toEqual({ filters: next });
+		expect(state.pianorollFilters).toEqual(next);
+	});
+
+	test('set pianorollFilters does not re-dispatch for JSON-equal shape', () => {
+		let callCount = 0;
+		state.subscribe(EVENT_PIANOROLL_FILTERS_CHANGED, () => {
+			callCount++;
+		});
+
+		state.pianorollFilters = { clipId: 'kick' };
+		expect(callCount).toBe(1);
+
+		state.pianorollFilters = { clipId: 'kick' };
+		expect(callCount).toBe(1);
+	});
+
+	test('set pianorollFilters coerces null and non-objects to {}', () => {
+		let callCount = 0;
+		let eventDetail = null;
+		state.subscribe(EVENT_PIANOROLL_FILTERS_CHANGED, event => {
+			callCount++;
+			eventDetail = event.detail;
+		});
+
+		state.pianorollFilters = { clipId: 'kick' };
+		expect(callCount).toBe(1);
+
+		state.pianorollFilters = null;
+		expect(callCount).toBe(2);
+		expect(eventDetail).toEqual({ filters: {} });
+		expect(state.pianorollFilters).toEqual({});
+
+		state.pianorollFilters = { role: 'bitmask' };
+		expect(callCount).toBe(3);
+
+		state.pianorollFilters = 'nope';
+		expect(callCount).toBe(4);
+		expect(state.pianorollFilters).toEqual({});
+
+		state.pianorollFilters = { layerGroup: 'A' };
+		expect(callCount).toBe(5);
+
+		state.pianorollFilters = undefined;
+		expect(callCount).toBe(6);
+		expect(state.pianorollFilters).toEqual({});
+	});
+
 	test('subscribe returns unsubscribe function', () => {
 		let callCount = 0;
 		const unsubscribe = state.subscribe(EVENT_CLIPS_CHANGED, () => {
@@ -126,6 +187,9 @@ describe('MainframeState', () => {
 		state.subscribe(EVENT_CLIPS_CHANGED, () => {
 			callCount++;
 		});
+		state.subscribe(EVENT_PIANOROLL_FILTERS_CHANGED, () => {
+			callCount++;
+		});
 
 		state.clips = [{ clipId: 'a', meta: {}, hasSprite: false }];
 		state.channel = 5;
@@ -134,6 +198,7 @@ describe('MainframeState', () => {
 		state.sortMode = 'clipId';
 		state.projects = [{ id: 'gig', name: 'Gig' }];
 		state.activeProjectId = 'gig';
+		state.pianorollFilters = { clipId: 'kick', layerGroup: 'A' };
 
 		state.reset();
 
@@ -144,7 +209,8 @@ describe('MainframeState', () => {
 		expect(state.searchQuery).toBe('');
 		expect(state.roleFilter).toBe('');
 		expect(state.sortMode).toBe('name');
-		expect(callCount).toBe(1);
+		expect(state.pianorollFilters).toEqual({});
+		expect(callCount).toBe(2);
 	});
 
 	test('set projects dispatches projectsChanged event', () => {

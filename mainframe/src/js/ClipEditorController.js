@@ -1,10 +1,10 @@
 import { api } from './apiClient.js';
 import { generateClipId } from './generateClipId.js';
 import { partitionImageFiles, formatSkippedFilesMessage, shouldAttemptGifExpand } from './acceptedImageFiles.js';
-import { DEFAULT_FALLBACK_FPS } from './frameTiming.js';
+import { DEFAULT_FRAME_DURATION_MS, DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
 import { editClipPath, resolveClipEditRoute } from './clipEditorRoute.js';
 import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor } from './editorMeta.js';
-import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement } from './clipSchema.js';
+import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
 import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
 import mainframeState, { messages } from './mainframeState.js';
 
@@ -27,16 +27,16 @@ export class ClipEditorController {
 	/** @type {string|null} */
 	#editingClipId = null;
 	#framesDirty = false;
-	#loadedFrameWidth = 240;
-	#loadedFrameHeight = 135;
+	#loadedFrameWidth = DEFAULT_FRAME_WIDTH;
+	#loadedFrameHeight = DEFAULT_FRAME_HEIGHT;
 	#loadedScaleMode = 'fit';
 	#hydrateGeneration = 0;
 	/** Last uniform per-frame duration (ms); used when re-applying after a mixed state. */
-	#lastUniformDurationMs = 1000;
+	#lastUniformDurationMs = DEFAULT_FRAME_DURATION_MS;
 	/** Last uniform bake scale (for re-apply after mixed). */
 	#lastUniformBakeScale = 'fit';
-	#lastUniformBakeWidth = 240;
-	#lastUniformBakeHeight = 135;
+	#lastUniformBakeWidth = DEFAULT_FRAME_WIDTH;
+	#lastUniformBakeHeight = DEFAULT_FRAME_HEIGHT;
 	#globalDurationInput;
 	#globalDurationApply;
 	#globalBakeScaleSelect;
@@ -113,7 +113,7 @@ export class ClipEditorController {
 			const order = event.detail.indices;
 			this.#stagedFiles = order.map(originalIndex => this.#stagedFiles[originalIndex]);
 			this.#stagedFrameUrls = order.map(originalIndex => this.#stagedFrameUrls[originalIndex]);
-			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? 1000);
+			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? DEFAULT_FRAME_DURATION_MS);
 			this.#stagedBakeConfigs = order.map(originalIndex => this.#stagedBakeConfigs[originalIndex] ?? resolveFrameBakeConfig({}));
 			this.#framesDirty = true;
 			this.syncGlobalDurationControl();
@@ -268,8 +268,8 @@ export class ClipEditorController {
 	reset() {
 		this.#editingClipId = null;
 		this.#framesDirty = false;
-		this.#loadedFrameWidth = 240;
-		this.#loadedFrameHeight = 135;
+		this.#loadedFrameWidth = DEFAULT_FRAME_WIDTH;
+		this.#loadedFrameHeight = DEFAULT_FRAME_HEIGHT;
 		this.#loadedScaleMode = 'fit';
 		this.#clipEditorForm.reset();
 		this.#setFormDefaults();
@@ -315,9 +315,9 @@ export class ClipEditorController {
 				URL.revokeObjectURL(url);
 			}
 			this.#stagedFiles = files;
-			this.#stagedDurationsMs = (framesResponse.durationsMs || []).map(ms => Number(ms) || 1000);
+			this.#stagedDurationsMs = (framesResponse.durationsMs || []).map(ms => Number(ms) || DEFAULT_FRAME_DURATION_MS);
 			while (this.#stagedDurationsMs.length < this.#stagedFiles.length) {
-				this.#stagedDurationsMs.push(1000);
+				this.#stagedDurationsMs.push(DEFAULT_FRAME_DURATION_MS);
 			}
 			// Bake-time composition is session-only — reopen defaults to fit (already-composited pixels).
 			this.#stagedBakeConfigs = this.#stagedFiles.map(() => resolveFrameBakeConfig({ scaleMode: 'fit' }));
@@ -444,8 +444,8 @@ export class ClipEditorController {
 				this.#reportOutcome('info', `Saved clip ${clipId}`);
 				this.#editingClipId = clipId;
 				this.#framesDirty = false;
-				this.#loadedFrameWidth = Number(targetWidth) || 240;
-				this.#loadedFrameHeight = Number(targetHeight) || 135;
+				this.#loadedFrameWidth = Number(targetWidth) || DEFAULT_FRAME_WIDTH;
+				this.#loadedFrameHeight = Number(targetHeight) || DEFAULT_FRAME_HEIGHT;
 				this.#loadedScaleMode = scaleMode;
 				this.updateEditorChrome();
 				this.#router.replace(editClipPath(clipId), { invokeHandler: false });
@@ -482,7 +482,7 @@ export class ClipEditorController {
 				});
 				if (result.animated) {
 					const expandedFiles = await Promise.all(result.frames.map((frameDataUrl, index) => dataUrlToFile(frameDataUrl, `gif-frame-${String(index).padStart(4, '0')}.png`)));
-					const expandedDurations = result.durationsMs.map(ms => Number(ms) || 1000 / DEFAULT_FALLBACK_FPS);
+					const expandedDurations = result.durationsMs.map(ms => Number(ms) || DEFAULT_FALLBACK_FRAME_DURATION_MS);
 					this.#stagedFiles = [...this.#stagedFiles, ...expandedFiles];
 					this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...expandedDurations];
 					this.#stagedBakeConfigs = [...this.#stagedBakeConfigs, ...expandedFiles.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))];
@@ -498,7 +498,7 @@ export class ClipEditorController {
 		}
 
 		this.#stagedFiles = [...this.#stagedFiles, ...accepted];
-		this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...accepted.map(() => 1000)];
+		this.#stagedDurationsMs = [...this.#stagedDurationsMs, ...accepted.map(() => DEFAULT_FRAME_DURATION_MS)];
 		this.#stagedBakeConfigs = [...this.#stagedBakeConfigs, ...accepted.map(() => resolveFrameBakeConfig({ scaleMode: this.#lastUniformBakeScale }))];
 		this.#framesDirty = true;
 		this.syncStagedFramesUi();
@@ -608,7 +608,7 @@ export class ClipEditorController {
 		this.#stagedBakeConfigs = this.#stagedBakeConfigs.slice(0, this.#stagedFiles.length);
 		const frames = this.#stagedFrameUrls.map((src, index) => ({
 			src,
-			durationMs: this.#stagedDurationsMs[index] ?? 1000,
+			durationMs: this.#stagedDurationsMs[index] ?? DEFAULT_FRAME_DURATION_MS,
 			bakeConfig: this.#stagedBakeConfigs[index]
 		}));
 		clipFrames.loadFrames(frames);
@@ -740,8 +740,8 @@ export class ClipEditorController {
 	}
 
 	updateStagingPreview() {
-		const targetWidth = Number(document.getElementById('clip-editor-target-width').value) || 240;
-		const targetHeight = Number(document.getElementById('clip-editor-target-height').value) || 135;
+		const targetWidth = Number(document.getElementById('clip-editor-target-width').value) || DEFAULT_FRAME_WIDTH;
+		const targetHeight = Number(document.getElementById('clip-editor-target-height').value) || DEFAULT_FRAME_HEIGHT;
 		const playback = document.getElementById('clip-editor-playback').value;
 		const scaleMode = document.getElementById('clip-editor-scale-mode').value;
 		const placement = this.#readPlacementFromDom();
@@ -794,7 +794,7 @@ export class ClipEditorController {
 	 * @returns {number[]}
 	 */
 	#previewDurationsMs() {
-		const base = this.#stagedDurationsMs.length > 0 ? this.#stagedDurationsMs : this.#stagedFiles.map(() => 1000);
+		const base = this.#stagedDurationsMs.length > 0 ? this.#stagedDurationsMs : this.#stagedFiles.map(() => DEFAULT_FRAME_DURATION_MS);
 		if (this.#stagedFiles.length === 0) {
 			return base;
 		}
@@ -830,8 +830,8 @@ export class ClipEditorController {
 				element.value = value;
 			}
 		};
-		setValue('clip-editor-target-width', '240');
-		setValue('clip-editor-target-height', '135');
+		setValue('clip-editor-target-width', String(DEFAULT_FRAME_WIDTH));
+		setValue('clip-editor-target-height', String(DEFAULT_FRAME_HEIGHT));
 		setValue('clip-editor-scale-mode', 'fit');
 		setValue('clip-editor-placement-x', '0');
 		setValue('clip-editor-placement-y', '0');

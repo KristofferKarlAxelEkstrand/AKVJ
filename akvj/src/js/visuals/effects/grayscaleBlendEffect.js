@@ -2,6 +2,16 @@ import { MAX_MIDI_VELOCITY } from '../../core/midiConstants.js';
 import { RGBA_CHANNEL_COUNT, RGB_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
 import { getEffectVariant } from './effectVariant.js';
 
+/** Max horizontal channel shift (px) for lo-fi chromatic aberration at full intensity. */
+const CHROMATIC_ABERRATION_SHIFT_PIXELS = 4;
+
+/** Quantization params per grayscale-blend bit depth (divisor + max level). */
+const GRAYSCALE_BLEND_BIT_DEPTH_PARAMS = {
+	2: { divisor: 64, maxLevel: 3 },
+	4: { divisor: 16, maxLevel: 15 },
+	8: { divisor: 1, maxLevel: 255 }
+};
+
 /**
  * Grayscale blend effect: Uses pixel luminance to drive soft blending between
  * the original image and a modified version.
@@ -75,7 +85,7 @@ function createInvertedVersion(pixels, modified, intensity) {
  * Lo-fi: simple channel shifting, no sub-pixel precision.
  */
 function createShiftedVersion(pixels, modified, width, intensity) {
-	const shiftAmount = Math.floor(intensity * 4); // Small shift for lo-fi look
+	const shiftAmount = Math.floor(intensity * CHROMATIC_ABERRATION_SHIFT_PIXELS); // Small shift for lo-fi look
 	for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
 		const x = (i / RGBA_CHANNEL_COUNT) % width;
 
@@ -128,11 +138,5 @@ function applyGrayscaleBlend(pixels, original, modified, width, height, divisor,
  * Lower bit depths create more visible stepping (lo-fi look).
  */
 function getBitDepthParams(bitDepth) {
-	if (bitDepth === 2) {
-		return { divisor: 64, maxLevel: 3 }; // 4 levels
-	}
-	if (bitDepth === 4) {
-		return { divisor: 16, maxLevel: 15 }; // 16 levels
-	}
-	return { divisor: 1, maxLevel: 255 }; // 8-bit (smooth)
+	return GRAYSCALE_BLEND_BIT_DEPTH_PARAMS[bitDepth] ?? GRAYSCALE_BLEND_BIT_DEPTH_PARAMS[8];
 }

@@ -1,6 +1,14 @@
 {
-  "ts": 1784552249863,
+  "ts": 1784558774536,
   "agent": "team-lead",
   "display": "Team Lead",
-  "pid": 2166833
+  "pid": 2767812,
+  "awaiting": {
+    "agent": "team-lead",
+    "waitingOn": [
+      "devs+human"
+    ],
+    "reason": "Noted flap/speed findings (363+agents-status); 369+372 in progress; 338 parked",
+    "since": 1784558741181
+  }
 }

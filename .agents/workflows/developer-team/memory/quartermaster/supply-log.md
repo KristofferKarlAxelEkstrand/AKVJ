@@ -1,5 +1,7 @@
 # The Quartermaster — Supply Log
 
+### 2026-07-20 14:47 — outdated deps: npm outdated {}; audit 0; shared vite/vitest aligned; akvj no frameworks. Noted aesthetics-scaling-lock PROMPT-UPDATED (left in slack/all). No new ticket.
+
 ## Digest
 
 One line per past finding — read this in full before a sweep.
@@ -48,31 +50,40 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-19 | npm audit | `npm audit` 0 vulns; `npm outdated` `{}`; lockfile clean (`midi-mcp` resolved, only deferred sharp WASM extraneous + expected unmet optional deps). Filed `… [2026, 07, 19]
 - 2026-07-19 | version-skew / lockfile hygiene | `npm outdated` `{}`; `npm audit` 0 vulns; `package-lock.json` no extraneous entries; `midi-mcp` fully absent from tracked files; shar… [2026, 07, 19, 10]
 - 2026-07-19 | config/scripts/engines health | `npm outdated` `{}`; `npm audit` 0 vulns; engines aligned (root `>=20`, CI `20`, devcontainer Node 22); all root scripts resolve; `knip… [2026, 07, 19, 20]
+- 2026-07-19 | npm audit | `npm audit --json`: 0 vulnerabilities; `npm outdated --json`: `{}`; `npm ls --all`: no new extraneous/phantom entries (only deferred sharp WASM optional de… [2026, 07, 19]
+- 2026-07-20 | version-skew / lockfile hygiene | `npm outdated --json` reports `stylelint` `17.14.0` → `17.14.1` patch update; `package-lock.json` pins the older patch. No version sk… [2026, 07, 20, 17]
+- Area: `config/scripts/engines`
+- Area: `supply-chain`
+- Area: `supply-chain`
+- Area: `supply-chain`
+- Area: `meta`
+- Area: `supply-chain`
+- Area: `config/scripts/engines`
 
 ## Recent
-
-- 2026-07-19 | npm audit | `npm audit --json`: 0 vulnerabilities; `npm outdated --json`: `{}`; `npm ls --all`: no new extraneous/phantom entries (only deferred sharp WASM optional deps + expected unmet optional deps); shared deps aligned. Filed `[DEPS]-npm-audit-2026-07-19.md`. Next: version-skew / lockfile hygiene.
-
-- 2026-07-20 | version-skew / lockfile hygiene | `npm outdated --json` reports `stylelint` `17.14.0` → `17.14.1` patch update; `package-lock.json` pins the older patch. No version skew across `akvj`/`mainframe` (`vite ^8.1.5`, `vitest ^4.1.10`, `@vitest/browser-playwright ^4.1.10` aligned). `npm audit` 0 vulns; `npm ls --all` only deferred sharp WASM extraneous + expected unmet optional deps. Filed `[DEPS]-stylelint-lockfile-2026-07-20.md` requesting `[NPM-REQUEST]`. Next: config/scripts/engines health.
-
-- Area: `config/scripts/engines`
-
-- Area: `supply-chain`
-
-- Area: `supply-chain`
-
-- Area: `supply-chain`
-
-- Area: `meta`
-
-- Area: `supply-chain`
-
-- Area: `config/scripts/engines`
 
 - Refs: 351
 
 - Area: `supply-chain`
 
-### 2026-07-20 12:58 — config/scripts/engines health sweep: staged package.json/package-lock.json/knip.json need [LOCK] commit; .githooks untracked but active; CONTRIBUTING.md and workspace engines misaligned; filed [DEPS]-config-scripts-engines-health-2026-07-20-followup.md
+- Area: `config/scripts/engines`
 
 - Area: `config/scripts/engines`
+
+- Refs: 357,356
+
+- Area: `supply-chain`
+
+- Area: `supply-chain`
+
+- Area: `supply-chain`
+
+- Area: `config/scripts/engines`
+
+- Refs: 357
+
+- Area: `supply-chain`
+
+### 2026-07-20 14:48 — npm audit: 0 vulns; outdated {}. Noted clip-format-scaling PROMPT-UPDATED (left in slack/all). No new ticket.
+
+- Area: `supply-chain`

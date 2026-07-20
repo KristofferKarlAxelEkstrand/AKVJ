@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { writeJsonAtomic } from '../../../server/writeJsonAtomic.js';
 import { getSubfolders, getFilesWithExtension } from './validate/index.js';
 import { isValidClipId } from '../../../shared/clipId.js';
 
@@ -40,7 +41,7 @@ export async function generate(sourceDir, outputPath) {
 	}
 
 	await fs.mkdir(path.dirname(outputPath), { recursive: true });
-	await fs.writeFile(outputPath, JSON.stringify(output, null, '\t'), 'utf8');
+	await writeJsonAtomic(outputPath, output);
 	console.log(`\nSaved to ${outputPath}`);
 
 	return output;

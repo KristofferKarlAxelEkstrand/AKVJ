@@ -1,5 +1,5 @@
-import appState from '../core/AppState.js';
-import settings from '../core/settings.js';
+import defaultAppState from '../core/AppState.js';
+import defaultSettings from '../core/settings.js';
 
 const SYSTEM_REAL_TIME_THRESHOLD = 0xf8;
 const CHANNEL_NIBBLE_MASK = 0xf;
@@ -16,8 +16,12 @@ class Midi {
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
 	#initializationPromise = Promise.resolve();
 	#destroyed = false;
+	#appState;
+	#settings;
 
-	constructor() {
+	constructor({ appState = defaultAppState, settings = defaultSettings } = {}) {
+		this.#appState = appState;
+		this.#settings = settings;
 		this.#initializeMIDIAccess();
 	}
 
@@ -66,11 +70,11 @@ class Midi {
 	#handleMIDIFailure(error) {
 		console.error('Failed to get MIDI access:', error);
 		try {
-			appState.midiConnected = false;
+			this.#appState.midiConnected = false;
 		} catch (resetError) {
-			console.warn('Failed to set appState.midiConnected = false on MIDI failure:', resetError);
+			console.warn('Failed to set this.#appState.midiConnected = false on MIDI failure:', resetError);
 		}
-		appState.error(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
+		this.#appState.error(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
 	}
 
 	/**
@@ -121,7 +125,7 @@ class Midi {
 		}
 
 		// Security: Enforce maximum device limit
-		const maxMidiDevices = settings.midi?.maxMidiDevices ?? 8;
+		const maxMidiDevices = this.#settings.midi?.maxMidiDevices ?? 8;
 		if (this.#connectedInputs.size >= maxMidiDevices) {
 			console.warn(`Midi: maximum MIDI device limit (${maxMidiDevices}) reached, ignoring connection: ${input.name}`);
 			return;
@@ -170,9 +174,9 @@ class Midi {
 	 */
 	#updateConnectionState() {
 		try {
-			appState.midiConnected = this.#connectedInputs.size > 0;
+			this.#appState.midiConnected = this.#connectedInputs.size > 0;
 		} catch (error) {
-			console.warn('Failed to update appState.midiConnected state:', error);
+			console.warn('Failed to update this.#appState.midiConnected state:', error);
 		}
 	}
 
@@ -196,7 +200,7 @@ class Midi {
 		}
 
 		// Security: Validate message length before parsing
-		const maxMessageLength = settings.midi?.maxMessageLength ?? 256;
+		const maxMessageLength = this.#settings.midi?.maxMessageLength ?? 256;
 		if (message.data.length > maxMessageLength) {
 			console.warn(`Midi: message length ${message.data.length} exceeds maximum ${maxMessageLength}, ignoring`);
 			return;
@@ -222,19 +226,19 @@ class Midi {
 	}
 
 	#handleSystemRealTime(statusByte) {
-		const { systemRealTime } = settings.midi;
+		const { systemRealTime } = this.#settings.midi;
 		switch (statusByte) {
 			case systemRealTime.clock:
-				appState.dispatchMIDIClock(performance.now());
+				this.#appState.dispatchMIDIClock(performance.now());
 				break;
 			case systemRealTime.start:
-				appState.dispatchMIDIStart();
+				this.#appState.dispatchMIDIStart();
 				break;
 			case systemRealTime.continue:
-				appState.dispatchMIDIContinue();
+				this.#appState.dispatchMIDIContinue();
 				break;
 			case systemRealTime.stop:
-				appState.dispatchMIDIStop();
+				this.#appState.dispatchMIDIStop();
 				break;
 			default:
 				break;
@@ -242,7 +246,7 @@ class Midi {
 	}
 
 	#handleChannelMessage(messageData) {
-		const { channelMessageMinLength: minimumMessageLength } = settings.midi;
+		const { channelMessageMinLength: minimumMessageLength } = this.#settings.midi;
 		if (messageData.length < minimumMessageLength) {
 			return;
 		}
@@ -256,16 +260,16 @@ class Midi {
 	}
 
 	#dispatchChannelMessage(command, channel, firstDataByte, secondDataByte) {
-		const { commands } = settings.midi;
+		const { commands } = this.#settings.midi;
 		switch (command) {
 			case commands.noteOn:
 				this.#handleNoteOn(channel, firstDataByte, secondDataByte);
 				break;
 			case commands.noteOff:
-				appState.dispatchMIDINoteOff(channel, firstDataByte);
+				this.#appState.dispatchMIDINoteOff(channel, firstDataByte);
 				break;
 			case commands.controlChange:
-				appState.dispatchMIDIControlChange(channel, firstDataByte, secondDataByte);
+				this.#appState.dispatchMIDIControlChange(channel, firstDataByte, secondDataByte);
 				break;
 			default:
 				break;
@@ -274,13 +278,13 @@ class Midi {
 
 	#handleNoteOn(channel, note, velocity) {
 		if (velocity > 0) {
-			if (channel === settings.channelMapping.projectSelection) {
+			if (channel === this.#settings.channelMapping.projectSelection) {
 				this.#handleProjectSelection(note);
 			} else {
-				appState.dispatchMIDINoteOn(channel, note, velocity);
+				this.#appState.dispatchMIDINoteOn(channel, note, velocity);
 			}
 		} else {
-			appState.dispatchMIDINoteOff(channel, note);
+			this.#appState.dispatchMIDINoteOff(channel, note);
 		}
 	}
 
@@ -290,7 +294,7 @@ class Midi {
 	 * @param {number} note - MIDI note number (0-127), used as project index
 	 */
 	#handleProjectSelection(note) {
-		appState.dispatchProjectSelection(note);
+		this.#appState.dispatchProjectSelection(note);
 	}
 
 	/**
@@ -300,7 +304,7 @@ class Midi {
 	 * @returns {void}
 	 * @description
 	 * Removes midimessage handlers from all connected inputs, clears the
-	 * statechange listener from midiAccess, and resets appState.midiConnected.
+	 * statechange listener from midiAccess, and resets this.#appState.midiConnected.
 	 * Safe to call multiple times. Used for teardown in tests and HMR.
 	 */
 	destroy() {
@@ -312,9 +316,9 @@ class Midi {
 		this.#removeStateChangeListener();
 
 		try {
-			appState.midiConnected = false;
+			this.#appState.midiConnected = false;
 		} catch (error) {
-			console.warn('Failed to reset appState.midiConnected during cleanup:', error);
+			console.warn('Failed to reset this.#appState.midiConnected during cleanup:', error);
 		}
 	}
 

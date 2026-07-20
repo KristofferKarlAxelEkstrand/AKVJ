@@ -2,6 +2,9 @@ import { MAX_MIDI_VELOCITY } from '../../core/midiConstants.js';
 import { RGBA_CHANNEL_COUNT, MAX_COLOR_VALUE } from './effectConstants.js';
 import { getEffectVariant } from './effectVariant.js';
 
+/** Floor for posterize level count (avoids divide-by-zero / single-step). */
+const MIN_POSTERIZE_LEVELS = 2;
+
 /**
  * Color effect: invert or posterize RGB channels based on note and intensity.
  */
@@ -39,7 +42,7 @@ function invertColors(pixels) {
 }
 
 function posterizeColors(pixels, posterizeBaseLevels, posterizeIntensityScale, intensity) {
-	const levels = Math.max(2, Math.floor(posterizeBaseLevels - intensity * posterizeIntensityScale));
+	const levels = Math.max(MIN_POSTERIZE_LEVELS, Math.floor(posterizeBaseLevels - intensity * posterizeIntensityScale));
 	const step = MAX_COLOR_VALUE / levels;
 	for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
 		pixels[i] = Math.floor(pixels[i] / step) * step;

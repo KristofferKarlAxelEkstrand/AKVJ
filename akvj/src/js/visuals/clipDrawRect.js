@@ -84,7 +84,7 @@ export function drawStretch(ctx, image, sourceX, sourceY, sourceWidth, sourceHei
 }
 
 /**
- * Draw a clip frame with fit/cover/none scaling and placement offset.
+ * Draw a clip frame with fit/cover/none scaleMode and placement offset.
  * @param {CanvasRenderingContext2D} ctx
  * @param {CanvasImageSource} image
  * @param {number} sourceX
@@ -96,7 +96,7 @@ export function drawStretch(ctx, image, sourceX, sourceY, sourceWidth, sourceHei
  * @param {string} scaleMode
  * @param {{ x: number, y: number }} placement
  */
-export function drawScaled(ctx, image, sourceX, sourceY, sourceWidth, sourceHeight, targetWidth, targetHeight, scaleMode, placement) {
+export function drawWithScaleMode(ctx, image, sourceX, sourceY, sourceWidth, sourceHeight, targetWidth, targetHeight, scaleMode, placement) {
 	const { dx, dy, dWidth, dHeight, sx, sy, sWidth, sHeight } = computeDrawRect(sourceWidth, sourceHeight, targetWidth, targetHeight, scaleMode);
 	const placedX = snapToPixel(dx + placement.x);
 	const placedY = snapToPixel(dy + placement.y);

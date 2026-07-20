@@ -1,5 +1,6 @@
 import '../scss/ClipFrame.scss';
 import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
+import { DEFAULT_FRAME_DURATION_MS } from './frameTiming.js';
 
 /**
  * ClipFrame — individual frame element with image, duration, and bake-config controls.
@@ -10,7 +11,7 @@ import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
 class ClipFrame extends HTMLElement {
 	#frameIndex = 0;
 	#imageSrc = '';
-	#durationMs = 1000;
+	#durationMs = DEFAULT_FRAME_DURATION_MS;
 	#bakeConfig = resolveFrameBakeConfig({});
 	#imgElement = null;
 	#durationInput = null;

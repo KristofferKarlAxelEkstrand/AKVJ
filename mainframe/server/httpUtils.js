@@ -6,23 +6,54 @@ const ALLOWED_ORIGINS = new Set(['http://localhost:9999', 'http://127.0.0.1:9999
 /**
  * @param {import('http').IncomingMessage} req
  * @param {number} [maxBytes]
+ * @param {import('http').ServerResponse} [res] When provided, a 413 is written before the socket is destroyed.
  * @returns {Promise<Buffer>}
  */
-export function readBody(req, maxBytes = MAX_BODY_BYTES) {
+export function readBody(req, maxBytes = MAX_BODY_BYTES, res) {
 	return new Promise((resolve, reject) => {
 		const chunks = [];
 		let total = 0;
+		let settled = false;
+
+		const failPayloadTooLarge = () => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			if (res && !res.headersSent) {
+				res.on('finish', () => req.destroy());
+				sendJson(res, 413, { error: 'Payload Too Large' });
+			} else {
+				req.destroy();
+			}
+			reject(Object.assign(new Error(`Request body exceeds ${maxBytes} bytes`), { statusCode: 413 }));
+		};
+
 		req.on('data', chunk => {
+			if (settled) {
+				return;
+			}
 			total += chunk.length;
 			if (total > maxBytes) {
-				reject(new Error(`Request body exceeds ${maxBytes} bytes`));
-				req.destroy();
+				failPayloadTooLarge();
 				return;
 			}
 			chunks.push(chunk);
 		});
-		req.on('end', () => resolve(Buffer.concat(chunks)));
-		req.on('error', reject);
+		req.on('end', () => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			resolve(Buffer.concat(chunks));
+		});
+		req.on('error', error => {
+			if (settled) {
+				return;
+			}
+			settled = true;
+			reject(error);
+		});
 	});
 }
 
@@ -62,7 +93,18 @@ export function applyCors(req, res) {
  * @returns {Promise<unknown>}
  */
 export async function parseJsonBody(req, res) {
-	const body = await readBody(req);
+	let body;
+	try {
+		body = await readBody(req, MAX_BODY_BYTES, res);
+	} catch (error) {
+		if (error?.statusCode === 413) {
+			if (!res.headersSent) {
+				sendJson(res, 413, { error: 'Payload Too Large' });
+			}
+			return null;
+		}
+		throw error;
+	}
 	try {
 		return JSON.parse(body.toString('utf8') || '{}');
 	} catch (error) {

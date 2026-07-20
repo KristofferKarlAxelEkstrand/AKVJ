@@ -7,7 +7,7 @@
  */
 
 class PlaybackController {
-	#numberOfFrames;
+	#frameCount;
 	#playbackMode;
 	#frame = 0;
 	#isFinished = false;
@@ -21,7 +21,7 @@ class PlaybackController {
 	 * @param {string} options.playback - Playback mode
 	 */
 	constructor({ frames, playback }) {
-		this.#numberOfFrames = frames;
+		this.#frameCount = frames;
 		this.#playbackMode = playback;
 		this.#resetState();
 	}
@@ -59,7 +59,7 @@ class PlaybackController {
 			return;
 		}
 		const clamped = Math.max(0, Math.min(1, normalizedValue));
-		this.#frame = Math.floor(clamped * (this.#numberOfFrames - 1));
+		this.#frame = Math.floor(clamped * (this.#frameCount - 1));
 		this.#isFinished = false;
 	}
 
@@ -102,7 +102,7 @@ class PlaybackController {
 		}
 
 		if (this.#playbackMode === 'random') {
-			this.#frame = Math.floor(Math.random() * this.#numberOfFrames);
+			this.#frame = Math.floor(Math.random() * this.#frameCount);
 			return true;
 		}
 
@@ -114,15 +114,15 @@ class PlaybackController {
 		if (this.#playbackMode === 'reverse') {
 			this.#frame--;
 			if (this.#frame < 0) {
-				this.#frame = this.#numberOfFrames - 1;
+				this.#frame = this.#frameCount - 1;
 			}
 			return true;
 		}
 
 		if (this.#playbackMode === 'pingpong') {
 			this.#frame += this.#pingpongDirection;
-			if (this.#frame >= this.#numberOfFrames - 1) {
-				this.#frame = this.#numberOfFrames - 1;
+			if (this.#frame >= this.#frameCount - 1) {
+				this.#frame = this.#frameCount - 1;
 				this.#pingpongDirection = -1;
 			} else if (this.#frame <= 0) {
 				this.#frame = 0;
@@ -133,17 +133,17 @@ class PlaybackController {
 
 		// 'loop' and 'once'
 		this.#frame++;
-		if (this.#frame < this.#numberOfFrames) {
+		if (this.#frame < this.#frameCount) {
 			return true;
 		}
 
 		if (this.#playbackMode === 'loop') {
-			this.#frame %= this.#numberOfFrames;
+			this.#frame %= this.#frameCount;
 			return true;
 		}
 
 		// 'once'
-		this.#frame = this.#numberOfFrames - 1;
+		this.#frame = this.#frameCount - 1;
 		this.#isFinished = true;
 		return false;
 	}
@@ -163,7 +163,7 @@ class PlaybackController {
 	}
 
 	#resetState() {
-		this.#frame = this.#playbackMode === 'reverse' ? this.#numberOfFrames - 1 : 0;
+		this.#frame = this.#playbackMode === 'reverse' ? this.#frameCount - 1 : 0;
 		this.#isFinished = false;
 		this.#pingpongDirection = 1;
 		this.#lastShuffleFrame = -1;
@@ -176,8 +176,8 @@ class PlaybackController {
 	 * @returns {number} Frame index
 	 */
 	#linearFrameFromProgress(progress) {
-		const linearIndex = Math.min(this.#numberOfFrames - 1, Math.floor(progress * this.#numberOfFrames));
-		return this.#playbackMode === 'reverse' ? this.#numberOfFrames - 1 - linearIndex : linearIndex;
+		const linearIndex = Math.min(this.#frameCount - 1, Math.floor(progress * this.#frameCount));
+		return this.#playbackMode === 'reverse' ? this.#frameCount - 1 - linearIndex : linearIndex;
 	}
 
 	/**
@@ -187,12 +187,12 @@ class PlaybackController {
 	 * @returns {number} Frame index
 	 */
 	#pingpongFrameFromProgress(progress) {
-		if (this.#numberOfFrames <= 1) {
+		if (this.#frameCount <= 1) {
 			return 0;
 		}
-		const span = 2 * (this.#numberOfFrames - 1);
+		const span = 2 * (this.#frameCount - 1);
 		const position = progress * span;
-		return position <= this.#numberOfFrames - 1 ? Math.round(position) : Math.round(span - position);
+		return position <= this.#frameCount - 1 ? Math.round(position) : Math.round(span - position);
 	}
 
 	/**
@@ -201,7 +201,7 @@ class PlaybackController {
 	 * @returns {number} The next frame index
 	 */
 	#drawNextShuffleFrame() {
-		if (this.#numberOfFrames <= 1) {
+		if (this.#frameCount <= 1) {
 			return 0;
 		}
 		if (this.#unplayedShuffleFrames.length === 0) {
@@ -218,7 +218,7 @@ class PlaybackController {
 	 * @returns {number[]} Shuffled frame indices
 	 */
 	#buildShuffledFramePool() {
-		const pool = Array.from({ length: this.#numberOfFrames }, (_, index) => index);
+		const pool = Array.from({ length: this.#frameCount }, (_, index) => index);
 		for (let i = pool.length - 1; i > 0; i--) {
 			const j = Math.floor(Math.random() * (i + 1));
 			[pool[i], pool[j]] = [pool[j], pool[i]];

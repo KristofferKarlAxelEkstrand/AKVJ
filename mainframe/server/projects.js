@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { resolveProjectsDir, resolveActiveProjectPath, resolveProjectsIndexPath, isValidProjectId, projectDir, projectKeyMapPath, projectClipsDir, projectRawAssetsRoot, deriveProjectId, DEFAULT_PROJECT_ID } from './paths.js';
 import { copyDirectoryRecursive } from './migrateClipsToProjects.js';
+import { writeJsonAtomic } from './writeJsonAtomic.js';
 
 /**
  * @returns {Promise<Array<{id: string, name: string}>>}
@@ -60,7 +61,7 @@ export async function createProject({ name, id, copyFrom }) {
 			throw error;
 		});
 	}
-	await fs.writeFile(projectKeyMapPath(projectId), `${JSON.stringify(sourceKeyMap, null, '\t')}\n`);
+	await writeJsonAtomic(projectKeyMapPath(projectId), sourceKeyMap);
 
 	if (copyFrom !== null && copyFrom !== false) {
 		const seedSourceId = typeof copyFrom === 'string' && copyFrom.trim() ? copyFrom.trim() : DEFAULT_PROJECT_ID;
@@ -178,7 +179,7 @@ export async function setActiveProjectId(projectId) {
 		throw Object.assign(new Error(`Project "${projectId}" not found`), { statusCode: 404 });
 	}
 	await fs.mkdir(path.dirname(resolveActiveProjectPath()), { recursive: true });
-	await fs.writeFile(resolveActiveProjectPath(), `${JSON.stringify({ project: projectId }, null, '\t')}\n`);
+	await writeJsonAtomic(resolveActiveProjectPath(), { project: projectId });
 	return { project: projectId };
 }
 
@@ -215,7 +216,7 @@ export async function writeProjectKeyMapFile(projectId, keyMap) {
 	} catch {
 		throw Object.assign(new Error(`Project "${projectId}" not found`), { statusCode: 404 });
 	}
-	await fs.writeFile(projectKeyMapPath(projectId), `${JSON.stringify(keyMap, null, '\t')}\n`);
+	await writeJsonAtomic(projectKeyMapPath(projectId), keyMap);
 }
 
 /**
@@ -251,7 +252,7 @@ async function readProjectsIndex() {
 			try {
 				await fs.access(projectKeyMapPath(DEFAULT_PROJECT_ID));
 			} catch {
-				await fs.writeFile(projectKeyMapPath(DEFAULT_PROJECT_ID), `${JSON.stringify({}, null, '\t')}\n`);
+				await writeJsonAtomic(projectKeyMapPath(DEFAULT_PROJECT_ID), {});
 			}
 			return seed;
 		}
@@ -264,7 +265,7 @@ async function readProjectsIndex() {
  */
 async function writeProjectsIndex(index) {
 	await fs.mkdir(resolveProjectsDir(), { recursive: true });
-	await fs.writeFile(resolveProjectsIndexPath(), `${JSON.stringify(index, null, '\t')}\n`);
+	await writeJsonAtomic(resolveProjectsIndexPath(), index);
 }
 
 /**
@@ -292,7 +293,7 @@ async function readProjectSettings(projectId) {
  */
 async function writeProjectSettings(projectId, settings) {
 	await fs.mkdir(projectDir(projectId), { recursive: true });
-	await fs.writeFile(path.join(projectDir(projectId), 'settings.json'), `${JSON.stringify(settings, null, '\t')}\n`);
+	await writeJsonAtomic(path.join(projectDir(projectId), 'settings.json'), settings);
 }
 
 export { DEFAULT_PROJECT_ID } from './paths.js';

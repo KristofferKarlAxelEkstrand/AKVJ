@@ -48,7 +48,7 @@ const defaultClockSource = {
  * @param {ClockSource} [options.clockSource] - Object with bpmSource getter and subscribe method
  */
 class ClipTiming {
-	#numberOfFrames;
+	#frameCount;
 	#frameRatesForFrames;
 	#frameDurationsMs;
 	#defaultFrameRate;
@@ -59,7 +59,7 @@ class ClipTiming {
 	#totalPulses = null;
 	#pulseCount = 0;
 	#lastTimestamp = null;
-	#unsubscribeFromClock = null;
+	#clockUnsubscribe = null;
 	#bpmProvider;
 	#clockSource;
 	#currentFrameIndex = 0;
@@ -67,7 +67,7 @@ class ClipTiming {
 	constructor({ frameRatesForFrames, frameDurationsMs, syncBeats, frames, bpmProvider, clockSource }) {
 		this.#bpmProvider = bpmProvider ?? (() => appState.bpm);
 		this.#clockSource = clockSource ?? defaultClockSource;
-		this.#numberOfFrames = frames;
+		this.#frameCount = frames;
 
 		this.#initFrameRates(frameRatesForFrames, frameDurationsMs, frames);
 		this.#initDefaultFrameRate();
@@ -172,10 +172,10 @@ class ClipTiming {
 	 *   returns true to keep playing, false once playback is finished
 	 */
 	subscribeToClock(onAdvance) {
-		if (this.#isUsingBPMSync && !this.#unsubscribeFromClock) {
+		if (this.#isUsingBPMSync && !this.#clockUnsubscribe) {
 			const unsubscribeFromClockPulses = this.#clockSource.subscribe(EVENT_MIDI_CLOCK, () => this.#handleClockPulse(onAdvance));
 			const unsubscribeFromMidiStart = this.#clockSource.subscribe(EVENT_MIDI_START, () => this.reset());
-			this.#unsubscribeFromClock = () => {
+			this.#clockUnsubscribe = () => {
 				let firstError = null;
 				for (const unsubscribe of [unsubscribeFromClockPulses, unsubscribeFromMidiStart]) {
 					try {
@@ -195,13 +195,13 @@ class ClipTiming {
 	 * Unsubscribe from MIDI clock events.
 	 */
 	unsubscribeFromClock() {
-		if (this.#unsubscribeFromClock) {
+		if (this.#clockUnsubscribe) {
 			try {
-				this.#unsubscribeFromClock();
+				this.#clockUnsubscribe();
 			} catch (error) {
 				console.error('Error unsubscribing from clock events in ClipTiming:', error);
 			}
-			this.#unsubscribeFromClock = null;
+			this.#clockUnsubscribe = null;
 		}
 	}
 
@@ -325,7 +325,7 @@ class ClipTiming {
 	 * @returns {number} Frame index
 	 */
 	#linearFrameIndexForProgress(progress) {
-		for (let frameIndex = this.#numberOfFrames - 1; frameIndex >= 0; frameIndex--) {
+		for (let frameIndex = this.#frameCount - 1; frameIndex >= 0; frameIndex--) {
 			if (this.#cumulativeProportions[frameIndex] <= progress) {
 				return frameIndex;
 			}
@@ -351,7 +351,7 @@ class ClipTiming {
 			return 0;
 		}
 		const linearFrameIndex = this.#linearFrameIndexForProgress(rawProgress);
-		return (linearFrameIndex + 0.5) / this.#numberOfFrames;
+		return (linearFrameIndex + 0.5) / this.#frameCount;
 	}
 
 	/**

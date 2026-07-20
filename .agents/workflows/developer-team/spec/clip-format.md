@@ -56,7 +56,7 @@ the generated copies — the pipeline overwrites them.
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `scaleMode` | string | `fit` | How the cell fills the canvas: `fit`, `cover`, `stretch`, `none`, `pattern` |
-| `scaling` | string | `nearest` | Interpolation at draw time: `nearest` (pixel-art) or `smooth` (bilinear) |
+| `scaling` | string | `nearest` | Interpolation at **akvj draw time**: `nearest` (pixel-art) or `smooth` (bilinear). Mainframe staging/clip preview always uses nearest — it does not follow this field (see `aesthetics.md`). |
 | `placement` | `{x, y}` | `{0, 0}` | Offset from canvas centre in pixels. Ignored when `scaleMode` is `stretch`. |
 
 `pattern` tiles the cell at native size across the canvas instead of scaling it; placement shifts
@@ -156,6 +156,8 @@ agree.
 
 ## Changelog
 
+- 2026-07-20 — `scaling` row: clarified akvj draw-time only; mainframe preview stays nearest
+  (human lock; aligns with `aesthetics.md`).
 - 2026-07-20 — Rewritten from `clip-schema.md` as current truth. Removed `frameDurationBeats`
   (the pipeline rejects it), documented `frameDurationsMs`, folded in channel routing and the
   mapping-override leaf shape.

@@ -125,12 +125,12 @@ class DebugOverlay {
 	}
 
 	#subscribeToEvents() {
-		this.#subscribeBPMEvents();
+		this.#subscribeBpmAndMidiConnectionEvents();
 		this.#subscribeNoteEvents();
 		this.#subscribeControlChangeEvents();
 	}
 
-	#subscribeBPMEvents() {
+	#subscribeBpmAndMidiConnectionEvents() {
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_BPM_CHANGED, event => {
 				this.#updateBPM(event.detail.bpm, event.detail.source);

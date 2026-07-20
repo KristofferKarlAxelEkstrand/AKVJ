@@ -667,9 +667,15 @@ describe('PUT /api/clips/:clipId', () => {
 		{ body: { placement: { x: 'nope' } }, label: 'placement.x non-numeric' },
 		{ body: { bitDepth: 16 }, label: 'invalid bitDepth' }
 	])('returns 400 for invalid meta value shape: $label', async ({ body }) => {
+		const metaPath = path.join(testClipsDir, 'test-clip-a', 'meta.json');
+		const before = await fs.readFile(metaPath, 'utf8');
+
 		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', body);
 		expect(status).toBe(400);
 		expect(data.error).toBeDefined();
+
+		const after = await fs.readFile(metaPath, 'utf8');
+		expect(after).toBe(before);
 	});
 });
 
@@ -924,6 +930,21 @@ describe('Malformed JSON request bodies', () => {
 		const { status, data } = await fetchJsonRaw('POST', '/api/expand-gif', '{ bad');
 		expect(status).toBe(400);
 		expect(data.error).toBe('Invalid JSON in request body');
+	});
+});
+
+describe('Oversized request bodies', () => {
+	test('PUT /api/mapping returns 413 when body exceeds 32 MiB', async () => {
+		const { MAX_BODY_BYTES } = await import('../server/httpUtils.js');
+		const oversized = Buffer.alloc(MAX_BODY_BYTES + 1, 0x61);
+		const response = await fetch(`${baseUrl}/api/mapping`, {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: oversized
+		});
+		const data = await response.json().catch(() => ({}));
+		expect(response.status).toBe(413);
+		expect(data.error).toBe('Payload Too Large');
 	});
 });
 

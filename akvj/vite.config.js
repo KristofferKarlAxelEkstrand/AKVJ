@@ -1,6 +1,10 @@
 // vite.config.js
 import { defineConfig } from 'vite';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const WATCH_POLL_INTERVAL_MS = 300;
 
 /**
  * Plugin to trigger full page reload when clip files change.
@@ -38,7 +42,7 @@ export default defineConfig({
 			// Use polling in dev containers where inotify may not work.
 			// Detect common container environments via env vars.
 			usePolling: !!(process.env.REMOTE_CONTAINERS || process.env.CODESPACES || process.env.GITPOD_WORKSPACE_ID),
-			interval: 300
+			interval: WATCH_POLL_INTERVAL_MS
 		}
 	}
 });

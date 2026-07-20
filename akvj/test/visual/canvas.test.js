@@ -181,6 +181,44 @@ describe('Effect visual tests', () => {
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('glitch');
 	});
+
+	test('grayscaleDisplacement horizontal (variant A)', async () => {
+		const clipA = createGradientClip('horizontal', [0, 0, 0], [255, 255, 255]);
+		const mixedOutputEffects = [createEffect('grayscaleDisplacement', settings.effectRanges.grayscaleDisplacement.min, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('grayscale-displacement-horizontal');
+	});
+
+	test('grayscaleDisplacement vertical (variant B)', async () => {
+		const clipA = createGradientClip('horizontal', [0, 0, 0], [255, 255, 255]);
+		const note = settings.effectRanges.grayscaleDisplacement.min + settings.effectParams.effectVariantThreshold;
+		const mixedOutputEffects = [createEffect('grayscaleDisplacement', note, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('grayscale-displacement-vertical');
+	});
+
+	test('grayscaleBlend invert (variant A)', async () => {
+		const clipA = createGradientClip('horizontal', [40, 80, 160], [200, 120, 40]);
+		const mixedOutputEffects = [createEffect('grayscaleBlend', settings.effectRanges.grayscaleBlend.min, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('grayscale-blend-invert');
+	});
+
+	test('grayscaleBlend chromatic (variant B)', async () => {
+		const clipA = createGradientClip('horizontal', [40, 80, 160], [200, 120, 40]);
+		const note = settings.effectRanges.grayscaleBlend.min + settings.effectParams.effectVariantThreshold;
+		const mixedOutputEffects = [createEffect('grayscaleBlend', note, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('grayscale-blend-chromatic');
+	});
 });
 
 describe('Effect stacking visual tests', () => {

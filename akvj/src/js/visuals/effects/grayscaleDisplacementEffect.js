@@ -2,13 +2,16 @@ import { MAX_MIDI_VELOCITY } from '../../core/midiConstants.js';
 import { RGBA_CHANNEL_COUNT, RGB_CHANNEL_COUNT } from './effectConstants.js';
 import { getEffectVariant } from './effectVariant.js';
 
+/** Mid-gray luminance: no displacement; below shifts one way, above the other. */
+const MID_GRAY_LUMINANCE = 128;
+
 /**
  * Grayscale displacement effect: Uses pixel luminance as a displacement map.
  *
  * Lo-fi Amiga demo scene aesthetic:
- * - 50% gray (128) = no displacement
- * - Values < 128 shift left (or up)
- * - Values > 128 shift right (or down)
+ * - 50% gray (MID_GRAY_LUMINANCE) = no displacement
+ * - Values < mid-gray shift left (or up)
+ * - Values > mid-gray shift right (or down)
  * - Uses integer math with no interpolation for crude, stepped look
  * - Intensity controlled by MIDI velocity
  */
@@ -62,9 +65,12 @@ function applyHorizontalDisplacement(pixels, original, width, height, maxShift) 
 			// Calculate luminance (simple average for lo-fi look)
 			const luminance = (original[idx] + original[idx + 1] + original[idx + 2]) / RGB_CHANNEL_COUNT;
 
-			// Displacement: 128 = no shift, <128 = left, >128 = right
+			// Displacement: mid-gray = no shift, darker = left, brighter = right
 			// Lo-fi: use integer math with stepped values, scaled by maxShift
-			const displacement = luminance > 128 ? Math.floor(((luminance - 128) / 128) * maxShift) : -Math.floor(((128 - luminance) / 128) * maxShift);
+			const displacement =
+				luminance > MID_GRAY_LUMINANCE
+					? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift)
+					: -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
 			if (shiftAmount === 0) {
@@ -99,9 +105,12 @@ function applyVerticalDisplacement(pixels, original, width, height, maxShift) {
 			// Calculate luminance (simple average for lo-fi look)
 			const luminance = (original[idx] + original[idx + 1] + original[idx + 2]) / RGB_CHANNEL_COUNT;
 
-			// Displacement: 128 = no shift, <128 = up, >128 = down
+			// Displacement: mid-gray = no shift, darker = up, brighter = down
 			// Lo-fi: use integer math with stepped values, scaled by maxShift
-			const displacement = luminance > 128 ? Math.floor(((luminance - 128) / 128) * maxShift) : -Math.floor(((128 - luminance) / 128) * maxShift);
+			const displacement =
+				luminance > MID_GRAY_LUMINANCE
+					? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift)
+					: -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
 			if (shiftAmount === 0) {

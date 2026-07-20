@@ -182,7 +182,7 @@ describe('PianoRoll', () => {
 		expect(keys[64].classList.contains('is-active')).toBe(true);
 	});
 
-	test('select mode does not render velocity regions', () => {
+	test('select mode renders velocity regions like filter', () => {
 		element.mode = 'select';
 		element.channel = 1;
 		element.mappings = [
@@ -191,8 +191,42 @@ describe('PianoRoll', () => {
 		];
 
 		const key = element.querySelectorAll('piano-key')[60];
-		expect(key.querySelectorAll('.velocity-region').length).toBe(0);
+		expect(key.querySelectorAll('.velocity-region').length).toBe(2);
 		expect(key.classList.contains('is-mapped')).toBe(true);
+	});
+
+	test('mode="select" lights Filter button and shows filter view', () => {
+		element.mode = 'select';
+
+		const filterButton = element.querySelector('.piano-roll-mode-button[data-mode="filter"]');
+		expect(filterButton.classList.contains('is-active')).toBe(true);
+		expect(filterButton.getAttribute('aria-selected')).toBe('true');
+		expect(element.querySelector('.piano-roll-filter-view').hidden).toBe(false);
+		expect(element.querySelector('.piano-roll-edit-view').hidden).toBe(true);
+		expect(element.querySelector('.piano-roll-play-view').hidden).toBe(true);
+	});
+
+	test('select mode dims non-matching velocity regions like filter', () => {
+		element.mode = 'select';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'soft', meta: { triggerType: 'momentary' } },
+			{ clipId: 'hard', meta: { triggerType: 'latch' } }
+		];
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		element.filters = { triggerType: 'latch' };
+
+		const regions = key.querySelectorAll('.velocity-region');
+		const hardRegion = [...regions].find(region => region.dataset.clipId === 'hard');
+		const softRegion = [...regions].find(region => region.dataset.clipId === 'soft');
+
+		expect(hardRegion.classList.contains('is-filtered-out')).toBe(false);
+		expect(softRegion.classList.contains('is-filtered-out')).toBe(true);
 	});
 
 	test('highlights mapped notes for current channel', () => {
@@ -885,6 +919,60 @@ describe('PianoRoll', () => {
 
 		expect(hardRegion.classList.contains('is-filtered-out')).toBe(false);
 		expect(softRegion.classList.contains('is-filtered-out')).toBe(true);
+	});
+
+	test('filter mode layerGroup B on channel 1 (A) dims regions and key; A does not', () => {
+		element.mode = 'filter';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+
+		element.filters = { layerGroup: 'B' };
+		const regionsWhenB = key.querySelectorAll('.velocity-region');
+		expect([...regionsWhenB].every(region => region.classList.contains('is-filtered-out'))).toBe(true);
+		expect(key.classList.contains('is-dimmed')).toBe(true);
+
+		element.filters = { layerGroup: 'A' };
+		const regionsWhenA = key.querySelectorAll('.velocity-region');
+		expect([...regionsWhenA].every(region => !region.classList.contains('is-filtered-out'))).toBe(true);
+		expect(key.classList.contains('is-dimmed')).toBe(false);
+	});
+
+	test('filter summary includes layer: A and layer: B', () => {
+		element.mode = 'filter';
+
+		element.filters = { layerGroup: 'A' };
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).toContain('layer: A');
+
+		element.filters = { layerGroup: 'B' };
+		expect(element.querySelector('.piano-roll-filter-summary').textContent).toContain('layer: B');
+	});
+
+	test('filter mode dims non-matching regions by role bitmask', () => {
+		element.mode = 'filter';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'soft', meta: { role: 'bitmask' } },
+			{ clipId: 'hard', meta: {} }
+		];
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		element.filters = { role: 'bitmask' };
+
+		const regions = key.querySelectorAll('.velocity-region');
+		const softRegion = [...regions].find(region => region.dataset.clipId === 'soft');
+		const hardRegion = [...regions].find(region => region.dataset.clipId === 'hard');
+
+		expect(softRegion.classList.contains('is-filtered-out')).toBe(false);
+		expect(hardRegion.classList.contains('is-filtered-out')).toBe(true);
 	});
 
 	test('filter mode dims unmapped keys when showOnlyPopulated is true', () => {

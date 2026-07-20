@@ -5,11 +5,13 @@ import './css/user-message.css';
 import './css/user-messages.css';
 import './js/core/AdventureKidVideoJockey.js';
 
+import appState from './js/core/AppState.js';
+import settings from './js/core/settings.js';
 import Midi from './js/midi-input/Midi.js';
 import Fullscreen from './js/utils/Fullscreen.js';
 import DebugOverlay from './js/utils/DebugOverlay.js';
 
-const midi = new Midi();
+const midi = new Midi({ appState, settings });
 
 const fullscreenManager = new Fullscreen();
 fullscreenManager.enable();

@@ -188,7 +188,7 @@ function makeMockEffectsManager(mixedOutputEffects, globalEffects) {
 /**
  * Create an effect object matching the EffectsManager format.
  *
- * @param {string} type - Effect type: 'split', 'mirror', 'offset', 'color', 'glitch', 'strobe'
+ * @param {'split'|'mirror'|'offset'|'color'|'glitch'|'strobe'|'grayscaleDisplacement'|'grayscaleBlend'} type - Effect type
  * @param {number} note - MIDI note number
  * @param {number} velocity - MIDI velocity (0-127)
  * @returns {{type: string, note: number, velocity: number}}

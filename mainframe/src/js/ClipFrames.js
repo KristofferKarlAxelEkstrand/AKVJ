@@ -1,6 +1,7 @@
 import '../scss/ClipFrames.scss';
 import { ClipFrame } from './ClipFrame.js';
 import { resolveFrameBakeConfig, areFrameBakeConfigsUniform } from './frameBake.js';
+import { DEFAULT_FRAME_DURATION_MS } from './frameTiming.js';
 
 /**
  * ClipFrames — horizontally scrollable container of ClipFrame elements.
@@ -29,7 +30,7 @@ class ClipFrames extends HTMLElement {
 	loadFrames(frames) {
 		this.#frameEntries = (frames || []).map((frame, index) => ({
 			src: frame.src,
-			durationMs: frame.durationMs ?? 1000,
+			durationMs: frame.durationMs ?? DEFAULT_FRAME_DURATION_MS,
 			bakeConfig: resolveFrameBakeConfig(frame.bakeConfig),
 			originalIndex: index
 		}));

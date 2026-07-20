@@ -3,6 +3,7 @@ import './KeyBed.js';
 
 const VALID_MODES = new Set(['edit', 'select', 'filter', 'play']);
 const UI_MODES = ['edit', 'filter', 'play'];
+const DEFAULT_PREVIEW_VELOCITY = 100;
 
 const MODE_LABELS = {
 	edit: 'Edit',
@@ -625,7 +626,7 @@ class PianoRoll extends HTMLElement {
 					detail: {
 						note,
 						clipId,
-						velocity: 100,
+						velocity: DEFAULT_PREVIEW_VELOCITY,
 						mappings: noteMappings
 					}
 				})

@@ -49,7 +49,7 @@ class LayerManager {
 		this.#layerGroupB = new LayerGroup(channelMapping.layerGroupB);
 		this.#layerGroupC = new LayerGroup(channelMapping.layerGroupC);
 
-		this.#maskManager = new MaskManager();
+		this.#maskManager = new MaskManager({ settings });
 		this.#effectsManager = new EffectsManager();
 
 		this.#reservedChannels = new Set(channelMapping.reserved);

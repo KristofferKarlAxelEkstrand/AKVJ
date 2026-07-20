@@ -113,13 +113,24 @@ if (summary) {
         ['pid', agent => (agent.pid === null ? '—' : agent.pidAlive ? String(agent.pid) : 'gone')],
         ['heartbeat', agent => (agent.heartbeatAge === null ? 'never' : `${agent.heartbeatAge}s`)],
         ['pane', agent => (panes.size === 0 ? '—' : (panes.get(agent.agent) ?? 'missing'))],
-        ['awaiting', agent => agent.awaiting?.waitingOn ?? '—'],
-        ['task', agent => agent.task ?? '—']
-    ];
+		[
+			'awaiting',
+			agent => {
+				const waitingOn = agent.awaiting?.waitingOn;
+				if (waitingOn == null || waitingOn === '') {
+					return '—';
+				}
+				return Array.isArray(waitingOn) ? waitingOn.join(',') : String(waitingOn);
+			}
+		],
+		['task', agent => agent.task ?? '—']
+	];
 
-    const rows = enabled.map(agent => columns.map(([, read]) => read(agent)));
-    const widths = columns.map(([heading], index) => Math.max(heading.length, ...rows.map(row => row[index].length)));
-    const render = cells => cells.map((cell, index) => cell.padEnd(widths[index])).join('  ').trimEnd();
+	const rows = enabled.map(agent => columns.map(([, read]) => read(agent)));
+	const widths = columns.map(([heading], index) =>
+		Math.max(heading.length, ...rows.map(row => String(row[index] ?? '').length))
+	);
+	const render = cells => cells.map((cell, index) => String(cell ?? '').padEnd(widths[index])).join('  ').trimEnd();
 
     console.log(render(columns.map(([heading]) => heading)));
     console.log(render(widths.map(width => '─'.repeat(width))));

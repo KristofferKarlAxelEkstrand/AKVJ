@@ -11,7 +11,7 @@
  * Pre-sorts velocity thresholds for efficient lookup during MIDI processing.
  *
  * @public
- * @param {Object<string, Object>} clipsByNote - Clips keyed by note, then velocity
+ * @param {Object<string, Object<string, Clip>>} clipsByNote - Clips keyed by note, then velocity
  * @returns {Map<number, number[]>} Map of note number -> sorted velocity threshold array
  * @example
  * const clips = { 60: { 0: clip1, 64: clip2, 100: clip3 } };

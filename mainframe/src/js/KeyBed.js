@@ -53,7 +53,7 @@ class KeyBed extends HTMLElement {
 		}
 		for (const key of this.#keys) {
 			const noteMappings = channelMappings.filter(mapping => mapping.note === key.note).sort((a, b) => a.velocity - b.velocity);
-			if (mode === 'edit' || mode === 'filter') {
+			if (mode === 'edit' || mode === 'filter' || mode === 'select') {
 				const bands = buildVelocityBands(noteMappings);
 				key.velocityBands = bands;
 				key.mapped = bands.length > 0;

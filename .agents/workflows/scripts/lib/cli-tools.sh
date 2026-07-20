@@ -257,8 +257,14 @@ cli_tools_fetch_models() {
 					| if type == "object" then (.id // .name // .model // empty) else . end
 				' 2>/dev/null | awk 'NF' | sort -u
 			else
-				printf '%s\n' "$out" | grep -vE '^(Error|Usage|Options|Authentication)' \
-					| awk 'NF && !/^[[:space:]]*-/' | sed 's/^[[:space:]]*//' | sort -u
+				# Text listing is "id - Label" (and a header). Pre-flight matches
+				# exact model IDs like cursor-grok-4.5-high — strip the label.
+				printf '%s\n' "$out" \
+					| grep -vE '^(Error|Usage|Options|Authentication|Available models|Tip:)' \
+					| awk 'NF && !/^[[:space:]]*-/' \
+					| sed 's/^[[:space:]]*//; s/[[:space:]]*-[[:space:]].*$//' \
+					| awk 'NF && $0 !~ / /' \
+					| sort -u
 			fi
 			;;
 		*)

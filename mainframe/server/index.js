@@ -27,6 +27,13 @@ export function createMainframeServer() {
 		try {
 			await routeRequest(req, res, url);
 		} catch (error) {
+			if (res.headersSent) {
+				return;
+			}
+			if (error?.statusCode === 413) {
+				sendJson(res, 413, { error: error.message || 'Payload Too Large' });
+				return;
+			}
 			console.error(error);
 			sendJson(res, 500, { error: error.message || 'Server error' });
 		}

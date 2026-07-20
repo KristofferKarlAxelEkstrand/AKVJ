@@ -1,6 +1,6 @@
 # The Test Marshal — Coverage Log
 
-### 2026-07-20 12:39 — Swept akvj/src/js/visuals; found stale test (clipMetadata.test.js codifies wrong frameDurationsMs priority) and missing regression tests for frameDurationsMs propagation and BPM max clamp. Filed [TEST]-akvj-visuals-frameDurationsMs-coverage.md.
+### 2026-07-20 14:47 — Human lock: preview always nearest (skip smooth-preview tests); 365 still valid. Filed [TEST]-mainframe-preview-nearest-lock.md (mocks seed false, never prove assignment). Left aesthetics-scaling-lock broadcast.
 
 ## Digest
 
@@ -151,29 +151,52 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-19 | akvj/src/js/visuals/ | `Clip.js`, `LayerGroup.js`, `LayerManager.js` | Scrub playback chain: `Clip.setScrubPosition`, `LayerGroup.setScrubPosition`, and `LayerManager`… [2026, 07, 19, 16]
 - 2026-07-19 | mainframe editor/controller | `AkvjMainframe.js`, `ClipEditorController.js`, `PreviewClip.js`, `StagingPreview.js`, `PianoRoll.js`, `ProjectChooser.js`, `RoleChoices/S…
 - 2026-07-19 | flake hunt (akvj/test) | `ProjectCatalog.test.js`, `Clip.test.js` | Two low-trust assertions: `ProjectCatalog` cache-busting test branches on `import.meta.env.DEV` so … [2026, 07, 19]
+- 2026-07-19 | akvj core | `AppState.js`, `AdventureKidVideoJockey.js`, `midi-input/Midi.js`, `settings.js`, `utils/` | All core modules have dedicated tests: AppState (bpm, CC, cloc…
+- 2026-07-20 | mainframe server/pipeline | `spritesheet-core.js`, `clipCatalog.js`, `server/handlers/clips.js`, `server/handlers/misc.js` | Rechecked previously-open tickets. `mainfr…
+- 2026-07-20 | e2e/smoke | `e2e/mainframe.spec.js`, `e2e/akvj.spec.js`, smoke scripts | Rechecked previously-open ticket. `mainframe.spec.js` asserts `toHaveValue('')` for disabled g…
+- 2026-07-20 | flake hunt / akvj visuals | `akvj/test/effects.test.js`, `akvj/test/Clip.test.js`, `akvj/test/LayerGroup.test.js`, `akvj/test/LayerManager.test.js`, `akvj/test/Project…
+- 2026-07-20 | flake hunt / mainframe preview | `akvj/test/ClipTiming.test.js`, `mainframe/test/PreviewClip.test.js` | Rechecked open ticket. `ClipTiming.test.js:253` now contains a …
+- Area: `akvj/src/js/visuals, akvj/src/js/midi-input, mainframe/server`
+- Area: `.agents/workflows/scripts`
+- Area: `akvj/src/js/core, akvj/src/js/utils`
+- Area: `akvj/src/js/visuals`
+- Area: `.agents/workflows/scripts`
+- Refs: 348
+- Area: `akvj/src/js/visuals`
+- Area: `akvj/src/js/, mainframe/src/js/`
+- Area: `akvj/src/js/visuals`
+- Area: `mainframe/src/js/`
+- Area: `akvj/src/js/visuals`
+- Refs: [TEST]-visuals-clipDrawRect.md
+- Area: `mainframe/server,mainframe/scripts/clips,mainframe/src/js`
+- Refs: TEST-mainframe-scaling-coverage
+- Area: `mainframe/src/js/PianoRoll.js,mainframe/src/js/KeyBed.js`
 
 ## Recent
 
-- 2026-07-19 | akvj core | `AppState.js`, `AdventureKidVideoJockey.js`, `midi-input/Midi.js`, `settings.js`, `utils/` | All core modules have dedicated tests: AppState (bpm, CC, clock, transport, project lifecycle, messages), AdventureKidVideoJockey (connected/disconnect, project switch, clip load error, MIDI routing), Midi (hotplug, message routing), settings (immutable defaults), velocitySelection, Fullscreen, DebugOverlay. No high-signal gaps. | (clean)
+- Refs: TEST-mainframe-select-filter-alias-coverage
 
-- 2026-07-20 | mainframe server/pipeline | `spritesheet-core.js`, `clipCatalog.js`, `server/handlers/clips.js`, `server/handlers/misc.js` | Rechecked previously-open tickets. `mainframe/test/spritesheet-core.test.js` (430 lines) now covers all helper functions and branches. `mainframe/test/clipCatalog.test.js` (233 lines) covers catalog error/edge paths. `server.test.js` covers handler edge branches (serveSprite ENOENT, sprite.png fallback, invalid png guard, invalid/unreadable/missing meta.json, recompile scaleMode fallback, frameDurations conversion, expand-gif aliases/empty/throw). No new gaps to file. | (clean)
+- Area: `akvj/test/visual`
 
-- 2026-07-20 | e2e/smoke | `e2e/mainframe.spec.js`, `e2e/akvj.spec.js`, smoke scripts | Rechecked previously-open ticket. `mainframe.spec.js` asserts `toHaveValue('')` for disabled global duration and has a staged-frames case; mapping add/remove lifecycle test is deterministic. `akvj.spec.js` uses `test.use({ baseURL })` and `page.goto('/')` with no hardcoded URLs or sleeps. Smoke scripts use `.smoke.js` suffix and centralized `pollUrl`; no orphan `.test.js` files. No new gaps to file. | (clean)
+- Refs: TEST-akvj-visual-grayscale-effects
 
-- 2026-07-20 | flake hunt / akvj visuals | `akvj/test/effects.test.js`, `akvj/test/Clip.test.js`, `akvj/test/LayerGroup.test.js`, `akvj/test/LayerManager.test.js`, `akvj/test/ProjectCatalog.test.js` | Rechecked three open tickets. `effects.test.js` glitch small-scratch test now asserts `result===true`, `img.data` mutated, `smallScratch` unchanged. `Clip.test.js` invalid/null `frameRatesForFrames` tests assert `ctx.drawImage` called and `currentFrame>0`; single-frame and shuffle reset tests assert `drawImage` count and `currentFrame`/pool state; `Clip` scrub tests cover `setScrubPosition` mapping and clamping. `LayerGroup.test.js` covers `setScrubPosition` routing by `playbackMode`. `LayerManager.test.js` covers CC 16-19 scrub routing and unmapped CC. `ProjectCatalog.test.js` splits cache-busting into `DEV=true` and `DEV=false` with `vi.stubEnv`. No new gaps to file. | (clean)
+- Area: `e2e,mainframe/test/visual`
 
-- 2026-07-20 | flake hunt / mainframe preview | `akvj/test/ClipTiming.test.js`, `mainframe/test/PreviewClip.test.js` | Rechecked open ticket. `ClipTiming.test.js:253` now contains a real MIDI Start test, no vacuous `expect(true).toBe(true)`. `PreviewClip.test.js` (501 lines) covers all filed playback modes (once, reverse, random, scrub, pingpong, shuffle), loadClip 4xx/5xx/malformed/empty/error paths, `normalizeDurationsMs` fallback, `getFrameIntervalMs` speed division, `attributeChangedCallback` for clip-id/playback-mode/is-playing/current-frame, `currentFrame` clamping, and `disconnectedCallback` cleanup. Minor residual: `flushPromises()` still uses `setTimeout(resolve, 0)`; below new-ticket threshold since coverage is now solid. | (clean)
+- Refs: TEST-e2e-visual-piano-roll-coverage,367
 
-- Area: `akvj/src/js/visuals, akvj/src/js/midi-input, mainframe/server`
+- Area: `mainframe/src/js/mainframeState.js`
 
-- Area: `.agents/workflows/scripts`
+- Refs: TEST-mainframe-state-pianoroll-filters
 
-- Area: `akvj/src/js/core, akvj/src/js/utils`
+- Area: `mainframe/src/js/PianoRoll.js`
 
-- Area: `akvj/src/js/visuals`
+- Refs: TEST-mainframe-pianoroll-layer-role-filters
 
-- Area: `.agents/workflows/scripts`
+- Area: `mainframe/src/js/PreviewClip.js,StagingPreview.js`
 
-- Refs: 348
+- Refs: TEST-mainframe-preview-nearest-lock,365
 
-- Area: `akvj/src/js/visuals`
+### 2026-07-20 14:49 — Aesthetics-scaling broadcast already handled (left). Verified 367/371/375/372 landed. Filed [TEST]-mainframe-simplerouter-popstate.md — popstate test has zero expects.
+
+- Area: `mainframe/test/SimpleRouter.test.js`
+- Refs: TEST-mainframe-simplerouter-popstate

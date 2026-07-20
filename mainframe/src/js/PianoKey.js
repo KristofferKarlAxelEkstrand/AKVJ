@@ -6,6 +6,7 @@ const VELOCITY_RANGE = 128;
 const MIN_VELOCITY_GAP = 1;
 const MIN_REGION_LABEL_HEIGHT_PX = 14;
 const MIN_REGION_VELOCITY = 2;
+const HUE_DEGREES = 360;
 
 /**
  * @param {number} note - MIDI note number (0–127)
@@ -42,7 +43,7 @@ function clipHue(clipId) {
 	for (let index = 0; index < clipId.length; index++) {
 		hash = (hash * 31 + clipId.charCodeAt(index)) >>> 0;
 	}
-	return hash % 360;
+	return hash % HUE_DEGREES;
 }
 
 /**

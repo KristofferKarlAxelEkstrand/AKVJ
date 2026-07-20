@@ -109,8 +109,8 @@ class UserMessages extends HTMLElement {
 
 		if (this.#messages.length > 0) {
 			queueMicrotask(() => {
-				const top = this.#messageStackElement?.querySelector('akvj-user-message');
-				top?.focusOk?.();
+				const topMessageElement = this.#messageStackElement?.querySelector('akvj-user-message');
+				topMessageElement?.focusOk?.();
 			});
 		}
 	}
@@ -131,11 +131,11 @@ class UserMessages extends HTMLElement {
 	}
 
 	#trapTab(event) {
-		const top = this.#messageStackElement?.querySelector('akvj-user-message');
-		if (!top) {
+		const topMessageElement = this.#messageStackElement?.querySelector('akvj-user-message');
+		if (!topMessageElement) {
 			return;
 		}
-		const focusable = top.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+		const focusable = topMessageElement.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
 		if (focusable.length === 0) {
 			event.preventDefault();
 			return;
@@ -155,9 +155,9 @@ class UserMessages extends HTMLElement {
 		if (this.#messages.length === 0 || this.hidden) {
 			return;
 		}
-		const top = this.#messageStackElement?.querySelector('akvj-user-message');
-		if (top && !top.contains(event.target)) {
-			top.focusOk?.();
+		const topMessageElement = this.#messageStackElement?.querySelector('akvj-user-message');
+		if (topMessageElement && !topMessageElement.contains(event.target)) {
+			topMessageElement.focusOk?.();
 		}
 	}
 }

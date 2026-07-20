@@ -155,6 +155,69 @@ fi
 
 # ---------------------------------------------------------------------------
 echo ""
+echo "monitor: skip disabled agents"
+# ---------------------------------------------------------------------------
+# Leftover heartbeat + restart request for an enabled:false agent must not
+# restart it or escalate a flap question (live defect on health-inspector).
+agent_config "retired" ',"enabled":false'
+tmux split-window -h -t "$SESSION:agents" 2>/dev/null || true
+sleep 0.3
+retired_pane_id=$(tmux display-message -p -t "$SESSION:agents.2" '#{pane_id}' 2>/dev/null || true)
+if [ -n "$retired_pane_id" ]; then
+    jq -n --arg id "$retired_pane_id" --arg a "retired" --argjson i 2 \
+        '{agent:$a,pane_id:$id,pane_index:$i,cli:"claude"}' > "$WF/health/retired-pane.json"
+fi
+echo '{"ts":1}' > "$WF/health/heartbeats/retired.json"
+touch -d '8 minutes ago' "$WF/health/heartbeats/retired.json"
+echo '{"reason":"stuck"}' > "$WF/health/restart-requests/retired.json"
+mkdir -p "$WF/health/alerts" "$WF/mail/out"
+printf '{"agent":"retired","since":"2026-01-01T00:00:00Z","reason":"stale"}\n' \
+    > "$WF/health/alerts/retired.json"
+rm -f "$WF/mail/out/question-retired-flapping.md"
+
+DISABLED_OUT="$(cd "$TMP_ROOT" && timeout 25 bash "$SCRIPTS/run-team" --monitor "$WORKFLOW" 2>&1)"
+
+if echo "$DISABLED_OUT" | grep -qiE "Restarting.*retired|restarted successfully.*retired|Found restart request for: retired"; then
+    fail "disabled agent is not restarted" "$(echo "$DISABLED_OUT" | grep -i retired | head -5)"
+else
+    pass "disabled agent is not restarted"
+fi
+
+if echo "$DISABLED_OUT" | grep -q "disabled agent: retired"; then
+    pass "disabled agent skip is logged"
+else
+    fail "disabled agent skip is logged" "$(echo "$DISABLED_OUT" | grep -i retired | head -5)"
+fi
+
+if [ -f "$WF/health/heartbeats/retired.json" ]; then
+    fail "disabled agent heartbeat is pruned" "heartbeat still present"
+else
+    pass "disabled agent heartbeat is pruned"
+fi
+
+if [ -f "$WF/health/restart-requests/retired.json" ]; then
+    fail "disabled agent restart request is pruned" "request still present"
+else
+    pass "disabled agent restart request is pruned"
+fi
+
+if [ -f "$WF/health/alerts/retired.json" ]; then
+    fail "disabled agent alert is cleared" "alert still present"
+else
+    pass "disabled agent alert is cleared"
+fi
+
+if [ -f "$WF/mail/out/question-retired-flapping.md" ]; then
+    fail "disabled agent does not escalate flap" "question-retired-flapping.md was filed"
+else
+    pass "disabled agent does not escalate flap"
+fi
+
+rm -f "$WF/co-workers/retired.prompt.json" "$WF/co-workers/retired.prompt.md" \
+    "$WF/health/retired-pane.json"
+
+# ---------------------------------------------------------------------------
+echo ""
 echo "shell quoting (apostrophe injection)"
 # ---------------------------------------------------------------------------
 # Source only the quoting helpers — do not execute run-team's top-level side effects.
@@ -164,6 +227,7 @@ eval "$(sed -n \
     -e '/^shell_quote()/,/^}/p' \
     -e '/^cli_permission_args()/,/^}/p' \
     -e '/^cli_turn_command()/,/^}/p' \
+    -e '/^cli_session_command()/,/^}/p' \
     -e '/^oneshot_loop_command()/,/^}/p' \
     "$SCRIPTS/run-team")"
 
@@ -253,7 +317,7 @@ fi
 
 # ---------------------------------------------------------------------------
 echo ""
-echo "cli_turn_command: prompt handoff + antigravity timeout"
+echo "cli_turn_command / cli_session_command: prompt handoff"
 # ---------------------------------------------------------------------------
 HANDOFF_PROMPT="$TMP_ROOT/handoff-prompt.txt"
 printf 'prompt body\n' > "$HANDOFF_PROMPT"
@@ -277,21 +341,40 @@ else
     fail "copilot hands the prompt via --prompt \"\$(cat …)\"" "got: $COPILOT_TURN"
 fi
 
-AGY_TURN=$(cli_turn_command antigravity "$HANDOFF_BIN" "" "$HANDOFF_PROMPT" dangerously-skip-permissions)
-if [[ "$AGY_TURN" == *"--print-timeout ${HUNG_AGENT_SECONDS}s"* ]]; then
-    pass "antigravity --print-timeout matches HUNG_AGENT_SECONDS ($HUNG_AGENT_SECONDS)"
+AKVJ_ROOT="$TMP_ROOT" CURSOR_SESSION=$(cli_session_command cursor "$HANDOFF_BIN" "cursor-grok-4.5-high" "$HANDOFF_PROMPT" force)
+if [[ "$CURSOR_SESSION" == *"--workspace"* ]] \
+    && [[ "$CURSOR_SESSION" == *"--force"* ]] \
+    && [[ "$CURSOR_SESSION" == *"--model"* ]] \
+    && [[ "$CURSOR_SESSION" != *"--print"* ]] \
+    && [[ "$CURSOR_SESSION" == *'$(cat '* ]]; then
+    pass "cursor hands the prompt via interactive session \"\$(cat …)\""
 else
-    fail "antigravity --print-timeout matches HUNG_AGENT_SECONDS ($HUNG_AGENT_SECONDS)" "got: $AGY_TURN"
+    fail "cursor hands the prompt via interactive session \"\$(cat …)\"" "got: $CURSOR_SESSION"
 fi
 
-if [[ "$AGY_TURN" == *'--print "$(cat '* ]] && [[ "$AGY_TURN" != *" < "* ]]; then
-    pass "antigravity hands the prompt via --print \"\$(cat …)\""
+AKVJ_ROOT="$TMP_ROOT" AGY_SESSION=$(cli_session_command antigravity "$HANDOFF_BIN" "" "$HANDOFF_PROMPT" dangerously-skip-permissions)
+if [[ "$AGY_SESSION" == *"--add-dir"* ]]; then
+    pass "antigravity pins the workspace with --add-dir"
 else
-    fail "antigravity hands the prompt via --print \"\$(cat …)\"" "got: $AGY_TURN"
+    fail "antigravity pins the workspace with --add-dir" "got: $AGY_SESSION"
+fi
+if [[ "$AGY_SESSION" == *'--prompt-interactive "$(cat '* ]] \
+    && [[ "$AGY_SESSION" != *"--print"* ]] \
+    && [[ "$AGY_SESSION" != *" < "* ]]; then
+    pass "antigravity hands the prompt via --prompt-interactive \"\$(cat …)\""
+else
+    fail "antigravity hands the prompt via --prompt-interactive \"\$(cat …)\"" "got: $AGY_SESSION"
+fi
+
+DEVIN_SESSION=$(cli_session_command devin "$HANDOFF_BIN" "" "$HANDOFF_PROMPT" bypassPermissions)
+if [[ "$DEVIN_SESSION" == *"--prompt-file "* ]] && [[ "$DEVIN_SESSION" != *"--print"* ]]; then
+    pass "devin hands the prompt via --prompt-file"
+else
+    fail "devin hands the prompt via --prompt-file" "got: $DEVIN_SESSION"
 fi
 
 # Prove the unexpanded $(cat …) actually feeds the prompt text as an argv value
-# once the pane shell expands it (copilot/antigravity path).
+# once the pane shell expands it (copilot / cursor / antigravity interactive path).
 cat > "$TMP_ROOT/bin/argdump" <<'STUB'
 #!/bin/bash
 printf '%s\0' "$@" > "${ARGDUMP_OUT:?}"
@@ -307,6 +390,26 @@ if echo "$DUMPED" | grep -qx "prompt body"; then
     pass "copilot \$(cat …) expands to the prompt file contents as an argument"
 else
     fail "copilot \$(cat …) expands to the prompt file contents as an argument" "argv dump: $DUMPED"
+fi
+
+rm -f "$ARGDUMP_OUT"
+AKVJ_ROOT="$TMP_ROOT" DUMP_CURSOR=$(cli_session_command cursor "$TMP_ROOT/bin/argdump" "cursor-grok-4.5-high" "$HANDOFF_PROMPT" force)
+bash -c "$DUMP_CURSOR"
+DUMPED=$(tr '\0' '\n' < "$ARGDUMP_OUT")
+if echo "$DUMPED" | grep -qx "prompt body"; then
+    pass "cursor \$(cat …) expands to the prompt file contents as an argument"
+else
+    fail "cursor \$(cat …) expands to the prompt file contents as an argument" "argv dump: $DUMPED"
+fi
+
+rm -f "$ARGDUMP_OUT"
+AKVJ_ROOT="$TMP_ROOT" DUMP_SESSION=$(cli_session_command antigravity "$TMP_ROOT/bin/argdump" "" "$HANDOFF_PROMPT" dangerously-skip-permissions)
+bash -c "$DUMP_SESSION"
+DUMPED=$(tr '\0' '\n' < "$ARGDUMP_OUT")
+if echo "$DUMPED" | grep -qx "prompt body"; then
+    pass "antigravity \$(cat …) expands to the prompt file contents as an argument"
+else
+    fail "antigravity \$(cat …) expands to the prompt file contents as an argument" "argv dump: $DUMPED"
 fi
 
 # ---------------------------------------------------------------------------

@@ -118,6 +118,36 @@ test('clip sort choices has all options', async ({ page }) => {
 	await expect(options.nth(3)).toHaveText('Frames');
 });
 
+test('library piano roll mounts in filter mode with key-bed', async ({ page }) => {
+	await page.goto('/');
+	const libraryRoll = page.locator('#library-piano-roll');
+	await expect(libraryRoll).toBeVisible();
+	await expect(libraryRoll.locator('key-bed')).toBeVisible();
+	await expect(libraryRoll).toHaveAttribute('mode', 'filter');
+	await expect(libraryRoll.locator('.piano-roll-mode-button[data-mode="filter"]')).toHaveClass(/is-active/);
+	await expect(libraryRoll.locator('.piano-roll-mode-button[data-mode="filter"]')).toHaveAttribute('aria-selected', 'true');
+});
+
+test('mapping piano roll mounts in edit mode with key-bed', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('[data-tab="mapping"]').click();
+	const mappingRoll = page.locator('#mapping-piano-roll');
+	await expect(mappingRoll).toBeVisible();
+	await expect(mappingRoll.locator('key-bed')).toBeVisible();
+	await expect(mappingRoll).toHaveAttribute('mode', 'edit');
+	await expect(mappingRoll.locator('.piano-roll-mode-button[data-mode="edit"]')).toHaveClass(/is-active/);
+});
+
+test('mapping piano roll can switch to filter mode', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('[data-tab="mapping"]').click();
+	const mappingRoll = page.locator('#mapping-piano-roll');
+	await mappingRoll.locator('.piano-roll-mode-button[data-mode="filter"]').click();
+	await expect(mappingRoll).toHaveAttribute('mode', 'filter');
+	await expect(mappingRoll.locator('.piano-roll-filter-view')).not.toHaveAttribute('hidden');
+	await expect(mappingRoll.locator('.piano-roll-filter-controls')).toBeVisible();
+});
+
 test('mapping table view loads and displays mapping entries or empty state', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('[data-tab="mapping"]').click();

@@ -7,7 +7,7 @@
 import settings from '../core/settings.js';
 import ClipTiming from './ClipTiming.js';
 import PlaybackController from './PlaybackController.js';
-import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawScaled, drawStretch } from './clipDrawRect.js';
+import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawStretch, drawWithScaleMode } from './clipDrawRect.js';
 import { DEFAULT_SCALING, SCALING_MODES } from './clipMetadata.js';
 
 export { MAX_PATTERN_TILES_PER_FRAME };
@@ -15,7 +15,7 @@ export { MAX_PATTERN_TILES_PER_FRAME };
 class Clip {
 	// Configuration (immutable after construction)
 	#image;
-	#numberOfFrames;
+	#frameCount;
 	#framesPerRow;
 	#frameWidth;
 	#frameHeight;
@@ -90,7 +90,7 @@ class Clip {
 
 	#initCoreFields(image, frames, framesPerRow, bitDepth) {
 		this.#image = image;
-		this.#numberOfFrames = frames;
+		this.#frameCount = frames;
 		this.#framesPerRow = framesPerRow;
 		this.#bitDepth = bitDepth;
 	}
@@ -191,7 +191,7 @@ class Clip {
 		ctx.imageSmoothingEnabled = isSmooth;
 		ctx.imageSmoothingQuality = isSmooth ? 'high' : settings.rendering.imageSmoothingQuality;
 
-		const drawFrame = Math.min(this.#playback.frame, this.#numberOfFrames - 1);
+		const drawFrame = Math.min(this.#playback.frame, this.#frameCount - 1);
 		const frameRow = Math.floor(drawFrame / this.#framesPerRow);
 		const frameColumn = drawFrame - frameRow * this.#framesPerRow;
 		const sourceX = this.#frameWidth * frameColumn;
@@ -202,7 +202,7 @@ class Clip {
 		} else if (this.#scaleMode === 'stretch') {
 			drawStretch(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight);
 		} else {
-			drawScaled(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#scaleMode, this.#placement);
+			drawWithScaleMode(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#scaleMode, this.#placement);
 		}
 	}
 

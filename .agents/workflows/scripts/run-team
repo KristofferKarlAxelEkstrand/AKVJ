@@ -23,7 +23,7 @@ STALE_HEARTBEAT_SECONDS=300
 # wedged rather than busy. Must comfortably exceed a long working turn.
 HUNG_AGENT_SECONDS=1800
 RESTART_COOLDOWN_SECONDS=120
-# Floor for one-shot CLI loops (claude / copilot / antigravity). An unauthenticated
+# Floor for one-shot CLI loops (claude / copilot). An unauthenticated
 # binary exits in milliseconds; if wait_script also returns fast, bare `while true`
 # spins and pane_current_command almost always shows the CLI — so pane_has_live_cli
 # reports "alive" and the monitor cannot intervene until HUNG_AGENT_SECONDS.
@@ -56,14 +56,13 @@ fi
 #
 # This list is narrower than the lib's CLI_TOOLS_KNOWN on purpose: hosting an
 # unattended agent needs a permission mode and launch flags, not just a binary
-# path. `cursor` is detectable and has a model catalog but no entry in
-# cli_default_permission_mode, so it cannot be launched here.
+# path.
 #
 # Discovery is non-fatal — a missing binary only fails the agents that ask for
 # that cli, at pre-flight and at launch.
 # ---------------------------------------------------------------------------
 
-SUPPORTED_CLIS=(devin claude copilot antigravity)
+SUPPORTED_CLIS=(devin claude copilot antigravity cursor)
 
 is_supported_cli() {
     local candidate="$1" supported
@@ -73,10 +72,16 @@ is_supported_cli() {
     return 1
 }
 
-# Only devin holds a session open across turns. The others run a single prompt
-# and exit, so they get wrapped in a shell loop with the wait script as the
-# blocking step — see launch_agent_in_pane.
-cli_is_persistent() { [ "$1" = "devin" ]; }
+# Devin, antigravity, and cursor hold a session open across turns. Claude/copilot
+# run a single prompt and exit, so they get wrapped in a shell loop with the
+# wait script as the blocking step — see launch_agent_in_pane.
+#
+# Cursor and antigravity use a live TUI. Cursor's --print mode was oneshot but
+# left panes blank for minutes (no streaming) while the sleep-step still told
+# the agent to background await-messages — a persistent-session instruction.
+cli_is_persistent() {
+    [ "$1" = "devin" ] || [ "$1" = "antigravity" ] || [ "$1" = "cursor" ]
+}
 
 # Every agent runs unattended, so each default is that CLI's "never prompt me"
 # setting. Model default is per-CLI too: an empty value means "pass no --model
@@ -87,6 +92,7 @@ cli_default_permission_mode() {
         claude)      echo "bypassPermissions" ;;
         copilot)     echo "allow-all-tools" ;;
         antigravity) echo "dangerously-skip-permissions" ;;
+        cursor)      echo "force" ;;
     esac
 }
 
@@ -103,6 +109,7 @@ cli_valid_permission_modes() {
         claude)      echo "bypassPermissions default acceptEdits" ;;
         copilot)     echo "allow-all-tools allow-all default" ;;
         antigravity) echo "dangerously-skip-permissions accept-edits plan default" ;;
+        cursor)      echo "force yolo auto-review plan ask default" ;;
     esac
 }
 
@@ -319,9 +326,12 @@ validate_all_agents() {
 
         # copilot's own help: --allow-all-tools is "required for non-interactive
         # mode". Without it the agent stops on the first tool confirmation with
-        # nobody at the pane to answer.
+        # nobody at the pane to answer. Same for cursor without --force.
         if [ "$cli" = "copilot" ] && [ "$permission_mode" = "default" ]; then
             warnings+=("[$agent_name] cli=copilot with permission_mode 'default' will block on tool confirmations — use allow-all-tools")
+        fi
+        if [ "$cli" = "cursor" ] && [ "$permission_mode" = "default" ]; then
+            warnings+=("[$agent_name] cli=cursor with permission_mode 'default' will block on tool confirmations — use force")
         fi
 
         if [ -z "$wait_script" ]; then
@@ -358,7 +368,7 @@ shell_quote() {
 }
 
 # Translate the config's permission_mode into that CLI's own flags.
-# Prints nothing when the mode needs no flag (copilot/antigravity "default").
+# Prints nothing when the mode needs no flag (copilot/antigravity/cursor "default").
 cli_permission_args() {
     local cli="$1" mode="$2"
     [ -n "$mode" ] || return 0
@@ -376,20 +386,21 @@ cli_permission_args() {
                 dangerously-skip-permissions) printf -- "--dangerously-skip-permissions" ;;
                 accept-edits|plan)            printf -- '--mode %q' "$mode" ;;
             esac ;;
+        cursor)
+            case "$mode" in
+                force|yolo)  printf -- "--force" ;;
+                auto-review) printf -- "--auto-review" ;;
+                plan|ask)    printf -- '--mode %q' "$mode" ;;
+            esac ;;
     esac
 }
 
-# Build the command for ONE turn of a non-persistent CLI.
+# Build the command for ONE turn of a non-persistent CLI (claude / copilot).
 #
 # How the prompt is handed over differs per CLI: claude reads stdin, while
-# copilot's --prompt and antigravity's --print each require the text as an
-# argument value (neither falls back to stdin). The unexpanded "$(cat …)" is
-# deliberate — the pane's own shell expands it, so a long prompt never has to
-# survive tmux send-keys as literal keystrokes.
-#
-# antigravity's --print defaults to a 5 minute timeout, which would cut off any
-# ordinary working turn. It is pinned to the same ceiling the health monitor
-# uses to declare an agent wedged, so the CLI never gives up before we do.
+# copilot's --prompt requires the text as an argument value (no stdin fallback).
+# The unexpanded "$(cat …)" is deliberate — the pane's own shell expands it, so
+# a long prompt never has to survive tmux send-keys as literal keystrokes.
 #
 # Every interpolated value uses %q — see shell_quote — so apostrophes in model
 # names or prompt paths cannot break out of the pane command.
@@ -401,10 +412,53 @@ cli_turn_command() {
     permission_args=$(cli_permission_args "$cli" "$permission_mode")
 
     case "$cli" in
-        claude)      printf '%q %s %s < %q' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
-        copilot)     printf '%q %s %s --prompt "$(cat %q)"' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
-        antigravity) printf '%q %s %s --print-timeout %qs --print "$(cat %q)"' \
-                         "$bin" "$model_args" "$permission_args" "$HUNG_AGENT_SECONDS" "$prompt_file" ;;
+        claude)  printf '%q %s %s < %q' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
+        copilot) printf '%q %s %s --prompt "$(cat %q)"' "$bin" "$model_args" "$permission_args" "$prompt_file" ;;
+        *)
+            echo "Error: cli_turn_command has no oneshot recipe for cli=$cli" >&2
+            return 1
+            ;;
+    esac
+}
+
+# Build the long-lived session command for a persistent CLI
+# (devin / antigravity / cursor).
+#
+# Antigravity does **not** treat cwd as the workspace — without --add-dir it
+# invents a scratch project under ~/.gemini/… and cannot see this repo.
+# Cursor pins --workspace the same way.
+cli_session_command() {
+    local cli="$1" bin="$2" model="$3" prompt_file="$4" permission_mode="$5"
+
+    local model_args="" permission_args
+    [ -n "$model" ] && printf -v model_args -- '--model %q' "$model"
+    permission_args=$(cli_permission_args "$cli" "$permission_mode")
+
+    case "$cli" in
+        devin)
+            printf '%q %s %s --prompt-file %q' \
+                "$bin" "$model_args" "$permission_args" "$prompt_file"
+            ;;
+        antigravity)
+            local add_dir
+            add_dir="${AKVJ_ROOT:-$(pwd)}"
+            # Live TUI: agent follows sleep-step and backgrounds await-messages itself.
+            printf '%q %s %s --add-dir %q --prompt-interactive "$(cat %q)"' \
+                "$bin" "$model_args" "$permission_args" "$add_dir" "$prompt_file"
+            ;;
+        cursor)
+            local workspace
+            workspace="${AKVJ_ROOT:-$(pwd)}"
+            # Live TUI (no --print). Matches sleep-step: background await, end turn,
+            # keep session. --trust is print-only; workspace is already trusted after
+            # prior headless runs, and --force covers tool approvals.
+            printf '%q --workspace %q %s %s "$(cat %q)"' \
+                "$bin" "$workspace" "$model_args" "$permission_args" "$prompt_file"
+            ;;
+        *)
+            echo "Error: cli_session_command has no session recipe for cli=$cli" >&2
+            return 1
+            ;;
     esac
 }
 
@@ -419,17 +473,25 @@ oneshot_loop_command() {
     local wait_script="$2"
     local floor="${3:-$ONESHOT_MIN_LOOP_SECONDS}"
 
-    printf 'while true; do _loop_start=$(date +%%s); %s; %s; _loop_elapsed=$(( $(date +%%s) - _loop_start )); [ "$_loop_elapsed" -lt %d ] && sleep $(( %d - _loop_elapsed )); done' \
+    # Echo markers so a silent oneshot CLI does not look dead in the pane for
+    # the whole turn. Dates help spot hung turns.
+    printf 'while true; do _loop_start=$(date +%%s); echo "[$(date -Iseconds)] starting CLI turn…"; %s; echo "[$(date -Iseconds)] CLI turn finished (exit $?)"; %s; _loop_elapsed=$(( $(date +%%s) - _loop_start )); [ "$_loop_elapsed" -lt %d ] && sleep $(( %d - _loop_elapsed )); done' \
         "$turn_cmd" "$wait_script" "$floor" "$floor"
 }
 
 # Launch the right CLI in a tmux pane.
 #
-# Persistent CLIs (devin) take the prompt by file and stay running; the wait
-# script is sent afterwards as a follow-up command.
+# Persistent CLIs (devin, antigravity, cursor) take the prompt and stay running;
+# the agent follows sleep-step and backgrounds await-messages itself. Devin also
+# gets the wait script typed in after a short settle (its TUI accepts it).
+# Cursor/antigravity TUIs would treat those keystrokes as chat — skip them.
 #
-# One-shot CLIs (claude, copilot, antigravity) exit after each turn, so they run
-# in a shell loop: CLI turn -> wait script blocks until new mail -> next turn.
+# One-shot CLIs (claude, copilot) exit after each turn, so they run in a shell
+# loop: CLI turn -> wait script blocks until new mail -> next turn.
+#
+# Always `cd` and start the CLI in **one** send-keys. Two back-to-back send-keys
+# (cd Enter, then the loop) race the pane shell and can concatenate into
+# `cd /pathwhile true…`, which never runs the CLI cleanly.
 launch_agent_in_pane() {
     local pane_target="$1"
     local cli="$2"
@@ -445,20 +507,18 @@ launch_agent_in_pane() {
         return 1
     fi
 
-    tmux send-keys -t "$pane_target" "cd $(shell_quote "$AKVJ_ROOT")" C-m
+    local cd_prefix
+    printf -v cd_prefix 'cd %q && ' "$AKVJ_ROOT"
 
     if cli_is_persistent "$cli"; then
-        local model_args="" permission_args session_cmd
-        [ -n "$model" ] && printf -v model_args -- '--model %q' "$model"
-        permission_args=$(cli_permission_args "$cli" "$permission_mode")
+        local session_cmd
+        session_cmd=$(cli_session_command "$cli" "$bin" "$model" "$prompt_file" "$permission_mode") || return 1
+        tmux send-keys -t "$pane_target" "${cd_prefix}${session_cmd}" C-m
 
-        printf -v session_cmd '%q %s %s --prompt-file %q' \
-            "$bin" "$model_args" "$permission_args" "$prompt_file"
-        tmux send-keys -t "$pane_target" "$session_cmd" C-m
-
-        # Devin needs a moment to initialize; wait before sending the follow-up wait command.
-        # This is a pragmatic shell delay — the prompt is already loaded by the time the binary starts.
-        if [ -n "$wait_script" ]; then
+        # Devin: type the wait script into the session after it boots. Antigravity's
+        # interactive TUI would treat those keystrokes as chat — the composed
+        # sleep-step already tells it to background await-messages itself.
+        if [ "$cli" = "devin" ] && [ -n "$wait_script" ]; then
             sleep 2
             tmux send-keys -t "$pane_target" "$wait_script" C-m
         fi
@@ -466,9 +526,9 @@ launch_agent_in_pane() {
         # turn_cmd is already %q-safe; wait_script is an intentional shell fragment
         # from config (default includes quoted workflow/agent args).
         local turn_cmd loop_cmd
-        turn_cmd=$(cli_turn_command "$cli" "$bin" "$model" "$prompt_file" "$permission_mode")
+        turn_cmd=$(cli_turn_command "$cli" "$bin" "$model" "$prompt_file" "$permission_mode") || return 1
         loop_cmd=$(oneshot_loop_command "$turn_cmd" "$wait_script")
-        tmux send-keys -t "$pane_target" "$loop_cmd" C-m
+        tmux send-keys -t "$pane_target" "${cd_prefix}${loop_cmd}" C-m
     fi
 }
 
@@ -573,9 +633,14 @@ restart_agent() {
 
     echo "Restarting agent: $agent_name (cli=$cli) in pane $pane_target..."
 
-    # Kill current process in pane
+    # Kill the oneshot while-loop / CLI. One C-c often only stops the inner
+    # await/cli and lets `while true` immediately start another turn — then the
+    # relaunch command is typed into a live process. Double-interrupt + settle
+    # lands on a bare shell before we send the new loop.
     tmux send-keys -t "$pane_target" C-c
-    sleep 2
+    sleep 0.4
+    tmux send-keys -t "$pane_target" C-c
+    sleep 1.5
 
     # Interrupting can take the pane down with it (e.g. a pane whose command was
     # the agent process itself). Relaunching into a pane that no longer exists
@@ -743,6 +808,20 @@ monitor_workflow() {
             local agent_to_restart last_restart
             agent_to_restart=$(basename "$request_file" .json)
 
+            # Disabled / retired agents must not be restarted — leftover requests
+            # and heartbeats would otherwise flap them forever.
+            local request_config="$config_dir/${agent_to_restart}.prompt.json"
+            if [ -f "$request_config" ]; then
+                local request_enabled
+                request_enabled=$(read_json "$request_config" '.enabled' 'true')
+                if [ "$request_enabled" != "true" ]; then
+                    echo "Skipping restart request for disabled agent: $agent_to_restart"
+                    rm -f "$request_file" "$heartbeat_dir/$agent_to_restart.json"
+                    clear_alert "$workflow" "$agent_to_restart"
+                    continue
+                fi
+            fi
+
             # Leave the request in place while cooling down so it is honoured on a
             # later pass. Deleting it here would silently discard an agent's
             # explicit "I am stuck" signal.
@@ -792,6 +871,18 @@ monitor_workflow() {
             if [ ! -f "$config_dir/${stale_agent}.prompt.json" ]; then
                 echo "Pruning orphaned heartbeat for unknown agent: $stale_agent"
                 rm -f "$heartbeat_file"
+                clear_alert "$workflow" "$stale_agent"
+                continue
+            fi
+
+            # Same for disabled / retired agents — discover_agents skips them at
+            # start, but leftover panes/heartbeats must not auto-restart them.
+            local stale_enabled
+            stale_enabled=$(read_json "$config_dir/${stale_agent}.prompt.json" '.enabled' 'true')
+            if [ "$stale_enabled" != "true" ]; then
+                echo "Pruning heartbeat for disabled agent: $stale_agent"
+                rm -f "$heartbeat_file"
+                clear_alert "$workflow" "$stale_agent"
                 continue
             fi
 
