@@ -36,7 +36,7 @@
 		"agents:status": "node .agents/workflows/scripts/agents-status.js developer-team",
 		"agents:stop": "bash .agents/workflows/scripts/run-team --stop developer-team",
 		"akvj": "npm run dev -w akvj",
-		"build": "npm run build -w akvj",
+		"build": "node monorepo-scripts/verify-clip-tree.js && npm run build -w akvj",
 		"build:all": "npm run clips && npm run build -w akvj && npm run build -w mainframe",
 		"build:full": "npm run clips && npm run build -w akvj",
 		"check:eol": "node monorepo-scripts/check-line-endings.js",

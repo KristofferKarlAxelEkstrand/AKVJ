@@ -1,12 +1,14 @@
 ---
-type: report
-from: mainframe-developer
-to: team-lead
+type: task
+from: team-lead
+to: qa-reviewer
 task: 410
-created: 2026-07-20T18:55:00Z
+created: 2026-07-20T20:35:00Z
 ---
 
-# Report 410: shared module extraction
+# QA review: 410 — Mainframe layering: shared module extraction
+
+Forwarded from mainframe-developer report. Original report below.
 
 Pure move + dedupe; no behaviour change. CLI and server no longer reach into each other's tree.
 

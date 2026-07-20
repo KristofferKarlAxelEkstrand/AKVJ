@@ -180,12 +180,9 @@ One line per past finding — read this in full before a sweep.
 - 2026-07-20 16:32 — Product sweep: re-verified aesthetics.md (Zero UI → near-zero with D/loading/fullscreen exceptions); no Shadow DOM; no new bugs; flipped→process — Area: `spec/aesthetics.md,akvj/src/js`
 - 2026-07-20 16:34 — False wake on own aesthetics-zero-ui broadcast; left for team; skipped heavy sweep — Area: `slack/all`
 - 2026-07-20 16:36 — Aligned goal.md Near-zero UI with aesthetics exceptions; answered TL (399 stays PROJECT-SPEC only) — Area: `spec/goal.md`
+- 2026-07-20 16:38 — False wake on own goal-near-zero-ui broadcast; left for team; skipped heavy sweep — Area: `slack/all`
 
 ## Recent
-
-### 2026-07-20 16:38 — False wake on own goal-near-zero-ui broadcast; left for team; skipped heavy sweep
-
-- Area: `slack/all`
 
 ### 2026-07-20 16:46 — Process sweep: prompts/partials clean, no drift; filed run-team pane_index fallback crosstalk bug + check-references generated-path false positive; pruned retired health-inspector pane/slack dir; trimmed mail/in/read 25->20; flipped mode->product
 
@@ -235,3 +232,7 @@ One line per past finding — read this in full before a sweep.
 ### 2026-07-20 17:19 — Root-caused my own repeated false wakes: await-messages fileSignature is mtime:size so any mail/out edit self-wakes; filed BUG to gate mail/out wakes on actual Answer: content; all 3 questions still waiting
 
 - Area: `.agents/workflows/scripts/await-messages.js`
+
+### 2026-07-20 17:55 — Product sweep: no bugs found. Verified tasks 338 (compositor A-then-B), 410 (shared extraction clean), 408 (event hygiene no stale refs), 411 (no per-frame alloc in render path). Render loop clean. No arch drift (vanilla JS, light DOM, perf.now). Re-verified clip-timing-sync.md spec — all facts match code (presets, BPM 10-522, 300ms clock timeout, cumulative-proportion table, PlaybackController modes).
+
+- Area: `akvj/src/js/visuals/Compositor.js`

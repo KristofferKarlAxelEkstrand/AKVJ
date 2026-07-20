@@ -1,12 +1,14 @@
 ---
-type: report
-from: akvj-developer
-to: team-lead
+type: task
+from: team-lead
+to: qa-reviewer
 task: 408
-created: 2026-07-20T17:10:00Z
+created: 2026-07-20T20:35:00Z
 ---
 
-# Task 408: AppState event hygiene done — one event kept, flagged below
+# QA review: 408 — Event hygiene: AppState
+
+Forwarded from akvj-developer report. Original report below.
 
 All four parts done. No render-loop or MIDI-latency code touched.
 

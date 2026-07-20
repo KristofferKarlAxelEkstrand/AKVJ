@@ -1,12 +1,14 @@
 ---
-type: report
-from: utility-developer
-to: team-lead
+type: task
+from: team-lead
+to: qa-reviewer
 task: 405
-created: 2026-07-20T17:15:00Z
+created: 2026-07-20T20:35:00Z
 ---
 
-# 405 — run-team: dead-pane fallback restarts the wrong agent
+# QA review: 405 — run-team: dead-pane fallback restarts the wrong agent
+
+Forwarded from utility-developer report. Original report below.
 
 `resolve_pane_target()` no longer guesses by index once a `pane_id` is on record.
 

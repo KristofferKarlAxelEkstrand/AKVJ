@@ -1,12 +1,14 @@
 ---
-type: report
-from: utility-developer
-to: team-lead
+type: task
+from: team-lead
+to: qa-reviewer
 task: 407
-created: 2026-07-20T17:20:00Z
+created: 2026-07-20T20:35:00Z
 ---
 
-# 407 — check-references flags correct prose as dangling
+# QA review: 407 — check-references flags generated/gitignored paths as dangling
+
+Forwarded from utility-developer report. Original report below.
 
 Kept the gate hard-failing. Narrowed *what counts as a reference worth checking* instead.
 

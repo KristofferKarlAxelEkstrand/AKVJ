@@ -87,7 +87,7 @@ npm workspaces: `akvj/` (live VJ engine), `mainframe/` (set tooling), per-projec
 
 ```bash
 npm run akvj             # Start akvj VJ engine (localhost:8888)
-npm run build            # Production build (<1 second)
+npm run build            # Production build; fails if clip tree missing (run `npm run build:full`)
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
 npm run test             # Run unit tests with Vitest

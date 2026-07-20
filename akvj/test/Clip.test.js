@@ -25,7 +25,6 @@ function createMockImage(width = 240, height = 135) {
  */
 function defaultOptions(overrides = {}) {
 	return {
-		displayContext: createMockDrawContext(),
 		image: createMockImage(),
 		frames: 4,
 		framesPerRow: 4,
@@ -53,7 +52,6 @@ describe('Clip', () => {
 		// so a couple of clock pulses already move progress well past frame 0's span.
 		const clip = new Clip(
 			defaultOptions({
-				displayContext: ctx,
 				frames: 2,
 				framesPerRow: 2,
 				syncBeats: 2 / 24, // totalPulses = 2
@@ -108,7 +106,6 @@ describe('Clip', () => {
 		// whole 500ms natural clip to 500ms target (speedMultiplier 1) at 120 BPM,
 		// so the relative 125/250/125 timing is preserved unchanged.
 		const clip = new Clip({
-			displayContext: ctx,
 			image,
 			frames: 3,
 			framesPerRow: 3,
@@ -133,8 +130,7 @@ describe('Clip', () => {
 		expect(
 			() =>
 				new Clip({
-					displayContext: ctx,
-					image,
+						image,
 					frames: 4,
 					framesPerRow: 4,
 					syncBeats: 0,
@@ -199,7 +195,7 @@ describe('Clip', () => {
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
 
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: { 0: 0, 1: 'x' } }));
+			const clip = new Clip(defaultOptions({ frameRatesForFrames: { 0: 0, 1: 'x' } }));
 			// Play once at t=0
 			clip.renderToContext(ctx);
 			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
@@ -218,7 +214,7 @@ describe('Clip', () => {
 
 			// This simulates the case where normalizeClipMetadata returns frameRatesForFrames: null
 			// when the field is missing from meta.json
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: null }));
+			const clip = new Clip(defaultOptions({ frameRatesForFrames: null }));
 			// Should not throw during construction
 			expect(clip).toBeInstanceOf(Clip);
 			// Should render at t=0 and advance using the default frame rate by t=1000ms
@@ -239,8 +235,7 @@ describe('Clip', () => {
 
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 2,
+						frames: 2,
 					framesPerRow: 2,
 					playback: 'once',
 					frameRatesForFrames: { 0: 1000, 1: 1000 }, // 1ms per frame if FPS were used
@@ -266,8 +261,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
+						frames: 4,
 					framesPerRow: 4,
 					playback: 'once',
 					frameRatesForFrames: { 0: 1000, 1: 1000, 2: 1000, 3: 1000 },
@@ -292,8 +286,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 2,
+						frames: 2,
 					framesPerRow: 2,
 					playback: 'once',
 					frameDurationsMs: null,
@@ -333,7 +326,7 @@ describe('Clip', () => {
 		test('coerces numeric string keys to numeric indices', () => {
 			const ctx = createMockDrawContext();
 			// Use string keys to ensure coercion happens (JSON always parses keys as strings)
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			clip.renderToContext(ctx, 0);
 			expect(ctx.drawImage).toHaveBeenCalledTimes(1);
@@ -347,7 +340,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// Set frame rate so interval is 1ms for easy testing
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ frames: 2, framesPerRow: 2, frameRatesForFrames: { 0: 1000 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
 			clip.renderToContext(ctx);
@@ -363,7 +356,7 @@ describe('Clip', () => {
 
 		test('returns early if image is null (after dispose)', () => {
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx }));
+			const clip = new Clip(defaultOptions({}));
 
 			clip.destroy();
 			clip.renderToContext(ctx);
@@ -371,19 +364,18 @@ describe('Clip', () => {
 			expect(ctx.drawImage).not.toHaveBeenCalled();
 		});
 
-		test('returns early if displayContext is null', () => {
+		test('returns early if render context is null', () => {
 			// Rendering with a null canvas context should return early
 			// (no errors and no drawing occurs).
-			const clipWithNullCtx = new Clip(defaultOptions({ displayContext: null }));
-			expect(() => clipWithNullCtx.renderToContext(null)).not.toThrow();
+			const clip = new Clip(defaultOptions());
+			expect(() => clip.renderToContext(null)).not.toThrow();
 		});
 
 		test('draws frame 0 on first play call without skipping', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
+						frames: 4,
 					framesPerRow: 4
 				})
 			);
@@ -403,8 +395,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
+						frames: 4,
 					framesPerRow: 4,
 					frameRatesForFrames: { 0: 10 }
 				})
@@ -425,8 +416,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 4,
+						frames: 4,
 					framesPerRow: 4,
 					frameRatesForFrames: { 0: 60 } // 60fps = ~16.67ms per frame
 				})
@@ -451,7 +441,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// Set a low FPS so interval is large for easy testing (10 fps = 100ms)
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
+			const clip = new Clip(defaultOptions({ frames: 10, framesPerRow: 10, frameRatesForFrames: { 0: 10 } }));
 			// t=0 -> initial draw
 			mockNow.mockReturnValue(0);
 			clip.renderToContext(ctx);
@@ -478,7 +468,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const mockNow = vi.spyOn(performance, 'now');
 			// frame 0 = 10fps (100ms), frame 1 = 20fps (50ms) so 130ms should advance 1 frame
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
+			const clip = new Clip(defaultOptions({ frames: 4, framesPerRow: 4, frameRatesForFrames: { 0: 10, 1: 20 } }));
 			mockNow.mockReturnValue(0);
 			clip.renderToContext(ctx);
 			mockNow.mockReturnValue(130);
@@ -494,8 +484,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 2,
+						frames: 2,
 					framesPerRow: 2,
 					playback: 'once',
 					frameRatesForFrames: { 0: 1000 } // 1000fps = 1ms per frame
@@ -531,8 +520,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					frames: 2,
+						frames: 2,
 					framesPerRow: 2,
 					playback: 'loop',
 					frameRatesForFrames: { 0: 1000 }
@@ -557,7 +545,7 @@ describe('Clip', () => {
 	describe('stop()', () => {
 		test('resets state when retrigger is enabled', () => {
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx, retrigger: true }));
+			const clip = new Clip(defaultOptions({ retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -581,7 +569,7 @@ describe('Clip', () => {
 	describe('reset()', () => {
 		test('resets to frame 0 when retrigger is enabled', () => {
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx, retrigger: true }));
+			const clip = new Clip(defaultOptions({ retrigger: true }));
 
 			const mockNow = vi.spyOn(performance, 'now');
 			mockNow.mockReturnValue(0);
@@ -603,8 +591,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					retrigger: false,
+						retrigger: false,
 					playback: 'once',
 					frames: 2,
 					framesPerRow: 2,
@@ -634,8 +621,7 @@ describe('Clip', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(
 				defaultOptions({
-					displayContext: ctx,
-					retrigger: false,
+						retrigger: false,
 					playback: 'once',
 					frames: 4,
 					framesPerRow: 4,
@@ -678,7 +664,7 @@ describe('Clip', () => {
 			const framesPerRow = 5;
 			const frameWidth = 240 / framesPerRow;
 			const frameHeight = 135;
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			mockNow.mockReturnValue(0);
 			clip.renderToContext(ctx); // initial draw (frame 0, not yet shuffled)
@@ -704,7 +690,7 @@ describe('Clip', () => {
 			const framesPerRow = 4;
 			const frameWidth = 240 / framesPerRow;
 			const frameHeight = 135;
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ frames, framesPerRow, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			mockNow.mockReturnValue(0);
 			clip.renderToContext(ctx);
@@ -727,7 +713,7 @@ describe('Clip', () => {
 
 		test('handles a single-frame clip by redrawing frame 0 each render', () => {
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 1, framesPerRow: 1, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ frames: 1, framesPerRow: 1, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
 			clip.renderToContext(ctx, 0);
 			clip.renderToContext(ctx, 1);
@@ -742,7 +728,7 @@ describe('Clip', () => {
 			const frames = 4;
 			const framesPerRow = 4;
 			const image = createMockImage();
-			const clip = new Clip(defaultOptions({ displayContext: ctx, image, frames, framesPerRow, playback: 'shuffle', retrigger: true, frameRatesForFrames: { 0: 1000 } }));
+			const clip = new Clip(defaultOptions({ image, frames, framesPerRow, playback: 'shuffle', retrigger: true, frameRatesForFrames: { 0: 1000 } }));
 			const frameWidth = image.width / framesPerRow;
 			const frameHeight = image.height / Math.ceil(frames / framesPerRow);
 
@@ -770,7 +756,7 @@ describe('Clip', () => {
 	describe('dispose()', () => {
 		test('clears image reference', () => {
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx }));
+			const clip = new Clip(defaultOptions({}));
 
 			clip.renderToContext(ctx);
 			expect(ctx.drawImage).toHaveBeenCalled();
@@ -1063,7 +1049,7 @@ describe('Clip — scaleMode + placement', () => {
 
 	test('nearest scaling disables image smoothing by default', () => {
 		const ctx = createMockDrawContext();
-		const clip = new Clip(defaultOptions({ displayContext: ctx }));
+		const clip = new Clip(defaultOptions({}));
 		clip.reset();
 		clip.renderToContext(ctx, 0);
 		expect(ctx.imageSmoothingEnabled).toBe(false);
@@ -1072,7 +1058,7 @@ describe('Clip — scaleMode + placement', () => {
 
 	test('smooth scaling enables high-quality image smoothing', () => {
 		const ctx = createMockDrawContext();
-		const clip = new Clip(defaultOptions({ displayContext: ctx, scaling: 'smooth' }));
+		const clip = new Clip(defaultOptions({ scaling: 'smooth' }));
 		clip.reset();
 		clip.renderToContext(ctx, 0);
 		expect(ctx.imageSmoothingEnabled).toBe(true);

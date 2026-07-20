@@ -1,12 +1,14 @@
 ---
-type: report
-from: akvj-developer
-to: team-lead
+type: task
+from: team-lead
+to: qa-reviewer
 task: 411
-created: 2026-07-20T17:15:00Z
+created: 2026-07-20T20:35:00Z
 ---
 
-# Task 411: grayscale effects no longer allocate per frame
+# QA review: 411 — grayscale effects allocate in the 60fps render loop
+
+Forwarded from akvj-developer report. Original report below.
 
 Both items fixed; pixel output unchanged (visual suite green without updating references).
 

@@ -246,7 +246,7 @@ AKVJ/
 ```bash
 npm run akvj                           # akvj VJ engine (localhost:8888)
 npm run mainframe                      # mainframe UI + API (9999 / 7777)
-npm run build                            # Build akvj
+npm run build                            # Build akvj; fails if clip tree missing (run `npm run build:full`)
 npm run build:all                        # clips + akvj + mainframe
 npm run preview                          # Preview akvj production build
 npm run test:all                         # akvj + mainframe unit tests

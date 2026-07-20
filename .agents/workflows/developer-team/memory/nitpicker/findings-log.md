@@ -171,10 +171,9 @@ One line per past finding — read this in full before a sweep.
 - Refs: 7,11,33,39,69
 - Area: `mainframe/src/js/PianoKey.js,PianoRoll.js`
 - Refs: 250,331,574,600,282,285
+- Area: `mainframe/server/spritesheet.js`
 
 ## Recent
-
-- Area: `mainframe/server/spritesheet.js`
 
 - Refs: 39,179
 
@@ -197,3 +196,8 @@ One line per past finding — read this in full before a sweep.
 - Area: `akvj/src/js/visuals`
 
 - Area: `akvj/src/js/visuals`
+
+### 2026-07-20 17:56 — Timer wake, no new mail. Swept PianoRoll.js (current state), StagingPreview.js, ClipList.js, AkvjMainframe.js, generateClipId.js diffs since 2026-07-19. Filed 3 nits in [NIT]-pianoroll-staging-cliplist-sweep-2026-07-20d.md (StagingPreview #getFrameInterval→#getFrameIntervalMs, ClipList rolePianoFilter→roleFilter, PianoRoll dead ?? on #filterState). Dropped out-of-lane note [NOTE]-pianoroll-tooltip-innerhtml-xss-2026-07-20.md for Overseer (innerHTML with user data). Celebrated: PianoKey *request event naming resolved, AkvjMainframe uses EVENT_* constants, generateClipId uses shared slugify, StagingPreview magic 240/135→named constants.
+
+- Area: `mainframe/src/js/PianoRoll.js,StagingPreview.js,ClipList.js`
+- Refs: StagingPreview.js:350;ClipList.js:157;PianoRoll.js:376,882
