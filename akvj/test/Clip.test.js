@@ -143,7 +143,20 @@ describe('Clip', () => {
 		).toThrow('invalid syncBeats');
 	});
 
-	describe('constructor', () => {
+	test('random and shuffle playback ignore syncBeats and do not subscribe to MIDI clock', () => {
+	for (const playback of ['random', 'shuffle']) {
+		const subscribe = vi.fn();
+		const clockSource = { bpmSource: 'clock', subscribe };
+		const clip = new Clip(defaultOptions({ playback, syncBeats: 1, clockSource }));
+
+		clip.reset();
+
+		expect(subscribe).not.toHaveBeenCalled();
+		clip.destroy();
+	}
+});
+
+describe('constructor', () => {
 		test('throws if frames is missing or less than 1', () => {
 			expect(() => new Clip(defaultOptions({ frames: 0 }))).toThrow('Clip requires frames >= 1');
 			expect(() => new Clip(defaultOptions({ frames: undefined }))).toThrow('Clip requires frames >= 1');
@@ -191,8 +204,10 @@ describe('Clip', () => {
 			clip.renderToContext(ctx);
 			// Advance time a small amount; default fallback is numeric and > 0, so should not divide by zero
 			mockNow.mockReturnValue(1000);
-			// Should not throw due to invalid frame rates
-			expect(() => clip.renderToContext(ctx)).not.toThrow();
+			// Should not throw due to invalid frame rates and should advance to the next frame
+			clip.renderToContext(ctx);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			expect(clip.currentFrame).toBeGreaterThan(0);
 			mockNow.mockRestore();
 		});
 
@@ -206,9 +221,33 @@ describe('Clip', () => {
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frameRatesForFrames: null }));
 			// Should not throw during construction
 			expect(clip).toBeInstanceOf(Clip);
-			// Should be able to render without throwing
-			expect(() => clip.renderToContext(ctx)).not.toThrow();
+			// Should render at t=0 and advance using the default frame rate by t=1000ms
+			clip.renderToContext(ctx);
+			mockNow.mockReturnValue(1000);
+			clip.renderToContext(ctx);
+			expect(ctx.drawImage).toHaveBeenCalledTimes(2);
+			expect(clip.currentFrame).toBeGreaterThan(0);
 			mockNow.mockRestore();
+		});
+	});
+
+	describe('scrub()', () => {
+		test('setScrubPosition maps normalized position to frame index', () => {
+			const clip = new Clip(defaultOptions({ playback: 'scrub' }));
+			clip.setScrubPosition(0.5);
+			expect(clip.currentFrame).toBe(1);
+		});
+
+		test('setScrubPosition clamps below 0 to first frame', () => {
+			const clip = new Clip(defaultOptions({ playback: 'scrub' }));
+			clip.setScrubPosition(-0.1);
+			expect(clip.currentFrame).toBe(0);
+		});
+
+		test('setScrubPosition clamps above 1 to last frame', () => {
+			const clip = new Clip(defaultOptions({ playback: 'scrub' }));
+			clip.setScrubPosition(1.1);
+			expect(clip.currentFrame).toBe(3);
 		});
 	});
 
@@ -608,35 +647,45 @@ describe('Clip', () => {
 			mockNow.mockRestore();
 		});
 
-		test('handles a single-frame clip without throwing', () => {
+		test('handles a single-frame clip by redrawing frame 0 each render', () => {
 			const ctx = createMockDrawContext();
 			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 1, framesPerRow: 1, playback: 'shuffle', frameRatesForFrames: { 0: 1000 } }));
 
-			expect(() => {
-				clip.renderToContext(ctx, 0);
-				clip.renderToContext(ctx, 1);
-				clip.renderToContext(ctx, 2);
-			}).not.toThrow();
+			clip.renderToContext(ctx, 0);
+			clip.renderToContext(ctx, 1);
+			clip.renderToContext(ctx, 2);
+
+			expect(ctx.drawImage).toHaveBeenCalledTimes(3);
+			expect(clip.currentFrame).toBe(0);
 		});
 
 		test('resetting the clip clears the unplayed shuffle pool', () => {
-			const mockNow = vi.spyOn(performance, 'now');
 			const ctx = createMockDrawContext();
-			const clip = new Clip(defaultOptions({ displayContext: ctx, frames: 4, framesPerRow: 4, playback: 'shuffle', retrigger: true, frameRatesForFrames: { 0: 1000 } }));
+			const frames = 4;
+			const framesPerRow = 4;
+			const image = createMockImage();
+			const clip = new Clip(defaultOptions({ displayContext: ctx, image, frames, framesPerRow, playback: 'shuffle', retrigger: true, frameRatesForFrames: { 0: 1000 } }));
+			const frameWidth = image.width / framesPerRow;
+			const frameHeight = image.height / Math.ceil(frames / framesPerRow);
 
-			mockNow.mockReturnValue(0);
-			clip.renderToContext(ctx);
-			mockNow.mockReturnValue(1);
-			clip.renderToContext(ctx);
+			clip.renderToContext(ctx, 0);
+			clip.renderToContext(ctx, 1);
 
-			// Reset should not throw and should allow shuffle to continue working
+			const preResetFrames = ctx.drawImage.mock.calls.slice(-2).map(call => frameIndexFromDrawCall(call, frameWidth, frameHeight, framesPerRow));
+			expect(preResetFrames).toHaveLength(2);
+
 			clip.reset();
-			expect(() => {
-				mockNow.mockReturnValue(2);
-				clip.renderToContext(ctx);
-			}).not.toThrow();
 
-			mockNow.mockRestore();
+			// Render the reset frame, then draw a full pool to verify the
+			// unplayed shuffle pool was cleared and reshuffled.
+			clip.renderToContext(ctx, 2);
+			const postResetFrames = [];
+			for (let t = 3; t < 3 + frames; t++) {
+				clip.renderToContext(ctx, t);
+				postResetFrames.push(frameIndexFromDrawCall(ctx.drawImage.mock.calls.at(-1), frameWidth, frameHeight, framesPerRow));
+			}
+			expect(postResetFrames).toHaveLength(frames);
+			expect(new Set(postResetFrames).size).toBe(frames);
 		});
 	});
 
@@ -932,5 +981,23 @@ describe('Clip — scaleMode + placement', () => {
 		expect(call[6]).toBe(0); // dy
 		expect(call[7]).toBe(240); // dWidth
 		expect(call[8]).toBe(135); // dHeight
+	});
+
+	test('nearest scaling disables image smoothing by default', () => {
+		const ctx = createMockDrawContext();
+		const clip = new Clip(defaultOptions({ displayContext: ctx }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+		expect(ctx.imageSmoothingEnabled).toBe(false);
+		expect(ctx.imageSmoothingQuality).toBe('low');
+	});
+
+	test('smooth scaling enables high-quality image smoothing', () => {
+		const ctx = createMockDrawContext();
+		const clip = new Clip(defaultOptions({ displayContext: ctx, scaling: 'smooth' }));
+		clip.reset();
+		clip.renderToContext(ctx, 0);
+		expect(ctx.imageSmoothingEnabled).toBe(true);
+		expect(ctx.imageSmoothingQuality).toBe('high');
 	});
 });

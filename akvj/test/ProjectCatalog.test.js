@@ -16,6 +16,7 @@ describe('ProjectCatalog', () => {
 
 	afterEach(() => {
 		vi.unstubAllGlobals();
+		vi.unstubAllEnvs();
 		vi.restoreAllMocks();
 	});
 
@@ -118,17 +119,26 @@ describe('ProjectCatalog', () => {
 
 	describe('loadJson cache-busting', () => {
 		test('appends ?t= cache buster when DEV is true', async () => {
+			vi.stubEnv('DEV', true);
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: async () => ({ project: 'x' })
 			});
 			await catalog.fetchActiveProjectId();
 			const url = String(fetchMock.mock.calls[0][0]);
-			if (import.meta.env.DEV) {
-				expect(url).toMatch(/\?t=\d/);
-			} else {
-				expect(url).toBe(settings.performance.activeProjectUrl);
-			}
+			expect(url).toMatch(/\?t=\d/);
+			expect(url).toContain(settings.performance.activeProjectUrl);
+		});
+
+		test('does not append cache buster when DEV is false', async () => {
+			vi.stubEnv('DEV', false);
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: 'x' })
+			});
+			await catalog.fetchActiveProjectId();
+			const url = String(fetchMock.mock.calls[0][0]);
+			expect(url).toBe(settings.performance.activeProjectUrl);
 		});
 	});
 });
