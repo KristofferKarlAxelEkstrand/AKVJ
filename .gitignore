@@ -84,4 +84,4 @@ akvj/test/visual/__diffs__/
 .claude/settings.local.json
 .midi-raw-data/
 
-.agents-temp
+.agents
