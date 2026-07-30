@@ -14,7 +14,7 @@ import { isValidProjectId } from '../../server/paths.js';
  *
  * Phases (per project):
  * 1. Validate source clips + key-map.json
- * 2. Optimize PNGs (or copy if sharp is missing / --no-optimize)
+ * 2. Optimize PNGs (or copy without sharp when missing / --no-optimize)
  * 3. Generate clips.json in cache
  * 4. Copy cache to public/projects/{id}/clips/
  * Then copy projects/index.json + active-project.json to public root.
@@ -190,13 +190,17 @@ export class Pipeline {
 	async #optimize(validClips, cacheDir, noOptimize) {
 		if (noOptimize) {
 			console.log('Step 2: Skipping optimization (--no-optimize)\n');
-			const { results } = await optimize(validClips, cacheDir);
+		} else {
+			console.log('Step 2: Optimizing PNGs...');
+		}
+
+		const { results, sharp, bitDepthCounts } = await optimize(validClips, cacheDir, { noOptimize });
+
+		if (noOptimize) {
 			console.log(`  Copied ${results.filter(result => result.optimized).length} files to cache\n`);
 			return;
 		}
 
-		console.log('Step 2: Optimizing PNGs...');
-		const { results, sharp, bitDepthCounts } = await optimize(validClips, cacheDir);
 		this.#logOptimizeResults(results, sharp, bitDepthCounts);
 	}
 

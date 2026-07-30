@@ -2,6 +2,8 @@
  * Centralized configuration for AKVJ
  * Contains all configurable settings for canvas, MIDI, and performance
  */
+import { DEFAULT_MAX_CLOCK_PULSES_PER_SECOND, DEFAULT_MAX_MIDI_MESSAGE_LENGTH } from './midiConstants.js';
+
 const settings = {
 	canvas: {
 		width: 240,
@@ -27,8 +29,8 @@ const settings = {
 		channelMessageMinLength: 3,
 		// Security: Rate limiting and resource limits
 		maxMidiDevices: 8,
-		maxClockPulsesPerSecond: 1000,
-		maxMessageLength: 256
+		maxClockPulsesPerSecond: DEFAULT_MAX_CLOCK_PULSES_PER_SECOND,
+		maxMessageLength: DEFAULT_MAX_MIDI_MESSAGE_LENGTH
 	},
 	/**
 	 * BPM (Beats Per Minute) synchronization settings
@@ -70,10 +72,10 @@ const settings = {
 	 * Maps Layer Groups to their dedicated CC for scrubbing
 	 */
 	scrub: {
-		layerGroupA_CC: 16,
-		layerGroupB_CC: 17,
-		layerGroupC_CC: 18,
-		mixer_CC: 19
+		layerGroupACc: 16,
+		layerGroupBCc: 17,
+		layerGroupCCc: 18,
+		mixerCc: 19
 	},
 	/**
 	 * Effect note ranges for channel 9 (mixed output effects) and channel 12 (global effects)

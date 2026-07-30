@@ -130,6 +130,7 @@ export function normalizeClipMetadata(rawMeta) {
 		triggerGroup: rawMeta.triggerGroup ?? null,
 		scaleMode: rawMeta.scaleMode ?? DEFAULT_SCALE_MODE,
 		scaling,
+		// Authoring/pipeline dims only. Clip derives cell size from sheet÷grid and ignores these.
 		frameWidth: rawMeta.frameWidth ?? DEFAULT_FRAME_WIDTH,
 		frameHeight: rawMeta.frameHeight ?? DEFAULT_FRAME_HEIGHT,
 		placement: resolvePlacement(rawMeta.placement),

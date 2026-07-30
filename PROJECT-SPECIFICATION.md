@@ -7,7 +7,7 @@ This file is an **entry point**, not the product truth. Detailed behaviour lives
 | Need                                                                                        | Source                                                                                      |
 | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | How code is written (vanilla JS, MIDI channel table, clip `meta.json` fields, commands)     | [`AGENTS.md`](AGENTS.md)                                                                    |
-| How the product works today (clips, timing/sync, mapping, aesthetics, akvj/mainframe split) | [`.agents/workflows/developer-team/spec/`](.agents/workflows/developer-team/spec/README.md) |
+| How the product works today (clips, timing/sync, mapping, aesthetics, akvj/mainframe split) | [`.agents/office-space/developer-team/spec/`](.agents/office-space/developer-team/spec/README.md) |
 | Contributing / git guard rails                                                              | [`CONTRIBUTING.md`](CONTRIBUTING.md)                                                        |
 
 Only specs marked `status: approved` are binding. Draft specs are informative context.

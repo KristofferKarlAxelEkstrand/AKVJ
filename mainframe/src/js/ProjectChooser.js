@@ -1,4 +1,5 @@
 import '../scss/ProjectChooser.scss';
+import { DEFAULT_PROJECT_ID } from './projects.js';
 
 /**
  * ProjectChooser — select active project, create, rename, delete.
@@ -11,10 +12,10 @@ import '../scss/ProjectChooser.scss';
 class ProjectChooser extends HTMLElement {
 	/** @type {Array<{id: string, name: string}>} */
 	#projects = [];
-	#activeProjectId = 'default';
-	#select = null;
+	#activeProjectId = DEFAULT_PROJECT_ID;
+	#projectSelect = null;
 	#activeLabel = null;
-	#nameInput = null;
+	#createNameInput = null;
 	#copyFromCheckbox = null;
 	#renameInput = null;
 
@@ -34,9 +35,9 @@ class ProjectChooser extends HTMLElement {
 	 * @param {string} projectId
 	 */
 	set activeProjectId(projectId) {
-		this.#activeProjectId = projectId || 'default';
-		if (this.#select) {
-			this.#select.value = this.#activeProjectId;
+		this.#activeProjectId = projectId || DEFAULT_PROJECT_ID;
+		if (this.#projectSelect) {
+			this.#projectSelect.value = this.#activeProjectId;
 		}
 		this.#updateActiveLabel();
 		if (this.#renameInput) {
@@ -55,9 +56,9 @@ class ProjectChooser extends HTMLElement {
 
 	disconnectedCallback() {
 		this.replaceChildren();
-		this.#select = null;
+		this.#projectSelect = null;
 		this.#activeLabel = null;
-		this.#nameInput = null;
+		this.#createNameInput = null;
 		this.#copyFromCheckbox = null;
 		this.#renameInput = null;
 	}
@@ -77,28 +78,28 @@ class ProjectChooser extends HTMLElement {
 		const selectLabel = document.createElement('label');
 		selectLabel.className = 'project-chooser-field';
 		selectLabel.append('Switch project');
-		this.#select = document.createElement('select');
-		this.#select.className = 'project-chooser-select';
-		this.#select.setAttribute('aria-label', 'Select project');
-		this.#select.addEventListener('change', () => {
+		this.#projectSelect = document.createElement('select');
+		this.#projectSelect.className = 'project-chooser-select';
+		this.#projectSelect.setAttribute('aria-label', 'Select project');
+		this.#projectSelect.addEventListener('change', () => {
 			this.dispatchEvent(
 				new CustomEvent('projectactivate', {
 					bubbles: true,
-					detail: { projectId: this.#select.value }
+					detail: { projectId: this.#projectSelect.value }
 				})
 			);
 		});
-		selectLabel.append(this.#select);
+		selectLabel.append(this.#projectSelect);
 
 		const createForm = document.createElement('div');
 		createForm.className = 'project-chooser-create';
 		const createTitle = document.createElement('h3');
 		createTitle.textContent = 'Create project';
-		this.#nameInput = document.createElement('input');
-		this.#nameInput.type = 'text';
-		this.#nameInput.placeholder = 'Project name';
-		this.#nameInput.className = 'project-chooser-name';
-		this.#nameInput.setAttribute('aria-label', 'New project name');
+		this.#createNameInput = document.createElement('input');
+		this.#createNameInput.type = 'text';
+		this.#createNameInput.placeholder = 'Project name';
+		this.#createNameInput.className = 'project-chooser-name';
+		this.#createNameInput.setAttribute('aria-label', 'New project name');
 
 		const copyLabel = document.createElement('label');
 		copyLabel.className = 'project-chooser-copy';
@@ -111,7 +112,7 @@ class ProjectChooser extends HTMLElement {
 		createButton.type = 'button';
 		createButton.textContent = 'Create';
 		createButton.addEventListener('click', () => {
-			const name = this.#nameInput.value.trim();
+			const name = this.#createNameInput.value.trim();
 			if (!name) {
 				return;
 			}
@@ -120,12 +121,12 @@ class ProjectChooser extends HTMLElement {
 					bubbles: true,
 					detail: {
 						name,
-						copyFrom: this.#copyFromCheckbox.checked ? 'default' : null
+						copyFrom: this.#copyFromCheckbox.checked ? DEFAULT_PROJECT_ID : null
 					}
 				})
 			);
 		});
-		createForm.append(createTitle, this.#nameInput, copyLabel, createButton);
+		createForm.append(createTitle, this.#createNameInput, copyLabel, createButton);
 
 		const editForm = document.createElement('div');
 		editForm.className = 'project-chooser-edit';
@@ -173,10 +174,10 @@ class ProjectChooser extends HTMLElement {
 	}
 
 	#renderOptions() {
-		if (!this.#select) {
+		if (!this.#projectSelect) {
 			return;
 		}
-		this.#select.replaceChildren();
+		this.#projectSelect.replaceChildren();
 		for (const project of this.#projects) {
 			const option = document.createElement('option');
 			option.value = project.id;
@@ -184,13 +185,13 @@ class ProjectChooser extends HTMLElement {
 			if (project.id === this.#activeProjectId) {
 				option.selected = true;
 			}
-			this.#select.append(option);
+			this.#projectSelect.append(option);
 		}
 		if (this.#projects.length === 0) {
 			const option = document.createElement('option');
-			option.value = 'default';
-			option.textContent = 'default';
-			this.#select.append(option);
+			option.value = DEFAULT_PROJECT_ID;
+			option.textContent = DEFAULT_PROJECT_ID;
+			this.#projectSelect.append(option);
 		}
 	}
 

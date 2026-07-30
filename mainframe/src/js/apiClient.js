@@ -1,4 +1,4 @@
-const API = '/api';
+const API_BASE_PATH = '/api';
 
 /**
  * Fetch wrapper that checks response.ok and parses JSON error messages.
@@ -8,7 +8,7 @@ const API = '/api';
  */
 export async function api(path, options = {}) {
 	const { headers, ...rest } = options;
-	const response = await fetch(`${API}${path}`, {
+	const response = await fetch(`${API_BASE_PATH}${path}`, {
 		...rest,
 		headers: { 'Content-Type': 'application/json', ...(headers || {}) }
 	});
@@ -19,4 +19,4 @@ export async function api(path, options = {}) {
 	return responseBody;
 }
 
-export { API };
+export { API_BASE_PATH };

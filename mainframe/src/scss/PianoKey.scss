@@ -77,6 +77,16 @@ piano-key {
 		filter: brightness(1.15);
 	}
 
+	.velocity-region.is-batch-selected {
+		outline: 2px solid #f1c40f;
+		outline-offset: -2px;
+		z-index: 2;
+	}
+
+	.velocity-region.is-dragging-region {
+		opacity: 0.55;
+	}
+
 	.velocity-region-label {
 		display: block;
 		font-size: 0.45rem;

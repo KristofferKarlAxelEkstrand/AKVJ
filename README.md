@@ -249,7 +249,8 @@ npm run mainframe                      # mainframe UI + API (9999 / 7777)
 npm run build                            # Build akvj; fails if clip tree missing (run `npm run build:full`)
 npm run build:all                        # clips + akvj + mainframe
 npm run preview                          # Preview akvj production build
-npm run test:all                         # akvj + mainframe unit tests
+npm run test:all                         # akvj + mainframe unit tests (sequential gate)
+npm run test:mainframe:parallel          # mainframe unit+ui+heavy in parallel (faster; may flake under load)
 ```
 
 ### Code Quality

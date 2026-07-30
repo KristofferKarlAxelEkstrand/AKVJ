@@ -2,7 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import sharp from 'sharp';
 import { clipDir, rawAssetsDir, isValidClipId, resolveSafeSpritePath, DEFAULT_PROJECT_ID } from './paths.js';
-import { fpsToMs } from '../shared/frameTiming.js';
+import { fpsToMs, DEFAULT_FALLBACK_FPS } from '../shared/frameTiming.js';
 
 /**
  * Load editable frames for a clip: prefer raw assets, else extract sprite cells.
@@ -16,13 +16,13 @@ export async function loadClipFrameBuffers(clipId, projectId = DEFAULT_PROJECT_I
 	}
 
 	const meta = await readClipMeta(clipId, projectId);
-	const durationsMs = durationsFromMeta(meta);
+	const durationsMs = durationsMsFromMeta(meta);
 
 	const rawFrames = await readRawFrameBuffers(clipId, projectId);
 	if (rawFrames.length > 0) {
 		return {
 			frames: rawFrames,
-			durationsMs: padDurations(durationsMs, rawFrames.length),
+			durationsMs: padDurationsMs(durationsMs, rawFrames.length),
 			meta,
 			source: 'raw'
 		};
@@ -31,7 +31,7 @@ export async function loadClipFrameBuffers(clipId, projectId = DEFAULT_PROJECT_I
 	const extracted = await extractFramesFromSprite(clipId, meta, projectId);
 	return {
 		frames: extracted,
-		durationsMs: padDurations(durationsMs, extracted.length),
+		durationsMs: padDurationsMs(durationsMs, extracted.length),
 		meta,
 		source: 'sprite'
 	};
@@ -72,15 +72,52 @@ async function readRawFrameBuffers(clipId, projectId = DEFAULT_PROJECT_ID) {
 }
 
 /**
+ * Prefer `frameDurationsMs` (ms per frame) when present — same priority as akvj runtime.
+ * Falls back to converting `frameRatesForFrames` (FPS) when ms is absent.
  * @param {object} meta
  * @returns {number[]}
  */
-function durationsFromMeta(meta) {
-	const rates = meta?.frameRatesForFrames;
+function durationsMsFromMeta(meta) {
+	const fromMs = durationsFromFrameDurationsMs(meta?.frameDurationsMs);
+	if (fromMs.length > 0) {
+		return fromMs;
+	}
+	return durationsFromFrameRates(meta?.frameRatesForFrames);
+}
+
+/**
+ * @param {unknown} frameDurationsMsInput
+ * @returns {number[]}
+ */
+function durationsFromFrameDurationsMs(frameDurationsMsInput) {
+	if (Array.isArray(frameDurationsMsInput) && frameDurationsMsInput.length > 0) {
+		return frameDurationsMsInput.map(value => Number(value));
+	}
+	if (!frameDurationsMsInput || typeof frameDurationsMsInput !== 'object') {
+		return [];
+	}
+	return denseNumericSeries(frameDurationsMsInput, value => Number(value));
+}
+
+/**
+ * @param {unknown} rates
+ * @returns {number[]}
+ */
+function durationsFromFrameRates(rates) {
 	if (!rates || typeof rates !== 'object' || Array.isArray(rates)) {
 		return [];
 	}
-	const keys = Object.keys(rates)
+	return denseNumericSeries(rates, value => fpsToMs(value));
+}
+
+/**
+ * Build a dense 0..maxIndex array from a sparse frame-index map.
+ * @param {object} map
+ * @param {(value: unknown) => number} mapValue
+ * @returns {number[]}
+ */
+function denseNumericSeries(map, mapValue) {
+	const keys = Object.keys(map)
 		.map(Number)
 		.filter(key => Number.isInteger(key) && key >= 0)
 		.sort((a, b) => a - b);
@@ -88,11 +125,11 @@ function durationsFromMeta(meta) {
 		return [];
 	}
 	const maxIndex = keys.at(-1);
-	const durations = [];
+	const series = [];
 	for (let i = 0; i <= maxIndex; i++) {
-		durations.push(fpsToMs(rates[String(i)] ?? rates[i]));
+		series.push(mapValue(map[String(i)] ?? map[i]));
 	}
-	return durations;
+	return series;
 }
 
 /**
@@ -100,8 +137,8 @@ function durationsFromMeta(meta) {
  * @param {number} frameCount
  * @returns {number[]}
  */
-function padDurations(durationsMs, frameCount) {
-	const fallback = fpsToMs(12);
+function padDurationsMs(durationsMs, frameCount) {
+	const fallback = fpsToMs(DEFAULT_FALLBACK_FPS);
 	const result = [];
 	for (let i = 0; i < frameCount; i++) {
 		result.push(durationsMs[i] > 0 ? durationsMs[i] : fallback);
@@ -135,9 +172,9 @@ async function extractFramesFromSprite(clipId, meta, projectId = DEFAULT_PROJECT
 		throw new Error(`Clip "${clipId}" meta is missing frames/framesPerRow`);
 	}
 
-	const spriteMeta = await sharp(spriteBuffer).metadata();
-	const sheetWidth = spriteMeta.width;
-	const sheetHeight = spriteMeta.height;
+	const imageMeta = await sharp(spriteBuffer).metadata();
+	const sheetWidth = imageMeta.width;
+	const sheetHeight = imageMeta.height;
 	if (!sheetWidth || !sheetHeight) {
 		throw new Error(`Could not read sprite dimensions for "${clipId}"`);
 	}

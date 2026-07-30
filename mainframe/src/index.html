@@ -49,13 +49,12 @@
 					<form id="clip-editor-form" class="clip-editor-form">
 						<p class="hint">Add images append; use Clear frames to replace.</p>
 						<akvj-staging-preview id="clip-editor-staging-preview"></akvj-staging-preview>
-						<preview-clip id="clip-editor-preview"></preview-clip>
 						<div class="clip-frames-toolbar">
 							<label>
 								All frames (ms)
-								<input id="clip-frames-global-duration" type="number" min="1" step="1" value="1000" />
+								<input id="clip-frames-global-duration-ms" type="number" min="1" step="1" value="1000" />
 							</label>
-							<button type="button" id="clip-frames-set-all-duration" title="Apply this duration to every frame">Set all</button>
+							<button type="button" id="clip-frames-set-all-duration-ms" title="Apply this duration to every frame">Set all</button>
 							<label>
 								Bake scale (all)
 								<select id="clip-frames-global-bake-scale" title="Apply this bake scale mode to every staged image">
@@ -184,10 +183,6 @@
 								<span class="hint">Bit depth is for bitmask clips only.</span>
 							</label>
 						</div>
-						<label>
-							Frame duration beats
-							<input id="clip-editor-frame-duration-beats" type="text" placeholder="0.25 or [0.25, 0.5]" />
-						</label>
 						<button type="submit" id="clip-editor-submit">Create sprite &amp; save</button>
 					</form>
 					<p id="clip-editor-status" class="status" aria-live="polite"></p>

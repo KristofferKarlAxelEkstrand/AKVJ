@@ -12,11 +12,11 @@ describe('AppState user message API', () => {
 		state.subscribe(EVENT_USER_MESSAGE, event => {
 			detail = event.detail;
 		});
-		state.error('boom');
+		state.showError('boom');
 		expect(detail).toEqual({ type: 'error', text: 'boom' });
-		state.warn('careful');
+		state.showWarning('careful');
 		expect(detail).toEqual({ type: 'warning', text: 'careful' });
-		state.info('hi');
+		state.showInfo('hi');
 		expect(detail).toEqual({ type: 'info', text: 'hi' });
 	});
 
@@ -26,7 +26,7 @@ describe('AppState user message API', () => {
 		state.subscribe(EVENT_USER_MESSAGE, () => {
 			called = true;
 		});
-		state.info('   ');
+		state.showInfo('   ');
 		expect(called).toBe(false);
 	});
 
@@ -71,7 +71,7 @@ describe('akvj-user-messages / akvj-user-message', () => {
 	});
 
 	test('renders a message from appState.error and OK dismisses it', async () => {
-		appState.error('MIDI access failed');
+		appState.showError('MIDI access failed');
 		await Promise.resolve();
 
 		expect(host.hidden).toBe(false);
@@ -87,8 +87,8 @@ describe('akvj-user-messages / akvj-user-message', () => {
 	});
 
 	test('Esc dismisses the top message', async () => {
-		appState.info('first');
-		appState.warn('second');
+		appState.showInfo('first');
+		appState.showWarning('second');
 		await Promise.resolve();
 		expect(host.messageCount).toBe(2);
 
@@ -98,8 +98,8 @@ describe('akvj-user-messages / akvj-user-message', () => {
 	});
 
 	test('stacks newest on top and dismisses independently', async () => {
-		appState.info('older');
-		appState.error('newer');
+		appState.showInfo('older');
+		appState.showError('newer');
 		await Promise.resolve();
 
 		expect(host.messageCount).toBe(2);
@@ -115,12 +115,12 @@ describe('akvj-user-messages / akvj-user-message', () => {
 	});
 
 	test('info uses dialog role; warning uses alertdialog', async () => {
-		appState.info('notice');
+		appState.showInfo('notice');
 		await Promise.resolve();
 		expect(host.querySelector('akvj-user-message').getAttribute('role')).toBe('dialog');
 
 		host.querySelector('.user-message-ok').click();
-		appState.warn('heads up');
+		appState.showWarning('heads up');
 		await Promise.resolve();
 		expect(host.querySelector('akvj-user-message').getAttribute('role')).toBe('alertdialog');
 	});

@@ -4,7 +4,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import { isPipelineReadyClip, listClips, readyClipIdSet, clipsRootFor } from '../server/clipCatalog.js';
+import { isPipelineReadyClip, listClips, readyClipIdSet, resolveProjectClipsRoot } from '../server/clipCatalog.js';
 
 describe('isPipelineReadyClip', () => {
 	const readyMeta = { png: 'sprite.png', frames: 4, framesPerRow: 2 };
@@ -224,9 +224,9 @@ describe('clipCatalog integration', () => {
 		});
 	});
 
-	describe('clipsRootFor', () => {
+	describe('resolveProjectClipsRoot', () => {
 		test('resolves the clips root for a given project', async () => {
-			const root = await clipsRootFor('default');
+			const root = await resolveProjectClipsRoot('default');
 			expect(root).toBe(tempDir);
 		});
 	});

@@ -176,12 +176,13 @@ async function handleOptimizeError(sourcePath, cachePath, tempFilePath, cleanupN
  *
  * @param {Array<{clipId: string, dir: string, pngPath: string|null, meta: Object}>} clips - Validated clips
  * @param {string} cacheDir - Cache output directory
+ * @param {{ noOptimize?: boolean }} [options] - When `noOptimize` is true, copy only (do not load/run sharp)
  * @returns {Promise<{results: OptimizeResult[], sharp: boolean, bitDepthCounts: Object}>}
  */
-export async function optimize(clips, cacheDir) {
-	const sharp = await loadSharp();
+export async function optimize(clips, cacheDir, { noOptimize = false } = {}) {
+	const sharp = noOptimize ? null : await loadSharp();
 
-	if (!sharp) {
+	if (!sharp && !noOptimize) {
 		console.warn('sharp not installed - PNGs will be copied without optimization');
 		console.warn('Run "npm install sharp" to enable PNG optimization');
 	}

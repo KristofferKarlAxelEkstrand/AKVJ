@@ -30,15 +30,15 @@ describe('timingConversion', () => {
 			expect(fpsToMs(60)).toBeCloseTo(16.67, 2); // 60 FPS ≈ 16.67ms per frame
 		});
 
-		test('throws on zero or negative fps', () => {
-			expect(() => fpsToMs(0)).toThrow('fpsToMs: fps must be a positive number');
-			expect(() => fpsToMs(-10)).toThrow('fpsToMs: fps must be a positive number');
+		test('throws on zero or negative frameRate', () => {
+			expect(() => fpsToMs(0)).toThrow('fpsToMs: frameRate must be a positive number');
+			expect(() => fpsToMs(-10)).toThrow('fpsToMs: frameRate must be a positive number');
 		});
 
 		test('throws on non-number input', () => {
-			expect(() => fpsToMs('60')).toThrow('fpsToMs: fps must be a positive number');
-			expect(() => fpsToMs(null)).toThrow('fpsToMs: fps must be a positive number');
-			expect(() => fpsToMs(undefined)).toThrow('fpsToMs: fps must be a positive number');
+			expect(() => fpsToMs('60')).toThrow('fpsToMs: frameRate must be a positive number');
+			expect(() => fpsToMs(null)).toThrow('fpsToMs: frameRate must be a positive number');
+			expect(() => fpsToMs(undefined)).toThrow('fpsToMs: frameRate must be a positive number');
 		});
 	});
 

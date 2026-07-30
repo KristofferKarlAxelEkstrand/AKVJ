@@ -1,3 +1,5 @@
+import { PLAYBACK_MODE } from './clipSchema.js';
+
 /**
  * Maintains Fisher-Yates shuffle state for playback.
  * Ensures all frames are visited before repeating.
@@ -88,23 +90,23 @@ export class PingpongState {
  */
 export function advanceFrame(currentFrame, frameCount, playbackMode, shuffleState, pingpongState) {
 	switch (playbackMode) {
-		case 'reverse':
+		case PLAYBACK_MODE.REVERSE:
 			return { frame: (currentFrame - 1 + frameCount) % frameCount, finished: false };
-		case 'random':
+		case PLAYBACK_MODE.RANDOM:
 			return { frame: Math.floor(Math.random() * frameCount), finished: false };
-		case 'shuffle':
+		case PLAYBACK_MODE.SHUFFLE:
 			if (!shuffleState) {
 				return { frame: Math.floor(Math.random() * frameCount), finished: false };
 			}
 			return { frame: shuffleState.next(), finished: false };
-		case 'once': {
+		case PLAYBACK_MODE.ONCE: {
 			const nextFrame = currentFrame + 1;
 			if (nextFrame >= frameCount) {
 				return { frame: frameCount - 1, finished: true };
 			}
 			return { frame: nextFrame, finished: false };
 		}
-		case 'pingpong': {
+		case PLAYBACK_MODE.PINGPONG: {
 			if (!pingpongState) {
 				const nextFrame = currentFrame + 1;
 				if (nextFrame >= frameCount - 1) {
@@ -114,8 +116,8 @@ export function advanceFrame(currentFrame, frameCount, playbackMode, shuffleStat
 			}
 			return { frame: pingpongState.next(currentFrame, frameCount), finished: false };
 		}
-		case 'loop':
-		case 'scrub':
+		case PLAYBACK_MODE.LOOP:
+		case PLAYBACK_MODE.SCRUB:
 		default:
 			return { frame: (currentFrame + 1) % frameCount, finished: false };
 	}

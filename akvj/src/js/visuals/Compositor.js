@@ -62,15 +62,6 @@ class Compositor {
 	/** @type {ImageData|null} */
 	#mixedImageData = null;
 
-	/** @type {Uint8ClampedArray|null} */
-	#layerGroupAData = null;
-
-	/** @type {Uint8ClampedArray|null} */
-	#layerGroupBData = null;
-
-	/** @type {Uint8ClampedArray|null} */
-	#maskData = null;
-
 	/** @type {number} */
 	#pixelCount = 0;
 
@@ -171,7 +162,7 @@ class Compositor {
 			return;
 		}
 
-		this.#clearMixedCanvas();
+		this.#fillMixedCanvasBackground();
 
 		if (isLayerGroupAEmpty && isLayerGroupBEmpty) {
 			return;
@@ -186,7 +177,7 @@ class Compositor {
 		this.#mixWithMask(bitDepth);
 	}
 
-	#clearMixedCanvas() {
+	#fillMixedCanvasBackground() {
 		this.#ctxMixed.fillStyle = this.#renderingConfig.backgroundColor;
 		this.#ctxMixed.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
 	}
@@ -206,12 +197,20 @@ class Compositor {
 		}
 	}
 
+	/**
+	 * Draw the active mask into ctxMask. When the clip has finished (once /
+	 * non-loop latch), leave the previous pixels alone so the last frame holds
+	 * the mix instead of wiping to solid black (A-only forever).
+	 * @param {import('./Clip.js').default} mask
+	 * @param {number} timestamp
+	 */
 	#renderMask(mask, timestamp) {
+		if (mask.isFinished) {
+			return;
+		}
 		this.#ctxMask.fillStyle = this.#renderingConfig.backgroundColor;
 		this.#ctxMask.fillRect(0, 0, this.#canvasWidth, this.#canvasHeight);
-		if (!mask.isFinished) {
-			mask.renderToContext(this.#ctxMask, timestamp);
-		}
+		mask.renderToContext(this.#ctxMask, timestamp);
 	}
 
 	/**
@@ -221,13 +220,9 @@ class Compositor {
 	#mixWithMask(bitDepth) {
 		this.#ensurePixelBuffers();
 
-		this.#layerGroupAData.set(this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
-		this.#layerGroupBData.set(this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
-		this.#maskData.set(this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
-
-		this.#pixelBuffers.layerGroupA = this.#layerGroupAData;
-		this.#pixelBuffers.layerGroupB = this.#layerGroupBData;
-		this.#pixelBuffers.mask = this.#maskData;
+		this.#pixelBuffers.layerGroupA.set(this.#ctxA.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
+		this.#pixelBuffers.layerGroupB.set(this.#ctxB.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
+		this.#pixelBuffers.mask.set(this.#ctxMask.getImageData(0, 0, this.#canvasWidth, this.#canvasHeight).data);
 		this.#pixelBuffers.output = this.#mixedImageData.data;
 
 		this.#mixPixels(this.#pixelBuffers, this.#pixelCount, bitDepth);
@@ -236,16 +231,16 @@ class Compositor {
 
 	/**
 	 * Create or resize the persistent pixel buffers used by the compositor.
-	 * Called whenever the canvas dimensions change.
+	 * Called from the constructor and before every masked mix; reallocates only when dimensions change.
 	 */
 	#ensurePixelBuffers() {
 		this.#pixelCount = this.#canvasWidth * this.#canvasHeight;
 		const expectedLength = this.#pixelCount * RGBA_CHANNEL_COUNT;
 
-		if (!this.#layerGroupAData || this.#layerGroupAData.length !== expectedLength) {
-			this.#layerGroupAData = new Uint8ClampedArray(expectedLength);
-			this.#layerGroupBData = new Uint8ClampedArray(expectedLength);
-			this.#maskData = new Uint8ClampedArray(expectedLength);
+		if (!this.#pixelBuffers.layerGroupA || this.#pixelBuffers.layerGroupA.length !== expectedLength) {
+			this.#pixelBuffers.layerGroupA = new Uint8ClampedArray(expectedLength);
+			this.#pixelBuffers.layerGroupB = new Uint8ClampedArray(expectedLength);
+			this.#pixelBuffers.mask = new Uint8ClampedArray(expectedLength);
 		}
 
 		if (!this.#mixedImageData || this.#mixedImageData.width !== this.#canvasWidth || this.#mixedImageData.height !== this.#canvasHeight) {
@@ -270,31 +265,31 @@ class Compositor {
 
 	#mixPixels1Bit(buffers, pixelCount) {
 		for (let i = 0; i < pixelCount; i++) {
-			const idx = i * RGBA_CHANNEL_COUNT;
-			const maskValue = buffers.mask[idx];
-			this.#mix1Bit(buffers, idx, maskValue);
+			const byteOffset = i * RGBA_CHANNEL_COUNT;
+			const maskValue = buffers.mask[byteOffset];
+			this.#mixPixel1Bit(buffers, byteOffset, maskValue);
 		}
 	}
 
 	#mixPixelsMultiBit(buffers, pixelCount, divisor, maxLevel) {
 		for (let i = 0; i < pixelCount; i++) {
-			const idx = i * RGBA_CHANNEL_COUNT;
-			const maskValue = buffers.mask[idx];
-			this.#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel);
+			const byteOffset = i * RGBA_CHANNEL_COUNT;
+			const maskValue = buffers.mask[byteOffset];
+			this.#mixPixelMultiBit(buffers, byteOffset, maskValue, divisor, maxLevel);
 		}
 	}
 
-	#mix1Bit(buffers, idx, maskValue) {
+	#mixPixel1Bit(buffers, byteOffset, maskValue) {
 		const sourcePixels = maskValue < BIT_DEPTH_MIXING.THRESHOLD_1BIT ? buffers.layerGroupA : buffers.layerGroupB;
-		buffers.output[idx] = sourcePixels[idx];
-		buffers.output[idx + 1] = sourcePixels[idx + 1];
-		buffers.output[idx + 2] = sourcePixels[idx + 2];
-		buffers.output[idx + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[idx + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[idx + RGBA_CHANNEL_COUNT - 1]);
+		buffers.output[byteOffset] = sourcePixels[byteOffset];
+		buffers.output[byteOffset + 1] = sourcePixels[byteOffset + 1];
+		buffers.output[byteOffset + 2] = sourcePixels[byteOffset + 2];
+		buffers.output[byteOffset + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[byteOffset + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[byteOffset + RGBA_CHANNEL_COUNT - 1]);
 	}
 
-	#mixMultiBit(buffers, idx, maskValue, divisor, maxLevel) {
+	#mixPixelMultiBit(buffers, byteOffset, maskValue, divisor, maxLevel) {
 		const blendFactor = Math.floor(maskValue / divisor) / maxLevel;
-		this.#blendPixel(buffers, idx, blendFactor);
+		this.#blendPixel(buffers, byteOffset, blendFactor);
 	}
 
 	#getBitDepthParams(bitDepth) {
@@ -307,11 +302,11 @@ class Compositor {
 		return { divisor: 1, maxLevel: BIT_DEPTH_MIXING.MAX_LEVEL_8BIT };
 	}
 
-	#blendPixel(buffers, idx, blendFactor) {
+	#blendPixel(buffers, byteOffset, blendFactor) {
 		for (let channel = 0; channel < RGB_CHANNEL_COUNT; channel++) {
-			buffers.output[idx + channel] = buffers.layerGroupA[idx + channel] + (buffers.layerGroupB[idx + channel] - buffers.layerGroupA[idx + channel]) * blendFactor;
+			buffers.output[byteOffset + channel] = buffers.layerGroupA[byteOffset + channel] + (buffers.layerGroupB[byteOffset + channel] - buffers.layerGroupA[byteOffset + channel]) * blendFactor;
 		}
-		buffers.output[idx + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[idx + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[idx + RGBA_CHANNEL_COUNT - 1]);
+		buffers.output[byteOffset + RGBA_CHANNEL_COUNT - 1] = Math.max(buffers.layerGroupA[byteOffset + RGBA_CHANNEL_COUNT - 1], buffers.layerGroupB[byteOffset + RGBA_CHANNEL_COUNT - 1]);
 	}
 
 	/**
@@ -326,9 +321,6 @@ class Compositor {
 		this.#canvasMixed = null;
 		this.#ctxMixed = null;
 		this.#mixedImageData = null;
-		this.#layerGroupAData = null;
-		this.#layerGroupBData = null;
-		this.#maskData = null;
 		this.#pixelCount = 0;
 		this.#pixelBuffers = { layerGroupA: null, layerGroupB: null, mask: null, output: null };
 	}

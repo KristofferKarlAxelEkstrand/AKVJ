@@ -321,7 +321,7 @@ describe('Compositor', () => {
 		expect(r === 127 || r === 128).toBe(true);
 	});
 
-	test('mask clip isFinished skips rendering mask to ctxMask', () => {
+	test('mask clip isFinished holds last mask pixels (no wipe, no re-draw)', () => {
 		const compositor = createCompositor();
 		const ctxA = compositor.ctxA;
 		const ctxB = compositor.ctxB;
@@ -334,11 +334,14 @@ describe('Compositor', () => {
 
 		fillSolid(layerGroupAPixels, 100, 100, 100);
 		fillSolid(layerGroupBPixels, 200, 200, 200);
-		fillSolid(maskPixels, 0, 0, 0);
+		// Last drawn mask frame was full white (1-bit → Layer Group B)
+		fillSolid(maskPixels, 255, 255, 255);
 
 		ctxA.getImageData = () => ({ data: layerGroupAPixels });
 		ctxB.getImageData = () => ({ data: layerGroupBPixels });
 		ctxMask.getImageData = () => ({ data: maskPixels });
+
+		const fillRectSpy = vi.spyOn(ctxMask, 'fillRect');
 
 		let outputData = null;
 		ctxMixed.putImageData = img => {
@@ -356,11 +359,11 @@ describe('Compositor', () => {
 			0
 		);
 
-		// mask.renderToContext should NOT be called when isFinished is true
 		expect(maskClip.renderToContext).not.toHaveBeenCalled();
-		// But mixing still happens with whatever is in ctxMask
+		expect(fillRectSpy).not.toHaveBeenCalled();
 		expect(outputData).toBeDefined();
-		expect(outputData.data[0]).toBe(100); // mask=0 -> Layer Group A
+		// Held last-frame mask (white) → Layer Group B, not solid-black A
+		expect(outputData.data[0]).toBe(200);
 	});
 
 	test('alpha channel takes max of Layer Group A and Layer Group B', () => {

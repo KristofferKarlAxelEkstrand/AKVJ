@@ -50,37 +50,50 @@ function clipHue(clipId) {
  * Build velocity bands from sorted mapping entries for one note.
  * Each band spans from its velocity to the next band's velocity (or 128).
  *
- * @param {Array<{velocity: number, clipId: string}>} entries
- * @returns {Array<{velocity: number, clipId: string, start: number, end: number}>}
+ * @param {Array<{velocity: number, clipId: string, overrides?: Record<string, unknown>}>} entries
+ * @returns {Array<{velocity: number, clipId: string, start: number, end: number, overrides?: Record<string, unknown>}>}
  */
 function buildVelocityBands(entries) {
 	const sorted = [...entries].sort((a, b) => a.velocity - b.velocity);
 	return sorted.map((entry, index) => {
 		const start = entry.velocity;
 		const end = index + 1 < sorted.length ? sorted[index + 1].velocity : VELOCITY_RANGE;
-		return {
+		const band = {
 			velocity: entry.velocity,
 			clipId: entry.clipId,
 			start,
 			end: Math.max(end, start + MIN_VELOCITY_GAP)
 		};
+		if (entry.overrides) {
+			band.overrides = entry.overrides;
+		}
+		return band;
 	});
 }
 
 /**
  * Evenly redistribute clip velocities across 0–127 (spec: breakpoint i at round(128 * i / N)).
- * @param {string[]} clipIds - ordered low→high velocity
- * @returns {Array<{clipId: string, velocity: number}>}
+ * Accepts clip id strings or `{ clipId, overrides? }` so placement overrides survive redistribute.
+ * @param {Array<string|{clipId: string, overrides?: Record<string, unknown>}>} items - ordered low→high velocity
+ * @returns {Array<{clipId: string, velocity: number, overrides?: Record<string, unknown>}>}
  */
-function redistributeVelocities(clipIds) {
-	const count = clipIds.length;
+function redistributeVelocities(items) {
+	const count = items.length;
 	if (count === 0) {
 		return [];
 	}
-	return clipIds.map((clipId, index) => ({
-		clipId,
-		velocity: Math.round((VELOCITY_RANGE * index) / count)
-	}));
+	return items.map((item, index) => {
+		const clipId = typeof item === 'string' ? item : item.clipId;
+		const entry = {
+			clipId,
+			velocity: Math.round((VELOCITY_RANGE * index) / count)
+		};
+		const overrides = typeof item === 'object' && item?.overrides ? { ...item.overrides } : null;
+		if (overrides) {
+			entry.overrides = overrides;
+		}
+		return entry;
+	});
 }
 
 /**
@@ -101,19 +114,26 @@ function insertionIndexForDropVelocity(dropVelocity, bands) {
 	return bands.length;
 }
 
+/** Clip id MIME used by clip list drag sources and region reorder. */
+export const MIME_AKVJ_CLIP_ID = 'application/x-akvj-clip-id';
+/** JSON `{ note, velocity, clipId }` when dragging an existing velocity region. */
+export const MIME_AKVJ_MAPPING_MOVE = 'application/x-akvj-mapping-move';
+
 /** Bubbling request events from `<piano-key>` → `<piano-roll>` (namespaced like public pianoroll:*). */
 export const EVENT_PIANOROLL_KEY_CLICK_REQUEST = 'pianoroll:key-click-request';
 export const EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST = 'pianoroll:mapping-change-request';
 export const EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST = 'pianoroll:mapping-remove-request';
 export const EVENT_PIANOROLL_MAPPING_ADD_REQUEST = 'pianoroll:mapping-add-request';
+export const EVENT_PIANOROLL_MAPPING_MOVE_REQUEST = 'pianoroll:mapping-move-request';
 
 /**
  * PianoKey — individual piano key with mapped/active states and optional velocity regions.
  *
- * @fires PianoKey#pianoroll:key-click-request - `{ detail: { note, velocity?, clipId?, action } }` (bubbles)
+ * @fires PianoKey#pianoroll:key-click-request - `{ detail: { note, velocity?, clipId?, action, shiftKey? } }` (bubbles)
  * @fires PianoKey#pianoroll:mapping-change-request - `{ detail: { note, oldVelocity, newVelocity, clipId } }` (bubbles)
  * @fires PianoKey#pianoroll:mapping-remove-request - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
  * @fires PianoKey#pianoroll:mapping-add-request - `{ detail: { note, clipId, velocity, mappings } }` (bubbles)
+ * @fires PianoKey#pianoroll:mapping-move-request - `{ detail: { sourceNote, sourceVelocity, sourceClipId, targetNote, targetVelocity, mappings } }` (bubbles)
  */
 class PianoKey extends HTMLElement {
 	#note = 0;
@@ -256,9 +276,35 @@ class PianoKey extends HTMLElement {
 		this.dispatchEvent(
 			new CustomEvent(EVENT_PIANOROLL_KEY_CLICK_REQUEST, {
 				bubbles: true,
-				detail: { note: this.#note, velocity: null, clipId: null, action: 'assign' }
+				detail: {
+					note: this.#note,
+					// Click Y within the key body maps to velocity (top = 127, bottom = 0).
+					// Null when the position cannot be derived (e.g. keyboard activation).
+					velocity: this.#velocityFromPointerEvent(event),
+					clipId: null,
+					action: 'assign'
+				}
 			})
 		);
+	}
+
+	/**
+	 * Map a pointer event's Y position within this key to a 0–127 velocity.
+	 * Returns null when the position cannot be derived (keyboard, synthetic events).
+	 *
+	 * @param {PointerEvent} event
+	 * @returns {number|null}
+	 */
+	#velocityFromPointerEvent(event) {
+		if (typeof event.clientY !== 'number') {
+			return null;
+		}
+		const rect = this.getBoundingClientRect();
+		if (rect.height <= 0) {
+			return null;
+		}
+		const ratioFromBottom = 1 - (event.clientY - rect.top) / rect.height;
+		return Math.min(VELOCITY_RANGE - 1, Math.max(0, Math.round(ratioFromBottom * VELOCITY_RANGE)));
 	}
 
 	/**
@@ -297,11 +343,11 @@ class PianoKey extends HTMLElement {
 			return;
 		}
 		const types = [...event.dataTransfer.types];
-		if (!types.includes('application/x-akvj-clip-id') && !types.includes('text/plain')) {
+		if (!types.includes(MIME_AKVJ_CLIP_ID) && !types.includes(MIME_AKVJ_MAPPING_MOVE) && !types.includes('text/plain')) {
 			return;
 		}
 		event.preventDefault();
-		event.dataTransfer.dropEffect = 'copy';
+		event.dataTransfer.dropEffect = types.includes(MIME_AKVJ_MAPPING_MOVE) ? 'move' : 'copy';
 	}
 
 	/**
@@ -310,27 +356,60 @@ class PianoKey extends HTMLElement {
 	#handleDrop(event) {
 		event.preventDefault();
 		event.stopPropagation();
-		const clipId = event.dataTransfer?.getData('application/x-akvj-clip-id') || event.dataTransfer?.getData('text/plain') || '';
+		const rect = this.getBoundingClientRect();
+		const ratioFromBottom = rect.height > 0 ? 1 - (event.clientY - rect.top) / rect.height : 0.5;
+		const dropVelocity = Math.min(VELOCITY_RANGE - 1, Math.max(0, Math.round(ratioFromBottom * VELOCITY_RANGE)));
+
+		const moveRaw = event.dataTransfer?.getData(MIME_AKVJ_MAPPING_MOVE) || '';
+		if (moveRaw) {
+			let source;
+			let parsed = false;
+			try {
+				source = JSON.parse(moveRaw);
+				parsed = true;
+			} catch {
+				// Not a move payload — fall through to clip-id add.
+			}
+			if (parsed && source && typeof source === 'object') {
+				const sourceNote = Number(source.note);
+				const sourceVelocity = Number(source.velocity);
+				const sourceClipId = typeof source.clipId === 'string' ? source.clipId.trim() : '';
+				if (sourceClipId && !Number.isNaN(sourceNote) && !Number.isNaN(sourceVelocity)) {
+					this.dispatchEvent(
+						new CustomEvent(EVENT_PIANOROLL_MAPPING_MOVE_REQUEST, {
+							bubbles: true,
+							detail: {
+								sourceNote,
+								sourceVelocity,
+								sourceClipId,
+								targetNote: this.#note,
+								targetVelocity: dropVelocity
+							}
+						})
+					);
+					return;
+				}
+			}
+		}
+
+		const clipId = event.dataTransfer?.getData(MIME_AKVJ_CLIP_ID) || event.dataTransfer?.getData('text/plain') || '';
 		const trimmedId = clipId.trim();
 		if (!trimmedId) {
 			return;
 		}
 
-		const rect = this.getBoundingClientRect();
-		const ratioFromBottom = rect.height > 0 ? 1 - (event.clientY - rect.top) / rect.height : 0.5;
-		const dropVelocity = Math.min(VELOCITY_RANGE - 1, Math.max(0, Math.round(ratioFromBottom * VELOCITY_RANGE)));
 		const insertAt = insertionIndexForDropVelocity(dropVelocity, this.#velocityBands);
-		const clipIds = this.#velocityBands.map(band => band.clipId);
-		clipIds.splice(insertAt, 0, trimmedId);
+		const items = this.#velocityBands.map(band => (band.overrides ? { clipId: band.clipId, overrides: band.overrides } : band.clipId));
+		items.splice(insertAt, 0, trimmedId);
 
 		// Reject drop if adding this clip would create regions smaller than MIN_REGION_VELOCITY.
 		// This prevents the drag constraint inversion bug where minVelocity > maxVelocity.
-		const newCount = clipIds.length;
+		const newCount = items.length;
 		if (VELOCITY_RANGE / newCount < MIN_REGION_VELOCITY) {
 			return;
 		}
 
-		const mappings = redistributeVelocities(clipIds);
+		const mappings = redistributeVelocities(items);
 		const velocity = mappings[insertAt]?.velocity ?? 0;
 
 		this.dispatchEvent(
@@ -377,6 +456,7 @@ class PianoKey extends HTMLElement {
 		for (const [index, band] of this.#velocityBands.entries()) {
 			const region = document.createElement('div');
 			region.className = 'velocity-region';
+			region.draggable = true;
 			region.dataset.velocity = String(band.velocity);
 			region.dataset.clipId = band.clipId;
 			region.title = `${band.clipId} (vel ${band.start}–${band.end - 1})`;
@@ -388,6 +468,20 @@ class PianoKey extends HTMLElement {
 			label.className = 'velocity-region-label';
 			label.textContent = band.clipId;
 			region.append(label);
+
+			region.addEventListener('dragstart', event => {
+				if (!event.dataTransfer) {
+					return;
+				}
+				event.stopPropagation();
+				event.dataTransfer.setData(MIME_AKVJ_CLIP_ID, band.clipId);
+				event.dataTransfer.setData(MIME_AKVJ_MAPPING_MOVE, JSON.stringify({ note: this.#note, velocity: band.velocity, clipId: band.clipId }));
+				event.dataTransfer.effectAllowed = 'move';
+				region.classList.add('is-dragging-region');
+			});
+			region.addEventListener('dragend', () => {
+				region.classList.remove('is-dragging-region');
+			});
 
 			region.addEventListener('pointerup', event => {
 				if (this.#dragState) {
@@ -404,7 +498,8 @@ class PianoKey extends HTMLElement {
 							note: this.#note,
 							velocity: band.velocity,
 							clipId: band.clipId,
-							action: 'select'
+							action: 'select',
+							shiftKey: event.shiftKey
 						}
 					})
 				);
@@ -599,8 +694,10 @@ class PianoKey extends HTMLElement {
 			return;
 		}
 
-		const remainingClipIds = this.#velocityBands.filter(band => !(band.clipId === clipId && band.velocity === velocity)).map(band => band.clipId);
-		const mappings = redistributeVelocities(remainingClipIds);
+		const remaining = this.#velocityBands
+			.filter(band => !(band.clipId === clipId && band.velocity === velocity))
+			.map(band => (band.overrides ? { clipId: band.clipId, overrides: band.overrides } : band.clipId));
+		const mappings = redistributeVelocities(remaining);
 
 		this.dispatchEvent(
 			new CustomEvent(EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST, {
@@ -628,14 +725,4 @@ class PianoKey extends HTMLElement {
 
 customElements.define('piano-key', PianoKey);
 
-export {
-	PianoKey,
-	isBlackKey,
-	noteLabel,
-	noteHue,
-	clipHue,
-	buildVelocityBands,
-	redistributeVelocities,
-	insertionIndexForDropVelocity,
-	MIN_REGION_VELOCITY
-};
+export { PianoKey, isBlackKey, noteLabel, noteHue, clipHue, buildVelocityBands, redistributeVelocities, insertionIndexForDropVelocity, MIN_REGION_VELOCITY };

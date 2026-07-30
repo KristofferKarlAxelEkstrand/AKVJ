@@ -26,14 +26,13 @@ function mountEditorDom({ mockClipFrames = true } = {}) {
 			<select id="clip-editor-trigger-type"><option value="momentary">momentary</option></select>
 			<input id="clip-editor-trigger-group" />
 			<div id="clip-editor-bit-depth-field"><input id="clip-editor-bit-depth" value="1" /></div>
-			<input id="clip-editor-frame-duration-beats" />
 			<button type="button" id="clip-editor-new"></button>
 			<button type="button" id="clip-frames-clear"></button>
 			<div id="clip-editor-drop-zone"></div>
 			<input id="clip-editor-files" type="file" />
 			<div id="clip-editor-status"></div>
-			<input id="clip-frames-global-duration" type="number" value="1000" />
-			<button type="button" id="clip-frames-set-all-duration">Set all</button>
+			<input id="clip-frames-global-duration-ms" type="number" value="1000" />
+			<button type="button" id="clip-frames-set-all-duration-ms">Set all</button>
 			<select id="clip-frames-global-bake-scale">
 				<option value="">—</option>
 				<option value="fit" selected>fit</option>
@@ -216,8 +215,8 @@ describe('ClipEditorController', () => {
 
 		await controller.stageSelectedFiles([new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })]);
 
-		const globalInput = document.getElementById('clip-frames-global-duration');
-		const setAll = document.getElementById('clip-frames-set-all-duration');
+		const globalInput = document.getElementById('clip-frames-global-duration-ms');
+		const setAll = document.getElementById('clip-frames-set-all-duration-ms');
 		expect(globalInput.disabled).toBe(false);
 		expect(globalInput.value).toBe('1000');
 
@@ -703,6 +702,179 @@ describe('ClipEditorController', () => {
 			expect(document.getElementById('clip-editor-name').value).toBe('Fast');
 			expect(document.getElementById('clip-editor-target-width').value).toBe('200');
 			vi.unstubAllGlobals();
+		});
+	});
+
+	describe('hydrate edge paths', () => {
+		test('invalid clipId reports error, resets to new-clip chrome, and skips frames fetch', async () => {
+			const { messages } = await import('../src/js/mainframeState.js');
+			const errorSpy = vi.spyOn(messages, 'error');
+			const fetchMock = vi.fn();
+			vi.stubGlobal('fetch', fetchMock);
+
+			const controller = makeController();
+			await controller.hydrate('../evil');
+
+			expect(errorSpy).toHaveBeenCalledWith('Invalid clip ID');
+			expect(fetchMock).not.toHaveBeenCalled();
+			expect(document.getElementById('clip-editor-submit').textContent).toBe('Create sprite & save');
+			expect(document.getElementById('clip-editor-clip-id').readOnly).toBe(false);
+			expect(document.getElementById('clip-editor-heading').hidden).toBe(true);
+			vi.unstubAllGlobals();
+		});
+
+		test('empty frames payload reports error and resets the editor', async () => {
+			const { messages } = await import('../src/js/mainframeState.js');
+			const errorSpy = vi.spyOn(messages, 'error');
+			const fetchMock = apiFetchMock(async () => jsonOk({ frames: [], durationsMs: [], meta: {}, source: 'sprite' }));
+			vi.stubGlobal('fetch', fetchMock);
+
+			const controller = makeController();
+			await controller.hydrate('empty-frames');
+
+			expect(errorSpy).toHaveBeenCalledWith(expect.stringMatching(/has no editable frames/i));
+			expect(document.getElementById('clip-editor-submit').textContent).toBe('Create sprite & save');
+			expect(document.getElementById('clip-editor-clip-id').readOnly).toBe(false);
+			vi.unstubAllGlobals();
+		});
+
+		test('empty/null-ish hydrate (action new) only resets without error', async () => {
+			const { messages } = await import('../src/js/mainframeState.js');
+			const errorSpy = vi.spyOn(messages, 'error');
+			const fetchMock = vi.fn();
+			vi.stubGlobal('fetch', fetchMock);
+
+			const controller = makeController();
+			document.getElementById('clip-editor-heading').textContent = 'stale';
+			document.getElementById('clip-editor-heading').hidden = false;
+
+			await controller.hydrate('');
+			await controller.hydrate(null);
+			await controller.hydrate(undefined);
+
+			expect(errorSpy).not.toHaveBeenCalled();
+			expect(fetchMock).not.toHaveBeenCalled();
+			expect(document.getElementById('clip-editor-heading').textContent).toBe('');
+			expect(document.getElementById('clip-editor-heading').hidden).toBe(true);
+			expect(document.getElementById('clip-editor-submit').textContent).toBe('Create sprite & save');
+			vi.unstubAllGlobals();
+		});
+	});
+
+	describe('clip-frames event wiring', () => {
+		test('framesreordered reorders staged files and marks frames dirty', async () => {
+			const preview = document.getElementById('clip-editor-staging-preview');
+			const clipFrames = document.getElementById('clip-frames');
+			const methods = [];
+			vi.stubGlobal(
+				'fetch',
+				apiFetchMock(async (href, options) => {
+					if (href.includes('/frames') && (!options.method || options.method === 'GET')) {
+						return jsonOk({
+							frames: ['data:image/png;base64,aaa', 'data:image/png;base64,bbb'],
+							durationsMs: [100, 200],
+							meta: { name: 'Reorder', playback: 'loop', frameWidth: 240, frameHeight: 135, scaleMode: 'fit' },
+							source: 'sprite'
+						});
+					}
+					methods.push({ href, method: options.method });
+					return jsonOk({});
+				})
+			);
+
+			const controller = makeController();
+			await controller.hydrate('reorder-clip');
+			// Clean hydrate leaves framesDirty false — reorder must set it so save PUTs /frames
+			methods.length = 0;
+			preview.loadFrames.mockClear();
+
+			clipFrames.dispatchEvent(
+				new CustomEvent('framesreordered', {
+					bubbles: true,
+					detail: { indices: [1, 0] }
+				})
+			);
+
+			expect(preview.loadFrames).toHaveBeenCalled();
+			const reorderedFiles = preview.loadFrames.mock.calls.at(-1)[0];
+			expect(reorderedFiles.map(file => file.name)).toEqual(['frame-0001.png', 'frame-0000.png']);
+
+			await controller.submit();
+			expect(methods.some(call => call.method === 'PUT' && call.href.endsWith('/clips/reorder-clip/frames'))).toBe(true);
+			vi.unstubAllGlobals();
+		});
+
+		test('frameremove drops the middle frame and keeps remaining frames aligned', async () => {
+			const clipFrames = document.getElementById('clip-frames');
+			const controller = makeController();
+			await controller.stageSelectedFiles([
+				new File(['a'], 'a.png', { type: 'image/png' }),
+				new File(['b'], 'b.png', { type: 'image/png' }),
+				new File(['c'], 'c.png', { type: 'image/png' })
+			]);
+			clipFrames.loadFrames.mockClear();
+
+			clipFrames.dispatchEvent(
+				new CustomEvent('frameremove', {
+					bubbles: true,
+					detail: { frameIndex: 1 }
+				})
+			);
+
+			expect(clipFrames.loadFrames).toHaveBeenCalled();
+			const remaining = clipFrames.loadFrames.mock.calls.at(-1)[0];
+			expect(remaining).toHaveLength(2);
+			// srcs are object URLs; durationMs stay aligned with remaining slots
+			expect(remaining.map(frame => frame.durationMs)).toEqual([1000, 1000]);
+		});
+
+		test('framescleared empties staged frames like clearStagedFrames', async () => {
+			const clipFrames = document.getElementById('clip-frames');
+			const preview = document.getElementById('clip-editor-staging-preview');
+			const controller = makeController();
+			await controller.stageSelectedFiles([
+				new File(['a'], 'a.png', { type: 'image/png' }),
+				new File(['b'], 'b.png', { type: 'image/png' })
+			]);
+			clipFrames.loadFrames.mockClear();
+			preview.loadFrames.mockClear();
+
+			clipFrames.dispatchEvent(new Event('framescleared', { bubbles: true }));
+
+			expect(clipFrames.loadFrames).toHaveBeenCalledWith([]);
+			expect(preview.loadFrames).toHaveBeenCalledWith([]);
+		});
+	});
+
+	describe('rejected file staging', () => {
+		test('all-rejected webp reports error and stages no frames', async () => {
+			const { messages } = await import('../src/js/mainframeState.js');
+			const errorSpy = vi.spyOn(messages, 'error');
+			const clipFrames = document.getElementById('clip-frames');
+			const controller = makeController();
+			clipFrames.loadFrames.mockClear();
+
+			await controller.stageSelectedFiles([new File(['w'], 'shot.webp', { type: 'image/webp' })]);
+
+			expect(errorSpy).toHaveBeenCalledWith('Skipped unsupported file: shot.webp');
+			expect(clipFrames.loadFrames).not.toHaveBeenCalled();
+		});
+
+		test('mixed PNG and unsupported warns and stages only PNG', async () => {
+			const { messages } = await import('../src/js/mainframeState.js');
+			const warnSpy = vi.spyOn(messages, 'warn');
+			const clipFrames = document.getElementById('clip-frames');
+			const controller = makeController();
+
+			await controller.stageSelectedFiles([
+				new File(['ok'], 'good.png', { type: 'image/png' }),
+				new File(['no'], 'bad.webp', { type: 'image/webp' })
+			]);
+
+			expect(warnSpy).toHaveBeenCalledWith('Skipped unsupported file: bad.webp');
+			expect(clipFrames.loadFrames).toHaveBeenCalled();
+			const frames = clipFrames.loadFrames.mock.calls.at(-1)[0];
+			expect(frames).toHaveLength(1);
 		});
 	});
 

@@ -1,0 +1,11 @@
+{
+  "display": "Scout",
+  "cli": "devin",
+  "model": "swe-1-7",
+  "enabled": true,
+  "lead": false,
+  "implementer": false,
+  "reviewer": false,
+  "qa": false,
+  "start_mode": "resident"
+}

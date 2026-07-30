@@ -5,8 +5,8 @@
 	"devDependencies": {
 		"@vitest/browser-playwright": "^4.1.10",
 		"chokidar": "^5.0.0",
-		"concurrently": "^10.0.3",
-		"sass": "^1.101.0",
+		"concurrently": "^10.0.4",
+		"sass": "^1.102.0",
 		"sharp": "^0.35.3",
 		"vite": "^8.1.5",
 		"vitest": "^4.1.10"
@@ -23,8 +23,12 @@
 		"dev:ui": "vite",
 		"lint": "eslint --config ../eslint.config.js .",
 		"start:api": "node server/index.js",
-		"test": "vitest run --config vitest.config.js && vitest run --config vitest.ui.config.js && vitest run --config vitest.ui.heavy.config.js",
-		"test:ui": "vitest run --config vitest.ui.config.js && vitest run --config vitest.ui.heavy.config.js",
+		"test": "vitest run --config vitest.config.js && vitest run --config vitest.ui.config.js && npm run test:ui:heavy",
+		"test:parallel": "concurrently -n unit,ui -c blue,magenta --timings \"vitest run --config vitest.config.js\" \"vitest run --config vitest.ui.config.js\" && npm run test:ui:heavy",
+		"test:ui": "vitest run --config vitest.ui.config.js && npm run test:ui:heavy",
+		"test:ui:heavy": "node scripts/runHeavyUiTests.mjs",
+		"test:ui:light": "vitest run --config vitest.ui.config.js",
+		"test:unit": "vitest run --config vitest.config.js",
 		"test:visual": "vitest run --config vitest.visual.config.js",
 		"test:visual:update": "vitest run --config vitest.visual.config.js --update",
 		"test:watch": "vitest"

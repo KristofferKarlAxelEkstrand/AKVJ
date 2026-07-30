@@ -5,16 +5,16 @@ import { durationsMsToFrameRates } from '../shared/frameTiming.js';
  * @param {unknown[]} frames
  * @returns {Buffer[]}
  */
-export function decodeFrameDataUrls(frames) {
+export function decodeFrameBase64(frames) {
 	return frames.map(frame => Buffer.from(String(frame).replace(/^data:image\/\w+;base64,/, ''), 'base64'));
 }
 
 /**
  * Parse clip create/update JSON body into spritesheet options + frame buffers.
+ * `frameDurationsMs` is the source of truth when present; `frameRatesForFrames` is derived for legacy readers.
  * @param {object} body
  * @returns {{
  *   role: unknown,
- *   frames: unknown,
  *   frameBuffers: Buffer[]|null,
  *   targetWidth: unknown,
  *   targetHeight: unknown,
@@ -23,6 +23,7 @@ export function decodeFrameDataUrls(frames) {
  *   frameRate: unknown,
  *   scaleMode: unknown,
  *   scaling: unknown,
+ *   frameDurationsMs: number[]|undefined,
  *   frameRatesForFrames: Record<string, number>|undefined,
  *   retrigger: unknown,
  *   triggerType: unknown,
@@ -32,11 +33,11 @@ export function decodeFrameDataUrls(frames) {
  */
 export function parseClipFramesBody(body) {
 	const { role, frames, targetWidth, targetHeight, name, playback, frameRate, scaleMode, frameDurationsMs, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, placement, scaling, frameBakeConfigs } = body ?? {};
-	const frameBuffers = Array.isArray(frames) && frames.length > 0 ? decodeFrameDataUrls(frames) : null;
-	const frameRatesForFrames = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? durationsMsToFrameRates(frameDurationsMs) : undefined;
+	const frameBuffers = Array.isArray(frames) && frames.length > 0 ? decodeFrameBase64(frames) : null;
+	const durationsMs = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? frameDurationsMs.map(ms => Number(ms)) : undefined;
+	const frameRatesForFrames = durationsMs ? durationsMsToFrameRates(durationsMs) : undefined;
 	return {
 		role,
-		frames,
 		frameBuffers,
 		targetWidth,
 		targetHeight,
@@ -44,6 +45,7 @@ export function parseClipFramesBody(body) {
 		playback,
 		frameRate,
 		scaleMode,
+		frameDurationsMs: durationsMs,
 		frameRatesForFrames,
 		retrigger,
 		triggerType,

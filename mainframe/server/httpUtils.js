@@ -12,7 +12,7 @@ const ALLOWED_ORIGINS = new Set(['http://localhost:9999', 'http://127.0.0.1:9999
 export function readBody(req, maxBytes = MAX_BODY_BYTES, res) {
 	return new Promise((resolve, reject) => {
 		const chunks = [];
-		let total = 0;
+		let totalBytes = 0;
 		let settled = false;
 
 		const failPayloadTooLarge = () => {
@@ -33,8 +33,8 @@ export function readBody(req, maxBytes = MAX_BODY_BYTES, res) {
 			if (settled) {
 				return;
 			}
-			total += chunk.length;
-			if (total > maxBytes) {
+			totalBytes += chunk.length;
+			if (totalBytes > maxBytes) {
 				failPayloadTooLarge();
 				return;
 			}

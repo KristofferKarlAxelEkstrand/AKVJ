@@ -1,8 +1,10 @@
 import defaultAppState from '../core/AppState.js';
 import defaultSettings from '../core/settings.js';
+import { DEFAULT_MAX_MIDI_MESSAGE_LENGTH, MAX_MIDI_MESSAGE_BYTE } from '../core/midiConstants.js';
 
 const SYSTEM_REAL_TIME_THRESHOLD = 0xf8;
 const CHANNEL_NIBBLE_MASK = 0xf;
+const UNCHECKED_DEVICES_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
 
 /**
  * MIDI module - Handles Web MIDI API and device management only
@@ -12,16 +14,20 @@ const CHANNEL_NIBBLE_MASK = 0xf;
 class Midi {
 	#midiAccess = null;
 	#connectedInputs = new Map();
+	#uncheckedDeviceIds = new Set();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
 	#initializationPromise = Promise.resolve();
-	#destroyed = false;
+	#isDestroyed = false;
 	#appState;
 	#settings;
+	#storage;
 
-	constructor({ appState = defaultAppState, settings = defaultSettings } = {}) {
+	constructor({ appState = defaultAppState, settings = defaultSettings, storage = globalThis.localStorage } = {}) {
 		this.#appState = appState;
 		this.#settings = settings;
+		this.#storage = storage;
+		this.#loadUncheckedDeviceIds();
 		this.#initializeMIDIAccess();
 	}
 
@@ -46,13 +52,13 @@ class Midi {
 	async #requestAccess() {
 		try {
 			const midiAccess = await navigator.requestMIDIAccess();
-			if (this.#destroyed) {
+			if (this.#isDestroyed) {
 				return;
 			}
 			this.#midiAccess = midiAccess;
 			this.#handleMIDISuccess(this.#midiAccess);
 		} catch (error) {
-			if (this.#destroyed) {
+			if (this.#isDestroyed) {
 				return;
 			}
 			this.#handleMIDIFailure(error);
@@ -65,6 +71,7 @@ class Midi {
 		this.#initializeMIDIInputs(midiAccess);
 		this.#initializeStateChangeListener(midiAccess);
 		this.#updateConnectionState();
+		this.#notifyDevicesChanged();
 	}
 
 	#handleMIDIFailure(error) {
@@ -74,7 +81,7 @@ class Midi {
 		} catch (resetError) {
 			console.warn('Failed to set this.#appState.midiConnected = false on MIDI failure:', resetError);
 		}
-		this.#appState.error(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
+		this.#appState.showError(`MIDI access failed: ${error?.message ?? 'Unknown error'}. Use Chrome/Chromium with MIDI enabled.`);
 	}
 
 	/**
@@ -104,6 +111,7 @@ class Midi {
 		}
 
 		this.#updateConnectionState();
+		this.#notifyDevicesChanged();
 	}
 
 	/**
@@ -180,18 +188,104 @@ class Midi {
 		}
 	}
 
+	#notifyDevicesChanged() {
+		try {
+			this.#appState.dispatchMIDIDevicesChanged?.(this.getConnectedDevices());
+		} catch (error) {
+			console.warn('Failed to dispatch midiDevicesChanged:', error);
+		}
+	}
+
+	#loadUncheckedDeviceIds() {
+		this.#uncheckedDeviceIds = new Set();
+		if (!this.#storage || typeof this.#storage.getItem !== 'function') {
+			return;
+		}
+		try {
+			const raw = this.#storage.getItem(UNCHECKED_DEVICES_STORAGE_KEY);
+			if (raw === null || raw === '') {
+				return;
+			}
+			const parsed = JSON.parse(raw);
+			if (!Array.isArray(parsed)) {
+				return;
+			}
+			for (const id of parsed) {
+				if (typeof id === 'string' && id.length > 0) {
+					this.#uncheckedDeviceIds.add(id);
+				}
+			}
+		} catch (error) {
+			console.warn('Midi: failed to read unchecked device ids from storage, fail-open:', error);
+			this.#uncheckedDeviceIds = new Set();
+		}
+	}
+
+	#persistUncheckedDeviceIds() {
+		if (!this.#storage || typeof this.#storage.setItem !== 'function') {
+			return;
+		}
+		try {
+			this.#storage.setItem(UNCHECKED_DEVICES_STORAGE_KEY, JSON.stringify([...this.#uncheckedDeviceIds]));
+		} catch (error) {
+			console.warn('Midi: failed to persist unchecked device ids:', error);
+		}
+	}
+
+	#isDeviceEnabled(deviceId) {
+		if (deviceId === null || deviceId === undefined || deviceId === '') {
+			return true;
+		}
+		return !this.#uncheckedDeviceIds.has(deviceId);
+	}
+
+	#resolveDeviceDisplayName(input) {
+		return input?.name ?? input?.id ?? 'unknown';
+	}
+
 	/**
-	 * Returns a list of names of currently connected MIDI input devices.
+	 * Returns currently connected MIDI inputs with enable state.
 	 *
 	 * @public
-	 * @returns {string[]} Array of connected MIDI input device names.
-	 * @description
-	 * This method is part of the public API contract. It provides external access
-	 * to the names of currently connected MIDI input devices, without exposing
-	 * internal state or device objects.
+	 * @returns {{ id: string, name: string, enabled: boolean }[]}
 	 */
 	getConnectedDevices() {
-		return Array.from(this.#connectedInputs.values()).map(input => input.name ?? input.id ?? 'unknown');
+		return Array.from(this.#connectedInputs.values()).map(input => {
+			const id = input.id ?? 'unknown';
+			return {
+				id,
+				name: this.#resolveDeviceDisplayName(input),
+				enabled: this.#isDeviceEnabled(input.id)
+			};
+		});
+	}
+
+	/**
+	 * Enable or disable a connected MIDI input by id.
+	 * Disabled ids are persisted as the unchecked set (fail-open).
+	 *
+	 * @public
+	 * @param {string} deviceId
+	 * @param {boolean} enabled
+	 */
+	setDeviceEnabled(deviceId, enabled) {
+		if (typeof deviceId !== 'string' || deviceId.length === 0) {
+			return;
+		}
+		if (enabled) {
+			this.#uncheckedDeviceIds.delete(deviceId);
+		} else {
+			this.#uncheckedDeviceIds.add(deviceId);
+		}
+		this.#persistUncheckedDeviceIds();
+		this.#notifyDevicesChanged();
+	}
+
+	#resolveDeviceInfo(message) {
+		const target = message?.target;
+		const deviceId = target?.id ?? null;
+		const deviceName = target ? this.#resolveDeviceDisplayName(target) : null;
+		return { deviceId, deviceName };
 	}
 
 	#handleMIDIMessage(message) {
@@ -199,8 +293,13 @@ class Midi {
 			return;
 		}
 
+		const deviceInfo = this.#resolveDeviceInfo(message);
+		if (!this.#isDeviceEnabled(deviceInfo.deviceId)) {
+			return;
+		}
+
 		// Security: Validate message length before parsing
-		const maxMessageLength = this.#settings.midi?.maxMessageLength ?? 256;
+		const maxMessageLength = this.#settings.midi?.maxMessageLength ?? DEFAULT_MAX_MIDI_MESSAGE_LENGTH;
 		if (message.data.length > maxMessageLength) {
 			console.warn(`Midi: message length ${message.data.length} exceeds maximum ${maxMessageLength}, ignoring`);
 			return;
@@ -209,7 +308,7 @@ class Midi {
 		// Security: Validate data integrity - check for null bytes and control characters
 		for (let i = 0; i < message.data.length; i++) {
 			const byte = message.data[i];
-			if (typeof byte !== 'number' || byte < 0 || byte > 255 || !Number.isInteger(byte)) {
+			if (typeof byte !== 'number' || byte < 0 || byte > MAX_MIDI_MESSAGE_BYTE || !Number.isInteger(byte)) {
 				console.warn(`Midi: invalid byte at index ${i}: ${byte}, ignoring message`);
 				return;
 			}
@@ -222,7 +321,7 @@ class Midi {
 			return;
 		}
 
-		this.#handleChannelMessage(message.data);
+		this.#handleChannelMessage(message.data, deviceInfo);
 	}
 
 	#handleSystemRealTime(statusByte) {
@@ -245,7 +344,7 @@ class Midi {
 		}
 	}
 
-	#handleChannelMessage(messageData) {
+	#handleChannelMessage(messageData, deviceInfo) {
 		const { channelMessageMinLength: minimumMessageLength } = this.#settings.midi;
 		if (messageData.length < minimumMessageLength) {
 			return;
@@ -256,35 +355,35 @@ class Midi {
 		const command = statusByte >> 4;
 		const channel = statusByte & CHANNEL_NIBBLE_MASK;
 
-		this.#dispatchChannelMessage(command, channel, firstDataByte, secondDataByte);
+		this.#dispatchChannelMessage(command, channel, firstDataByte, secondDataByte, deviceInfo);
 	}
 
-	#dispatchChannelMessage(command, channel, firstDataByte, secondDataByte) {
+	#dispatchChannelMessage(command, channel, firstDataByte, secondDataByte, deviceInfo) {
 		const { commands } = this.#settings.midi;
 		switch (command) {
 			case commands.noteOn:
-				this.#handleNoteOn(channel, firstDataByte, secondDataByte);
+				this.#handleNoteOn(channel, firstDataByte, secondDataByte, deviceInfo);
 				break;
 			case commands.noteOff:
-				this.#appState.dispatchMIDINoteOff(channel, firstDataByte);
+				this.#appState.dispatchMIDINoteOff(channel, firstDataByte, deviceInfo);
 				break;
 			case commands.controlChange:
-				this.#appState.dispatchMIDIControlChange(channel, firstDataByte, secondDataByte);
+				this.#appState.dispatchMIDIControlChange(channel, firstDataByte, secondDataByte, deviceInfo);
 				break;
 			default:
 				break;
 		}
 	}
 
-	#handleNoteOn(channel, note, velocity) {
+	#handleNoteOn(channel, note, velocity, deviceInfo) {
 		if (velocity > 0) {
 			if (channel === this.#settings.channelMapping.projectSelection) {
 				this.#handleProjectSelection(note);
 			} else {
-				this.#appState.dispatchMIDINoteOn(channel, note, velocity);
+				this.#appState.dispatchMIDINoteOn(channel, note, velocity, deviceInfo);
 			}
 		} else {
-			this.#appState.dispatchMIDINoteOff(channel, note);
+			this.#appState.dispatchMIDINoteOff(channel, note, deviceInfo);
 		}
 	}
 
@@ -308,7 +407,7 @@ class Midi {
 	 * Safe to call multiple times. Used for teardown in tests and HMR.
 	 */
 	destroy() {
-		this.#destroyed = true;
+		this.#isDestroyed = true;
 		for (const input of this.#connectedInputs.values()) {
 			this.#disconnectInput(input);
 		}
@@ -340,3 +439,4 @@ class Midi {
 }
 
 export default Midi;
+export { UNCHECKED_DEVICES_STORAGE_KEY };

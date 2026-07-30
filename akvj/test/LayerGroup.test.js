@@ -298,6 +298,27 @@ describe('LayerGroup', () => {
 			expect(group.getActiveClips()).not.toContain(clipA);
 		});
 
+		test('triggerGroup: 0 is a valid group id, not treated as "no group"', () => {
+			const clipA = createMockClip('clip-a');
+			clipA.triggerGroup = 0;
+			const clipB = createMockClip('clip-b');
+			clipB.triggerGroup = 0;
+
+			group.setClips({
+				0: { 60: { 0: clipA }, 61: { 0: clipB } }
+			});
+
+			// Activate clipA
+			group.noteOn(0, 60, 127);
+			expect(group.getActiveClips()).toContain(clipA);
+
+			// Activate clipB — should stop clipA (same trigger group, id 0)
+			group.noteOn(0, 61, 127);
+			expect(clipA.stop).toHaveBeenCalled();
+			expect(group.getActiveClips()).toContain(clipB);
+			expect(group.getActiveClips()).not.toContain(clipA);
+		});
+
 		test('triggering a clip does not stop clips in a different trigger group', () => {
 			const clipA = createMockClip('clip-a');
 			clipA.triggerGroup = 'bg';
@@ -354,6 +375,92 @@ describe('LayerGroup', () => {
 			group.noteOn(0, 61, 127);
 
 			expect(clipA.stop).not.toHaveBeenCalled();
+		});
+
+		test('finished one-shot cleanup removes choke map membership so next noteOn does not stop ghost', () => {
+			const clipA = createMockClip('oneshot-a');
+			clipA.triggerGroup = 'bg';
+			clipA.triggerType = 'one-shot';
+			const clipB = createMockClip('oneshot-b');
+			clipB.triggerGroup = 'bg';
+			clipB.triggerType = 'one-shot';
+
+			group.setClips({
+				0: { 60: { 0: clipA }, 61: { 0: clipB } }
+			});
+
+			group.noteOn(0, 60, 127);
+			clipA.isFinished = true;
+			expect(group.getActiveClips()).toEqual([]);
+
+			clipA.stop.mockClear();
+			group.noteOn(0, 61, 127);
+
+			expect(clipA.stop).not.toHaveBeenCalled();
+			expect(group.getActiveClips()).toContain(clipB);
+		});
+
+		test('choke then re-trigger retrigger:false beat clip restores clock advance', async () => {
+			const { default: Clip } = await import('../src/js/visuals/Clip.js');
+			const { BPM_SOURCE_CLOCK, EVENT_MIDI_CLOCK } = await import('../src/js/core/AppState.js');
+
+			const handlers = {};
+			const clockSource = {
+				bpmSource: BPM_SOURCE_CLOCK,
+				subscribe: (event, handler) => {
+					handlers[event] = handler;
+					return () => {
+						delete handlers[event];
+					};
+				}
+			};
+			const fireClock = count => {
+				for (let i = 0; i < count; i++) {
+					handlers[EVENT_MIDI_CLOCK]?.();
+				}
+			};
+
+			const image = { width: 240, height: 135 };
+			const clipA = new Clip({
+				image,
+				frameCount: 4,
+				framesPerRow: 4,
+				playback: 'loop',
+				syncBeats: 1,
+				retrigger: false,
+				triggerGroup: 'bg',
+				clockSource
+			});
+			const clipB = new Clip({
+				image,
+				frameCount: 4,
+				framesPerRow: 4,
+				playback: 'loop',
+				syncBeats: 1,
+				retrigger: false,
+				triggerGroup: 'bg',
+				clockSource
+			});
+
+			group.setClips({
+				0: { 60: { 0: clipA }, 61: { 0: clipB } }
+			});
+
+			group.noteOn(0, 60, 127);
+			fireClock(6);
+			expect(clipA.currentFrame).toBe(1);
+
+			// Choke clipA by triggering clipB in the same group
+			group.noteOn(0, 61, 127);
+			expect(group.getActiveClips()).toContain(clipB);
+			expect(group.getActiveClips()).not.toContain(clipA);
+
+			// Re-trigger clipA — must resume under clock from current frame (no restart)
+			group.noteOn(0, 60, 127);
+			expect(clipA.currentFrame).toBe(1);
+
+			fireClock(6);
+			expect(clipA.currentFrame).toBe(2);
 		});
 	});
 });

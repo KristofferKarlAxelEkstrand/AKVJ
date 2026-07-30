@@ -35,7 +35,7 @@ describe('akvj-loading-overlay', () => {
 		const fill = overlay.querySelector('.progress-fill');
 		fill.style.width = '50%';
 
-		appState.projectSwitching = true;
+		appState.isProjectSwitching = true;
 
 		expect(overlay.hasAttribute('visible')).toBe(true);
 		expect(overlay.isVisible).toBe(true);
@@ -43,7 +43,7 @@ describe('akvj-loading-overlay', () => {
 	});
 
 	test('EVENT_PROJECT_LOAD_COMPLETE hides overlay', () => {
-		appState.projectSwitching = true;
+		appState.isProjectSwitching = true;
 		expect(overlay.isVisible).toBe(true);
 
 		appState.dispatchProjectLoadComplete('default');
@@ -53,7 +53,7 @@ describe('akvj-loading-overlay', () => {
 	});
 
 	test('EVENT_PROJECT_LOAD_ERROR hides overlay', () => {
-		appState.projectSwitching = true;
+		appState.isProjectSwitching = true;
 		expect(overlay.isVisible).toBe(true);
 
 		appState.dispatchProjectLoadError('default', 'fail');
@@ -69,7 +69,7 @@ describe('akvj-loading-overlay', () => {
 		expect(overlay.childNodes).toHaveLength(0);
 		expect(overlay.querySelector('.progress-bar')).toBeNull();
 
-		appState.projectSwitching = true;
+		appState.isProjectSwitching = true;
 		expect(overlay.hasAttribute('visible')).toBe(false);
 		expect(overlay.isVisible).toBe(false);
 	});

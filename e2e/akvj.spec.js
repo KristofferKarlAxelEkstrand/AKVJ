@@ -71,3 +71,27 @@ test('akvj page has no unexpected console errors on load', async ({ page }) => {
 	const realErrors = consoleErrors.filter(err => !err.includes('Web MIDI') && !err.includes('navigator.requestMIDIAccess'));
 	expect(realErrors).toEqual([]);
 });
+
+test('T toggles MIDI settings overlay; Space/Enter while open do not leave the page', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.locator('adventure-kid-video-jockey canvas').first()).toBeVisible();
+
+	const overlay = page.locator('#midi-settings-overlay');
+	await expect(overlay).toHaveCount(0);
+
+	await page.locator('body').click();
+	await page.keyboard.press('t');
+	await expect(overlay).toBeVisible();
+	await expect(page.locator('[data-testid="midi-settings-devices"]')).toBeVisible();
+
+	const urlBefore = page.url();
+	await page.keyboard.press('Space');
+	await page.keyboard.press('Enter');
+	expect(page.url()).toBe(urlBefore);
+	await expect(page.locator('adventure-kid-video-jockey canvas').first()).toBeVisible();
+	// Overlay may stay open (Fullscreen ignores Space/Enter while it is mounted).
+	await expect(overlay).toBeVisible();
+
+	await page.keyboard.press('t');
+	await expect(overlay).toHaveCount(0);
+});

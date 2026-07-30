@@ -63,11 +63,7 @@ function applyHorizontalDisplacement(pixels, original, width, height, maxShift) 
 		for (let x = 0; x < width; x++) {
 			const idx = rowStart + x * RGBA_CHANNEL_COUNT;
 
-			// Calculate luminance (simple average for lo-fi look)
 			const luminance = (original[idx] + original[idx + 1] + original[idx + 2]) / RGB_CHANNEL_COUNT;
-
-			// Displacement: mid-gray = no shift, darker = left, brighter = right
-			// Lo-fi: use integer math with stepped values, scaled by maxShift
 			const displacement = luminance > MID_GRAY_LUMINANCE ? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift) : -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
@@ -75,7 +71,6 @@ function applyHorizontalDisplacement(pixels, original, width, height, maxShift) 
 				continue;
 			}
 
-			// Wrap-around displacement
 			const sourceX = (x + shiftAmount + width) % width;
 			const sourceIdx = rowStart + sourceX * RGBA_CHANNEL_COUNT;
 
@@ -100,11 +95,7 @@ function applyVerticalDisplacement(pixels, original, width, height, maxShift) {
 		for (let x = 0; x < width; x++) {
 			const idx = y * rowBytes + x * RGBA_CHANNEL_COUNT;
 
-			// Calculate luminance (simple average for lo-fi look)
 			const luminance = (original[idx] + original[idx + 1] + original[idx + 2]) / RGB_CHANNEL_COUNT;
-
-			// Displacement: mid-gray = no shift, darker = up, brighter = down
-			// Lo-fi: use integer math with stepped values, scaled by maxShift
 			const displacement = luminance > MID_GRAY_LUMINANCE ? Math.floor(((luminance - MID_GRAY_LUMINANCE) / MID_GRAY_LUMINANCE) * maxShift) : -Math.floor(((MID_GRAY_LUMINANCE - luminance) / MID_GRAY_LUMINANCE) * maxShift);
 
 			const shiftAmount = Math.max(-maxShift, Math.min(maxShift, displacement));
@@ -112,7 +103,6 @@ function applyVerticalDisplacement(pixels, original, width, height, maxShift) {
 				continue;
 			}
 
-			// Wrap-around displacement
 			const sourceY = (y + shiftAmount + height) % height;
 			const sourceIdx = sourceY * rowBytes + x * RGBA_CHANNEL_COUNT;
 

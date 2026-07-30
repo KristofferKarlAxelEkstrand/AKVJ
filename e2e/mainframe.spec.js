@@ -76,6 +76,70 @@ test('settings route shows header and settings panel', async ({ page }) => {
 	await expect(page.locator('#panel-library')).toBeHidden();
 });
 
+test('projects route mounts project-chooser with API-fed options', async ({ page }) => {
+	await page.goto('/projects');
+	await expect(page.locator('#panel-projects')).toBeVisible();
+	await expect(page.locator('#project-chooser')).toBeAttached();
+	const select = page.locator('.project-chooser-select');
+	await expect(select.locator('option')).not.toHaveCount(0);
+	await expect(select.locator('option[value="default"]')).toHaveCount(1);
+	await expect(page.locator('.project-chooser-active-id')).not.toBeEmpty();
+});
+
+test('tab navigation round-trips Library, Projects, and Settings', async ({ page }) => {
+	await page.goto('/');
+	await expect(page.locator('#panel-library')).toBeVisible();
+
+	await page.locator('[data-tab="projects"]').click();
+	await expect(page.locator('#panel-projects')).toBeVisible();
+	await expect(page.locator('#panel-library')).toBeHidden();
+	await expect(page.locator('#panel-settings')).toBeHidden();
+
+	await page.locator('[data-tab="settings"]').click();
+	await expect(page.locator('#panel-settings')).toBeVisible();
+	await expect(page.locator('#panel-projects')).toBeHidden();
+
+	await page.locator('[data-tab="library"]').click();
+	await expect(page.locator('#panel-library')).toBeVisible();
+	await expect(page.locator('#panel-settings')).toBeHidden();
+});
+
+test('projects create, activate switch, and delete cleanup', async ({ page }) => {
+	const unique = `E2E ${Date.now()}`;
+	const projectId = unique
+		.toLowerCase()
+		.trim()
+		.replace(/[\s_]+/g, '-')
+		.replace(/[^a-z0-9-]/g, '');
+
+	await page.goto('/projects');
+	const chooser = page.locator('#project-chooser');
+	const select = chooser.locator('.project-chooser-select');
+	const activeId = chooser.locator('.project-chooser-active-id');
+	const status = page.locator('#projects-status');
+
+	await expect(select.locator('option')).not.toHaveCount(0);
+
+	await chooser.locator('.project-chooser-name').fill(unique);
+	await chooser.locator('.project-chooser-create button', { hasText: 'Create' }).click();
+	await expect(status).toContainText(`Created project ${projectId}`, { timeout: E2E_TIMEOUT_MS });
+	await expect(activeId).toContainText(`(${projectId})`);
+	await expect(select).toHaveValue(projectId);
+
+	await select.selectOption('default');
+	await expect(status).toContainText('Active project: default', { timeout: E2E_TIMEOUT_MS });
+	await expect(activeId).toContainText('(default)');
+
+	await select.selectOption(projectId);
+	await expect(status).toContainText(`Active project: ${projectId}`, { timeout: E2E_TIMEOUT_MS });
+
+	page.once('dialog', dialog => dialog.accept());
+	await chooser.locator('.project-chooser-delete').click();
+	await expect(status).toContainText(`Deleted project ${projectId}`, { timeout: E2E_TIMEOUT_MS });
+	await expect(select.locator(`option[value="${projectId}"]`)).toHaveCount(0);
+	await expect(activeId).toContainText('(default)');
+});
+
 test('clip editor tab has drag-and-drop zone and config fields', async ({ page }) => {
 	await page.goto('/');
 	await page.locator('[data-tab="editor"]').click();
@@ -84,8 +148,8 @@ test('clip editor tab has drag-and-drop zone and config fields', async ({ page }
 	await expect(page.locator('#clip-editor-target-width')).toHaveValue('240');
 	await expect(page.locator('#clip-editor-target-height')).toHaveValue('135');
 	await expect(page.locator('#clip-editor-playback')).toHaveValue('loop');
-	await expect(page.locator('#clip-frames-global-duration')).toHaveValue('');
-	await expect(page.locator('#clip-frames-global-duration')).toBeDisabled();
+	await expect(page.locator('#clip-frames-global-duration-ms')).toHaveValue('');
+	await expect(page.locator('#clip-frames-global-duration-ms')).toBeDisabled();
 	await expect(page.locator('#clip-editor-sync')).toHaveValue('free');
 });
 
@@ -96,8 +160,8 @@ test('clip editor global duration is populated when a frame is staged', async ({
 	await page.locator('#clip-editor-files').setInputFiles(samplePngPath, { force: true });
 	await expect(page.locator('#clip-frames clip-frame')).toHaveCount(1, { timeout: E2E_TIMEOUT_MS });
 
-	await expect(page.locator('#clip-frames-global-duration')).toHaveValue('1000');
-	await expect(page.locator('#clip-frames-global-duration')).toBeEnabled();
+	await expect(page.locator('#clip-frames-global-duration-ms')).toHaveValue('1000');
+	await expect(page.locator('#clip-frames-global-duration-ms')).toBeEnabled();
 });
 
 test('staging preview element is present in clip editor tab', async ({ page }) => {
@@ -146,6 +210,31 @@ test('mapping piano roll can switch to filter mode', async ({ page }) => {
 	await expect(mappingRoll).toHaveAttribute('mode', 'filter');
 	await expect(mappingRoll.locator('.piano-roll-filter-view')).not.toHaveAttribute('hidden');
 	await expect(mappingRoll.locator('.piano-roll-filter-controls')).toBeVisible();
+});
+
+test('mapping piano roll can switch to play mode', async ({ page }) => {
+	await page.goto('/');
+	await page.locator('[data-tab="mapping"]').click();
+	const mappingRoll = page.locator('#mapping-piano-roll');
+	await mappingRoll.locator('.piano-roll-mode-button[data-mode="play"]').click();
+	await expect(mappingRoll).toHaveAttribute('mode', 'play');
+	await expect(mappingRoll.locator('.piano-roll-play-view')).not.toHaveAttribute('hidden');
+	const velocitySlider = mappingRoll.locator('.piano-roll-velocity-slider');
+	await expect(velocitySlider).toBeVisible();
+	await expect(velocitySlider).toHaveAttribute('min', '0');
+	await expect(velocitySlider).toHaveAttribute('max', '127');
+});
+
+test('library piano roll can switch to play mode', async ({ page }) => {
+	await page.goto('/');
+	const libraryRoll = page.locator('#library-piano-roll');
+	await libraryRoll.locator('.piano-roll-mode-button[data-mode="play"]').click();
+	await expect(libraryRoll).toHaveAttribute('mode', 'play');
+	await expect(libraryRoll.locator('.piano-roll-play-view')).not.toHaveAttribute('hidden');
+	const velocitySlider = libraryRoll.locator('.piano-roll-velocity-slider');
+	await expect(velocitySlider).toBeVisible();
+	await expect(velocitySlider).toHaveAttribute('min', '0');
+	await expect(velocitySlider).toHaveAttribute('max', '127');
 });
 
 test('mapping table view loads and displays mapping entries or empty state', async ({ page }) => {

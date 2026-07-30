@@ -1,7 +1,63 @@
 import { vi } from 'vitest';
 import settings from '../../../src/js/core/settings.js';
+import Clip from '../../../src/js/visuals/Clip.js';
 
 const { width, height } = settings.canvas;
+
+/** Non-square source cell so fit/cover/stretch/none differ in screenshots. */
+const SCALE_SOURCE_WIDTH = 100;
+const SCALE_SOURCE_HEIGHT = 80;
+
+/**
+ * Draw an asymmetric checker + corner marks onto a 2D context.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} w
+ * @param {number} h
+ */
+function paintAsymmetricScaleSource(ctx, w, h) {
+	const tile = 10;
+	for (let y = 0; y < h; y += tile) {
+		for (let x = 0; x < w; x += tile) {
+			const even = (x / tile + y / tile) % 2 === 0;
+			ctx.fillStyle = even ? 'rgb(255,0,0)' : 'rgb(0,0,255)';
+			ctx.fillRect(x, y, tile, tile);
+		}
+	}
+	ctx.fillStyle = 'rgb(0,255,0)';
+	ctx.fillRect(0, 0, 16, 16);
+	ctx.fillStyle = 'rgb(255,255,0)';
+	ctx.fillRect(w - 16, h - 16, 16, 16);
+}
+
+/**
+ * Create a real Clip that draws via scaleMode / scaling (not a mock drawFn).
+ * Source is a non-square asymmetric sprite so aspect errors show in pixels.
+ *
+ * @param {Object} options
+ * @param {string} options.scaleMode
+ * @param {string} [options.scaling='nearest']
+ * @param {{ x: number, y: number }} [options.placement]
+ * @returns {Clip}
+ */
+export function createScaleModeClip({ scaleMode, scaling = 'nearest', placement = { x: 0, y: 0 } }) {
+	const sprite = document.createElement('canvas');
+	sprite.width = SCALE_SOURCE_WIDTH;
+	sprite.height = SCALE_SOURCE_HEIGHT;
+	paintAsymmetricScaleSource(sprite.getContext('2d'), SCALE_SOURCE_WIDTH, SCALE_SOURCE_HEIGHT);
+
+	const clip = new Clip({
+		image: sprite,
+		frameCount: 1,
+		framesPerRow: 1,
+		playback: 'loop',
+		frameRatesForFrames: { 0: 1 },
+		scaleMode,
+		scaling,
+		placement
+	});
+	clip.reset();
+	return clip;
+}
 
 /**
  * Create a mock clip with a custom draw function.
@@ -90,6 +146,23 @@ export function createAsymmetricPatternClip() {
 		ctx.fillRect(0, 0, Math.floor(width / 2), height);
 		ctx.fillStyle = 'rgb(0,0,255)';
 		ctx.fillRect(Math.floor(width / 2), 0, width - Math.floor(width / 2), height);
+		ctx.fillStyle = 'rgb(0,255,0)';
+		ctx.fillRect(5, 5, 20, 20);
+	});
+}
+
+/**
+ * Create a clip with top/bottom asymmetry (for vertical mirror/split/offset).
+ * Top half is red, bottom half is blue with a green square in the top-left.
+ *
+ * @returns {Object} Mock Clip
+ */
+export function createVerticalAsymmetricPatternClip() {
+	return createMockClip(ctx => {
+		ctx.fillStyle = 'rgb(255,0,0)';
+		ctx.fillRect(0, 0, width, Math.floor(height / 2));
+		ctx.fillStyle = 'rgb(0,0,255)';
+		ctx.fillRect(0, Math.floor(height / 2), width, height - Math.floor(height / 2));
 		ctx.fillStyle = 'rgb(0,255,0)';
 		ctx.fillRect(5, 5, 20, 20);
 	});

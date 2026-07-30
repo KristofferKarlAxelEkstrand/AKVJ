@@ -5,18 +5,11 @@ import { clipDir, projectClipsDir } from './paths.js';
 import { getActiveProjectId } from './projects.js';
 
 /**
- * @returns {Promise<string>}
- */
-export async function activeProjectId() {
-	return getActiveProjectId();
-}
-
-/**
  * @param {string} [projectId]
  * @returns {Promise<string>}
  */
-export async function clipsRootFor(projectId) {
-	const id = projectId ?? (await activeProjectId());
+export async function resolveProjectClipsRoot(projectId) {
+	const id = projectId ?? (await getActiveProjectId());
 	return projectClipsDir(id);
 }
 
@@ -43,7 +36,7 @@ export function isPipelineReadyClip(meta, hasSprite) {
  * @returns {Promise<import('fs').Dirent[]>}
  */
 async function readClipDirectories(projectId) {
-	const clipsRoot = await clipsRootFor(projectId);
+	const clipsRoot = await resolveProjectClipsRoot(projectId);
 	try {
 		return await fs.readdir(clipsRoot, { withFileTypes: true });
 	} catch (error) {
@@ -59,7 +52,7 @@ async function readClipDirectories(projectId) {
  * @returns {Promise<Array<{clipId: string, meta: object, hasSprite: boolean, pipelineReady: boolean}>>}
  */
 export async function listClips(projectId) {
-	const id = projectId ?? (await activeProjectId());
+	const id = projectId ?? (await getActiveProjectId());
 	const entries = await readClipDirectories(id);
 	const clipEntries = entries.filter(entry => entry.isDirectory() && isValidClipId(entry.name));
 	const clips = await Promise.all(clipEntries.map(entry => buildClipEntry(entry.name, id)));
@@ -73,7 +66,7 @@ export async function listClips(projectId) {
  */
 async function buildClipEntry(clipId, projectId) {
 	const dir = clipDir(clipId, projectId);
-	const meta = await readClipMeta(dir);
+	const meta = await readClipMetaFromDir(dir);
 	const hasSprite = await checkSpriteExists(dir, meta);
 	return {
 		clipId,
@@ -83,7 +76,7 @@ async function buildClipEntry(clipId, projectId) {
 	};
 }
 
-async function readClipMeta(dir) {
+async function readClipMetaFromDir(dir) {
 	try {
 		return JSON.parse(await fs.readFile(path.join(dir, 'meta.json'), 'utf8'));
 	} catch {

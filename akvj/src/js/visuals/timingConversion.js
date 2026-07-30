@@ -6,7 +6,7 @@
  * frameDurationsMs. Mirrors mainframe's frameTiming.js functionality without shared imports.
  */
 
-const MS_PER_SECOND = 1000;
+import { MS_PER_SECOND } from '../utils/timing.js';
 
 /**
  * Convert milliseconds per frame to frames per second.
@@ -23,15 +23,15 @@ export function msToFps(durationMs) {
 
 /**
  * Convert frames per second to milliseconds per frame.
- * @param {number} fps - Frames per second
+ * @param {number} frameRate - Frames per second
  * @returns {number} Duration in milliseconds per frame
- * @throws {Error} If fps is not a positive number
+ * @throws {Error} If frameRate is not a positive number
  */
-export function fpsToMs(fps) {
-	if (typeof fps !== 'number' || fps <= 0) {
-		throw new Error(`fpsToMs: fps must be a positive number, got ${fps}`);
+export function fpsToMs(frameRate) {
+	if (typeof frameRate !== 'number' || frameRate <= 0) {
+		throw new Error(`fpsToMs: frameRate must be a positive number, got ${frameRate}`);
 	}
-	return MS_PER_SECOND / fps;
+	return MS_PER_SECOND / frameRate;
 }
 
 /**
@@ -64,9 +64,9 @@ export function frameRatesToDurationsMs(frameRatesForFrames) {
 	}
 
 	const frameDurationsMs = {};
-	for (const [frameIndex, fps] of Object.entries(frameRatesForFrames)) {
-		if (typeof fps === 'number' && fps > 0) {
-			frameDurationsMs[frameIndex] = fpsToMs(fps);
+	for (const [frameIndex, frameRate] of Object.entries(frameRatesForFrames)) {
+		if (typeof frameRate === 'number' && frameRate > 0) {
+			frameDurationsMs[frameIndex] = fpsToMs(frameRate);
 		}
 	}
 	return frameDurationsMs;

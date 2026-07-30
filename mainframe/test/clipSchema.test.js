@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { validateMetaFields } from '../scripts/clips/lib/validate/meta.js';
-import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, MAX_FRAMES_PER_ROW } from '../src/js/clipSchema.js';
+import { PLAYBACK_MODES, TRIGGER_TYPES, VALID_BIT_DEPTHS, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE, DEFAULT_PLAYBACK, DEFAULT_FRAME_RATE, MAX_FRAMES_PER_ROW, DEFAULT_TRIGGER_TYPE, resolveTriggerType } from '../src/js/clipSchema.js';
 import { SCALE_MODES } from '../shared/frameFit.js';
 
 describe('validateMetaFields — non-mutation', () => {
@@ -177,6 +177,16 @@ describe('clipSchema constants', () => {
 
 	test('TRIGGER_TYPES matches expected list', () => {
 		expect([...TRIGGER_TYPES]).toEqual(['momentary', 'latch', 'one-shot']);
+	});
+
+	test('resolveTriggerType defaults missing/empty to momentary', () => {
+		expect(DEFAULT_TRIGGER_TYPE).toBe('momentary');
+		expect(resolveTriggerType(undefined)).toBe('momentary');
+		expect(resolveTriggerType(null)).toBe('momentary');
+		expect(resolveTriggerType('')).toBe('momentary');
+		expect(resolveTriggerType('latch')).toBe('latch');
+		expect(resolveTriggerType('one-shot')).toBe('one-shot');
+		expect(resolveTriggerType('momentary')).toBe('momentary');
 	});
 
 	test('VALID_BIT_DEPTHS matches expected list', () => {

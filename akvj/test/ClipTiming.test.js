@@ -26,19 +26,19 @@ describe('ClipTiming', () => {
 		vi.restoreAllMocks();
 	});
 
-	describe('getFrameInterval — free mode', () => {
+	describe('getFrameIntervalMs — free mode', () => {
 		test('uses frameRatesForFrames directly when not BPM synced', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 10 },
 				syncBeats: null,
-				frames: 4
+				frameCount: 4
 			});
-			expect(timing.isUsingBPMSync).toBe(false);
-			expect(timing.getFrameInterval(3)).toBe(1000 / 10);
+			expect(timing.isUsingBeatSync).toBe(false);
+			expect(timing.getFrameIntervalMs(3)).toBe(1000 / 10);
 		});
 	});
 
-	describe('getFrameInterval — beat mode (speed multiplier)', () => {
+	describe('getFrameIntervalMs — beat mode (speed multiplier)', () => {
 		test('preserves relative frame timing via a whole-clip speed multiplier (spec worked example)', () => {
 			// 4-frame clip, frameRatesForFrames: { 0: 1, 1: 2, 2: 1, 3: 4 }, "1 bar" (4 beats) @ 120 BPM
 			// naturalDuration = 1000 + 500 + 1000 + 250 = 2750ms; targetDuration = (4*60000)/120 = 2000ms
@@ -46,39 +46,39 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 1, 1: 2, 2: 1, 3: 4 },
 				syncBeats: 4,
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120
 			});
-			expect(timing.isUsingBPMSync).toBe(true);
+			expect(timing.isUsingBeatSync).toBe(true);
 			const speedMultiplier = 2000 / 2750;
-			expect(timing.getFrameInterval(0)).toBeCloseTo(1000 * speedMultiplier, 6);
-			expect(timing.getFrameInterval(1)).toBeCloseTo(500 * speedMultiplier, 6);
-			expect(timing.getFrameInterval(2)).toBeCloseTo(1000 * speedMultiplier, 6);
-			expect(timing.getFrameInterval(3)).toBeCloseTo(250 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(0)).toBeCloseTo(1000 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(1)).toBeCloseTo(500 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(2)).toBeCloseTo(1000 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(3)).toBeCloseTo(250 * speedMultiplier, 6);
 			// Frame 3 is still 4x faster than frame 0 — the relationship is preserved
-			expect(timing.getFrameInterval(0) / timing.getFrameInterval(3)).toBeCloseTo(4, 6);
+			expect(timing.getFrameIntervalMs(0) / timing.getFrameIntervalMs(3)).toBeCloseTo(4, 6);
 		});
 
 		test('clamps BPM to settings.bpm.min', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 1
 			});
 			const minBPM = settings.bpm.min > 0 ? settings.bpm.min : 1;
-			expect(timing.getFrameInterval(0)).toBeCloseTo((1 * MS_PER_MINUTE) / minBPM, 6);
+			expect(timing.getFrameIntervalMs(0)).toBeCloseTo((1 * MS_PER_MINUTE) / minBPM, 6);
 		});
 
 		test('clamps BPM to settings.bpm.max', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 1000
 			});
 			const maxBPM = settings.bpm.max;
-			expect(timing.getFrameInterval(0)).toBeCloseTo((1 * MS_PER_MINUTE) / maxBPM, 6);
+			expect(timing.getFrameIntervalMs(0)).toBeCloseTo((1 * MS_PER_MINUTE) / maxBPM, 6);
 		});
 
 		test('recomputes with the current BPM on every call (no stale caching)', () => {
@@ -86,12 +86,12 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => bpm
 			});
-			const intervalAt120 = timing.getFrameInterval(0);
+			const intervalAt120 = timing.getFrameIntervalMs(0);
 			bpm = 60;
-			expect(timing.getFrameInterval(0)).toBeCloseTo(intervalAt120 * 2, 6);
+			expect(timing.getFrameIntervalMs(0)).toBeCloseTo(intervalAt120 * 2, 6);
 		});
 	});
 
@@ -104,7 +104,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -120,7 +120,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 10, 1: 2 },
 				syncBeats: null,
-				frames: 2
+				frameCount: 2
 			});
 			timing.setCurrentFrameIndex(1);
 			timing.advanceFrame(0, () => {
@@ -143,7 +143,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 10 },
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -161,7 +161,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 10 },
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -180,7 +180,7 @@ describe('ClipTiming', () => {
 			// beat-mode speed multiplier at the current (fallback) BPM.
 			timing.advanceFrame(1000, onAdvance); // seeds lastTimestamp only, no elapsed yet
 			expect(onAdvance).not.toHaveBeenCalled();
-			const interval = timing.getFrameInterval(0);
+			const interval = timing.getFrameIntervalMs(0);
 			timing.advanceFrame(1000 + interval, onAdvance);
 			expect(onAdvance).toHaveBeenCalledTimes(1);
 		});
@@ -193,7 +193,7 @@ describe('ClipTiming', () => {
 			return new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -264,7 +264,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1, // 24 pulses total
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -287,7 +287,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -313,7 +313,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -351,7 +351,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 1,
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -378,7 +378,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: { 0: 10 },
 				syncBeats: null,
-				frames: 1
+				frameCount: 1
 			});
 			const onAdvance = vi.fn(() => true);
 			timing.advanceFrame(0, onAdvance);
@@ -393,14 +393,14 @@ describe('ClipTiming', () => {
 		});
 	});
 
-	describe('initBPMSync validation', () => {
+	describe('initBeatSync validation', () => {
 		test('throws on zero or negative syncBeats', () => {
 			expect(
 				() =>
 					new ClipTiming({
 						frameRatesForFrames: {},
 						syncBeats: 0,
-						frames: 1
+						frameCount: 1
 					})
 			).toThrow(/invalid syncBeats/);
 			expect(
@@ -408,7 +408,7 @@ describe('ClipTiming', () => {
 					new ClipTiming({
 						frameRatesForFrames: {},
 						syncBeats: -1,
-						frames: 1
+						frameCount: 1
 					})
 			).toThrow(/invalid syncBeats/);
 		});
@@ -418,7 +418,7 @@ describe('ClipTiming', () => {
 			const timing = new ClipTiming({
 				frameRatesForFrames: {},
 				syncBeats: 0.001, // 0.001 * 24 ≈ 0.024, would round to 0 pulses
-				frames: 1,
+				frameCount: 1,
 				bpmProvider: () => 120,
 				clockSource
 			});
@@ -436,11 +436,11 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: {},
 				frameDurationsMs: { 0: 50, 1: 100, 2: 25 },
 				syncBeats: null,
-				frames: 3
+				frameCount: 3
 			});
-			expect(timing.getFrameInterval(0)).toBe(50);
-			expect(timing.getFrameInterval(1)).toBe(100);
-			expect(timing.getFrameInterval(2)).toBe(25);
+			expect(timing.getFrameIntervalMs(0)).toBe(50);
+			expect(timing.getFrameIntervalMs(1)).toBe(100);
+			expect(timing.getFrameIntervalMs(2)).toBe(25);
 		});
 
 		test('frameDurationsMs takes priority over frameRatesForFrames', () => {
@@ -448,10 +448,10 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: { 0: 10, 1: 20 }, // Would be 100ms and 50ms
 				frameDurationsMs: { 0: 75, 1: 150 }, // Should use these instead
 				syncBeats: null,
-				frames: 2
+				frameCount: 2
 			});
-			expect(timing.getFrameInterval(0)).toBe(75);
-			expect(timing.getFrameInterval(1)).toBe(150);
+			expect(timing.getFrameIntervalMs(0)).toBe(75);
+			expect(timing.getFrameIntervalMs(1)).toBe(150);
 		});
 
 		test('backward compatibility: frameRatesForFrames-only clips work unchanged', () => {
@@ -459,10 +459,10 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: { 0: 10, 1: 20 },
 				frameDurationsMs: null,
 				syncBeats: null,
-				frames: 2
+				frameCount: 2
 			});
-			expect(timing.getFrameInterval(0)).toBe(100); // 1000 / 10
-			expect(timing.getFrameInterval(1)).toBe(50); // 1000 / 20
+			expect(timing.getFrameIntervalMs(0)).toBe(100); // 1000 / 10
+			expect(timing.getFrameIntervalMs(1)).toBe(50); // 1000 / 20
 		});
 
 		test('ms-based timing works with beat sync mode', () => {
@@ -473,14 +473,14 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: {},
 				frameDurationsMs: { 0: 50, 1: 100, 2: 25 },
 				syncBeats: 1,
-				frames: 3,
+				frameCount: 3,
 				bpmProvider: () => 120
 			});
-			expect(timing.isUsingBPMSync).toBe(true);
+			expect(timing.isUsingBeatSync).toBe(true);
 			const speedMultiplier = 500 / 175;
-			expect(timing.getFrameInterval(0)).toBeCloseTo(50 * speedMultiplier, 6);
-			expect(timing.getFrameInterval(1)).toBeCloseTo(100 * speedMultiplier, 6);
-			expect(timing.getFrameInterval(2)).toBeCloseTo(25 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(0)).toBeCloseTo(50 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(1)).toBeCloseTo(100 * speedMultiplier, 6);
+			expect(timing.getFrameIntervalMs(2)).toBeCloseTo(25 * speedMultiplier, 6);
 		});
 
 		test('ms-based timing preserves relative frame timing in beat sync mode', () => {
@@ -488,12 +488,12 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: {},
 				frameDurationsMs: { 0: 50, 1: 100, 2: 25 },
 				syncBeats: 1,
-				frames: 3,
+				frameCount: 3,
 				bpmProvider: () => 120
 			});
 			// Frame 1 is 2x slower than frame 0, frame 2 is 2x faster than frame 0
-			expect(timing.getFrameInterval(1) / timing.getFrameInterval(0)).toBeCloseTo(2, 6);
-			expect(timing.getFrameInterval(0) / timing.getFrameInterval(2)).toBeCloseTo(2, 6);
+			expect(timing.getFrameIntervalMs(1) / timing.getFrameIntervalMs(0)).toBeCloseTo(2, 6);
+			expect(timing.getFrameIntervalMs(0) / timing.getFrameIntervalMs(2)).toBeCloseTo(2, 6);
 		});
 
 		test('ms-based timing with clock-driven mode', () => {
@@ -502,7 +502,7 @@ describe('ClipTiming', () => {
 				frameRatesForFrames: {},
 				frameDurationsMs: { 0: 50, 1: 100, 2: 25, 3: 75 },
 				syncBeats: 1,
-				frames: 4,
+				frameCount: 4,
 				bpmProvider: () => 120,
 				clockSource
 			});

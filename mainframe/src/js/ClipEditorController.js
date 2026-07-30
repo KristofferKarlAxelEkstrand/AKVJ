@@ -4,7 +4,7 @@ import { partitionImageFiles, formatSkippedFilesMessage, shouldAttemptGifExpand 
 import { DEFAULT_FRAME_DURATION_MS, DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
 import { editClipPath, resolveClipEditRoute } from './clipEditorRoute.js';
 import { editorValuesFromMeta, metaPatchFromEditor, optionalMetaFromEditor } from './editorMeta.js';
-import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
+import { DEFAULT_BEATS_PER_BAR, DEFAULT_SYNC_MODE, SYNC_LENGTH_PRESETS, resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_SCALE_MODE } from './clipSchema.js';
 import { FRAME_BAKE_SCALE_MODES, resolveFrameBakeConfig } from './frameBake.js';
 import mainframeState, { messages } from './mainframeState.js';
 
@@ -29,16 +29,16 @@ export class ClipEditorController {
 	#framesDirty = false;
 	#loadedFrameWidth = DEFAULT_FRAME_WIDTH;
 	#loadedFrameHeight = DEFAULT_FRAME_HEIGHT;
-	#loadedScaleMode = 'fit';
+	#loadedScaleMode = DEFAULT_SCALE_MODE;
 	#hydrateGeneration = 0;
 	/** Last uniform per-frame duration (ms); used when re-applying after a mixed state. */
 	#lastUniformDurationMs = DEFAULT_FRAME_DURATION_MS;
 	/** Last uniform bake scale (for re-apply after mixed). */
-	#lastUniformBakeScale = 'fit';
+	#lastUniformBakeScale = DEFAULT_SCALE_MODE;
 	#lastUniformBakeWidth = DEFAULT_FRAME_WIDTH;
 	#lastUniformBakeHeight = DEFAULT_FRAME_HEIGHT;
-	#globalDurationInput;
-	#globalDurationApply;
+	#globalDurationMsInput;
+	#globalDurationMsApply;
 	#globalBakeScaleSelect;
 	#globalBakeCustomSize;
 	#globalBakeCustomWidth;
@@ -65,8 +65,8 @@ export class ClipEditorController {
 		this.#submitButton = document.getElementById('clip-editor-submit');
 		this.#stagingPreview = document.getElementById('clip-editor-staging-preview');
 		this.#statusElement = document.getElementById('clip-editor-status');
-		this.#globalDurationInput = document.getElementById('clip-frames-global-duration');
-		this.#globalDurationApply = document.getElementById('clip-frames-set-all-duration');
+		this.#globalDurationMsInput = document.getElementById('clip-frames-global-duration-ms');
+		this.#globalDurationMsApply = document.getElementById('clip-frames-set-all-duration-ms');
 		this.#globalBakeScaleSelect = document.getElementById('clip-frames-global-bake-scale');
 		this.#globalBakeCustomSize = document.getElementById('clip-frames-global-custom-size');
 		this.#globalBakeCustomWidth = document.getElementById('clip-frames-global-custom-width');
@@ -116,14 +116,14 @@ export class ClipEditorController {
 			this.#stagedDurationsMs = order.map(originalIndex => this.#stagedDurationsMs[originalIndex] ?? DEFAULT_FRAME_DURATION_MS);
 			this.#stagedBakeConfigs = order.map(originalIndex => this.#stagedBakeConfigs[originalIndex] ?? resolveFrameBakeConfig({}));
 			this.#framesDirty = true;
-			this.syncGlobalDurationControl();
+			this.syncGlobalDurationMsControl();
 			this.syncGlobalBakeScaleControl();
 			this.updateStagingPreview();
 		});
 		clipFrames.addEventListener('durationchange', () => {
 			this.#stagedDurationsMs = clipFrames.getDurationsMs();
 			this.#framesDirty = true;
-			this.syncGlobalDurationControl();
+			this.syncGlobalDurationMsControl();
 			this.updateStagingPreview();
 		});
 		clipFrames.addEventListener('bakeconfigchange', () => {
@@ -216,8 +216,8 @@ export class ClipEditorController {
 
 		this.#attachClipFramesListeners();
 
-		this.#globalDurationApply?.addEventListener('click', () => {
-			this.applyGlobalDurationToAllFrames();
+		this.#globalDurationMsApply?.addEventListener('click', () => {
+			this.applyGlobalDurationMsToAllFrames();
 		});
 		this.#globalBakeScaleSelect?.addEventListener('change', () => {
 			this.#updateGlobalBakeCustomVisibility();
@@ -270,7 +270,7 @@ export class ClipEditorController {
 		this.#framesDirty = false;
 		this.#loadedFrameWidth = DEFAULT_FRAME_WIDTH;
 		this.#loadedFrameHeight = DEFAULT_FRAME_HEIGHT;
-		this.#loadedScaleMode = 'fit';
+		this.#loadedScaleMode = DEFAULT_SCALE_MODE;
 		this.#clipEditorForm.reset();
 		this.#setFormDefaults();
 		this.updateBitDepthVisibility();
@@ -320,7 +320,7 @@ export class ClipEditorController {
 				this.#stagedDurationsMs.push(DEFAULT_FRAME_DURATION_MS);
 			}
 			// Bake-time composition is session-only — reopen defaults to fit (already-composited pixels).
-			this.#stagedBakeConfigs = this.#stagedFiles.map(() => resolveFrameBakeConfig({ scaleMode: 'fit' }));
+			this.#stagedBakeConfigs = this.#stagedFiles.map(() => resolveFrameBakeConfig({ scaleMode: DEFAULT_SCALE_MODE }));
 			this.#framesDirty = false;
 			this.updateEditorChrome();
 			this.syncStagedFramesUi();
@@ -583,7 +583,7 @@ export class ClipEditorController {
 			this.#stagedFrameUrls = [];
 			this.#stagingPreview.loadFrames([]);
 			clipFrames.loadFrames([]);
-			this.syncGlobalDurationControl();
+			this.syncGlobalDurationMsControl();
 			this.syncGlobalBakeScaleControl();
 			return;
 		}
@@ -612,7 +612,7 @@ export class ClipEditorController {
 			bakeConfig: this.#stagedBakeConfigs[index]
 		}));
 		clipFrames.loadFrames(frames);
-		this.syncGlobalDurationControl();
+		this.syncGlobalDurationMsControl();
 		this.syncGlobalBakeScaleControl();
 	}
 
@@ -698,16 +698,16 @@ export class ClipEditorController {
 	 * Apply the global ms field to every staged frame (reset path back to uniform).
 	 * When the field is blank/disabled (mixed), falls back to the last uniform value.
 	 */
-	applyGlobalDurationToAllFrames() {
+	applyGlobalDurationMsToAllFrames() {
 		if (!this.#clipFramesElement || this.#clipFramesElement.frameCount === 0) {
 			return;
 		}
-		const raw = Number(this.#globalDurationInput?.value);
+		const raw = Number(this.#globalDurationMsInput?.value);
 		const ms = Number.isFinite(raw) && raw > 0 ? raw : this.#lastUniformDurationMs;
 		this.#clipFramesElement.setAllDurationsMs(ms);
 		this.#stagedDurationsMs = this.#clipFramesElement.getDurationsMs();
 		this.#framesDirty = true;
-		this.syncGlobalDurationControl();
+		this.syncGlobalDurationMsControl();
 		this.updateStagingPreview();
 	}
 
@@ -715,27 +715,27 @@ export class ClipEditorController {
 	 * Enable timing controls when all frames match; disable + blank when mixed.
 	 * Mixed display choice: blank (not the last uniform value).
 	 */
-	syncGlobalDurationControl() {
+	syncGlobalDurationMsControl() {
 		const durations = this.#clipFramesElement?.getDurationsMs?.() ?? [];
 		const hasFrames = durations.length > 0;
 		const first = hasFrames ? durations[0] : null;
 		const uniform = hasFrames && durations.every(duration => duration === first);
 
-		if (this.#globalDurationInput) {
+		if (this.#globalDurationMsInput) {
 			if (!hasFrames) {
-				this.#globalDurationInput.disabled = true;
-				this.#globalDurationInput.value = '';
+				this.#globalDurationMsInput.disabled = true;
+				this.#globalDurationMsInput.value = '';
 			} else if (uniform) {
 				this.#lastUniformDurationMs = first;
-				this.#globalDurationInput.disabled = false;
-				this.#globalDurationInput.value = String(first);
+				this.#globalDurationMsInput.disabled = false;
+				this.#globalDurationMsInput.value = String(first);
 			} else {
-				this.#globalDurationInput.disabled = true;
-				this.#globalDurationInput.value = '';
+				this.#globalDurationMsInput.disabled = true;
+				this.#globalDurationMsInput.value = '';
 			}
 		}
-		if (this.#globalDurationApply) {
-			this.#globalDurationApply.disabled = !hasFrames;
+		if (this.#globalDurationMsApply) {
+			this.#globalDurationMsApply.disabled = !hasFrames;
 		}
 	}
 
@@ -832,7 +832,7 @@ export class ClipEditorController {
 		};
 		setValue('clip-editor-target-width', String(DEFAULT_FRAME_WIDTH));
 		setValue('clip-editor-target-height', String(DEFAULT_FRAME_HEIGHT));
-		setValue('clip-editor-scale-mode', 'fit');
+		setValue('clip-editor-scale-mode', DEFAULT_SCALE_MODE);
 		setValue('clip-editor-placement-x', '0');
 		setValue('clip-editor-placement-y', '0');
 		setValue('clip-editor-playback', 'loop');

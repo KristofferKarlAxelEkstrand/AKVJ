@@ -17,6 +17,10 @@ describe('frameBake helpers', () => {
 		expect(FRAME_BAKE_SCALE_MODES).not.toContain('pattern');
 	});
 
+	test('resolveFrameBakeConfig honors a raw "pattern" scaleMode instead of coercing to "fit"', () => {
+		expect(resolveFrameBakeConfig({ scaleMode: 'pattern' }).scaleMode).toBe('pattern');
+	});
+
 	test('resolveFrameBakeConfig defaults and floors placement', () => {
 		expect(resolveFrameBakeConfig({ scaleMode: 'custom', width: 32.9, height: 16, placement: { x: 1.2, y: -2.8 } })).toEqual({
 			scaleMode: 'custom',
@@ -62,6 +66,15 @@ describe('fitFrameBuffer placement + custom', () => {
 		// 2×2 centered in 10×10 → left/top = 4
 		expect(data[idx(4, 4) + 1]).toBe(255);
 		expect(data[idx(0, 0) + 1]).toBe(0);
+	});
+
+	test('fitFrameBuffer with a raw "pattern" scaleMode string bakes native-size, matching "none" (regression for #515)', async () => {
+		const src = await solidPng(2, 2, { r: 255, g: 0, b: 0, alpha: 255 });
+		const patternCell = await fitFrameBuffer(sharp, src, 8, 8, 'pattern');
+		const noneCell = await fitFrameBuffer(sharp, src, 8, 8, 'none');
+		const fitCell = await fitFrameBuffer(sharp, src, 8, 8, 'fit');
+		expect(patternCell.equals(noneCell)).toBe(true);
+		expect(patternCell.equals(fitCell)).toBe(false);
 	});
 
 	test('compositeContentOntoCell clips when placement pushes content off-cell', async () => {

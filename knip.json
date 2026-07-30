@@ -2,7 +2,8 @@
 	"ignore": [".agents/**"],
 	"workspaces": {
 		".": {
-			"entry": ["e2e/**/*.spec.js"]
+			"entry": ["e2e/**/*.spec.js", "monorepo-scripts/test/**/*.test.js"],
+			"project": ["e2e/**/*.js", "monorepo-scripts/**/*.js"]
 		},
 		"akvj": {
 			"entry": ["test/**/*.test.js"],
@@ -10,9 +11,9 @@
 			"ignore": ["src/tools/clip-preview/ClipPreview.js"]
 		},
 		"mainframe": {
-			"entry": ["test/**/*.test.js"],
+			"entry": ["test/**/*.test.js", "test/smoke/**/*.smoke.js"],
 			"project": ["src/**/*.js", "server/**/*.js", "scripts/**/*.js", "test/**/*.js"]
 		}
 	},
-	"ignoreBinaries": ["fuser", "pkill"]
+	"ignoreBinaries": ["pkill", "ss"]
 }

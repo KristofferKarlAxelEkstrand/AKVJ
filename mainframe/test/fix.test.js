@@ -1,4 +1,4 @@
-import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
@@ -17,11 +17,26 @@ async function writeClip(clipId, metaText, pngNames = ['sprite.png']) {
 	return dir;
 }
 
+/**
+ * @param {string} metaPath
+ * @param {Error} error
+ */
+function mockMetaReadError(metaPath, error) {
+	const real = fs.readFile.bind(fs);
+	vi.spyOn(fs, 'readFile').mockImplementation(async (filePath, encoding) => {
+		if (path.resolve(String(filePath)) === path.resolve(metaPath)) {
+			throw error;
+		}
+		return real(filePath, encoding);
+	});
+}
+
 beforeEach(async () => {
 	root = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-fix-'));
 });
 
 afterEach(async () => {
+	vi.restoreAllMocks();
 	await fs.rm(root, { recursive: true, force: true });
 });
 
@@ -79,6 +94,30 @@ describe('fixClip', () => {
 		expect(skipped).toHaveLength(1);
 		expect(await fs.readFile(path.join(dir, 'meta.json'), 'utf8')).toBe(original);
 	});
+
+	test('missing meta.json is a silent no-op (ENOENT)', async () => {
+		const dir = path.join(root, 'no-meta');
+		await fs.mkdir(dir, { recursive: true });
+		await fs.writeFile(path.join(dir, 'sprite.png'), Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+
+		const result = await fixClip(dir);
+
+		expect(result).toEqual({ changes: [], skipped: [], errors: [] });
+		await expect(fs.access(path.join(dir, 'meta.json'))).rejects.toMatchObject({ code: 'ENOENT' });
+	});
+
+	test('non-ENOENT read failure reports Cannot read meta.json', async () => {
+		const dir = await writeClip('unreadable', JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop' }));
+		const metaPath = path.join(dir, 'meta.json');
+		mockMetaReadError(metaPath, Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' }));
+
+		const { changes, skipped, errors } = await fixClip(dir);
+
+		expect(changes).toEqual([]);
+		expect(skipped).toEqual([]);
+		expect(errors).toHaveLength(1);
+		expect(errors[0]).toContain('Cannot read meta.json');
+	});
 });
 
 describe('fixClips', () => {
@@ -90,6 +129,34 @@ describe('fixClips', () => {
 
 		expect(errors).toEqual([]);
 		expect(fixed.map(entry => entry.clipId)).toEqual(['legacy']);
+	});
+
+	test('skips folders whose names are not valid clip ids', async () => {
+		await writeClip('valid-clip', JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1, loop: true }));
+		await fs.mkdir(path.join(root, 'Bad Folder'), { recursive: true });
+		await fs.writeFile(path.join(root, 'Bad Folder', 'meta.json'), JSON.stringify({ png: 'sprite.png', loop: true }));
+
+		const { fixed, skipped, errors } = await fixClips(root);
+
+		expect(fixed.map(entry => entry.clipId)).toEqual(['valid-clip']);
+		expect(skipped).toEqual([]);
+		expect(errors).toEqual([]);
+	});
+
+	test('aggregates skipped and errors across clips', async () => {
+		await writeClip('ambiguous-png', JSON.stringify({ png: 'old.png', frames: 1, framesPerRow: 1, playback: 'loop' }), ['a.png', 'b.png']);
+		const unreadableDir = await writeClip('unreadable-meta', JSON.stringify({ png: 'sprite.png', frames: 1, framesPerRow: 1, playback: 'loop' }));
+		mockMetaReadError(path.join(unreadableDir, 'meta.json'), Object.assign(new Error('EACCES: permission denied'), { code: 'EACCES' }));
+
+		const { fixed, skipped, errors } = await fixClips(root);
+
+		expect(fixed).toEqual([]);
+		expect(skipped).toHaveLength(1);
+		expect(skipped[0].clipId).toBe('ambiguous-png');
+		expect(skipped[0].skipped[0]).toContain('fix it by hand');
+		expect(errors).toHaveLength(1);
+		expect(errors[0].clipId).toBe('unreadable-meta');
+		expect(errors[0].errors[0]).toContain('Cannot read meta.json');
 	});
 });
 

@@ -1,11 +1,13 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import DebugOverlay from '../src/js/utils/DebugOverlay.js';
 import appState from '../src/js/core/AppState.js';
+import settings from '../src/js/core/settings.js';
 
 describe('DebugOverlay', () => {
 	let overlay;
 
 	beforeEach(() => {
+		appState.reset();
 		overlay = new DebugOverlay();
 	});
 
@@ -17,6 +19,7 @@ describe('DebugOverlay', () => {
 		}
 		// Clean up any leftover DOM
 		document.getElementById('debug-overlay')?.remove();
+		appState.reset();
 	});
 
 	test('constructor creates overlay element with correct id', () => {
@@ -170,6 +173,15 @@ describe('DebugOverlay', () => {
 
 		const sourceEl = document.getElementById('debug-bpm-source');
 		expect(sourceEl.textContent).toBe('manual');
+	});
+
+	test('mount after reset shows default BPM', () => {
+		appState.bpm = 140;
+		appState.reset();
+
+		overlay.mount();
+
+		expect(document.getElementById('debug-bpm').textContent).toBe(`${settings.bpm.default.toFixed(1)}`);
 	});
 
 	test('midiConnectionChanged event updates MIDI status display', () => {

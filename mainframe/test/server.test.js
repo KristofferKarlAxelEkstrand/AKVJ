@@ -103,9 +103,9 @@ describe('GET /api/clips', () => {
 	});
 });
 
-describe('GET /api/mapping', () => {
+describe('GET /api/projects/:id/key-map (active default)', () => {
 	test('returns the key-map as a flat array', async () => {
-		const { status, data } = await fetchJson('GET', '/api/mapping');
+		const { status, data } = await fetchJson('GET', '/api/projects/default/key-map');
 		expect(status).toBe(200);
 		expect(Array.isArray(data.mapping)).toBe(true);
 		expect(data.mapping).toHaveLength(1);
@@ -121,7 +121,7 @@ describe('GET /api/mapping', () => {
 			5: { 6: 'also-not-an-object' }
 		};
 		await fs.writeFile(testKeyMapPath, JSON.stringify(malformedLayout));
-		const { status, data } = await fetchJson('GET', '/api/mapping');
+		const { status, data } = await fetchJson('GET', '/api/projects/default/key-map');
 		expect(status).toBe(200);
 		expect(data.mapping).toHaveLength(1);
 		expect(data.mapping[0].clipId).toBe('test-clip-a');
@@ -129,20 +129,20 @@ describe('GET /api/mapping', () => {
 	});
 });
 
-describe('PUT /api/mapping', () => {
+describe('PUT /api/projects/:id/key-map (active default)', () => {
 	test('writes a valid mapping', async () => {
 		const newMapping = [
 			{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' },
 			{ channel: 2, note: 5, velocity: 10, clipId: 'test-clip-a' }
 		];
-		const { status, data } = await fetchJson('PUT', '/api/mapping', { mapping: newMapping });
+		const { status, data } = await fetchJson('PUT', '/api/projects/default/key-map', { mapping: newMapping });
 		expect(status).toBe(200);
 		expect(data.ok).toBe(true);
 		expect(data.mapping).toHaveLength(2);
 	});
 
 	test('rejects mapping with invalid clipId', async () => {
-		const { status, data } = await fetchJson('PUT', '/api/mapping', {
+		const { status, data } = await fetchJson('PUT', '/api/projects/default/key-map', {
 			mapping: [{ channel: 1, note: 0, velocity: 0, clipId: 'nonexistent-clip' }]
 		});
 		expect(status).toBe(400);
@@ -150,7 +150,7 @@ describe('PUT /api/mapping', () => {
 	});
 
 	test('rejects mapping with duplicate slots', async () => {
-		const { status } = await fetchJson('PUT', '/api/mapping', {
+		const { status } = await fetchJson('PUT', '/api/projects/default/key-map', {
 			mapping: [
 				{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' },
 				{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' }
@@ -195,7 +195,7 @@ describe('DELETE /api/clips/:clipId', () => {
 	});
 
 	test('prunes mapping slots that reference the deleted clip', async () => {
-		await fetchJson('PUT', '/api/mapping', {
+		await fetchJson('PUT', '/api/projects/default/key-map', {
 			mapping: [
 				{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' },
 				{ channel: 2, note: 5, velocity: 10, clipId: 'delete-me' }
@@ -206,11 +206,11 @@ describe('DELETE /api/clips/:clipId', () => {
 		expect(status).toBe(200);
 		expect(data.ok).toBe(true);
 
-		const { data: mappingData } = await fetchJson('GET', '/api/mapping');
+		const { data: mappingData } = await fetchJson('GET', '/api/projects/default/key-map');
 		expect(mappingData.mapping).toHaveLength(1);
 		expect(mappingData.mapping[0].clipId).toBe('test-clip-a');
 
-		const put = await fetchJson('PUT', '/api/mapping', {
+		const put = await fetchJson('PUT', '/api/projects/default/key-map', {
 			mapping: [{ channel: 1, note: 0, velocity: 0, clipId: 'test-clip-a' }]
 		});
 		expect(put.status).toBe(200);
@@ -343,7 +343,7 @@ describe('POST /api/clips', () => {
 		expect(meta.scaling).toBe('smooth');
 	});
 
-	test('maps frameDurationsMs to frameRatesForFrames FPS', async () => {
+	test('persists frameDurationsMs and derives frameRatesForFrames FPS on create', async () => {
 		const { status, data } = await fetchJson('POST', '/api/clips', {
 			clipId: 'duration-test-clip',
 			frames: [PNG_4x4, PNG_4x4],
@@ -352,6 +352,7 @@ describe('POST /api/clips', () => {
 		expect(status).toBe(201);
 		expect(data.frames).toBe(2);
 		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'duration-test-clip', 'meta.json'), 'utf8'));
+		expect(meta.frameDurationsMs).toEqual([100, 50]);
 		expect(meta.frameRatesForFrames['0']).toBe(10);
 		expect(meta.frameRatesForFrames['1']).toBe(20);
 		await fs.rm(path.join(testClipsDir, 'duration-test-clip'), { recursive: true, force: true });
@@ -414,11 +415,10 @@ describe('POST /api/expand-gif', () => {
 		expect(data.frames).toHaveLength(2);
 	});
 
-	test('accepts body.data as an alias for body.image', async () => {
+	test('rejects vague body.data (image or gif alias required)', async () => {
 		const { status, data } = await fetchJson('POST', '/api/expand-gif', { data: ANIMATED_GIF_2FRAME });
-		expect(status).toBe(200);
-		expect(data.animated).toBe(true);
-		expect(data.frames).toHaveLength(2);
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/image/i);
 	});
 
 	test('rejects empty/whitespace-only base64 image', async () => {
@@ -489,6 +489,62 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		});
 		expect(status).toBe(200);
 		expect(data.frames).toBe(2);
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'frames-api-clip', 'meta.json'), 'utf8'));
+		expect(meta.frameDurationsMs).toEqual([100, 100]);
+	});
+
+	test('rejects frameDurationsMs length ≠ frame count with 400 and leaves meta unchanged', async () => {
+		await fetchJson('POST', '/api/clips', {
+			clipId: 'frames-api-clip',
+			frames: [PNG_4x4, PNG_4x4],
+			frameDurationsMs: [100, 50],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		const metaPath = path.join(testClipsDir, 'frames-api-clip', 'meta.json');
+		const spritePath = path.join(testClipsDir, 'frames-api-clip', 'sprite.png');
+		const beforeMeta = await fs.readFile(metaPath, 'utf8');
+		const beforeSprite = await fs.readFile(spritePath);
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/frames-api-clip/frames', {
+			frames: [PNG_4x4, PNG_4x4],
+			frameDurationsMs: [100],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/frameDurationsMs length/);
+
+		expect(await fs.readFile(metaPath, 'utf8')).toBe(beforeMeta);
+		expect(Buffer.compare(await fs.readFile(spritePath), beforeSprite)).toBe(0);
+	});
+
+	test('duration edit replaces stale frameDurationsMs so load prefers new ms', async () => {
+		await fetchJson('POST', '/api/clips', {
+			clipId: 'frames-api-clip',
+			frames: [PNG_4x4, PNG_4x4],
+			frameDurationsMs: [100, 50],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		const firstMeta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'frames-api-clip', 'meta.json'), 'utf8'));
+		expect(firstMeta.frameDurationsMs).toEqual([100, 50]);
+
+		const { status } = await fetchJson('PUT', '/api/clips/frames-api-clip/frames', {
+			frames: [PNG_4x4, PNG_4x4],
+			frameDurationsMs: [250, 750],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		expect(status).toBe(200);
+		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'frames-api-clip', 'meta.json'), 'utf8'));
+		expect(meta.frameDurationsMs).toEqual([250, 750]);
+		expect(meta.frameRatesForFrames['0']).toBe(4);
+		expect(meta.frameRatesForFrames['1']).toBeCloseTo(1000 / 750, 5);
+
+		const loaded = await fetchJson('GET', '/api/clips/frames-api-clip/frames');
+		expect(loaded.status).toBe(200);
+		expect(loaded.data.durationsMs).toEqual([250, 750]);
 	});
 
 	test('round-trips editor fields and stamps dimensions on meta-only save', async () => {
@@ -530,6 +586,10 @@ describe('GET/PUT /api/clips/:clipId/frames', () => {
 		expect(metaOnly.data.meta.frameHeight).toBe(18);
 		expect(metaOnly.data.meta.frameRatesForFrames['0']).toBe(5);
 		expect(metaOnly.data.meta.role).toBe('bitmask');
+		// rates-only body must clear stale ms so load cannot prefer old durations
+		expect(metaOnly.data.meta.frameDurationsMs).toBeUndefined();
+		const diskAfterRatesOnly = JSON.parse(await fs.readFile(path.join(testClipsDir, 'frames-api-clip', 'meta.json'), 'utf8'));
+		expect(diskAfterRatesOnly.frameDurationsMs).toBeUndefined();
 
 		const reloaded = await fetchJson('GET', '/api/clips/frames-api-clip/frames');
 		expect(reloaded.data.meta.name).toBe('Renamed');
@@ -652,6 +712,47 @@ describe('PUT /api/clips/:clipId', () => {
 		expect(data.meta.frameDurationsMs).toEqual([250, 750]);
 	});
 
+	test('rates-only PUT clears frameDurationsMs on response and disk', async () => {
+		await fetchJson('PUT', '/api/clips/test-clip-a', {
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: [250, 750]
+		});
+		const before = JSON.parse(await fs.readFile(path.join(testClipsDir, 'test-clip-a', 'meta.json'), 'utf8'));
+		expect(before.frameDurationsMs).toEqual([250, 750]);
+
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
+			frameRatesForFrames: { 0: 5, 1: 10 }
+		});
+		expect(status).toBe(200);
+		expect(data.meta.frameRatesForFrames['0']).toBe(5);
+		expect(data.meta.frameRatesForFrames['1']).toBe(10);
+		expect(data.meta.frameDurationsMs).toBeUndefined();
+
+		const disk = JSON.parse(await fs.readFile(path.join(testClipsDir, 'test-clip-a', 'meta.json'), 'utf8'));
+		expect(disk.frameDurationsMs).toBeUndefined();
+		expect(disk.frameRatesForFrames['0']).toBe(5);
+		expect(disk.frameRatesForFrames['1']).toBe(10);
+	});
+
+	test('PUT with both frameDurationsMs and frameRatesForFrames keeps ms as source of truth', async () => {
+		const { status, data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
+			frames: 2,
+			framesPerRow: 2,
+			frameDurationsMs: [200, 100],
+			frameRatesForFrames: { 0: 99, 1: 99 }
+		});
+		expect(status).toBe(200);
+		expect(data.meta.frameDurationsMs).toEqual([200, 100]);
+		// rates-only clear must not fire when both keys present; rates are derived from ms
+		expect(data.meta.frameRatesForFrames['0']).toBe(5);
+		expect(data.meta.frameRatesForFrames['1']).toBe(10);
+
+		const disk = JSON.parse(await fs.readFile(path.join(testClipsDir, 'test-clip-a', 'meta.json'), 'utf8'));
+		expect(disk.frameDurationsMs).toEqual([200, 100]);
+		expect(disk.frameRatesForFrames['0']).toBe(5);
+	});
+
 	test('preserves non-edited fields', async () => {
 		const { data } = await fetchJson('PUT', '/api/clips/test-clip-a', {
 			frames: 5
@@ -738,6 +839,8 @@ describe('Projects API', () => {
 		await fs.writeFile(testActiveProjectPath, `${JSON.stringify({ project: 'default' }, null, '\t')}\n`);
 		await fs.rm(path.join(testProjectsDir, 'gig-show'), { recursive: true, force: true });
 		await fs.rm(path.join(testProjectsDir, 'custom-id'), { recursive: true, force: true });
+		await fs.rm(path.join(testProjectsDir, 'blank-map'), { recursive: true, force: true });
+		await fs.rm(path.join(testProjectsDir, 'dup-show'), { recursive: true, force: true });
 	});
 
 	test('lists projects and returns active project', async () => {
@@ -747,7 +850,7 @@ describe('Projects API', () => {
 
 		const active = await fetchJson('GET', '/api/projects/active');
 		expect(active.status).toBe(200);
-		expect(active.data.project).toBe('default');
+		expect(active.data.projectId).toBe('default');
 	});
 
 	test('creates, updates, activates, and deletes a project', async () => {
@@ -769,21 +872,99 @@ describe('Projects API', () => {
 
 		const activated = await fetchJson('POST', '/api/projects/gig-show/activate');
 		expect(activated.status).toBe(200);
-		expect(activated.data.project).toBe('gig-show');
+		expect(activated.data.projectId).toBe('gig-show');
 
 		const active = await fetchJson('GET', '/api/projects/active');
-		expect(active.data.project).toBe('gig-show');
+		expect(active.data.projectId).toBe('gig-show');
 
 		const deleted = await fetchJson('DELETE', '/api/projects/gig-show');
 		expect(deleted.status).toBe(200);
 		const activeAfter = await fetchJson('GET', '/api/projects/active');
-		expect(activeAfter.data.project).toBe('default');
+		expect(activeAfter.data.projectId).toBe('default');
 	});
 
 	test('rejects deleting the default project', async () => {
 		const { status, data } = await fetchJson('DELETE', '/api/projects/default');
 		expect(status).toBe(400);
 		expect(data.error).toMatch(/default/i);
+	});
+
+	test('POST create rejects empty name', async () => {
+		const { status, data } = await fetchJson('POST', '/api/projects', { name: '   ' });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/name is required/i);
+	});
+
+	test('POST create rejects invalid id', async () => {
+		const { status, data } = await fetchJson('POST', '/api/projects', { name: 'Bad Id', id: '123' });
+		expect(status).toBe(400);
+		expect(data.error).toMatch(/Invalid project id/i);
+	});
+
+	test('POST create rejects duplicate id with 409', async () => {
+		const first = await fetchJson('POST', '/api/projects', { name: 'Dup Show', id: 'dup-show', copyFrom: null });
+		expect(first.status).toBe(201);
+		const { status, data } = await fetchJson('POST', '/api/projects', { name: 'Dup Show Again', id: 'dup-show', copyFrom: null });
+		expect(status).toBe(409);
+		expect(data.error).toMatch(/already exists/i);
+	});
+
+	test('POST create returns 404 when copyFrom source is missing', async () => {
+		const { status, data } = await fetchJson('POST', '/api/projects', {
+			name: 'Orphan Seed',
+			id: 'orphan-seed',
+			copyFrom: 'no-such-source'
+		});
+		expect(status).toBe(404);
+		expect(data.error).toMatch(/not found/i);
+		await fs.rm(path.join(testProjectsDir, 'orphan-seed'), { recursive: true, force: true });
+	});
+
+	test('PUT update rejects empty name and bad settings', async () => {
+		const emptyName = await fetchJson('PUT', '/api/projects/default', { name: '  ' });
+		expect(emptyName.status).toBe(400);
+		expect(emptyName.data.error).toMatch(/name cannot be empty/i);
+
+		const badSettings = await fetchJson('PUT', '/api/projects/default', { settings: ['not', 'an', 'object'] });
+		expect(badSettings.status).toBe(400);
+		expect(badSettings.data.error).toMatch(/settings must be a JSON object/i);
+	});
+
+	test('GET/PUT/DELETE/activate return 404 for missing project', async () => {
+		const missing = 'no-such-project';
+		const got = await fetchJson('GET', `/api/projects/${missing}`);
+		expect(got.status).toBe(404);
+		expect(got.data.error).toMatch(/not found/i);
+
+		const put = await fetchJson('PUT', `/api/projects/${missing}`, { name: 'Nope' });
+		expect(put.status).toBe(404);
+		expect(put.data.error).toMatch(/not found/i);
+
+		const deleted = await fetchJson('DELETE', `/api/projects/${missing}`);
+		expect(deleted.status).toBe(404);
+		expect(deleted.data.error).toMatch(/not found/i);
+
+		const activated = await fetchJson('POST', `/api/projects/${missing}/activate`);
+		expect(activated.status).toBe(404);
+		expect(activated.data.error).toMatch(/not found/i);
+	});
+
+	test('GET /api/projects/active falls back to default for invalid active-project values', async () => {
+		await fs.writeFile(testActiveProjectPath, `${JSON.stringify({ project: '123' }, null, '\t')}\n`);
+		const numeric = await fetchJson('GET', '/api/projects/active');
+		expect(numeric.status).toBe(200);
+		expect(numeric.data.projectId).toBe('default');
+
+		await fs.writeFile(testActiveProjectPath, `${JSON.stringify({ project: 'not a valid id!' }, null, '\t')}\n`);
+		const invalid = await fetchJson('GET', '/api/projects/active');
+		expect(invalid.status).toBe(200);
+		expect(invalid.data.projectId).toBe('default');
+
+		await fs.writeFile(testActiveProjectPath, '{ not-json');
+		const corrupt = await fetchJson('GET', '/api/projects/active');
+		// Corrupt active-project.json rethrows (not ENOENT) → 500 today; invalid ids above fall back.
+		expect(corrupt.status).toBe(500);
+		await fs.writeFile(testActiveProjectPath, `${JSON.stringify({ project: 'default' }, null, '\t')}\n`);
 	});
 
 	test('gets and puts project key-map', async () => {
@@ -974,12 +1155,6 @@ describe('Malformed JSON request bodies', () => {
 		expect(data.error).toBe('Invalid JSON in request body');
 	});
 
-	test('PUT /api/mapping returns 400 for malformed JSON', async () => {
-		const { status, data } = await fetchJsonRaw('PUT', '/api/mapping', '{ invalid');
-		expect(status).toBe(400);
-		expect(data.error).toBe('Invalid JSON in request body');
-	});
-
 	test('PUT /api/projects/:id/key-map returns 400 for malformed JSON', async () => {
 		const { status, data } = await fetchJsonRaw('PUT', '/api/projects/default/key-map', '{ broken');
 		expect(status).toBe(400);
@@ -994,10 +1169,10 @@ describe('Malformed JSON request bodies', () => {
 });
 
 describe('Oversized request bodies', () => {
-	test('PUT /api/mapping returns 413 when body exceeds 32 MiB', async () => {
+	test('PUT /api/projects/:id/key-map returns 413 when body exceeds 32 MiB', async () => {
 		const { MAX_BODY_BYTES } = await import('../server/httpUtils.js');
 		const oversized = Buffer.alloc(MAX_BODY_BYTES + 1, 0x61);
-		const response = await fetch(`${baseUrl}/api/mapping`, {
+		const response = await fetch(`${baseUrl}/api/projects/default/key-map`, {
 			method: 'PUT',
 			headers: { 'Content-Type': 'application/json' },
 			body: oversized
@@ -1132,7 +1307,7 @@ describe('POST /api/clips/:clipId/recompile edge cases', () => {
 		expect(meta.frameHeight).toBe(8);
 	});
 
-	test('converts frameDurationsMs to frameRatesForFrames and applies them', async () => {
+	test('persists frameDurationsMs on recompile and derives FPS', async () => {
 		await fetchJson('POST', '/api/clips', {
 			clipId: 'recompile-durations',
 			frames: [PNG_4x4, PNG_4x4],
@@ -1147,6 +1322,7 @@ describe('POST /api/clips/:clipId/recompile edge cases', () => {
 		expect(data.ok).toBe(true);
 
 		const meta = JSON.parse(await fs.readFile(path.join(testClipsDir, 'recompile-durations', 'meta.json'), 'utf8'));
+		expect(meta.frameDurationsMs).toEqual([100, 50]);
 		expect(meta.frameRatesForFrames['0']).toBe(10);
 		expect(meta.frameRatesForFrames['1']).toBe(20);
 	});

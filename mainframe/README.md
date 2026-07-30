@@ -13,13 +13,13 @@ npm run build -w mainframe
 
 ## API (127.0.0.1:7777)
 
-| Method  | Path                    | Purpose                            |
-| ------- | ----------------------- | ---------------------------------- |
-| GET     | `/api/clips`            | List clip bucket                   |
-| GET     | `/api/clips/:id/sprite` | Preview sprite                     |
-| POST    | `/api/clips`            | Create clip from base64 PNG frames |
-| GET/PUT | `/api/mapping`          | Read/write `clips/key-map.json`    |
-| POST    | `/api/pipeline`         | Run `npm run clips`                |
+| Method  | Path                        | Purpose                                 |
+| ------- | --------------------------- | --------------------------------------- |
+| GET     | `/api/clips`                | List clip bucket                        |
+| GET     | `/api/clips/:id/sprite`     | Preview sprite                          |
+| POST    | `/api/clips`                | Create clip from base64 PNG frames      |
+| GET/PUT | `/api/projects/:id/key-map` | Read/write `projects/{id}/key-map.json` |
+| POST    | `/api/pipeline`             | Run `npm run clips`                     |
 
 No Express — plain Node `http`/`fs` + `sharp` for spritesheets.
 

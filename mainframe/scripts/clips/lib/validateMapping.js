@@ -11,13 +11,13 @@ import { collectNestedKeyMapErrors } from '../../../shared/mappingService.js';
  * @returns {Promise<{errors: {path: string, errors: string[]}[]}>}
  */
 export async function validateKeyMap(sourceDir, validClips, keyMapPath) {
-	const validIds = new Set(validClips.map(clip => clip.clipId));
+	const readyClipIds = new Set(validClips.map(clip => clip.clipId));
 	const keyMapResult = await loadKeyMap(keyMapPath ?? path.join(sourceDir, 'key-map.json'));
 	if (keyMapResult.errors) {
 		return { errors: keyMapResult.errors };
 	}
 
-	return { errors: collectNestedKeyMapErrors(keyMapResult.keyMap, validIds) };
+	return { errors: collectNestedKeyMapErrors(keyMapResult.keyMap, readyClipIds) };
 }
 
 async function loadKeyMap(keyMapPath) {

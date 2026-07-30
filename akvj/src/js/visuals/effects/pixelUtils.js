@@ -6,7 +6,7 @@ import { RGBA_CHANNEL_COUNT } from './effectConstants.js';
 
 /**
  * Transform-copy pixel data using a source-index function.
- * Writes the transformed result back into `data` using a reusable scratch buffer.
+ * Writes the transformed result back into `pixels` using a reusable scratch buffer.
  *
  * @param {Uint8ClampedArray} pixels - Pixel data to transform in place
  * @param {number} width - Image width in pixels

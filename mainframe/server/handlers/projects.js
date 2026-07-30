@@ -1,7 +1,7 @@
 import { isValidProjectId } from '../paths.js';
 import { listProjects, getProject, createProject, updateProject, deleteProject, getActiveProjectId, setActiveProjectId, readProjectKeyMapFile, writeProjectKeyMapFile } from '../projects.js';
 import { sendJson, parseJsonBody } from '../httpUtils.js';
-import { listClips } from '../clipCatalog.js';
+import { readyClipIdSet } from '../clipCatalog.js';
 import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../../shared/mappingService.js';
 
 export async function handleGetProjects(_req, res) {
@@ -26,7 +26,7 @@ export async function handlePostProjects(req, res) {
 }
 
 export async function handleGetActiveProject(_req, res) {
-	sendJson(res, 200, { project: await getActiveProjectId() });
+	sendJson(res, 200, { projectId: await getActiveProjectId() });
 }
 
 export async function handleGetProject(_req, res, projectId) {
@@ -92,8 +92,8 @@ export async function handlePutProjectKeyMap(req, res, projectId) {
 			return;
 		}
 		const mapping = body.mapping ?? body;
-		const readyClips = new Set((await listClips(projectId)).filter(clip => clip.pipelineReady).map(clip => clip.clipId));
-		assertValidFlatMapping(mapping, readyClips);
+		const readyClipIds = await readyClipIdSet(projectId);
+		assertValidFlatMapping(mapping, readyClipIds);
 		const keyMap = nestMappingEntries(mapping);
 		await writeProjectKeyMapFile(projectId, keyMap);
 		sendJson(res, 200, { ok: true, mapping: flattenKeyMap(keyMap) });

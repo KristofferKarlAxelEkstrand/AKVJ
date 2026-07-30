@@ -100,7 +100,7 @@ describe('settings', () => {
 
 	describe('scrub', () => {
 		test('defines unique CC numbers for each layer group and mixer', () => {
-			const ccValues = [settings.scrub.layerGroupA_CC, settings.scrub.layerGroupB_CC, settings.scrub.layerGroupC_CC, settings.scrub.mixer_CC];
+			const ccValues = [settings.scrub.layerGroupACc, settings.scrub.layerGroupBCc, settings.scrub.layerGroupCCc, settings.scrub.mixerCc];
 			expect(new Set(ccValues).size).toBe(ccValues.length);
 		});
 

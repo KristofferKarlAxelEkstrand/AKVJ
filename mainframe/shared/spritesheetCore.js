@@ -106,7 +106,12 @@ export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, s
 	const config = typeof scaleModeOrConfig === 'string' ? resolveFrameBakeConfig({ scaleMode: scaleModeOrConfig }, targetWidth, targetHeight) : resolveFrameBakeConfig(scaleModeOrConfig, targetWidth, targetHeight);
 
 	if (config.scaleMode === 'custom') {
-		const sized = await sharpLib(buf).ensureAlpha().resize(config.width, config.height, withIngestResizeKernel({ fit: 'fill' })).ensureAlpha().png().toBuffer();
+		const sized = await sharpLib(buf)
+			.ensureAlpha()
+			.resize(config.width, config.height, withIngestResizeKernel({ fit: 'fill' }))
+			.ensureAlpha()
+			.png()
+			.toBuffer();
 		return compositeContentOntoCell(sharpLib, sized, targetWidth, targetHeight, config.placement);
 	}
 
@@ -114,14 +119,26 @@ export async function fitFrameBuffer(sharpLib, buf, targetWidth, targetHeight, s
 	const base = sharpLib(buf).ensureAlpha();
 
 	if (mode === 'stretch') {
-		return base.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'fill' })).ensureAlpha().png().toBuffer();
+		return base
+			.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'fill' }))
+			.ensureAlpha()
+			.png()
+			.toBuffer();
 	}
 	if (mode === 'fit') {
-		const fitted = await base.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'contain', background: TRANSPARENT })).ensureAlpha().png().toBuffer();
+		const fitted = await base
+			.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'contain', background: TRANSPARENT }))
+			.ensureAlpha()
+			.png()
+			.toBuffer();
 		return applyPlacementToCellSizedBuffer(sharpLib, fitted, targetWidth, targetHeight, config.placement);
 	}
 	if (mode === 'cover') {
-		const covered = await base.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'cover', position: 'centre' })).ensureAlpha().png().toBuffer();
+		const covered = await base
+			.resize(targetWidth, targetHeight, withIngestResizeKernel({ fit: 'cover', position: 'centre' }))
+			.ensureAlpha()
+			.png()
+			.toBuffer();
 		return applyPlacementToCellSizedBuffer(sharpLib, covered, targetWidth, targetHeight, config.placement);
 	}
 	// none + pattern — cell stored at native size; pattern tiles at runtime

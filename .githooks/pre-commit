@@ -9,7 +9,7 @@
 # The human overrides with HUMAN=1, e.g.
 #   HUMAN=1 git commit -m "..."
 #
-# Install (run-team does this automatically at pre-flight):
+# Install:
 #   git config core.hooksPath .githooks
 
 if [ "$HUMAN" = "1" ]; then
@@ -22,7 +22,7 @@ staged=$(git diff --cached --name-only --diff-filter=ACM)
 fail() {
     echo "pre-commit: $1" >&2
     echo "" >&2
-    echo "The human owns commits (spec/process/collaboration-protocol.md → Git & Commits)." >&2
+    echo "The human owns commits (AGENTS.md and office-space WORKFLOW.md)." >&2
     echo "If you are the human: HUMAN=1 git commit ..." >&2
     exit 1
 }
@@ -36,10 +36,9 @@ if git diff --cached -U0 | grep -qE '^\+.*(AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{20,}
     fail "staged diff contains something shaped like a live credential"
 fi
 
-# 3. The supervisor. These files decide whether agents wake at all, and an agent
-#    editing them is the one change nobody else is watching.
-supervisor=$(echo "$staged" | grep -E '^\.agents/workflows/scripts/(run-team|await-messages\.js|control-center)$|^\.github/workflows/' || true)
-[ -n "$supervisor" ] && fail "refusing to commit supervisor/CI files: $(echo "$supervisor" | tr '\n' ' ')"
+# 3. Team and CI configuration. These files control autonomy and verification.
+supervisor=$(echo "$staged" | grep -E '^\.agents/office-space/[^/]+/(space\.json|WORKFLOW\.md|co-workers/.*\.prompt\.(md|json))$|^\.github/workflows/' || true)
+[ -n "$supervisor" ] && fail "refusing to commit team/CI files: $(echo "$supervisor" | tr '\n' ' ')"
 
 # 4. Binary assets — the protocol reserves these for the human either way.
 binaries=$(echo "$staged" | grep -Ei '\.(png|jpg|jpeg|gif|zip|mp4|mov)$' || true)

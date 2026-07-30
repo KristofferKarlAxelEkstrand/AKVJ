@@ -2,7 +2,7 @@
 
 This file is the single source of truth for **how code is written** in the AKVJ (Adventure Kid Video Jockey) codebase. It is agent-agnostic and applies to all AI tools (Copilot, Claude, Cursor, Windsurf, etc.).
 
-**What the product does** lives in the specs, indexed at `.agents/workflows/developer-team/spec/README.md`. Those describe how AKVJ works today and are approved by the human; if code and an approved spec disagree, raise it rather than picking a side.
+**What the product does** lives in the specs, indexed at `.agents/office-space/developer-team/spec/README.md`. Those describe how AKVJ works today and are approved by the human; if code and an approved spec disagree, raise it rather than picking a side.
 
 ## Agent Quick-Start
 
@@ -91,6 +91,7 @@ npm run build            # Production build; fails if clip tree missing (run `np
 npm run build:full       # Rebuild clips + production build
 npm run preview          # Preview production build (localhost:4173)
 npm run test             # Run unit tests with Vitest
+npm run test:mainframe:parallel  # mainframe unit+ui+heavy in parallel (faster local gate; sequential `npm run test -w mainframe` is the flake-safe default)
 npm run lint             # Check code quality
 npm run lint:fix         # Auto-fix lint issues
 npm run format:prettier  # Format JS/JSON/Markdown
@@ -161,7 +162,7 @@ Key fields in `meta.json`:
 
 `frameDurationBeats` is **not** a field — the pipeline rejects it. Beat sync scales the whole clip
 via `sync` / `syncLength` / `syncBeats`; full behaviour in
-`.agents/workflows/developer-team/spec/clip-timing-sync.md`.
+`.agents/office-space/developer-team/spec/clip-timing-sync.md`.
 
 ## Clip Structure
 
@@ -344,7 +345,7 @@ All agent messages, task files, and docs must be short and direct. Say what happ
 - **If the reader can infer it, cut it.** Don't restate the task you were given.
 - **~10 lines max** for normal messages. Longer = something went wrong.
 
-Message formats and the envelope every developer-team message carries: `.agents/workflows/developer-team/co-workers/_shared/messaging.md`.
+Message formats and routing for the developer team are defined by `.agents/skills/office-space-protocol/SKILL.md`.
 
 ## Security & Boundaries
 
@@ -392,7 +393,7 @@ npm run build                  # ensure build succeeds
 
 4. IDE tooling and manual verification
 
-- Tracked git guard rails live in `.githooks/pre-commit` and `.githooks/pre-push`; `run-team` arms them via `core.hooksPath`. They block secrets, supervisor/CI files, binary assets, and all pushes — not lint/format. Use IDE format-on-save and still run `npm run lint` / `npm run format:prettier` before committing. Human override: `HUMAN=1`.
+- Tracked git guard rails live in `.githooks/pre-commit` and `.githooks/pre-push`; enable them with `git config core.hooksPath .githooks`. They block secrets, team/CI configuration, binary assets, and all pushes — not lint/format. Use IDE format-on-save and still run `npm run lint` / `npm run format:prettier` before committing. Human override: `HUMAN=1`.
 - Workspace VS Code settings enable `editor.formatOnSave` and `editor.codeActionsOnSave` for quick formatting and fixing on save.
 
 ## Troubleshooting
@@ -475,8 +476,8 @@ This project includes a `.devcontainer/devcontainer.json` for use with VS Code D
 ### What Does NOT Work in the Container
 
 - **Web MIDI API** — No MIDI hardware access from inside a container. The `navigator.requestMIDIAccess` call will fail. MIDI-dependent features cannot be tested in-container.
-- **Browser-based visual testing** — No Chrome/Chromium is installed in the base image. The dev server runs but cannot be opened in a browser inside the container. Use port forwarding to access from the host browser.
-- **Canvas rendering verification** — While jsdom provides a `canvas` stub for unit tests, it does not render pixels. Visual regression tests requiring a real browser must run on the host or in CI.
+- **Browser-based visual testing** — Playwright Chromium + OS deps install via `postCreateCommand` (`npx playwright install --with-deps chromium`). Interactive browsing of the Vite apps still needs port forwarding to a host browser; Web MIDI is unavailable in-container.
+- **Canvas rendering verification** — jsdom stubs pixels for unit tests; `npm run test:visual` runs real Chromium in-container (and in CI) after Playwright deps are installed.
 - **GPU acceleration** — No GPU access. Canvas 2D rendering uses software rasterization only.
 
 ### Container-Specific Configuration
@@ -521,12 +522,12 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + s
 ### Best Practices for AI Agents in the Container
 
 1. **Never assume MIDI works** — When testing, use the fake MIDI utilities in `akvj/test/utils/fakeMidi.js` rather than expecting real hardware
-2. **Run validation commands, not browser tests** — Use `npm run lint && npm run test && npm run build` to validate changes. Do not attempt to launch a browser.
+2. **Run validation commands** — Use `npm run lint && npm run test && npm run build` for code changes. Use `npm run test:visual` for screenshot regressions (Playwright Chromium). Do not expect Web MIDI or an interactive host browser inside the container.
 3. **Use `npm run clips` for clip changes** — The full pipeline (validate, optimize, generate, copy) works in-container
 4. **Be patient with `npm install`** — The first install takes ~13 seconds. `sharp` downloads prebuilt binaries; no native compilation needed.
 5. **Check env vars before debugging file watching** — If HMR seems broken, first check `echo $REMOTE_CONTAINERS` and verify polling is enabled
-6. **Node version** — The container uses Node 22 (via `javascript-node:4-22-bookworm`). CI uses Node 20. Code must be compatible with both.
-7. **Don't install Chrome in the container** — It adds significant image size. Instead, use port forwarding to test from the host browser.
+6. **Node version** — The container and CI both use Node 22 (`javascript-node:4-22-bookworm`).
+7. **Don't install a full desktop Chrome for MIDI** — Web MIDI still needs a host Chrome with device access via port forwarding. Playwright Chromium (for `test:visual` / e2e) is installed by `postCreateCommand`; do not add a separate browser package for interactive VJ testing.
 8. **Use `concurrently` output** — `npm run akvj` runs both Vite and the clip watcher concurrently. Check both output streams for errors.
 
 ### Container vs Host Development
@@ -539,7 +540,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + s
 | Build                    | ✅          | ✅                        |
 | Clip pipeline            | ✅          | ✅                        |
 | MIDI testing             | ❌          | ✅ (Chrome + MIDI device) |
-| Visual / browser testing | ❌          | ✅ (Chrome required)      |
+| Visual / browser testing | ✅ (`test:visual` via Playwright) | ✅ (Chrome / Playwright) |
 | Performance profiling    | ⚠️ (no GPU) | ✅                        |
 
 ### Troubleshooting Container Issues
@@ -567,3 +568,7 @@ The container requests minimum **4 CPUs** and **8 GB RAM** (akvj + mainframe + s
 - **Git push 403 errors**
     - See the "Git push / GITHUB_TOKEN issues" section above
     - Common in Codespaces and dev containers with restricted tokens
+
+## Office-space Team
+
+The active team host is `.agents/office-space/developer-team/`. Use `office-space-onboard` for setup and upgrades, `office-space-team-design` for role/gate changes, and `office-space-protocol` for mail, tasks, Slack, memory, and checkpoints. After package upgrades run `office-space whats-new`, refresh skills/partials, `office-space sync --write`, and `office-space doctor`.

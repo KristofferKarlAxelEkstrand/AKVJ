@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import { invokeListeners } from './invokeListeners.js';
 
 /**
  * Factories for fake MIDI inputs and access objects used in tests.
@@ -6,6 +7,16 @@ import { vi } from 'vitest';
  * by storing handlers in a closure-private Map which tests can inspect or
  * invoke using the helpers from `invokeListeners.js`.
  */
+
+/**
+ * Dispatch a midimessage with `target` set to the input (Web MIDI shape).
+ * @param {object} input - Fake MIDI input
+ * @param {Uint8Array|number[]} data - MIDI bytes
+ */
+export function dispatchMidiMessage(input, data) {
+	const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+	invokeListeners(input, 'midimessage', { data: bytes, target: input });
+}
 
 function createFakeInput({ id = 'fake-1', name = 'Fake MIDI Input' } = {}) {
 	const listenersByType = new Map();

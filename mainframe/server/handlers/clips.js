@@ -8,15 +8,18 @@ import { durationsMsToFrameRates } from '../../shared/frameTiming.js';
 import { sendJson, parseJsonBody } from '../httpUtils.js';
 import { parseClipFramesBody } from '../clipFramesBody.js';
 import { validateMetaFields } from '../../scripts/clips/lib/validate/meta.js';
-import { listClips, activeProjectId, clipsRootFor } from '../clipCatalog.js';
-import { flattenKeyMap, nestMappingEntries, assertValidFlatMapping } from '../../shared/mappingService.js';
+import { listClips } from '../clipCatalog.js';
+import { getActiveProjectId } from '../projects.js';
+import { flattenKeyMap, nestMappingEntries } from '../../shared/mappingService.js';
 import { writeJsonAtomic } from '../writeJsonAtomic.js';
 
 /**
+ * Flat mapping entries for the active (or given) project. Used when pruning deleted clips.
  * @param {string} [projectId]
+ * @returns {Promise<object[]>}
  */
-export async function readMapping(projectId) {
-	const id = projectId ?? (await activeProjectId());
+export async function readFlatMapping(projectId) {
+	const id = projectId ?? (await getActiveProjectId());
 	try {
 		const raw = await fs.readFile(projectKeyMapPath(id), 'utf8');
 		const keyMap = JSON.parse(raw);
@@ -32,38 +35,8 @@ export async function readMapping(projectId) {
 	}
 }
 
-/**
- * @param {unknown} mapping
- * @param {string} [projectId]
- */
-export async function writeMapping(mapping, projectId) {
-	const id = projectId ?? (await activeProjectId());
-	const readyClips = new Set((await listClips(id)).filter(clip => clip.pipelineReady).map(clip => clip.clipId));
-	assertValidFlatMapping(mapping, readyClips);
-	const keyMap = nestMappingEntries(mapping);
-	await fs.mkdir(await clipsRootFor(id), { recursive: true });
-	await writeJsonAtomic(projectKeyMapPath(id), keyMap);
-}
-
 export async function handleGetClips(_req, res) {
 	sendJson(res, 200, { clips: await listClips() });
-}
-
-export async function handleGetMapping(_req, res) {
-	sendJson(res, 200, { mapping: await readMapping() });
-}
-
-export async function handlePutMapping(req, res) {
-	try {
-		const body = await parseJsonBody(req, res);
-		if (body === null) {
-			return;
-		}
-		await writeMapping(body.mapping ?? body);
-		sendJson(res, 200, { ok: true, mapping: await readMapping() });
-	} catch (error) {
-		sendJson(res, error.statusCode || 400, { error: error.message });
-	}
 }
 
 async function resolveSpriteName(clipId, projectId) {
@@ -82,7 +55,7 @@ export async function handleGetClipSprite(_req, res, url) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
 	}
-	const projectId = await activeProjectId();
+	const projectId = await getActiveProjectId();
 	const pngName = await resolveSpriteName(clipId, projectId);
 	const spritePath = resolveSafeSpritePath(clipId, pngName, projectId);
 	let spriteBuffer;
@@ -110,7 +83,7 @@ export async function handleGetClipFrames(_req, res, url) {
 		return;
 	}
 	try {
-		const projectId = await activeProjectId();
+		const projectId = await getActiveProjectId();
 		const result = await loadClipFrameBuffers(clipId, projectId);
 		sendJson(res, 200, {
 			ok: true,
@@ -142,7 +115,7 @@ export async function handlePutClipFrames(req, res, url) {
 		return;
 	}
 	try {
-		const projectId = await activeProjectId();
+		const projectId = await getActiveProjectId();
 		const result = await updateClipFromFrames({
 			clipId,
 			frameBuffers: parsed.frameBuffers,
@@ -154,6 +127,7 @@ export async function handlePutClipFrames(req, res, url) {
 			name: parsed.name,
 			playback: parsed.playback,
 			frameRate: parsed.frameRate,
+			frameDurationsMs: parsed.frameDurationsMs,
 			frameRatesForFrames: parsed.frameRatesForFrames,
 			retrigger: parsed.retrigger,
 			triggerType: parsed.triggerType,
@@ -195,7 +169,7 @@ export async function handlePostClips(req, res) {
 		return;
 	}
 	try {
-		const projectId = await activeProjectId();
+		const projectId = await getActiveProjectId();
 		const result = await createClipFromFrames({
 			clipId,
 			frameBuffers: parsed.frameBuffers,
@@ -207,6 +181,7 @@ export async function handlePostClips(req, res) {
 			name: parsed.name,
 			playback: parsed.playback,
 			frameRate: parsed.frameRate,
+			frameDurationsMs: parsed.frameDurationsMs,
 			frameRatesForFrames: parsed.frameRatesForFrames,
 			retrigger: parsed.retrigger,
 			triggerType: parsed.triggerType,
@@ -233,10 +208,10 @@ export async function handleRecompileClip(req, res, url) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
 	}
-	const projectId = await activeProjectId();
-	const targetDir = clipDir(clipId, projectId);
+	const projectId = await getActiveProjectId();
+	const clipDirectory = clipDir(clipId, projectId);
 	try {
-		await fs.access(targetDir);
+		await fs.access(clipDirectory);
 	} catch {
 		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
 		return;
@@ -249,16 +224,17 @@ export async function handleRecompileClip(req, res, url) {
 	let { scaleMode, scaling } = body;
 	if (!scaleMode || scaling === undefined) {
 		try {
-			const meta = JSON.parse(await fs.readFile(path.join(targetDir, 'meta.json'), 'utf8'));
+			const meta = JSON.parse(await fs.readFile(path.join(clipDirectory, 'meta.json'), 'utf8'));
 			scaleMode = scaleMode || meta.scaleMode;
 			scaling = scaling !== undefined ? scaling : meta.scaling;
 		} catch {
 			// keep undefined — spritesheet defaults to fit / nearest
 		}
 	}
-	const frameRatesForFrames = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? durationsMsToFrameRates(frameDurationsMs) : undefined;
+	const durationsMs = Array.isArray(frameDurationsMs) && frameDurationsMs.length > 0 ? frameDurationsMs.map(ms => Number(ms)) : undefined;
+	const frameRatesForFrames = durationsMs ? durationsMsToFrameRates(durationsMs) : undefined;
 	try {
-		const result = await recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, projectId });
+		const result = await recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameDurationsMs: durationsMs, frameRatesForFrames, role, projectId });
 		sendJson(res, 200, { ok: true, ...result });
 	} catch (error) {
 		sendJson(res, 400, { error: error.message });
@@ -271,18 +247,18 @@ export async function handleDeleteClip(_req, res, url) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
 	}
-	const projectId = await activeProjectId();
-	const targetDir = clipDir(clipId, projectId);
+	const projectId = await getActiveProjectId();
+	const clipDirectory = clipDir(clipId, projectId);
 	try {
-		await fs.access(targetDir);
+		await fs.access(clipDirectory);
 	} catch {
 		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
 		return;
 	}
-	await fs.rm(targetDir, { recursive: true });
+	await fs.rm(clipDirectory, { recursive: true });
 	await fs.rm(path.join(projectRawAssetsRoot(projectId), clipId), { recursive: true, force: true });
 
-	const mapping = await readMapping(projectId);
+	const mapping = await readFlatMapping(projectId);
 	const remaining = mapping.filter(entry => entry.clipId !== clipId);
 	if (remaining.length !== mapping.length) {
 		const keyMap = nestMappingEntries(remaining);
@@ -300,10 +276,10 @@ export async function handlePutClipMeta(req, res, url) {
 		sendJson(res, 400, { error: 'Invalid clipId' });
 		return;
 	}
-	const projectId = await activeProjectId();
-	const targetDir = clipDir(clipId, projectId);
+	const projectId = await getActiveProjectId();
+	const clipDirectory = clipDir(clipId, projectId);
 	try {
-		await fs.access(targetDir);
+		await fs.access(clipDirectory);
 	} catch {
 		sendJson(res, 404, { error: `Clip "${clipId}" not found` });
 		return;
@@ -312,7 +288,7 @@ export async function handlePutClipMeta(req, res, url) {
 	if (body === null) {
 		return;
 	}
-	const currentMetaPath = path.join(targetDir, 'meta.json');
+	const currentMetaPath = path.join(clipDirectory, 'meta.json');
 	let currentMeta;
 	try {
 		currentMeta = JSON.parse(await fs.readFile(currentMetaPath, 'utf8'));
@@ -334,6 +310,14 @@ export async function handlePutClipMeta(req, res, url) {
 		} else {
 			updatedMeta[key] = value;
 		}
+	}
+	// frameDurationsMs is load source of truth — rates-only edits must clear stale ms
+	if (Object.hasOwn(body, 'frameRatesForFrames') && !Object.hasOwn(body, 'frameDurationsMs')) {
+		delete updatedMeta.frameDurationsMs;
+	}
+	if (Array.isArray(body.frameDurationsMs) && body.frameDurationsMs.length > 0) {
+		updatedMeta.frameDurationsMs = body.frameDurationsMs.map(ms => Number(ms));
+		updatedMeta.frameRatesForFrames = durationsMsToFrameRates(updatedMeta.frameDurationsMs);
 	}
 	const validationErrors = validateMetaFields(updatedMeta);
 	if (validationErrors.length > 0) {

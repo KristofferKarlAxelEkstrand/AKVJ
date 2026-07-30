@@ -2,7 +2,9 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { advanceFrame, ShuffleState, PingpongState } from '../src/js/playbackUtils.js';
+import { DEFAULT_FALLBACK_FRAME_DURATION_MS } from '../src/js/frameTiming.js';
 import '../src/js/StagingPreview.js';
+import { createMock2dContext } from './utils/mockCanvas.js';
 
 describe('advanceFrame', () => {
 	test('loop mode wraps around', () => {
@@ -135,11 +137,7 @@ describe('StagingPreview', () => {
 	let mockCtx;
 
 	beforeEach(() => {
-		mockCtx = {
-			imageSmoothingEnabled: true,
-			clearRect: () => {},
-			drawImage: () => {}
-		};
+		mockCtx = createMock2dContext({ imageSmoothingEnabled: true });
 		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx);
 		element = document.createElement('akvj-staging-preview');
 		document.body.append(element);
@@ -157,11 +155,7 @@ describe('StagingPreview', () => {
 	test('forces imageSmoothingEnabled false on offscreen bake cell contexts', async () => {
 		const contexts = [];
 		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(() => {
-			const ctx = {
-				imageSmoothingEnabled: true,
-				clearRect: () => {},
-				drawImage: () => {}
-			};
+			const ctx = createMock2dContext({ imageSmoothingEnabled: true });
 			contexts.push(ctx);
 			return ctx;
 		});
@@ -412,6 +406,116 @@ describe('StagingPreview', () => {
 		expect(frameLabel.textContent).toBe('Frame 3 / 3');
 
 		element.querySelector('button.clip-preview-play').click();
+		global.Image = originalImage;
+	});
+
+	test.each([
+		{ label: 'empty array', durations: [] },
+		{ label: 'undefined', durations: undefined },
+		{ label: 'invalid values', durations: [0, -1, NaN] }
+	])('missing/invalid durations ($label) advance at ~12 FPS fallback, not 1000 ms', async ({ durations }) => {
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })];
+		const fallbackMs = DEFAULT_FALLBACK_FRAME_DURATION_MS;
+		expect(fallbackMs).toBeCloseTo(1000 / 12, 5);
+		expect(fallbackMs).toBeLessThan(1000);
+
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+
+		/** @type {FrameRequestCallback[]} */
+		const rafQueue = [];
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+			rafQueue.push(cb);
+			return rafQueue.length;
+		});
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames(files, 240, 135, durations, 'once', 'fit');
+		const frameLabel = element.querySelector('.clip-preview-frame-label');
+		const pump = timestamp => {
+			const cb = rafQueue.shift();
+			expect(cb).toBeTypeOf('function');
+			cb(timestamp);
+		};
+
+		pump(0);
+		expect(frameLabel.textContent).toBe('Frame 1 / 2');
+		pump(fallbackMs - 1);
+		expect(frameLabel.textContent).toBe('Frame 1 / 2');
+		// Must advance well before 1000 ms (UI default duration is 1000; fallback is ~83 ms)
+		pump(fallbackMs);
+		expect(frameLabel.textContent).toBe('Frame 2 / 2');
+
+		element.querySelector('button.clip-preview-play').click();
+		global.Image = originalImage;
+	});
+
+	test('partial durations array uses provided ms then fallback for missing frames', async () => {
+		const files = [new File(['a'], 'frame0.png', { type: 'image/png' }), new File(['b'], 'frame1.png', { type: 'image/png' })];
+		const fallbackMs = DEFAULT_FALLBACK_FRAME_DURATION_MS;
+
+		global.URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+		global.URL.revokeObjectURL = vi.fn();
+
+		/** @type {FrameRequestCallback[]} */
+		const rafQueue = [];
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+			rafQueue.push(cb);
+			return rafQueue.length;
+		});
+		vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => {});
+
+		const originalImage = global.Image;
+		global.Image = class {
+			set src(value) {
+				this._src = value;
+				setTimeout(() => this.onload && this.onload(), 0);
+			}
+			get src() {
+				return this._src;
+			}
+		};
+
+		await element.loadFrames(files, 240, 135, [200], 'once', 'fit');
+		const frameLabel = element.querySelector('.clip-preview-frame-label');
+		const pump = timestamp => {
+			const cb = rafQueue.shift();
+			expect(cb).toBeTypeOf('function');
+			cb(timestamp);
+		};
+
+		const playButton = element.querySelector('button.clip-preview-play');
+		// Use integer ms so (lastTs + duration) - lastTs does not lose float precision
+		const frame0Ms = 200;
+		const frame1Ms = Math.ceil(fallbackMs);
+
+		// Frame 0 holds 200 ms
+		pump(0);
+		expect(frameLabel.textContent).toBe('Frame 1 / 2');
+		pump(frame0Ms - 1);
+		expect(frameLabel.textContent).toBe('Frame 1 / 2');
+		pump(frame0Ms);
+		expect(frameLabel.textContent).toBe('Frame 2 / 2');
+
+		// Frame 1 holds fallback (~83 ms), not 1000 ms — once-mode stops after last frame
+		pump(frame0Ms + frame1Ms - 1);
+		expect(frameLabel.textContent).toBe('Frame 2 / 2');
+		expect(playButton.textContent).toBe('Pause');
+		pump(frame0Ms + frame1Ms);
+		expect(frameLabel.textContent).toBe('Frame 2 / 2');
+		expect(playButton.textContent).toBe('Play');
+
 		global.Image = originalImage;
 	});
 

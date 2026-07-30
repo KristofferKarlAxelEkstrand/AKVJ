@@ -48,7 +48,7 @@ export default {
 		const original = usableBuffer(scratchBuffer, pixels.length);
 		original.set(pixels);
 
-		// Create modified version based on variant (written in full before it is read)
+		// Modified buffer is written in full before it is read
 		const modified = usableBuffer(secondaryScratchBuffer, pixels.length);
 		if (isVariantA) {
 			createInvertedVersion(pixels, modified, intensity);
@@ -56,8 +56,7 @@ export default {
 			createShiftedVersion(pixels, modified, width, intensity);
 		}
 
-		// Get bit depth parameters for lo-fi quantization
-		const { divisor, maxLevel } = getBitDepthParams(grayscaleBlendBitDepth);
+		const { divisor, maxLevel } = grayscaleBlendParamsFor(grayscaleBlendBitDepth);
 
 		return applyGrayscaleBlend(pixels, original, modified, width, height, divisor, maxLevel);
 	},
@@ -83,12 +82,11 @@ function usableBuffer(buffer, requiredLength) {
  */
 function createInvertedVersion(pixels, modified, intensity) {
 	for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
-		// Invert RGB channels, scale by intensity
-		// Lerp from original toward actual inverted value (255 - pixels[i]), not flat white
+		// Lerp toward inverted value (MAX - channel), not flat white
 		modified[i] = pixels[i] + (MAX_COLOR_VALUE - pixels[i] - pixels[i]) * intensity;
 		modified[i + 1] = pixels[i + 1] + (MAX_COLOR_VALUE - pixels[i + 1] - pixels[i + 1]) * intensity;
 		modified[i + 2] = pixels[i + 2] + (MAX_COLOR_VALUE - pixels[i + 2] - pixels[i + 2]) * intensity;
-		modified[i + 3] = pixels[i + 3]; // Preserve alpha
+		modified[i + 3] = pixels[i + 3];
 	}
 }
 
@@ -97,27 +95,26 @@ function createInvertedVersion(pixels, modified, intensity) {
  * Lo-fi: simple channel shifting, no sub-pixel precision.
  */
 function createShiftedVersion(pixels, modified, width, intensity) {
-	const shiftAmount = Math.floor(intensity * CHROMATIC_ABERRATION_SHIFT_PIXELS); // Small shift for lo-fi look
+	const shiftAmount = Math.floor(intensity * CHROMATIC_ABERRATION_SHIFT_PIXELS);
 	for (let i = 0; i < pixels.length; i += RGBA_CHANNEL_COUNT) {
 		const x = (i / RGBA_CHANNEL_COUNT) % width;
 
-		// Shift red channel left, blue channel right
 		const redSourceX = (x - shiftAmount + width) % width;
 		const blueSourceX = (x + shiftAmount) % width;
 
 		const redIdx = i - (x - redSourceX) * RGBA_CHANNEL_COUNT;
 		const blueIdx = i + (blueSourceX - x) * RGBA_CHANNEL_COUNT;
 
-		modified[i] = pixels[redIdx]; // Red from left
-		modified[i + 1] = pixels[i + 1]; // Green unchanged
-		modified[i + 2] = pixels[blueIdx + 2]; // Blue from right
-		modified[i + 3] = pixels[i + 3]; // Preserve alpha
+		modified[i] = pixels[redIdx];
+		modified[i + 1] = pixels[i + 1];
+		modified[i + 2] = pixels[blueIdx + 2];
+		modified[i + 3] = pixels[i + 3];
 	}
 }
 
 /**
  * Apply grayscale-driven blend using multi-bit quantization.
- * Reuses Compositor.js mixMultiBit math for lo-fi stepped blending.
+ * Reuses Compositor.js mixPixelMultiBit math for lo-fi stepped blending.
  */
 function applyGrayscaleBlend(pixels, original, modified, width, height, divisor, maxLevel) {
 	const pixelCount = width * height;
@@ -126,18 +123,13 @@ function applyGrayscaleBlend(pixels, original, modified, width, height, divisor,
 	for (let i = 0; i < pixelCount; i++) {
 		const idx = i * RGBA_CHANNEL_COUNT;
 
-		// Calculate luminance from original (simple average for lo-fi)
 		const luminance = (original[idx] + original[idx + 1] + original[idx + 2]) / RGB_CHANNEL_COUNT;
-
-		// Quantize luminance to blend factor (lo-fi stepping)
 		const blendFactor = Math.floor(luminance / divisor) / maxLevel;
 
-		// Blend between original and modified using quantized factor
 		for (let channel = 0; channel < RGB_CHANNEL_COUNT; channel++) {
 			const newValue = original[idx + channel] + (modified[idx + channel] - original[idx + channel]) * blendFactor;
 			pixels[idx + channel] = newValue;
 		}
-		// Preserve alpha from original
 		pixels[idx + RGBA_CHANNEL_COUNT - 1] = original[idx + RGBA_CHANNEL_COUNT - 1];
 
 		isMutated = true;
@@ -146,9 +138,10 @@ function applyGrayscaleBlend(pixels, original, modified, width, height, divisor,
 }
 
 /**
- * Get bit depth parameters for quantization.
+ * Quantization params for grayscale-blend bit depth.
  * Lower bit depths create more visible stepping (lo-fi look).
+ * Distinct from Compositor.#getBitDepthParams (same shape, different tables).
  */
-function getBitDepthParams(bitDepth) {
+function grayscaleBlendParamsFor(bitDepth) {
 	return GRAYSCALE_BLEND_BIT_DEPTH_PARAMS[bitDepth] ?? GRAYSCALE_BLEND_BIT_DEPTH_PARAMS[8];
 }

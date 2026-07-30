@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { durationsMsToFrameRates, fpsToMs, msToFps, DEFAULT_FALLBACK_FPS } from '../src/js/frameTiming.js';
+import { durationsMsToFrameRates, fpsToMs, msToFps } from '../src/js/frameTiming.js';
+import { DEFAULT_FRAME_RATE } from '../src/js/clipSchema.js';
 
 describe('frameTiming', () => {
 	it('converts ms to fps', () => {
@@ -8,9 +9,9 @@ describe('frameTiming', () => {
 	});
 
 	it('falls back when delay is missing or 0', () => {
-		expect(msToFps(0)).toBe(DEFAULT_FALLBACK_FPS);
-		expect(msToFps(undefined)).toBe(DEFAULT_FALLBACK_FPS);
-		expect(msToFps(-5)).toBe(DEFAULT_FALLBACK_FPS);
+		expect(msToFps(0)).toBe(DEFAULT_FRAME_RATE);
+		expect(msToFps(undefined)).toBe(DEFAULT_FRAME_RATE);
+		expect(msToFps(-5)).toBe(DEFAULT_FRAME_RATE);
 	});
 
 	it('converts fps to ms', () => {
@@ -22,7 +23,7 @@ describe('frameTiming', () => {
 		expect(durationsMsToFrameRates([100, 50, 0])).toEqual({
 			0: 10,
 			1: 20,
-			2: DEFAULT_FALLBACK_FPS
+			2: DEFAULT_FRAME_RATE
 		});
 	});
 });

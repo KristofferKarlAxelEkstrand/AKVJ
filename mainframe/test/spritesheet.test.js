@@ -297,6 +297,19 @@ describe('recompileClip', () => {
 		await expect(recompileClip({ clipId: 'no-raw' })).rejects.toThrow('No raw assets found');
 	});
 
+	test('throws when raw dir exists but has no PNG frames', async () => {
+		await createClipFromFrames({
+			clipId: 'empty-raw-png',
+			frameBuffers: [makeFrame(PNG_1x1)]
+		});
+		const rawDir = path.join(clipsDir, '.raw-assets', 'empty-raw-png');
+		for (const file of await fs.readdir(rawDir)) {
+			await fs.unlink(path.join(rawDir, file));
+		}
+		await fs.writeFile(path.join(rawDir, 'notes.txt'), 'not a png');
+		await expect(recompileClip({ clipId: 'empty-raw-png' })).rejects.toThrow(/No raw PNG frames found/);
+	});
+
 	test('recompiles with default dimensions from raw assets', async () => {
 		await createClipFromFrames({
 			clipId: 'recompile-default',
@@ -375,5 +388,80 @@ describe('recompileClip', () => {
 		});
 		const newSprite = await fs.readFile(path.join(clipsDir, 'recompile-overwrite', 'sprite.png'));
 		expect(newSprite.length).not.toBe(originalSprite.length);
+	});
+});
+
+describe('updateClipFromFrames', () => {
+	let clipsDir;
+	let createClipFromFrames;
+	let updateClipFromFrames;
+
+	beforeEach(async () => {
+		clipsDir = await fs.mkdtemp(path.join(os.tmpdir(), 'akvj-spritesheet-update-'));
+		process.env.AKVJ_CLIPS_DIR = clipsDir;
+		vi.resetModules();
+		const module = await import('../server/spritesheet.js');
+		createClipFromFrames = module.createClipFromFrames;
+		updateClipFromFrames = module.updateClipFromFrames;
+	});
+
+	afterEach(async () => {
+		delete process.env.AKVJ_CLIPS_DIR;
+		if (clipsDir) {
+			await fs.rm(clipsDir, { recursive: true, force: true });
+		}
+	});
+
+	test('rejects invalid clipId', async () => {
+		await expect(updateClipFromFrames({ clipId: '../escape', frameBuffers: [makeFrame(PNG_1x1)] })).rejects.toThrow('Invalid clipId');
+	});
+
+	test('rejects empty frame array', async () => {
+		await expect(updateClipFromFrames({ clipId: 'any-clip', frameBuffers: [] })).rejects.toThrow('At least one frame image is required');
+	});
+
+	test('rejects non-array frameBuffers', async () => {
+		await expect(updateClipFromFrames({ clipId: 'any-clip', frameBuffers: null })).rejects.toThrow('At least one frame image is required');
+	});
+
+	test('throws when clip folder is missing', async () => {
+		await expect(updateClipFromFrames({ clipId: 'ghost-clip', frameBuffers: [makeFrame(PNG_1x1)] })).rejects.toThrow('Clip "ghost-clip" not found');
+	});
+
+	test('replaces raw assets and returns clipId frames framesPerRow', async () => {
+		await createClipFromFrames({
+			clipId: 'update-happy',
+			frameBuffers: [makeFrame(PNG_1x1)]
+		});
+		const result = await updateClipFromFrames({
+			clipId: 'update-happy',
+			frameBuffers: [makeFrame(PNG_1x1), makeFrame(PNG_1x1), makeFrame(PNG_1x1)]
+		});
+		expect(result).toEqual({ clipId: 'update-happy', frames: 3, framesPerRow: 3 });
+
+		const rawFiles = await fs.readdir(path.join(clipsDir, '.raw-assets', 'update-happy'));
+		expect(rawFiles.filter(file => file.endsWith('.png'))).toHaveLength(3);
+		expect(await fs.access(path.join(clipsDir, 'update-happy', 'sprite.png')).then(() => true)).toBe(true);
+	});
+
+	test('accepts per-frame frameBakeConfigs instead of shared scaleMode', async () => {
+		await createClipFromFrames({
+			clipId: 'update-bake',
+			frameBuffers: [makeFrame(PNG_2x2), makeFrame(PNG_2x2)]
+		});
+		const result = await updateClipFromFrames({
+			clipId: 'update-bake',
+			frameBuffers: [makeFrame(PNG_2x2), makeFrame(PNG_2x2)],
+			targetWidth: 8,
+			targetHeight: 8,
+			frameBakeConfigs: [{ scaleMode: 'cover' }, { scaleMode: 'fit' }]
+		});
+		expect(result.frames).toBe(2);
+		expect(result.framesPerRow).toBe(2);
+
+		const sharp = (await import('sharp')).default;
+		const meta = await sharp(path.join(clipsDir, 'update-bake', 'sprite.png')).metadata();
+		expect(meta.width).toBe(16);
+		expect(meta.height).toBe(8);
 	});
 });

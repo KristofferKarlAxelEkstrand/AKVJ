@@ -5,35 +5,13 @@ import mainframeHtmlRaw from '../src/index.html?raw';
 import '../src/js/AkvjMainframe.js';
 import { ClipEditorController } from '../src/js/ClipEditorController.js';
 import mainframeState, { EVENT_USER_MESSAGE } from '../src/js/mainframeState.js';
+import { createMock2dContext } from './utils/mockCanvas.js';
 
 const MAINFRAME_MATCH = mainframeHtmlRaw.match(/<akvj-mainframe>([\s\S]*?)<\/akvj-mainframe>/);
 const MAINFRAME_HTML = MAINFRAME_MATCH ? MAINFRAME_MATCH[1] : '';
 
 function flushPromises() {
 	return new Promise(resolve => setTimeout(resolve, 0));
-}
-
-function createMock2dContext() {
-	return {
-		imageSmoothingEnabled: false,
-		clearRect: vi.fn(),
-		fillRect: vi.fn(),
-		drawImage: vi.fn(),
-		getImageData: vi.fn((x, y, w, h) => ({ width: w, height: h, data: new Uint8ClampedArray(w * h * 4) })),
-		putImageData: vi.fn(),
-		createPattern: vi.fn(() => null),
-		beginPath: vi.fn(),
-		closePath: vi.fn(),
-		moveTo: vi.fn(),
-		lineTo: vi.fn(),
-		stroke: vi.fn(),
-		fill: vi.fn(),
-		save: vi.fn(),
-		restore: vi.fn(),
-		translate: vi.fn(),
-		scale: vi.fn(),
-		clip: vi.fn()
-	};
 }
 
 function createMockFetch(overrides = {}) {
@@ -60,7 +38,7 @@ function createMockFetch(overrides = {}) {
 			return { ok: true, status: 200, json: async () => ({ projects }) };
 		}
 		if (url === '/api/projects/active') {
-			return { ok: true, status: 200, json: async () => ({ project: activeProjectId }) };
+			return { ok: true, status: 200, json: async () => ({ projectId: activeProjectId }) };
 		}
 
 		const keyMapMatch = url.match(/^\/api\/projects\/([^/]+)\/key-map$/);
@@ -73,7 +51,7 @@ function createMockFetch(overrides = {}) {
 
 		const activateMatch = url.match(/^\/api\/projects\/([^/]+)\/activate$/);
 		if (activateMatch) {
-			return { ok: true, status: 200, json: async () => ({ project: activateMatch[1] }) };
+			return { ok: true, status: 200, json: async () => ({ projectId: activateMatch[1] }) };
 		}
 
 		const projectMatch = url.match(/^\/api\/projects\/([^/]+)$/);
@@ -247,7 +225,7 @@ describe('AkvjMainframe', () => {
 		expect(summary.classList.contains('clip-summary--has-incomplete')).toBe(true);
 	});
 
-	test('fillClipSelect only includes clips with hasSprite and pipelineReady', () => {
+	test('fillMappingClipSelect only includes clips with hasSprite and pipelineReady', () => {
 		const select = element.querySelector('#map-clip-id');
 		const options = [...select.options].map(option => option.value);
 		expect(options).toContain('kick');
@@ -289,6 +267,147 @@ describe('AkvjMainframe', () => {
 		const status = element.querySelector('#mapping-status');
 		expect(status.textContent).toContain('Dropped kick @ note 62');
 		expect(status.classList.contains('is-ok')).toBe(true);
+	});
+
+	test('mappingPianoRoll mapping-changed updates velocity breakpoint and status', () => {
+		mainframeState.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'kick' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'snare' },
+			{ channel: 2, note: 60, velocity: 0, clipId: 'other' }
+		];
+		const pianoRoll = element.querySelector('#mapping-piano-roll');
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:mapping-changed', {
+				bubbles: true,
+				detail: { channel: 1, note: 60, oldVelocity: 64, newVelocity: 80, clipId: 'snare' }
+			})
+		);
+		expect(mainframeState.mappings).toEqual([
+			{ channel: 1, note: 60, velocity: 0, clipId: 'kick' },
+			{ channel: 1, note: 60, velocity: 80, clipId: 'snare' },
+			{ channel: 2, note: 60, velocity: 0, clipId: 'other' }
+		]);
+		const status = element.querySelector('#mapping-status');
+		expect(status.textContent).toContain('Breakpoint snare → vel 80');
+		expect(status.classList.contains('is-ok')).toBe(true);
+	});
+
+	test('mappingPianoRoll mapping-removed rebuilds note from redistributed mappings', () => {
+		mainframeState.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' },
+			{ channel: 1, note: 61, velocity: 0, clipId: 'other-note' },
+			{ channel: 2, note: 60, velocity: 0, clipId: 'other-ch' }
+		];
+		const pianoRoll = element.querySelector('#mapping-piano-roll');
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:mapping-removed', {
+				bubbles: true,
+				detail: {
+					channel: 1,
+					note: 60,
+					clipId: 'soft',
+					velocity: 0,
+					mappings: [{ clipId: 'hard', velocity: 0 }]
+				}
+			})
+		);
+		expect(mainframeState.mappings).toEqual([
+			{ channel: 1, note: 61, velocity: 0, clipId: 'other-note' },
+			{ channel: 2, note: 60, velocity: 0, clipId: 'other-ch' },
+			{ channel: 1, note: 60, velocity: 0, clipId: 'hard' }
+		]);
+		const status = element.querySelector('#mapping-status');
+		expect(status.textContent).toBe('Removed soft @ note 60 vel 0');
+		expect(status.classList.contains('is-ok')).toBe(true);
+	});
+
+	test('mappingPianoRoll keyclick assign upserts mapping from form clip', () => {
+		mainframeState.channel = 3;
+		mainframeState.mappings = [
+			{ channel: 3, note: 48, velocity: 10, clipId: 'old' },
+			{ channel: 3, note: 48, velocity: 0, clipId: 'soft' }
+		];
+		element.querySelector('#map-clip-id').value = 'kick';
+		element.querySelector('#map-channel').value = '3';
+		element.querySelector('#map-velocity').value = '10';
+		const pianoRoll = element.querySelector('#mapping-piano-roll');
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:key-click', {
+				bubbles: true,
+				detail: { note: 48, velocity: 99, isActive: false, mode: 'edit', mappings: [] }
+			})
+		);
+		// Upsert is by (channel, note, form velocity); other velocities on the note stay.
+		expect(mainframeState.mappings).toEqual([
+			{ channel: 3, note: 48, velocity: 0, clipId: 'soft' },
+			{ channel: 3, note: 48, velocity: 10, clipId: 'kick' }
+		]);
+		expect(element.querySelector('#map-note').value).toBe('48');
+		expect(element.querySelector('#map-channel').value).toBe('3');
+	});
+
+	test('mappingPianoRoll keyclick assign with empty clip select reports error', () => {
+		const before = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
+		mainframeState.mappings = [...before];
+		const select = element.querySelector('#map-clip-id');
+		select.replaceChildren();
+		const pianoRoll = element.querySelector('#mapping-piano-roll');
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:key-click', {
+				bubbles: true,
+				detail: { note: 72, velocity: 0, isActive: false, mode: 'edit', mappings: [] }
+			})
+		);
+		expect(mainframeState.mappings).toEqual(before);
+		const status = element.querySelector('#mapping-status');
+		expect(status.textContent).toBe('Select a clip first');
+		expect(status.classList.contains('is-err')).toBe(true);
+	});
+
+	test('mappingPianoRoll remove/add rebuild preserves placement overrides', () => {
+		mainframeState.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft', overrides: { triggerType: 'latch' } },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard', overrides: { sync: 'beat', syncLength: '1 bar' } },
+			{ channel: 1, note: 61, velocity: 0, clipId: 'keep' }
+		];
+		const pianoRoll = element.querySelector('#mapping-piano-roll');
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:mapping-removed', {
+				bubbles: true,
+				detail: {
+					channel: 1,
+					note: 60,
+					clipId: 'soft',
+					velocity: 0,
+					mappings: [{ clipId: 'hard', velocity: 0, overrides: { sync: 'beat', syncLength: '1 bar' } }]
+				}
+			})
+		);
+		expect(mainframeState.mappings).toEqual([
+			{ channel: 1, note: 61, velocity: 0, clipId: 'keep' },
+			{ channel: 1, note: 60, velocity: 0, clipId: 'hard', overrides: { sync: 'beat', syncLength: '1 bar' } }
+		]);
+
+		pianoRoll.dispatchEvent(
+			new CustomEvent('pianoroll:mapping-added', {
+				bubbles: true,
+				detail: {
+					channel: 1,
+					note: 62,
+					clipId: 'kick',
+					velocity: 0,
+					mappings: [{ clipId: 'kick', velocity: 0, overrides: { triggerType: 'one-shot' } }]
+				}
+			})
+		);
+		expect(mainframeState.mappings).toContainEqual({
+			channel: 1,
+			note: 62,
+			velocity: 0,
+			clipId: 'kick',
+			overrides: { triggerType: 'one-shot' }
+		});
 	});
 
 	test('mappingTable mappingremove removes the mapping', () => {

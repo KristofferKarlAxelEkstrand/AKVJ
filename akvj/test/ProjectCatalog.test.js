@@ -21,15 +21,31 @@ describe('ProjectCatalog', () => {
 	});
 
 	describe('fetchActiveProjectId', () => {
-		test('returns project ID for valid active-project.json', async () => {
+		test('returns projectId from canonical active-project.json shape', async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
-				json: async () => ({ project: 'my-project' })
+				json: async () => ({ projectId: 'my-project' })
 			});
 			await expect(catalog.fetchActiveProjectId()).resolves.toBe('my-project');
 			expect(fetchMock).toHaveBeenCalled();
 			const url = fetchMock.mock.calls[0][0];
 			expect(String(url)).toContain(settings.performance.activeProjectUrl);
+		});
+
+		test('returns project from legacy active-project.json shape', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ project: 'legacy-project' })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBe('legacy-project');
+		});
+
+		test('prefers projectId over legacy project when both present', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ projectId: 'canonical', project: 'legacy' })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBe('canonical');
 		});
 
 		test('returns null when project field is non-string', async () => {
@@ -40,10 +56,26 @@ describe('ProjectCatalog', () => {
 			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
 		});
 
+		test('returns null when projectId is non-string', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ projectId: 42 })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+
 		test('returns null when project fails SAFE_ID_PATTERN', async () => {
 			fetchMock.mockResolvedValue({
 				ok: true,
 				json: async () => ({ project: '../etc' })
+			});
+			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
+		});
+
+		test('returns null when projectId fails SAFE_ID_PATTERN', async () => {
+			fetchMock.mockResolvedValue({
+				ok: true,
+				json: async () => ({ projectId: '../etc' })
 			});
 			await expect(catalog.fetchActiveProjectId()).resolves.toBeNull();
 		});

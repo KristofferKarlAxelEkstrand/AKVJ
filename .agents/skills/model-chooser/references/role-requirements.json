@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "roles": {
+    "team-lead": {
+      "risk": "high",
+      "candidates": [["devin", "swe-1-7", ""]]
+    },
+    "dev-1": {
+      "risk": "medium",
+      "candidates": [["devin", "swe-1-7", ""]]
+    },
+    "dev-2": {
+      "risk": "high",
+      "candidates": [["devin", "swe-1-7", ""]]
+    },
+    "scout": {
+      "risk": "medium",
+      "candidates": [["devin", "swe-1-7", ""]]
+    },
+    "quality": {
+      "risk": "high",
+      "candidates": [["devin", "swe-1-7", ""]]
+    },
+    "tests": {
+      "risk": "low",
+      "candidates": [["devin", "swe-1-7", ""]]
+    }
+  }
+}

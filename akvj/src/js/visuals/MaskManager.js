@@ -106,11 +106,11 @@ class MaskManager {
 
 	/**
 	 * Set scrub position for the current mask if it's in scrub playback mode.
-	 * @param {number} normalizedValue - Value from 0.0 to 1.0
+	 * @param {number} normalizedPosition - Value from 0.0 to 1.0
 	 */
-	setScrubPosition(normalizedValue) {
+	setScrubPosition(normalizedPosition) {
 		if (this.#currentMask && !this.#currentMask.isFinished && this.#currentMask.playbackMode === PLAYBACK_MODE.SCRUB) {
-			this.#currentMask.setScrubPosition(normalizedValue);
+			this.#currentMask.setScrubPosition(normalizedPosition);
 		}
 	}
 

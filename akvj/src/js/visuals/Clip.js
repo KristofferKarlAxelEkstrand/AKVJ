@@ -8,7 +8,7 @@ import settings from '../core/settings.js';
 import ClipTiming from './ClipTiming.js';
 import PlaybackController from './PlaybackController.js';
 import { MAX_PATTERN_TILES_PER_FRAME, drawPattern, drawStretch, drawWithScaleMode } from './clipDrawRect.js';
-import { DEFAULT_SCALING, SCALING_MODES, DEFAULT_PLAYBACK, PLAYBACK_MODE } from './clipMetadata.js';
+import { DEFAULT_SCALING, SCALING_MODES, DEFAULT_PLAYBACK, DEFAULT_TRIGGER_TYPE, PLAYBACK_MODE } from './clipMetadata.js';
 
 export { MAX_PATTERN_TILES_PER_FRAME };
 
@@ -17,8 +17,9 @@ class Clip {
 	#image;
 	#frameCount;
 	#framesPerRow;
-	#frameWidth;
-	#frameHeight;
+	/** Sprite-sheet cell size (px); derived from sheet ÷ grid, not meta frameWidth/frameHeight. */
+	#cellWidth;
+	#cellHeight;
 	#shouldRetrigger;
 	#bitDepth;
 	#canvasWidth;
@@ -28,7 +29,7 @@ class Clip {
 	#placement;
 
 	// Trigger behavior (private, accessed via getters)
-	#triggerType = 'momentary';
+	#triggerType = DEFAULT_TRIGGER_TYPE;
 	#triggerGroup = null;
 
 	// Delegated helpers
@@ -41,27 +42,27 @@ class Clip {
 	/**
 	 * @param {Object} options
 	 * @param {HTMLImageElement} options.image
-	 * @param {number} options.frames
+	 * @param {number} options.frameCount - Total frame count (meta.json field remains `frames`)
 	 * @param {number} options.framesPerRow
-	 * @param {string} [options.playback='loop']
+	 * @param {string} [options.playback=DEFAULT_PLAYBACK]
 	 * @param {Object} [options.frameRatesForFrames={ 0: 1 }]
-	 * @param {Object|null} [options.frameDurationsMs=null] - Frame index → ms per frame (takes priority over frameRatesForFrames)
+	 * @param {number[]|null} [options.frameDurationsMs=null] - Per-frame ms (takes priority over frameRatesForFrames)
 	 * @param {number|null} [options.syncBeats=null] - Total clip duration in beats for
 	 *   `sync: "beat"` clips; ignored for 'random'/'shuffle' playback (sync doesn't apply)
 	 * @param {boolean} [options.retrigger=true]
 	 * @param {number|null} [options.bitDepth=null]
-	 * @param {string} [options.triggerType='momentary']
+	 * @param {string} [options.triggerType=DEFAULT_TRIGGER_TYPE]
 	 * @param {string|number|null} [options.triggerGroup=null]
 	 * @param {string} [options.scaleMode='fit']
-	 * @param {string} [options.scaling='nearest'] - Interpolation mode ('nearest' | 'smooth')
+	 * @param {string} [options.scaling=DEFAULT_SCALING] - Interpolation mode ('nearest' | 'smooth')
 	 * @param {{ x: number, y: number }} [options.placement={ x: 0, y: 0 }]
 	 * @param {() => number} [options.bpmProvider] - Injected BPM provider for testability
 	 * @param {{ bpmSource: string, subscribe: Function }} [options.clockSource] - Injected clock source for testability
 	 */
-	constructor({ image, frames, framesPerRow, playback = DEFAULT_PLAYBACK, frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = 'momentary', triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
-		this.#validateConstructorParams(frames, framesPerRow);
-		this.#initCoreFields(image, frames, framesPerRow, bitDepth);
-		this.#initDimensions(image, frames, framesPerRow);
+	constructor({ image, frameCount, framesPerRow, playback = DEFAULT_PLAYBACK, frameRatesForFrames = { 0: 1 }, frameDurationsMs = null, syncBeats = null, retrigger = true, bitDepth = null, triggerType = DEFAULT_TRIGGER_TYPE, triggerGroup = null, scaleMode = 'fit', scaling = DEFAULT_SCALING, placement = { x: 0, y: 0 }, bpmProvider, clockSource }) {
+		this.#validateConstructorParams(frameCount, framesPerRow);
+		this.#initCoreFields(image, frameCount, framesPerRow, bitDepth);
+		this.#initDimensions(image, frameCount, framesPerRow);
 		this.#shouldRetrigger = retrigger;
 		this.#triggerType = triggerType;
 		this.#triggerGroup = triggerGroup;
@@ -74,30 +75,30 @@ class Clip {
 		// Sync does not apply to non-deterministic playback modes — never engage
 		// clock-driven progress tracking for them, regardless of clip metadata.
 		const isNonDeterministic = playback === PLAYBACK_MODE.RANDOM || playback === PLAYBACK_MODE.SHUFFLE;
-		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationsMs, syncBeats: isNonDeterministic ? null : syncBeats, frames, bpmProvider, clockSource });
-		this.#playback = new PlaybackController({ frames, playback });
+		this.#timing = new ClipTiming({ frameRatesForFrames, frameDurationsMs, syncBeats: isNonDeterministic ? null : syncBeats, frameCount, bpmProvider, clockSource });
+		this.#playback = new PlaybackController({ frameCount, playbackMode: playback });
 	}
 
-	#validateConstructorParams(frames, framesPerRow) {
-		if (!frames || frames < 1) {
-			throw new Error('Clip requires frames >= 1');
+	#validateConstructorParams(frameCount, framesPerRow) {
+		if (!frameCount || frameCount < 1) {
+			throw new Error('Clip requires frameCount >= 1');
 		}
 		if (!framesPerRow || framesPerRow < 1) {
 			throw new Error('Clip requires framesPerRow >= 1');
 		}
 	}
 
-	#initCoreFields(image, frames, framesPerRow, bitDepth) {
+	#initCoreFields(image, frameCount, framesPerRow, bitDepth) {
 		this.#image = image;
-		this.#frameCount = frames;
+		this.#frameCount = frameCount;
 		this.#framesPerRow = framesPerRow;
 		this.#bitDepth = bitDepth;
 	}
 
-	#initDimensions(image, frames, framesPerRow) {
-		this.#frameWidth = image.width / framesPerRow;
-		this.#frameHeight = image.height / Math.ceil(frames / framesPerRow);
-		if (!this.#frameWidth || !this.#frameHeight) {
+	#initDimensions(image, frameCount, framesPerRow) {
+		this.#cellWidth = image.width / framesPerRow;
+		this.#cellHeight = image.height / Math.ceil(frameCount / framesPerRow);
+		if (!this.#cellWidth || !this.#cellHeight) {
 			throw new Error('Clip: Invalid image dimensions');
 		}
 	}
@@ -190,18 +191,23 @@ class Clip {
 		ctx.imageSmoothingEnabled = isSmooth;
 		ctx.imageSmoothingQuality = isSmooth ? 'high' : settings.rendering.imageSmoothingQuality;
 
-		const drawFrame = Math.min(this.#playback.frame, this.#frameCount - 1);
-		const frameRow = Math.floor(drawFrame / this.#framesPerRow);
-		const frameColumn = drawFrame - frameRow * this.#framesPerRow;
-		const sourceX = this.#frameWidth * frameColumn;
-		const sourceY = this.#frameHeight * frameRow;
+		try {
+			const drawFrame = Math.min(this.#playback.frame, this.#frameCount - 1);
+			const frameRow = Math.floor(drawFrame / this.#framesPerRow);
+			const frameColumn = drawFrame - frameRow * this.#framesPerRow;
+			const sourceX = this.#cellWidth * frameColumn;
+			const sourceY = this.#cellHeight * frameRow;
 
-		if (this.#scaleMode === 'pattern') {
-			drawPattern(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#placement);
-		} else if (this.#scaleMode === 'stretch') {
-			drawStretch(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight);
-		} else {
-			drawWithScaleMode(ctx, this.#image, sourceX, sourceY, this.#frameWidth, this.#frameHeight, this.#canvasWidth, this.#canvasHeight, this.#scaleMode, this.#placement);
+			if (this.#scaleMode === 'pattern') {
+				drawPattern(ctx, this.#image, sourceX, sourceY, this.#cellWidth, this.#cellHeight, this.#canvasWidth, this.#canvasHeight, this.#placement);
+			} else if (this.#scaleMode === 'stretch') {
+				drawStretch(ctx, this.#image, sourceX, sourceY, this.#cellWidth, this.#cellHeight, this.#canvasWidth, this.#canvasHeight);
+			} else {
+				drawWithScaleMode(ctx, this.#image, sourceX, sourceY, this.#cellWidth, this.#cellHeight, this.#canvasWidth, this.#canvasHeight, this.#scaleMode, this.#placement);
+			}
+		} finally {
+			ctx.imageSmoothingEnabled = settings.rendering.imageSmoothingEnabled;
+			ctx.imageSmoothingQuality = settings.rendering.imageSmoothingQuality;
 		}
 	}
 
@@ -265,9 +271,13 @@ class Clip {
 
 	/**
 	 * Reset clip to first frame if retrigger is enabled.
+	 * When skipping restart (`retrigger: false` mid-playback), still re-bind the
+	 * MIDI clock — `stop()` always unsubscribes, and without this the clip freezes
+	 * under a live clock (wall-clock beat fallback still advances).
 	 */
 	reset() {
 		if (!this.#shouldRetrigger && !this.#playback.isFinished) {
+			this.#timing.subscribeToClock(progress => this.#advanceByProgress(progress));
 			return;
 		}
 		this.#resetState();
@@ -283,10 +293,10 @@ class Clip {
 	/**
 	 * Manually set the scrub position (0.0 to 1.0).
 	 * Only active when playbackMode is scrub.
-	 * @param {number} normalizedValue
+	 * @param {number} normalizedPosition
 	 */
-	setScrubPosition(normalizedValue) {
-		this.#playback.setScrubPosition(normalizedValue);
+	setScrubPosition(normalizedPosition) {
+		this.#playback.setScrubPosition(normalizedPosition);
 	}
 
 	/**

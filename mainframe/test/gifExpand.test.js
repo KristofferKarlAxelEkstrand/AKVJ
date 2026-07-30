@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { fpsToMs } from '../shared/frameTiming.js';
+import { fpsToMs, DEFAULT_FALLBACK_FPS } from '../shared/frameTiming.js';
 
 /** Optional metadata override for delay-normalization edge tests. */
 let metadataOverride = null;
@@ -53,7 +53,7 @@ describe('expandGifBuffer', () => {
 		expect(result.animated).toBe(false);
 		expect(result.pages).toBe(1);
 		expect(result.frames).toHaveLength(1);
-		expect(result.durationsMs).toEqual([fpsToMs(12)]);
+		expect(result.durationsMs).toEqual([fpsToMs(DEFAULT_FALLBACK_FPS)]);
 	});
 
 	it('expands an animated GIF into frames with delays', async () => {
@@ -68,10 +68,12 @@ describe('expandGifBuffer', () => {
 		await expect(expandGifBuffer(Buffer.from('not-a-gif'))).rejects.toThrow();
 	});
 
-	it('falls back to fpsToMs(12) when a page delay is 0', async () => {
-		const gif = await sharp(ANIMATED_GIF_2FRAME, { animated: true }).gif({ delay: [0, 200] }).toBuffer();
+	it('falls back to fpsToMs(DEFAULT_FALLBACK_FPS) when a page delay is 0', async () => {
+		const gif = await sharp(ANIMATED_GIF_2FRAME, { animated: true })
+			.gif({ delay: [0, 200] })
+			.toBuffer();
 		const result = await expandGifBuffer(gif);
-		expect(result.durationsMs).toEqual([fpsToMs(12), 200]);
+		expect(result.durationsMs).toEqual([fpsToMs(DEFAULT_FALLBACK_FPS), 200]);
 	});
 
 	it('applies a scalar meta.delay to every page', async () => {

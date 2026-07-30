@@ -1,3 +1,6 @@
+import { DEFAULT_PROJECT_ID } from './projects.js';
+import { DEFAULT_SORT_MODE } from './sortMode.js';
+
 const EVENT_CLIPS_CHANGED = 'clipsChanged';
 const EVENT_MAPPINGS_CHANGED = 'mappingsChanged';
 const EVENT_CHANNEL_CHANGED = 'channelChanged';
@@ -27,11 +30,11 @@ class MainframeState extends EventTarget {
 	#mappings = [];
 	/** @type {Array<{id: string, name: string}>} */
 	#projects = [];
-	#activeProjectId = 'default';
+	#activeProjectId = DEFAULT_PROJECT_ID;
 	#channel = 1;
 	#searchQuery = '';
 	#roleFilter = '';
-	#sortMode = 'name';
+	#sortMode = DEFAULT_SORT_MODE;
 	#pianorollFilters = {};
 
 	#dispatchStateEvent(eventName, detail) {
@@ -173,7 +176,7 @@ class MainframeState extends EventTarget {
 	 * @param {string} projectId
 	 */
 	set activeProjectId(projectId) {
-		const nextId = projectId || 'default';
+		const nextId = projectId || DEFAULT_PROJECT_ID;
 		if (this.#activeProjectId !== nextId) {
 			this.#activeProjectId = nextId;
 			this.#dispatchStateEvent(EVENT_ACTIVE_PROJECT_CHANGED, { activeProjectId: nextId });
@@ -240,11 +243,11 @@ class MainframeState extends EventTarget {
 		this.#loadedClips = [];
 		this.#mappings = [];
 		this.#projects = [];
-		this.#activeProjectId = 'default';
+		this.#activeProjectId = DEFAULT_PROJECT_ID;
 		this.#channel = 1;
 		this.#searchQuery = '';
 		this.#roleFilter = '';
-		this.#sortMode = 'name';
+		this.#sortMode = DEFAULT_SORT_MODE;
 		this.#pianorollFilters = {};
 	}
 }

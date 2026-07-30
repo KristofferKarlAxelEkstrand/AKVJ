@@ -160,4 +160,19 @@ describe('PianoRoll visual tests', () => {
 
 		await expect(pianoRoll).toMatchScreenshot('mainframe-piano-roll-filter');
 	});
+
+	test('piano roll play mode with velocity slider and empty preview', async () => {
+		const pianoRoll = document.createElement('piano-roll');
+		pianoRoll.setAttribute('mode', 'play');
+		pianoRoll.setAttribute('channel', '1');
+		pianoRoll.setAttribute('channel-select', '');
+		pianoRoll.style.display = 'block';
+		pianoRoll.style.width = '800px';
+		pianoRoll.style.minHeight = '280px';
+		container.appendChild(pianoRoll);
+		pianoRoll.clips = mockClips;
+		pianoRoll.mappings = mockPianoRollMappings;
+
+		await expect(pianoRoll).toMatchScreenshot('mainframe-piano-roll-play');
+	});
 });

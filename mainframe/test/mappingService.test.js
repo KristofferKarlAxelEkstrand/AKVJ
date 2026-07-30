@@ -72,6 +72,18 @@ describe('mappingService', () => {
 		expect(() => assertValidFlatMapping([{ channel: 1, note: 0, velocity: 0, clipId: 'missing' }], new Set())).toThrow(/missing/);
 	});
 
+	test('assertValidFlatMapping rejects duplicate MIDI slots', () => {
+		expect(() =>
+			assertValidFlatMapping(
+				[
+					{ channel: 1, note: 60, velocity: 0, clipId: 'clip-a' },
+					{ channel: 1, note: 60, velocity: 0, clipId: 'clip-b' }
+				],
+				new Set(['clip-a', 'clip-b'])
+			)
+		).toThrow(/duplicate MIDI slot/i);
+	});
+
 	test('collectNestedKeyMapErrors finds bad clip ids', () => {
 		const errors = collectNestedKeyMapErrors({ 1: { 0: { 0: 'ghost' } } }, new Set(['real']));
 		expect(errors.length).toBeGreaterThan(0);

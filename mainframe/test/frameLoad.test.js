@@ -3,7 +3,7 @@ import path from 'path';
 import os from 'os';
 import sharp from 'sharp';
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fpsToMs } from '../src/js/frameTiming.js';
+import { fpsToMs, DEFAULT_FALLBACK_FPS } from '../src/js/frameTiming.js';
 import { PNG_1x1 } from './utils/pngFixtures.js';
 
 describe('loadClipFrameBuffers', () => {
@@ -69,6 +69,44 @@ describe('loadClipFrameBuffers', () => {
 		expect(result.durationsMs).toEqual([fpsToMs(8), fpsToMs(16), fpsToMs(4)]);
 	});
 
+	test('hydrates durations from frameDurationsMs when present', async () => {
+		await createClipFromFrames({
+			clipId: 'ms-durations',
+			frameBuffers: [PNG_1x1, PNG_1x1],
+			targetWidth: 8,
+			targetHeight: 8
+		});
+		await fs.rm(path.join(clipsDir, '.raw-assets', 'ms-durations'), { recursive: true, force: true });
+		const metaPath = path.join(clipsDir, 'ms-durations', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		delete meta.frameRatesForFrames;
+		meta.frameDurationsMs = [41.67, 100];
+		await fs.writeFile(metaPath, `${JSON.stringify(meta, null, '\t')}\n`);
+
+		const result = await loadClipFrameBuffers('ms-durations');
+		expect(result.source).toBe('sprite');
+		expect(result.durationsMs).toEqual([41.67, 100]);
+	});
+
+	test('frameDurationsMs wins over frameRatesForFrames when both present', async () => {
+		await createClipFromFrames({
+			clipId: 'ms-wins',
+			frameBuffers: [PNG_1x1, PNG_1x1],
+			targetWidth: 8,
+			targetHeight: 8,
+			frameRatesForFrames: { 0: 10, 1: 20 }
+		});
+		await fs.rm(path.join(clipsDir, '.raw-assets', 'ms-wins'), { recursive: true, force: true });
+		const metaPath = path.join(clipsDir, 'ms-wins', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		meta.frameDurationsMs = [50, 250];
+		await fs.writeFile(metaPath, `${JSON.stringify(meta, null, '\t')}\n`);
+
+		const result = await loadClipFrameBuffers('ms-wins');
+		expect(result.durationsMs).toEqual([50, 250]);
+		expect(result.durationsMs).not.toEqual([fpsToMs(10), fpsToMs(20)]);
+	});
+
 	test('extracted sprite cells are PNG with alpha', async () => {
 		await createClipFromFrames({
 			clipId: 'alpha-sprite',
@@ -99,6 +137,55 @@ describe('loadClipFrameBuffers', () => {
 		expect(first.height).toBe(9);
 	});
 
+	test('omitted frameWidth/frameHeight derives cell size as sheet÷grid', async () => {
+		// 4 cells × 16×9 → single-row sheet 64×9; cell = floor(sheetW/framesPerRow) × floor(sheetH/rows)
+		await createClipFromFrames({
+			clipId: 'sheet-grid',
+			frameBuffers: [PNG_1x1, PNG_1x1, PNG_1x1, PNG_1x1],
+			targetWidth: 16,
+			targetHeight: 9
+		});
+		await fs.rm(path.join(clipsDir, '.raw-assets', 'sheet-grid'), { recursive: true, force: true });
+		const metaPath = path.join(clipsDir, 'sheet-grid', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		delete meta.frameWidth;
+		delete meta.frameHeight;
+		await fs.writeFile(metaPath, `${JSON.stringify(meta, null, '\t')}\n`);
+
+		const spriteMeta = await sharp(path.join(clipsDir, 'sheet-grid', meta.png ?? 'sprite.png')).metadata();
+		const expectedWidth = Math.floor(spriteMeta.width / meta.framesPerRow);
+		const expectedHeight = Math.floor(spriteMeta.height / Math.ceil(meta.frames / meta.framesPerRow));
+
+		const result = await loadClipFrameBuffers('sheet-grid');
+		expect(result.source).toBe('sprite');
+		expect(result.frames).toHaveLength(4);
+		const first = await sharp(result.frames[0]).metadata();
+		expect(first.width).toBe(expectedWidth);
+		expect(first.height).toBe(expectedHeight);
+		expect(first.width).toBe(16);
+		expect(first.height).toBe(9);
+	});
+
+	test('partial frameWidth/frameHeight: missing side still derives from sheet÷grid', async () => {
+		// 2 cells × 12×10 → sheet 24×10; keep only frameWidth, height derives as sheetH/rows
+		await createClipFromFrames({
+			clipId: 'partial-cell',
+			frameBuffers: [PNG_1x1, PNG_1x1],
+			targetWidth: 12,
+			targetHeight: 10
+		});
+		await fs.rm(path.join(clipsDir, '.raw-assets', 'partial-cell'), { recursive: true, force: true });
+		const metaPath = path.join(clipsDir, 'partial-cell', 'meta.json');
+		const meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
+		delete meta.frameHeight;
+		await fs.writeFile(metaPath, `${JSON.stringify(meta, null, '\t')}\n`);
+
+		const result = await loadClipFrameBuffers('partial-cell');
+		const first = await sharp(result.frames[0]).metadata();
+		expect(first.width).toBe(12);
+		expect(first.height).toBe(10);
+	});
+
 	test('loads sprite-only clip with frameDurationBeats and no frameWidth (legacy shape)', async () => {
 		await createClipFromFrames({
 			clipId: 'legacy-beats',
@@ -120,7 +207,7 @@ describe('loadClipFrameBuffers', () => {
 		expect(result.source).toBe('sprite');
 		expect(result.frames).toHaveLength(2);
 		expect(result.meta.frameDurationBeats).toBe(0.5);
-		expect(result.durationsMs[0]).toBe(fpsToMs(12));
+		expect(result.durationsMs[0]).toBe(fpsToMs(DEFAULT_FALLBACK_FPS));
 	});
 
 	test('throws on invalid clipId', async () => {

@@ -18,12 +18,12 @@ class PlaybackController {
 
 	/**
 	 * @param {Object} options
-	 * @param {number} options.frames - Total frame count
-	 * @param {string} options.playback - Playback mode
+	 * @param {number} options.frameCount - Total frame count
+	 * @param {string} options.playbackMode - Playback mode
 	 */
-	constructor({ frames, playback }) {
-		this.#frameCount = frames;
-		this.#playbackMode = playback;
+	constructor({ frameCount, playbackMode }) {
+		this.#frameCount = frameCount;
+		this.#playbackMode = playbackMode;
 		this.#resetState();
 	}
 
@@ -53,13 +53,13 @@ class PlaybackController {
 
 	/**
 	 * Set the scrub position (0.0 to 1.0). Only active in scrub mode.
-	 * @param {number} normalizedValue
+	 * @param {number} normalizedPosition
 	 */
-	setScrubPosition(normalizedValue) {
+	setScrubPosition(normalizedPosition) {
 		if (this.#playbackMode !== PLAYBACK_MODE.SCRUB) {
 			return;
 		}
-		const clamped = Math.max(0, Math.min(1, normalizedValue));
+		const clamped = Math.max(0, Math.min(1, normalizedPosition));
 		this.#frame = Math.floor(clamped * (this.#frameCount - 1));
 		this.#isFinished = false;
 	}
@@ -132,7 +132,7 @@ class PlaybackController {
 			return true;
 		}
 
-		// 'loop' and 'once'
+		// LOOP and ONCE: advance; wrap or hold last frame
 		this.#frame++;
 		if (this.#frame < this.#frameCount) {
 			return true;
@@ -143,7 +143,7 @@ class PlaybackController {
 			return true;
 		}
 
-		// 'once'
+		// ONCE: hold last frame
 		this.#frame = this.#frameCount - 1;
 		this.#isFinished = true;
 		return false;

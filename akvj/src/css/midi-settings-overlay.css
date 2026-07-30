@@ -1,0 +1,73 @@
+#midi-settings-overlay {
+	background: rgba(0, 0, 0, 0.9);
+	border: 1px solid #888;
+	border-radius: 4px;
+	color: #eee;
+	font-family: 'Courier New', monospace;
+	font-size: 12px;
+	left: 10px;
+	max-width: min(360px, calc(100vw - 20px));
+	min-width: 220px;
+	padding: 10px;
+	pointer-events: auto;
+	position: fixed;
+	top: 10px;
+	z-index: 9998;
+}
+
+#midi-settings-overlay .midi-settings-header {
+	border-bottom: 1px solid #555;
+	font-weight: bold;
+	margin-bottom: 8px;
+	padding-bottom: 4px;
+}
+
+#midi-settings-overlay .midi-settings-hint {
+	font-size: 10px;
+	font-weight: normal;
+	opacity: 0.6;
+}
+
+#midi-settings-overlay .midi-settings-label {
+	color: #888;
+	margin: 8px 0 4px;
+}
+
+#midi-settings-overlay .midi-settings-devices {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+#midi-settings-overlay .midi-settings-device {
+	align-items: center;
+	cursor: pointer;
+	display: flex;
+	gap: 8px;
+	user-select: none;
+}
+
+#midi-settings-overlay .midi-settings-device-name {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#midi-settings-overlay .midi-settings-readout {
+	display: flex;
+	flex-direction: column;
+	font-size: 11px;
+	gap: 2px;
+	max-height: 160px;
+	overflow: hidden;
+}
+
+#midi-settings-overlay .midi-settings-readout-line {
+	opacity: 0.95;
+}
+
+#midi-settings-overlay .midi-settings-empty {
+	color: #666;
+	font-size: 11px;
+}

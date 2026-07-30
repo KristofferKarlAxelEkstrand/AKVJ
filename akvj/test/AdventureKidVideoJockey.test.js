@@ -129,7 +129,7 @@ describe('AdventureKidVideoJockey', () => {
 		appState.dispatchMIDIControlChange(2, 10, 64);
 		expect(ccSpy).toHaveBeenCalledWith(
 			expect.objectContaining({
-				detail: { channel: 2, controller: 10, value: 64 }
+				detail: { channel: 2, controller: 10, value: 64, deviceId: null, deviceName: null }
 			})
 		);
 
@@ -197,7 +197,7 @@ describe('AdventureKidVideoJockey', () => {
 
 		expect(appState.clipsLoaded).toBe(false);
 		expect(errorEvent.detail.url).toBe(settings.performance.clipsJsonUrl);
-		expect(errorEvent.detail.error).toBe('network down');
+		expect(errorEvent.detail.errorMessage).toBe('network down');
 
 		element.disconnectedCallback();
 	});
@@ -219,7 +219,7 @@ describe('AdventureKidVideoJockey', () => {
 			expect(unfreezeSpy).toHaveBeenCalled();
 			expect(setClipsSpy).toHaveBeenCalled();
 			expect(appState.activeProjectId).toBe('proj-b');
-			expect(appState.projectSwitching).toBe(false);
+			expect(appState.isProjectSwitching).toBe(false);
 
 			freezeSpy.mockRestore();
 			unfreezeSpy.mockRestore();
@@ -304,7 +304,7 @@ describe('AdventureKidVideoJockey', () => {
 			try {
 				appState.dispatchEvent(new CustomEvent(EVENT_PROJECT_SWITCH_REQUESTED, { detail: { projectId: 'proj-a' } }));
 				await vi.waitFor(() => {
-					expect(appState.projectSwitching).toBe(true);
+					expect(appState.isProjectSwitching).toBe(true);
 				});
 
 				noteOnSpy.mockClear();
@@ -323,11 +323,11 @@ describe('AdventureKidVideoJockey', () => {
 				resolveLoad({ 'clip-a': {} });
 				await complete;
 
-				expect(appState.projectSwitching).toBe(false);
+				expect(appState.isProjectSwitching).toBe(false);
 				appState.dispatchMIDINoteOn(0, 61, 100);
 				expect(noteOnSpy).toHaveBeenCalledWith(0, 61, 100);
 			} finally {
-				if (appState.projectSwitching && typeof resolveLoad === 'function') {
+				if (appState.isProjectSwitching && typeof resolveLoad === 'function') {
 					resolveLoad({});
 					await Promise.resolve();
 				}
@@ -401,6 +401,69 @@ describe('AdventureKidVideoJockey', () => {
 			element.disconnectedCallback();
 		});
 
+		test('overlapping MIDI note project switches do not interleave load and destroy', async () => {
+			const catalogA = { 'clip-a': { destroy: vi.fn() } };
+			const catalogB = { 'clip-b': { destroy: vi.fn() } };
+			const setClipsSpy = vi.spyOn(LayerManager.prototype, 'setClips');
+			const destroySpy = ClipLoader.prototype.destroyClips;
+			destroySpy.mockImplementation(realDestroyClips);
+
+			/** @type {((value: unknown) => void)[]} */
+			const indexResolvers = [];
+			ClipLoader.prototype.fetchProjectsIndex.mockImplementation(
+				() =>
+					new Promise(resolve => {
+						indexResolvers.push(resolve);
+					})
+			);
+			ClipLoader.prototype.loadClipsFromProject.mockImplementation(async projectId => {
+				if (projectId === 'proj-a') {
+					return catalogA;
+				}
+				if (projectId === 'proj-b') {
+					return catalogB;
+				}
+				return {};
+			});
+
+			const element = await connectReadyElement();
+			try {
+				destroySpy.mockClear();
+				setClipsSpy.mockClear();
+				ClipLoader.prototype.loadClipsFromProject.mockClear();
+
+				// Two ch-14 note paths before either index fetch resolves — gate must
+				// hold through resolve so the second is dropped, not interleaved.
+				appState.dispatchProjectSelection(0);
+				appState.dispatchProjectSelection(1);
+
+				await vi.waitFor(() => {
+					expect(appState.isProjectSwitching).toBe(true);
+					expect(indexResolvers.length).toBe(1);
+				});
+
+				expect(ClipLoader.prototype.loadClipsFromProject).not.toHaveBeenCalled();
+
+				const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
+				indexResolvers[0]([{ id: 'proj-a' }, { id: 'proj-b' }]);
+				await complete;
+
+				expect(ClipLoader.prototype.fetchProjectsIndex).toHaveBeenCalledTimes(1);
+				expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledTimes(1);
+				expect(ClipLoader.prototype.loadClipsFromProject).toHaveBeenCalledWith('proj-a');
+				expect(appState.activeProjectId).toBe('proj-a');
+				expect(appState.isProjectSwitching).toBe(false);
+
+				// Second switch never ran: catalogA was set, never destroyed after install
+				expect(setClipsSpy).toHaveBeenCalledWith(catalogA);
+				expect(destroySpy).not.toHaveBeenCalledWith(catalogA);
+				expect(catalogA['clip-a'].destroy).not.toHaveBeenCalled();
+			} finally {
+				setClipsSpy.mockRestore();
+				element.disconnectedCallback();
+			}
+		});
+
 		test('handleProjectSwitch when projectId equals current is a no-op', async () => {
 			const element = await connectReadyElement();
 			const complete = waitForEvent(appState, EVENT_PROJECT_LOAD_COMPLETE);
@@ -458,7 +521,7 @@ describe('AdventureKidVideoJockey', () => {
 			expect(messageEvent.detail.type).toBe('error');
 			expect(messageEvent.detail.text).toContain('bad-proj');
 			expect(unfreezeSpy).toHaveBeenCalled();
-			expect(appState.projectSwitching).toBe(false);
+			expect(appState.isProjectSwitching).toBe(false);
 
 			unfreezeSpy.mockRestore();
 			element.disconnectedCallback();

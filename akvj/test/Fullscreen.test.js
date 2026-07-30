@@ -112,6 +112,126 @@ describe('Fullscreen', () => {
 		delete document.documentElement.requestFullscreen;
 	});
 
+	test('keydown Space skips when target is an INPUT checkbox', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const checkbox = document.createElement('input');
+		checkbox.type = 'checkbox';
+		document.body.appendChild(checkbox);
+
+		const handler = addEventListenerSpy.mock.calls.find(c => c[0] === 'keydown')[1];
+		const mockEvent = { key: ' ', repeat: false, preventDefault: vi.fn(), target: checkbox };
+		handler(mockEvent);
+
+		expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+
+		checkbox.remove();
+		delete document.documentElement.requestFullscreen;
+	});
+
+	test('keydown Enter skips when midi-settings-overlay is in the DOM', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const overlay = document.createElement('div');
+		overlay.id = 'midi-settings-overlay';
+		document.body.appendChild(overlay);
+
+		const handler = addEventListenerSpy.mock.calls.find(c => c[0] === 'keydown')[1];
+		const mockEvent = { key: 'Enter', repeat: false, preventDefault: vi.fn(), target: document.body };
+		handler(mockEvent);
+
+		expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+
+		overlay.remove();
+		delete document.documentElement.requestFullscreen;
+	});
+
+	test('keydown Space skips when debug-overlay has visible class', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const debugOverlay = document.createElement('div');
+		debugOverlay.id = 'debug-overlay';
+		debugOverlay.classList.add('visible');
+		document.body.appendChild(debugOverlay);
+
+		const handler = addEventListenerSpy.mock.calls.find(c => c[0] === 'keydown')[1];
+		const mockEvent = { key: ' ', repeat: false, preventDefault: vi.fn(), target: document.body };
+		handler(mockEvent);
+
+		expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+
+		debugOverlay.remove();
+		delete document.documentElement.requestFullscreen;
+	});
+
+	test('keydown Enter skips for contenteditable and role=button targets', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const handler = addEventListenerSpy.mock.calls.find(c => c[0] === 'keydown')[1];
+
+		const editable = document.createElement('div');
+		editable.setAttribute('contenteditable', 'true');
+		document.body.appendChild(editable);
+		const editableEvent = { key: 'Enter', repeat: false, preventDefault: vi.fn(), target: editable };
+		handler(editableEvent);
+		expect(editableEvent.preventDefault).not.toHaveBeenCalled();
+		editable.remove();
+
+		const buttonRole = document.createElement('div');
+		buttonRole.setAttribute('role', 'button');
+		document.body.appendChild(buttonRole);
+		const roleEvent = { key: 'Enter', repeat: false, preventDefault: vi.fn(), target: buttonRole };
+		handler(roleEvent);
+		expect(roleEvent.preventDefault).not.toHaveBeenCalled();
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+		buttonRole.remove();
+
+		delete document.documentElement.requestFullscreen;
+	});
+
 	test('keydown with unrelated key does nothing', () => {
 		fullscreen.enable();
 
@@ -158,10 +278,63 @@ describe('Fullscreen', () => {
 		});
 
 		const dblclickHandler = addEventListenerSpy.mock.calls.find(c => c[0] === 'dblclick')[1];
-		dblclickHandler();
+		dblclickHandler({ target: document.body });
 
 		expect(requestFullscreenSpy).toHaveBeenCalled();
 
+		delete document.documentElement.requestFullscreen;
+	});
+
+	test('dblclick skips when midi-settings-overlay is in the DOM', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const overlay = document.createElement('div');
+		overlay.id = 'midi-settings-overlay';
+		document.body.appendChild(overlay);
+
+		const dblclickHandler = addEventListenerSpy.mock.calls.find(c => c[0] === 'dblclick')[1];
+		dblclickHandler({ target: document.body });
+
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+
+		overlay.remove();
+		delete document.documentElement.requestFullscreen;
+	});
+
+	test('dblclick skips when debug-overlay has visible class', () => {
+		fullscreen.enable();
+
+		const requestFullscreenSpy = vi.fn().mockReturnValue({ catch: vi.fn() });
+		Object.defineProperty(document, 'fullscreenElement', {
+			configurable: true,
+			get: () => null
+		});
+		Object.defineProperty(document.documentElement, 'requestFullscreen', {
+			configurable: true,
+			value: requestFullscreenSpy
+		});
+
+		const debugOverlay = document.createElement('div');
+		debugOverlay.id = 'debug-overlay';
+		debugOverlay.classList.add('visible');
+		document.body.appendChild(debugOverlay);
+
+		const dblclickHandler = addEventListenerSpy.mock.calls.find(c => c[0] === 'dblclick')[1];
+		dblclickHandler({ target: document.body });
+
+		expect(requestFullscreenSpy).not.toHaveBeenCalled();
+
+		debugOverlay.remove();
 		delete document.documentElement.requestFullscreen;
 	});
 });

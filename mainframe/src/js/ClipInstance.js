@@ -1,4 +1,6 @@
 import '../scss/ClipInstance.scss';
+import { API_BASE_PATH } from './apiClient.js';
+import { MIME_AKVJ_CLIP_ID } from './PianoKey.js';
 
 /**
  * ClipInstance — individual clip display element with thumbnail, metadata, and actions.
@@ -6,7 +8,6 @@ import '../scss/ClipInstance.scss';
  * @fires ClipInstance#clipedit - CustomEvent with `{ detail: { clipId, clip } }`
  * @fires ClipInstance#clipdelete - CustomEvent with `{ detail: { clipId } }`
  * @fires ClipInstance#clipmap - CustomEvent with `{ detail: { clipId } }`
- * @fires ClipInstance#clipsaved - CustomEvent (bubbles)
  */
 class ClipInstance extends HTMLElement {
 	#clip = null;
@@ -57,7 +58,7 @@ class ClipInstance extends HTMLElement {
 
 		const img = document.createElement('img');
 		img.alt = clip.clipId;
-		img.src = clip.hasSprite ? `/api/clips/${encodeURIComponent(clip.clipId)}/sprite?t=${performance.now()}` : '';
+		img.src = clip.hasSprite ? `${API_BASE_PATH}/clips/${encodeURIComponent(clip.clipId)}/sprite?t=${performance.now()}` : '';
 		img.className = 'clip-instance-img';
 
 		const clipInfo = document.createElement('p');
@@ -125,7 +126,7 @@ class ClipInstance extends HTMLElement {
 			event.preventDefault();
 			return;
 		}
-		event.dataTransfer.setData('application/x-akvj-clip-id', clipId);
+		event.dataTransfer.setData(MIME_AKVJ_CLIP_ID, clipId);
 		event.dataTransfer.setData('text/plain', clipId);
 		event.dataTransfer.effectAllowed = 'copy';
 	}

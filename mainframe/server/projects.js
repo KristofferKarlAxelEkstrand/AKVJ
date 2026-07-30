@@ -157,8 +157,10 @@ export async function deleteProject(projectId) {
 export async function getActiveProjectId() {
 	try {
 		const raw = JSON.parse(await fs.readFile(resolveActiveProjectPath(), 'utf8'));
-		if (raw && typeof raw.project === 'string' && isValidProjectId(raw.project)) {
-			return raw.project;
+		// Prefer projectId; still accept legacy key `project` once for migration.
+		const id = raw?.projectId ?? raw?.project;
+		if (typeof id === 'string' && isValidProjectId(id)) {
+			return id;
 		}
 	} catch (error) {
 		if (error.code !== 'ENOENT') {
@@ -170,7 +172,7 @@ export async function getActiveProjectId() {
 
 /**
  * @param {string} projectId
- * @returns {Promise<{project: string}>}
+ * @returns {Promise<{projectId: string}>}
  */
 export async function setActiveProjectId(projectId) {
 	assertValidProjectId(projectId);
@@ -179,8 +181,8 @@ export async function setActiveProjectId(projectId) {
 		throw Object.assign(new Error(`Project "${projectId}" not found`), { statusCode: 404 });
 	}
 	await fs.mkdir(path.dirname(resolveActiveProjectPath()), { recursive: true });
-	await writeJsonAtomic(resolveActiveProjectPath(), { project: projectId });
-	return { project: projectId };
+	await writeJsonAtomic(resolveActiveProjectPath(), { projectId });
+	return { projectId };
 }
 
 /**

@@ -101,7 +101,7 @@ class LayerGroup {
 		}
 
 		// Trigger group: triggering a clip chokes all other clips in the same trigger group
-		if (clip.triggerGroup) {
+		if (clip.triggerGroup !== undefined && clip.triggerGroup !== null) {
 			this.#stopOtherClipsInTriggerGroup(clip.triggerGroup, channel, note);
 		}
 
@@ -221,13 +221,13 @@ class LayerGroup {
 
 	/**
 	 * Set scrub position for any active scrub-mode clips
-	 * @param {number} normalizedValue - Value from 0.0 to 1.0
+	 * @param {number} normalizedPosition - Value from 0.0 to 1.0
 	 */
-	setScrubPosition(normalizedValue) {
+	setScrubPosition(normalizedPosition) {
 		for (const channelClips of this.#activeClips.values()) {
 			for (const clip of channelClips.values()) {
 				if (clip && !clip.isFinished && clip.playbackMode === PLAYBACK_MODE.SCRUB) {
-					clip.setScrubPosition(normalizedValue);
+					clip.setScrubPosition(normalizedPosition);
 				}
 			}
 		}
@@ -272,7 +272,7 @@ class LayerGroup {
 	 * @param {number} note
 	 */
 	#addToTriggerGroup(clip, channel, note) {
-		if (!clip.triggerGroup) {
+		if (clip.triggerGroup === undefined || clip.triggerGroup === null) {
 			return;
 		}
 		let groupMembers = this.#triggerGroups.get(clip.triggerGroup);
@@ -290,7 +290,7 @@ class LayerGroup {
 	 * @param {number} note
 	 */
 	#removeFromTriggerGroup(clip, channel, note) {
-		if (!clip.triggerGroup) {
+		if (clip.triggerGroup === undefined || clip.triggerGroup === null) {
 			return;
 		}
 		const groupMembers = this.#triggerGroups.get(clip.triggerGroup);

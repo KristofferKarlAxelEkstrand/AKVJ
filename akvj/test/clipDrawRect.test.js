@@ -1,11 +1,5 @@
 import { describe, test, expect, vi } from 'vitest';
-import {
-	MAX_PATTERN_TILES_PER_FRAME,
-	computeDrawRect,
-	drawStretch,
-	drawWithScaleMode,
-	drawPattern
-} from '../src/js/visuals/clipDrawRect.js';
+import { MAX_PATTERN_TILES_PER_FRAME, computeDrawRect, drawStretch, drawWithScaleMode, drawPattern } from '../src/js/visuals/clipDrawRect.js';
 
 const TARGET_WIDTH = 240;
 const TARGET_HEIGHT = 135;
@@ -55,13 +49,13 @@ describe('computeDrawRect', () => {
 	describe('cover', () => {
 		test('crops the source centered and fills the canvas', () => {
 			// scale = max(240/100, 135/100) = 2.4
-			// sWidth/sHeight = 100/2.4 ≈ 41.666 → snap 41
-			// sx/sy = floor((100 - 41.666) / 2) = 29
+			// sWidth = 240/2.4 = 100; sHeight = 135/2.4 = 56.25 → snap 56
+			// sx = 0; sy = floor((100 - 56.25) / 2) = 21
 			expect(computeDrawRect(100, 100, TARGET_WIDTH, TARGET_HEIGHT, 'cover')).toEqual({
-				sx: 29,
-				sy: 29,
-				sWidth: 41,
-				sHeight: 41,
+				sx: 0,
+				sy: 21,
+				sWidth: 100,
+				sHeight: 56,
 				dx: 0,
 				dy: 0,
 				dWidth: TARGET_WIDTH,
@@ -144,17 +138,7 @@ describe('drawWithScaleMode', () => {
 		drawWithScaleMode(ctx, image, sourceX, sourceY, 100, 100, TARGET_WIDTH, TARGET_HEIGHT, 'cover', { x: 0, y: 0 });
 
 		const rect = computeDrawRect(100, 100, TARGET_WIDTH, TARGET_HEIGHT, 'cover');
-		expect(ctx.drawImage).toHaveBeenCalledWith(
-			image,
-			sourceX + rect.sx,
-			sourceY + rect.sy,
-			rect.sWidth,
-			rect.sHeight,
-			rect.dx,
-			rect.dy,
-			rect.dWidth,
-			rect.dHeight
-		);
+		expect(ctx.drawImage).toHaveBeenCalledWith(image, sourceX + rect.sx, sourceY + rect.sy, rect.sWidth, rect.sHeight, rect.dx, rect.dy, rect.dWidth, rect.dHeight);
 	});
 });
 

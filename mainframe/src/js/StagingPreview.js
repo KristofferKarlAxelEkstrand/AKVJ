@@ -1,9 +1,9 @@
 import '../scss/StagingPreview.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
-import { computeFrameDrawRect, resolveScaleMode } from './frameFit.js';
+import { computeFrameDrawRect, resolveScaleMode, DEFAULT_SCALE_MODE } from './frameFit.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
 import { DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
-import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, resolvePlacement } from './clipSchema.js';
+import { PLAYBACK_MODES, DEFAULT_PLAYBACK, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, resolvePlacement } from './clipSchema.js';
 import { resolveFrameBakeConfig } from './frameBake.js';
 
 /**
@@ -26,8 +26,8 @@ class StagingPreview extends HTMLElement {
 	#targetHeight = DEFAULT_FRAME_HEIGHT;
 	/** @type {number[]} Per-frame hold times in ms (UI timing); empty → fall back to default. */
 	#frameDurationsMs = [];
-	#playbackMode = 'loop';
-	#scaleMode = 'fit';
+	#playbackMode = DEFAULT_PLAYBACK;
+	#scaleMode = DEFAULT_SCALE_MODE;
 	#placement = { x: 0, y: 0 };
 	/** @type {ReturnType<typeof resolveFrameBakeConfig>[]} */
 	#bakeConfigs = [];
@@ -65,7 +65,7 @@ class StagingPreview extends HTMLElement {
 	 * @param {number} targetHeight - Clip cell height
 	 * @param {number[]} frameDurationsMs - Per-frame hold times in ms (same shape as clip-frames)
 	 * @param {string} playbackMode
-	 * @param {string} [scaleMode='fit']
+	 * @param {string} [scaleMode=DEFAULT_SCALE_MODE]
 	 * @param {{ x?: number, y?: number }} [placement] - Runtime clip placement
 	 * @param {object[]} [bakeConfigs] - Per-frame bake composition (session-only)
 	 */
@@ -73,7 +73,7 @@ class StagingPreview extends HTMLElement {
 		this.#targetWidth = targetWidth || DEFAULT_FRAME_WIDTH;
 		this.#targetHeight = targetHeight || DEFAULT_FRAME_HEIGHT;
 		this.#frameDurationsMs = this.#normalizeDurationsMs(frameDurationsMs, files?.length ?? 0);
-		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : 'loop';
+		this.#playbackMode = PLAYBACK_MODES.includes(playbackMode) ? playbackMode : DEFAULT_PLAYBACK;
 		this.#scaleMode = resolveScaleMode(scaleMode);
 		this.#placement = resolvePlacement(placement);
 		this.#bakeConfigs = (files || []).map((_, index) => resolveFrameBakeConfig(Array.isArray(bakeConfigs) ? bakeConfigs[index] : undefined, this.#targetWidth, this.#targetHeight));
@@ -347,7 +347,7 @@ class StagingPreview extends HTMLElement {
 		return normalized;
 	}
 
-	#getFrameInterval() {
+	#getFrameIntervalMs() {
 		const durationMs = this.#frameDurationsMs[this.#currentFrame] ?? DEFAULT_FALLBACK_FRAME_DURATION_MS;
 		return durationMs / this.#playbackSpeed;
 	}
@@ -371,8 +371,8 @@ class StagingPreview extends HTMLElement {
 		if (this.#lastFrameTimestamp === null) {
 			this.#lastFrameTimestamp = timestamp;
 		}
-		const elapsed = timestamp - this.#lastFrameTimestamp;
-		if (elapsed >= this.#getFrameInterval()) {
+		const elapsedMs = timestamp - this.#lastFrameTimestamp;
+		if (elapsedMs >= this.#getFrameIntervalMs()) {
 			this.#lastFrameTimestamp = timestamp;
 			this.#advanceFrame();
 			this.#drawCurrentFrame();

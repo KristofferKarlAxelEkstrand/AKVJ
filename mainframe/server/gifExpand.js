@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { fpsToMs } from '../shared/frameTiming.js';
+import { fpsToMs, DEFAULT_FALLBACK_FPS } from '../shared/frameTiming.js';
 
 /**
  * Expand a GIF buffer into PNG frames + millisecond delays.
@@ -18,7 +18,7 @@ export async function expandGifBuffer(buffer) {
 			animated: false,
 			pages: 1,
 			frames: [frame],
-			durationsMs: [fpsToMs(12)]
+			durationsMs: [fpsToMs(DEFAULT_FALLBACK_FPS)]
 		};
 	}
 
@@ -28,7 +28,7 @@ export async function expandGifBuffer(buffer) {
 
 	for (let page = 0; page < pages; page++) {
 		frames.push(await sharp(buffer, { page, pages: 1 }).ensureAlpha().png().toBuffer());
-		durationsMs.push(delayList[page] > 0 ? delayList[page] : fpsToMs(12));
+		durationsMs.push(delayList[page] > 0 ? delayList[page] : fpsToMs(DEFAULT_FALLBACK_FPS));
 	}
 
 	return { animated: true, pages, frames, durationsMs };

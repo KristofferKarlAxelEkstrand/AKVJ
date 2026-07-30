@@ -2,10 +2,11 @@
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import '../src/js/PreviewClip.js';
-import { DEFAULT_FALLBACK_FPS } from '../src/js/frameTiming.js';
+import { DEFAULT_FRAME_RATE } from '../src/js/clipSchema.js';
+import { createMock2dContext } from './utils/mockCanvas.js';
 
 const FRAME_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
-const FALLBACK_MS = 1000 / DEFAULT_FALLBACK_FPS;
+const FALLBACK_MS = 1000 / DEFAULT_FRAME_RATE;
 
 function flushPromises() {
 	return new Promise(resolve => setTimeout(resolve, 0));
@@ -52,11 +53,7 @@ describe('PreviewClip', () => {
 	let mockCtx;
 
 	beforeEach(() => {
-		mockCtx = {
-			imageSmoothingEnabled: true,
-			clearRect: () => {},
-			drawImage: () => {}
-		};
+		mockCtx = createMock2dContext({ imageSmoothingEnabled: true });
 		vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockCtx);
 		originalImage = mockImage();
 		element = document.createElement('preview-clip');

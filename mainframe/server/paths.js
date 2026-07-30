@@ -1,6 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { CLIP_ID_PATTERN, SAFE_PNG_NAME, isValidClipId } from '../shared/clipId.js';
+import { DEFAULT_PROJECT_ID } from '../shared/projects.js';
 import { slugifyPathSegment } from '../shared/slugify.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,13 +21,7 @@ function resolveProjectsIndexPath() {
 	return path.join(resolveProjectsDir(), 'index.json');
 }
 
-/** @deprecated Prefer resolveProjectsDir() — snapshot at import time. */
-export const PROJECTS_DIR = process.env.AKVJ_PROJECTS_DIR || path.join(REPO_ROOT, 'projects');
-/** @deprecated Prefer resolveProjectsIndexPath() */
-export const PROJECTS_INDEX_PATH = path.join(PROJECTS_DIR, 'index.json');
-/** @deprecated Prefer resolveActiveProjectPath() */
-export const ACTIVE_PROJECT_PATH = process.env.AKVJ_ACTIVE_PROJECT_PATH || path.join(REPO_ROOT, 'active-project.json');
-export const DEFAULT_PROJECT_ID = 'default';
+export { DEFAULT_PROJECT_ID };
 
 export { resolveProjectsDir, resolveActiveProjectPath, resolveProjectsIndexPath, isValidClipId, CLIP_ID_PATTERN, SAFE_PNG_NAME };
 
@@ -38,9 +33,6 @@ export { resolveProjectsDir, resolveActiveProjectPath, resolveProjectsIndexPath,
 export function resolveLegacyFlatClipsDir() {
 	return process.env.AKVJ_LEGACY_CLIPS_DIR || path.join(REPO_ROOT, 'clips');
 }
-
-/** @deprecated Prefer resolveLegacyFlatClipsDir() — snapshot at import time. */
-export const LEGACY_FLAT_CLIPS_DIR = path.join(REPO_ROOT, 'clips');
 
 /** Marker written under `projects/default/` when flat-clips migration fully completes. */
 export const FLAT_CLIPS_MIGRATION_MARKER = '.flat-clips-migrated';
@@ -160,10 +152,3 @@ export function resolveSafeSpritePath(clipId, pngName, projectId = DEFAULT_PROJE
 	}
 	return spritePath;
 }
-
-/** @deprecated Use projectClipsDir(activeProjectId) — kept as alias to default project for callers mid-migration. */
-export const CLIPS_DIR = projectClipsDir(DEFAULT_PROJECT_ID);
-/** @deprecated Use projectKeyMapPath(activeProjectId) */
-export const KEY_MAP_PATH = projectKeyMapPath(DEFAULT_PROJECT_ID);
-/** @deprecated Use projectRawAssetsRoot(activeProjectId) */
-export const RAW_ASSETS_DIR = projectRawAssetsRoot(DEFAULT_PROJECT_ID);

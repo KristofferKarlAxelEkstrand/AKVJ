@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { validateKeyMap } from '../scripts/clips/lib/validateMapping.js';
+import { assertValidFlatMapping } from '../shared/mappingService.js';
 
 describe('validateKeyMap', () => {
 	let dir;
@@ -61,24 +62,27 @@ describe('validateKeyMap', () => {
 		expect(errors.some(entry => entry.errors.some(msg => msg.includes('syncLength is required')))).toBe(true);
 	});
 
-	test('fails on duplicate MIDI slots', async () => {
-		await fs.writeFile(
-			path.join(dir, 'key-map.json'),
-			JSON.stringify({
-				1: {
-					0: {
-						0: 'clip-a'
-					}
-				},
-				2: {
-					0: {
-						0: 'clip-b'
-					}
-				}
-			})
-		);
-		const { errors } = await validateKeyMap(dir, [{ clipId: 'clip-a' }, { clipId: 'clip-b' }]);
-		expect(errors).toHaveLength(0);
+	test('fails on duplicate MIDI slots via flat mapping (nested JSON cannot repeat keys)', () => {
+		// Nested key-map.json cannot express two leaves at the same channel/note/velocity;
+		// duplicate detection is covered on the flat API path (assertValidFlatMapping).
+		const ready = new Set(['clip-a', 'clip-b']);
+		expect(() =>
+			assertValidFlatMapping(
+				[
+					{ channel: 1, note: 60, velocity: 0, clipId: 'clip-a' },
+					{ channel: 1, note: 60, velocity: 0, clipId: 'clip-b' }
+				],
+				ready
+			)
+		).toThrow(/duplicate MIDI slot/i);
+	});
+
+	test('fails when key-map.json is invalid JSON', async () => {
+		await fs.writeFile(path.join(dir, 'key-map.json'), '{');
+		const { errors } = await validateKeyMap(dir, [{ clipId: 'clip-a' }]);
+		expect(errors).toHaveLength(1);
+		expect(errors[0].path).toBe('key-map.json');
+		expect(errors[0].errors[0]).toMatch(/Invalid JSON/);
 	});
 
 	test('fails when channel is out of range', async () => {

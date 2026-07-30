@@ -39,8 +39,8 @@ export function computeDrawRect(sourceWidth, sourceHeight, targetWidth, targetHe
 
 	if (scaleMode === 'cover') {
 		const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
-		const sWidth = sourceWidth / scale;
-		const sHeight = sourceHeight / scale;
+		const sWidth = targetWidth / scale;
+		const sHeight = targetHeight / scale;
 		return {
 			sx: snapToPixel((sourceWidth - sWidth) / 2),
 			sy: snapToPixel((sourceHeight - sHeight) / 2),

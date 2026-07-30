@@ -39,9 +39,10 @@ export async function handleExpandGif(req, res) {
 	if (body === null) {
 		return;
 	}
-	const image = body.image ?? body.gif ?? body.data;
+	// Prefer `image`; `gif` kept as a legacy alias. Vague `data` is not accepted.
+	const image = body.image ?? body.gif;
 	if (typeof image !== 'string' || !image) {
-		sendJson(res, 400, { error: 'image (base64 data URL or raw base64) is required' });
+		sendJson(res, 400, { error: 'image (base64 data URL or raw base64) is required; gif is accepted as a legacy alias' });
 		return;
 	}
 	const buffer = Buffer.from(String(image).replace(/^data:image\/\w+;base64,/, ''), 'base64');

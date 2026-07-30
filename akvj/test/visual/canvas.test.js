@@ -2,7 +2,7 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import Renderer from '../../src/js/visuals/Renderer.js';
 import settings from '../../src/js/core/settings.js';
 import appState from '../../src/js/core/AppState.js';
-import { createSolidFillClip, createGradientClip, createStripedClip, createAsymmetricPatternClip, createMaskClip, createMockLayerManager, createEffect, canvasWidth, canvasHeight } from './helpers/visualTestHelpers.js';
+import { createSolidFillClip, createGradientClip, createStripedClip, createAsymmetricPatternClip, createVerticalAsymmetricPatternClip, createMaskClip, createMockLayerManager, createEffect, createScaleModeClip, canvasWidth, canvasHeight } from './helpers/visualTestHelpers.js';
 
 /**
  * Visual regression tests for the Renderer using Vitest browser mode.
@@ -172,6 +172,45 @@ describe('Effect visual tests', () => {
 		await expect(canvas).toMatchScreenshot('offset-horizontal');
 	});
 
+	test('mirror vertical', async () => {
+		const clipA = createVerticalAsymmetricPatternClip();
+		const note = settings.effectRanges.mirror.min + settings.effectParams.effectVariantThreshold;
+		const mixedOutputEffects = [createEffect('mirror', note, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('mirror-vertical');
+	});
+
+	test('split vertical', async () => {
+		const clipA = createVerticalAsymmetricPatternClip();
+		const note = settings.effectRanges.split.min + settings.effectParams.effectVariantThreshold;
+		const mixedOutputEffects = [createEffect('split', note, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('split-vertical');
+	});
+
+	test('offset vertical', async () => {
+		const clipA = createVerticalAsymmetricPatternClip();
+		const note = settings.effectRanges.offset.min + settings.effectParams.effectVariantThreshold;
+		const mixedOutputEffects = [createEffect('offset', note, 127)];
+		const lm = createMockLayerManager({ clipA, mixedOutputEffects });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('offset-vertical');
+	});
+
+	test('strobe white-out', async () => {
+		const clipA = createSolidFillClip(100, 150, 200);
+		const globalEffects = [createEffect('strobe', settings.effectRanges.strobe.min, 5)];
+		const lm = createMockLayerManager({ clipA, globalEffects });
+
+		renderFrame(lm, 0);
+		await expect(canvas).toMatchScreenshot('strobe-white-out');
+	});
+
 	test('glitch (deterministic)', async () => {
 		randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
 		const clipA = createAsymmetricPatternClip();
@@ -256,5 +295,47 @@ describe('Edge case visual tests', () => {
 
 		renderFrame(lm);
 		await expect(canvas).toMatchScreenshot('layer-group-c-overlay');
+	});
+});
+
+describe('scaleMode visual tests', () => {
+	test('cover — uniform scale + center crop', async () => {
+		const clipA = createScaleModeClip({ scaleMode: 'cover' });
+		const lm = createMockLayerManager({ clipA });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('scale-cover');
+	});
+
+	test('fit — letterbox/pillarbox', async () => {
+		const clipA = createScaleModeClip({ scaleMode: 'fit' });
+		const lm = createMockLayerManager({ clipA });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('scale-fit');
+	});
+
+	test('stretch — full-bleed distorted', async () => {
+		const clipA = createScaleModeClip({ scaleMode: 'stretch' });
+		const lm = createMockLayerManager({ clipA });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('scale-stretch');
+	});
+
+	test('none — unscaled centered', async () => {
+		const clipA = createScaleModeClip({ scaleMode: 'none' });
+		const lm = createMockLayerManager({ clipA });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('scale-none');
+	});
+
+	test('pattern — repeating tile grid', async () => {
+		const clipA = createScaleModeClip({ scaleMode: 'pattern' });
+		const lm = createMockLayerManager({ clipA });
+
+		renderFrame(lm);
+		await expect(canvas).toMatchScreenshot('scale-pattern');
 	});
 });

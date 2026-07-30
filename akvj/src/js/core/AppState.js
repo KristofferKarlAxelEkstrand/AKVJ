@@ -1,10 +1,9 @@
 import defaultSettings from './settings.js';
-import { MS_PER_MINUTE } from '../utils/timing.js';
-import { MAX_MIDI_DATA_BYTE } from './midiConstants.js';
-
-const MS_PER_SECOND = 1000;
+import { MS_PER_MINUTE, MS_PER_SECOND } from '../utils/timing.js';
+import { MAX_MIDI_DATA_BYTE, DEFAULT_MAX_CLOCK_PULSES_PER_SECOND } from './midiConstants.js';
 
 const EVENT_MIDI_CONNECTION_CHANGED = 'midiConnectionChanged';
+const EVENT_MIDI_DEVICES_CHANGED = 'midiDevicesChanged';
 const EVENT_BPM_CHANGED = 'bpmChanged';
 const EVENT_BPM_SOURCE_CHANGED = 'bpmSourceChanged';
 const EVENT_MIDI_NOTE_ON = 'midiNoteOn';
@@ -44,7 +43,7 @@ class AppState extends EventTarget {
 	#isMidiConnected = false;
 	#isClipsLoaded = false;
 	#activeProjectId = null;
-	#projectSwitching = false;
+	#isProjectSwitching = false;
 
 	// BPM state
 	#currentBPM;
@@ -53,7 +52,7 @@ class AppState extends EventTarget {
 	// MIDI Clock timing state
 	#lastClockTimestamp = null;
 	#clockTimeoutId = null;
-	#recentPulseIntervals = []; // Last few pulse intervals for BPM calculation
+	#recentPulseIntervalsMs = []; // Last few pulse intervals (ms) for BPM calculation
 	#resetGeneration = 0; // Increments on each reset() to invalidate pending callbacks
 	#clockPulseCount = 0; // Rate limiting: count pulses in current time window
 	#clockPulseWindowStart = 0; // Rate limiting: start of current time window
@@ -132,16 +131,16 @@ class AppState extends EventTarget {
 	 * Whether a project switch is currently in progress.
 	 * @returns {boolean}
 	 */
-	get projectSwitching() {
-		return this.#projectSwitching;
+	get isProjectSwitching() {
+		return this.#isProjectSwitching;
 	}
 
 	/**
 	 * Set project switching state and dispatch appropriate event.
 	 * @param {boolean} switching
 	 */
-	set projectSwitching(switching) {
-		this.#projectSwitching = switching;
+	set isProjectSwitching(switching) {
+		this.#isProjectSwitching = switching;
 		if (switching) {
 			this.#dispatchStateEvent(EVENT_PROJECT_LOAD_START, {});
 		}
@@ -152,7 +151,7 @@ class AppState extends EventTarget {
 	 * @param {string} projectId
 	 */
 	dispatchProjectLoadComplete(projectId) {
-		this.#projectSwitching = false;
+		this.#isProjectSwitching = false;
 		this.#dispatchStateEvent(EVENT_PROJECT_LOAD_COMPLETE, { projectId });
 	}
 
@@ -162,7 +161,7 @@ class AppState extends EventTarget {
 	 * @param {string} errorMessage
 	 */
 	dispatchProjectLoadError(projectId, errorMessage) {
-		this.#projectSwitching = false;
+		this.#isProjectSwitching = false;
 		this.#dispatchStateEvent(EVENT_PROJECT_LOAD_ERROR, { projectId, errorMessage });
 	}
 
@@ -211,9 +210,10 @@ class AppState extends EventTarget {
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
 	 * @param {number} velocity - MIDI velocity (0-127)
+	 * @param {{ deviceId?: string|null, deviceName?: string|null }} [device] - Source input identity
 	 */
-	dispatchMIDINoteOn(channel, note, velocity) {
-		this.#dispatchStateEvent(EVENT_MIDI_NOTE_ON, { channel, note, velocity });
+	dispatchMIDINoteOn(channel, note, velocity, { deviceId = null, deviceName = null } = {}) {
+		this.#dispatchStateEvent(EVENT_MIDI_NOTE_ON, { channel, note, velocity, deviceId, deviceName });
 	}
 
 	/**
@@ -236,19 +236,20 @@ class AppState extends EventTarget {
 	/**
 	 * Dispatch a clip-catalog load failure.
 	 * @param {string} url - The catalog URL that failed
-	 * @param {string} message - Error message
+	 * @param {string} errorMessage - Error message
 	 */
-	dispatchClipLoadError(url, message) {
-		this.#dispatchStateEvent(EVENT_CLIP_LOAD_ERROR, { url, error: message });
+	dispatchClipLoadError(url, errorMessage) {
+		this.#dispatchStateEvent(EVENT_CLIP_LOAD_ERROR, { url, errorMessage });
 	}
 
 	/**
 	 * Dispatch MIDI note off event with parsed data
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} note - MIDI note (0-127)
+	 * @param {{ deviceId?: string|null, deviceName?: string|null }} [device] - Source input identity
 	 */
-	dispatchMIDINoteOff(channel, note) {
-		this.#dispatchStateEvent(EVENT_MIDI_NOTE_OFF, { channel, note });
+	dispatchMIDINoteOff(channel, note, { deviceId = null, deviceName = null } = {}) {
+		this.#dispatchStateEvent(EVENT_MIDI_NOTE_OFF, { channel, note, deviceId, deviceName });
 	}
 
 	/**
@@ -256,13 +257,23 @@ class AppState extends EventTarget {
 	 * @param {number} channel - MIDI channel (0-15)
 	 * @param {number} controller - CC number (0-127)
 	 * @param {number} value - CC value (0-127)
+	 * @param {{ deviceId?: string|null, deviceName?: string|null }} [device] - Source input identity
 	 */
-	dispatchMIDIControlChange(channel, controller, value) {
+	dispatchMIDIControlChange(channel, controller, value, { deviceId = null, deviceName = null } = {}) {
 		if (channel === this.#settings.bpm.controlChannel && controller === this.#settings.bpm.controlCC && this.#bpmSource !== BPM_SOURCE_CLOCK) {
 			this.#setBPM(this.#convertCCToBPM(value), BPM_SOURCE_CC);
 		}
 
-		this.#dispatchStateEvent(EVENT_MIDI_CONTROL_CHANGE, { channel, controller, value });
+		this.#dispatchStateEvent(EVENT_MIDI_CONTROL_CHANGE, { channel, controller, value, deviceId, deviceName });
+	}
+
+	/**
+	 * Announce the current MIDI input device list (id, name, enabled).
+	 * Fired on hot-plug and when a device is enabled/disabled.
+	 * @param {{ id: string, name: string, enabled: boolean }[]} devices
+	 */
+	dispatchMIDIDevicesChanged(devices) {
+		this.#dispatchStateEvent(EVENT_MIDI_DEVICES_CHANGED, { devices });
 	}
 
 	/**
@@ -295,28 +306,24 @@ class AppState extends EventTarget {
 	 * @returns {boolean} True if pulse should be processed, false if rate limited
 	 */
 	#shouldProcessClockPulse(timestamp) {
-		const maxPulsesPerSecond = this.#settings.midi?.maxClockPulsesPerSecond ?? 1000;
-		const windowSizeMs = MS_PER_SECOND; // 1 second window
+		const maxPulsesPerSecond = this.#settings.midi?.maxClockPulsesPerSecond ?? DEFAULT_MAX_CLOCK_PULSES_PER_SECOND;
+		const windowSizeMs = MS_PER_SECOND;
 
-		// Initialize window on first pulse
 		if (this.#clockPulseWindowStart === 0) {
 			this.#clockPulseWindowStart = timestamp;
 			this.#clockPulseCount = 0;
 		}
 
-		// Reset window if it has expired
 		if (timestamp - this.#clockPulseWindowStart > windowSizeMs) {
 			this.#clockPulseWindowStart = timestamp;
 			this.#clockPulseCount = 0;
 		}
 
-		// Check if we've exceeded the rate limit
 		if (this.#clockPulseCount >= maxPulsesPerSecond) {
 			console.warn(`AppState: MIDI clock rate limit exceeded (${maxPulsesPerSecond} pulses/second), ignoring excess pulses`);
 			return false;
 		}
 
-		// Increment counter exactly once per valid pulse
 		this.#clockPulseCount++;
 		return true;
 	}
@@ -349,22 +356,22 @@ class AppState extends EventTarget {
 			return;
 		}
 
-		this.#recentPulseIntervals.push(intervalMs);
-		if (this.#recentPulseIntervals.length > this.#settings.midi.ppqn) {
-			this.#recentPulseIntervals.shift();
+		this.#recentPulseIntervalsMs.push(intervalMs);
+		if (this.#recentPulseIntervalsMs.length > this.#settings.midi.ppqn) {
+			this.#recentPulseIntervalsMs.shift();
 		}
 
-		if (this.#recentPulseIntervals.length >= MIN_CLOCK_INTERVALS_FOR_BPM) {
+		if (this.#recentPulseIntervalsMs.length >= MIN_CLOCK_INTERVALS_FOR_BPM) {
 			this.#calculateBPMFromClock();
 		}
 	}
 
 	#calculateBPMFromClock() {
 		let totalMs = 0;
-		for (const intervalMs of this.#recentPulseIntervals) {
+		for (const intervalMs of this.#recentPulseIntervalsMs) {
 			totalMs += intervalMs;
 		}
-		const avgIntervalMs = totalMs / this.#recentPulseIntervals.length;
+		const avgIntervalMs = totalMs / this.#recentPulseIntervalsMs.length;
 		const msPerBeat = avgIntervalMs * this.#settings.midi.ppqn;
 		const bpm = MS_PER_MINUTE / msPerBeat;
 		this.#setBPM(bpm, BPM_SOURCE_CLOCK);
@@ -376,7 +383,7 @@ class AppState extends EventTarget {
 	 */
 	dispatchMIDIStart() {
 		this.#lastClockTimestamp = null;
-		this.#recentPulseIntervals = [];
+		this.#recentPulseIntervalsMs = [];
 
 		this.#dispatchStateEvent(EVENT_MIDI_START, {});
 	}
@@ -450,12 +457,12 @@ class AppState extends EventTarget {
 		this.#isMidiConnected = false;
 		this.#isClipsLoaded = false;
 		this.#activeProjectId = null;
-		this.#projectSwitching = false;
+		this.#isProjectSwitching = false;
 
 		this.#currentBPM = this.#settings.bpm.default;
 		this.#bpmSource = BPM_SOURCE_DEFAULT;
 		this.#lastClockTimestamp = null;
-		this.#recentPulseIntervals = [];
+		this.#recentPulseIntervalsMs = [];
 		this.#clockPulseCount = 0;
 		this.#clockPulseWindowStart = 0;
 
@@ -483,7 +490,7 @@ class AppState extends EventTarget {
 	 * Show an error message.
 	 * @param {string} text
 	 */
-	error(text) {
+	showError(text) {
 		this.showUserMessage({ type: 'error', text });
 	}
 
@@ -491,7 +498,7 @@ class AppState extends EventTarget {
 	 * Show a warning message.
 	 * @param {string} text
 	 */
-	warn(text) {
+	showWarning(text) {
 		this.showUserMessage({ type: 'warning', text });
 	}
 
@@ -499,7 +506,7 @@ class AppState extends EventTarget {
 	 * Show an info message.
 	 * @param {string} text
 	 */
-	info(text) {
+	showInfo(text) {
 		this.showUserMessage({ type: 'info', text });
 	}
 }
@@ -515,5 +522,5 @@ export function createAppState(settings) {
 	return new AppState(settings);
 }
 
-export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES, BPM_SOURCE_CLOCK };
+export { AppState, EVENT_MIDI_CONNECTION_CHANGED, EVENT_MIDI_DEVICES_CHANGED, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_VIDEO_JOCKEY_READY, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, EVENT_CLIP_LOAD_ERROR, EVENT_USER_MESSAGE, USER_MESSAGE_TYPES, BPM_SOURCE_CLOCK };
 export default appState;

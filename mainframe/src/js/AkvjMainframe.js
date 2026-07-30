@@ -1,13 +1,6 @@
 import '../scss/main.scss';
 import './PianoKey.js';
-import {
-	EVENT_PIANOROLL_KEY_CLICK,
-	EVENT_PIANOROLL_CHANNEL_CHANGED,
-	EVENT_PIANOROLL_FILTER_CHANGED,
-	EVENT_PIANOROLL_MAPPING_CHANGED,
-	EVENT_PIANOROLL_MAPPING_REMOVED,
-	EVENT_PIANOROLL_MAPPING_ADDED
-} from './PianoRoll.js';
+import { EVENT_PIANOROLL_KEY_CLICK, EVENT_PIANOROLL_CHANNEL_CHANGED, EVENT_PIANOROLL_FILTER_CHANGED, EVENT_PIANOROLL_MAPPING_CHANGED, EVENT_PIANOROLL_MAPPING_REMOVED, EVENT_PIANOROLL_MAPPING_ADDED } from './PianoRoll.js';
 import './ClipList.js';
 import { ClipEditorController } from './ClipEditorController.js';
 import './MappingTable.js';
@@ -21,6 +14,8 @@ import './UserMessages.js';
 import './ClipNameInput.js';
 import './SortChoice.js';
 import './SortChoices.js';
+import { DEFAULT_SORT_MODE, SORT_MODE_CHOICES } from './sortMode.js';
+import { ROLE_FILTER_CHOICES } from './clipRole.js';
 import './RoleChoice.js';
 import './RoleChoices.js';
 import './ProjectChooser.js';
@@ -29,6 +24,7 @@ import { SimpleRouter } from './SimpleRouter.js';
 import { editClipPath } from './clipEditorRoute.js';
 import mainframeState, { EVENT_CLIPS_CHANGED, EVENT_MAPPINGS_CHANGED, EVENT_CHANNEL_CHANGED, EVENT_SEARCH_CHANGED, EVENT_ROLE_FILTER_CHANGED, EVENT_SORT_MODE_CHANGED, EVENT_PIANOROLL_FILTERS_CHANGED, EVENT_PROJECTS_CHANGED, EVENT_ACTIVE_PROJECT_CHANGED } from './mainframeState.js';
 import { reportBootApiError, reportFailedClipDelete, reportFailedClipOpen } from './shellUserFeedback.js';
+import { DEFAULT_PROJECT_ID } from './projects.js';
 
 /**
  * AkvjMainframe — custom element that bootstraps the entire Mainframe UI.
@@ -83,22 +79,13 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		const clipRoleChoices = root.querySelector('#clip-role-filter');
-		clipRoleChoices.choices = [
-			{ value: '', label: 'All' },
-			{ value: 'clip', label: 'Clip' },
-			{ value: 'bitmask', label: 'Bitmask' }
-		];
+		clipRoleChoices.choices = ROLE_FILTER_CHOICES;
 		clipRoleChoices.addEventListener('rolechange', event => {
 			mainframeState.roleFilter = event.detail.roleFilter;
 		});
 
 		const clipSortChoices = root.querySelector('#clip-sort');
-		clipSortChoices.choices = [
-			{ value: 'name', label: 'Name' },
-			{ value: 'clipId', label: 'ID' },
-			{ value: 'role', label: 'Role' },
-			{ value: 'frames', label: 'Frames' }
-		];
+		clipSortChoices.choices = SORT_MODE_CHOICES;
 		clipSortChoices.addEventListener('sortchange', event => {
 			mainframeState.sortMode = event.detail.sortMode;
 		});
@@ -107,11 +94,11 @@ class AkvjMainframe extends HTMLElement {
 		clearFiltersButton.addEventListener('click', () => {
 			mainframeState.searchQuery = '';
 			mainframeState.roleFilter = '';
-			mainframeState.sortMode = 'name';
+			mainframeState.sortMode = DEFAULT_SORT_MODE;
 			mainframeState.pianorollFilters = {};
 			clipSearchInput.value = '';
 			clipRoleChoices.roleFilter = '';
-			clipSortChoices.sortMode = 'name';
+			clipSortChoices.sortMode = DEFAULT_SORT_MODE;
 			libraryPianoRoll.clearSelection();
 			libraryPianoRoll.resetFilters();
 		});
@@ -120,7 +107,7 @@ class AkvjMainframe extends HTMLElement {
 		const mappingClipSearchInput = root.querySelector('#mapping-clip-search');
 		let mappingSearchQuery = '';
 		let mappingRoleFilter = '';
-		let mappingSortMode = 'name';
+		let mappingSortMode = DEFAULT_SORT_MODE;
 
 		mappingClipSearchInput.addEventListener('input', () => {
 			mappingPianoRoll.clearSelection();
@@ -130,11 +117,7 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		const mappingClipRoleChoices = root.querySelector('#mapping-clip-role-filter');
-		mappingClipRoleChoices.choices = [
-			{ value: '', label: 'All' },
-			{ value: 'clip', label: 'Clip' },
-			{ value: 'bitmask', label: 'Bitmask' }
-		];
+		mappingClipRoleChoices.choices = ROLE_FILTER_CHOICES;
 		mappingClipRoleChoices.addEventListener('rolechange', event => {
 			mappingRoleFilter = event.detail.roleFilter;
 			mappingClipListElement.roleFilter = mappingRoleFilter;
@@ -142,12 +125,7 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		const mappingClipSortChoices = root.querySelector('#mapping-clip-sort');
-		mappingClipSortChoices.choices = [
-			{ value: 'name', label: 'Name' },
-			{ value: 'clipId', label: 'ID' },
-			{ value: 'role', label: 'Role' },
-			{ value: 'frames', label: 'Frames' }
-		];
+		mappingClipSortChoices.choices = SORT_MODE_CHOICES;
 		mappingClipSortChoices.addEventListener('sortchange', event => {
 			mappingSortMode = event.detail.sortMode;
 			mappingClipListElement.sortMode = mappingSortMode;
@@ -157,14 +135,14 @@ class AkvjMainframe extends HTMLElement {
 		mappingClearFiltersButton.addEventListener('click', () => {
 			mappingSearchQuery = '';
 			mappingRoleFilter = '';
-			mappingSortMode = 'name';
+			mappingSortMode = DEFAULT_SORT_MODE;
 			mappingClipSearchInput.value = '';
 			mappingClipRoleChoices.roleFilter = '';
-			mappingClipSortChoices.sortMode = 'name';
+			mappingClipSortChoices.sortMode = DEFAULT_SORT_MODE;
 			mappingPianoRoll.clearSelection();
 			mappingClipListElement.searchQuery = '';
 			mappingClipListElement.roleFilter = '';
-			mappingClipListElement.sortMode = 'name';
+			mappingClipListElement.sortMode = DEFAULT_SORT_MODE;
 			updateMappingFilterVisibility();
 		});
 
@@ -173,20 +151,16 @@ class AkvjMainframe extends HTMLElement {
 			mappingClearFiltersButton.hidden = !hasActiveFilter;
 		}
 
-		clipListElement.addEventListener('clipsaved', _event => {
-			loadLibrary().catch(error => console.error(error));
-		});
-
 		clipListElement.addEventListener('clipdelete', event => {
 			deleteClip(event.detail.clipId);
 		});
 
 		clipListElement.addEventListener('clipmap', event => {
-			mapClipFromLibrary(event.detail.clipId);
+			selectClipForMapping(event.detail.clipId);
 		});
 
 		mappingClipListElement.addEventListener('clipmap', event => {
-			mapClipFromLibrary(event.detail.clipId);
+			selectClipForMapping(event.detail.clipId);
 		});
 
 		mappingClipListElement.addEventListener('clipedit', event => {
@@ -261,7 +235,7 @@ class AkvjMainframe extends HTMLElement {
 			router.navigate(route);
 		}
 
-		function mapClipFromLibrary(clipId) {
+		function selectClipForMapping(clipId) {
 			switchTab('mapping');
 			const select = root.querySelector('#map-clip-id');
 			if ([...select.options].some(option => option.value === clipId)) {
@@ -307,7 +281,7 @@ class AkvjMainframe extends HTMLElement {
 			}
 		}
 
-		function fillClipSelect() {
+		function fillMappingClipSelect() {
 			const select = root.querySelector('#map-clip-id');
 			select.replaceChildren();
 			for (const clip of mainframeState.clips.filter(clip => clip.pipelineReady !== false && clip.hasSprite)) {
@@ -341,32 +315,41 @@ class AkvjMainframe extends HTMLElement {
 			setStatus(status, `Breakpoint ${clipId} → vel ${newVelocity}`, 'is-ok');
 		});
 
-		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_REMOVED, event => {
-			const { channel, note, clipId, velocity, mappings } = event.detail;
+		/**
+		 * Rebuild one note’s placements from piano-roll detail (channel/note stamped).
+		 * Preserves placement overrides so shell state matches pure edit helpers.
+		 * @param {number} channel
+		 * @param {number} note
+		 * @param {Array<{clipId: string, velocity: number, overrides?: Record<string, unknown>}>} noteMappings
+		 */
+		function rebuildNoteMappingsFromDetail(channel, note, noteMappings) {
 			const others = mainframeState.mappings.filter(entry => !(entry.channel === channel && entry.note === note));
 			mainframeState.mappings = others.concat(
-				mappings.map(entry => ({
-					channel,
-					note,
-					clipId: entry.clipId,
-					velocity: entry.velocity
-				}))
+				noteMappings.map(entry => {
+					const mapped = {
+						channel,
+						note,
+						clipId: entry.clipId,
+						velocity: entry.velocity
+					};
+					if (entry.overrides) {
+						mapped.overrides = { ...entry.overrides };
+					}
+					return mapped;
+				})
 			);
+		}
+
+		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_REMOVED, event => {
+			const { channel, note, clipId, velocity, mappings } = event.detail;
+			rebuildNoteMappingsFromDetail(channel, note, mappings);
 			const status = root.querySelector('#mapping-status');
 			setStatus(status, `Removed ${clipId} @ note ${note} vel ${velocity}`, 'is-ok');
 		});
 
 		mappingPianoRoll.addEventListener(EVENT_PIANOROLL_MAPPING_ADDED, event => {
 			const { channel, note, clipId, velocity, mappings } = event.detail;
-			const others = mainframeState.mappings.filter(entry => !(entry.channel === channel && entry.note === note));
-			mainframeState.mappings = others.concat(
-				mappings.map(entry => ({
-					channel,
-					note,
-					clipId: entry.clipId,
-					velocity: entry.velocity
-				}))
-			);
+			rebuildNoteMappingsFromDetail(channel, note, mappings);
 			const status = root.querySelector('#mapping-status');
 			setStatus(status, `Dropped ${clipId} @ note ${note} vel ${velocity}`, 'is-ok');
 		});
@@ -435,7 +418,7 @@ class AkvjMainframe extends HTMLElement {
 			mainframeState.subscribe(EVENT_CLIPS_CHANGED, () => {
 				renderLibrary();
 				renderMappingClipList();
-				fillClipSelect();
+				fillMappingClipSelect();
 				updatePianoRollClips();
 			})
 		);
@@ -486,7 +469,7 @@ class AkvjMainframe extends HTMLElement {
 			mainframeState.clips = libraryResponse.clips;
 		}
 
-		function projectKeyMapPath(projectId = mainframeState.activeProjectId) {
+		function projectKeyMapApiPath(projectId = mainframeState.activeProjectId) {
 			return `/projects/${encodeURIComponent(projectId)}/key-map`;
 		}
 
@@ -500,7 +483,7 @@ class AkvjMainframe extends HTMLElement {
 		}
 
 		async function loadMapping() {
-			const mappingResponse = await api(projectKeyMapPath());
+			const mappingResponse = await api(projectKeyMapApiPath());
 			mainframeState.mappings = mappingResponse.mapping;
 			updateMappingProjectLabel();
 		}
@@ -508,7 +491,7 @@ class AkvjMainframe extends HTMLElement {
 		async function loadProjects() {
 			const [listResponse, activeResponse] = await Promise.all([api('/projects'), api('/projects/active')]);
 			mainframeState.projects = listResponse.projects;
-			mainframeState.activeProjectId = activeResponse.project;
+			mainframeState.activeProjectId = activeResponse.projectId;
 			updateMappingProjectLabel();
 		}
 
@@ -533,7 +516,7 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		projectChooser.addEventListener('projectcreate', event => {
-			createProjectFromUi(event.detail).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+			createProject(event.detail).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
 		});
 
 		projectChooser.addEventListener('projectrename', event => {
@@ -541,7 +524,7 @@ class AkvjMainframe extends HTMLElement {
 		});
 
 		projectChooser.addEventListener('projectdelete', event => {
-			deleteProjectFromUi(event.detail.projectId).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
+			deleteProject(event.detail.projectId).catch(error => setStatus(projectsStatus, error.message, 'is-err'));
 		});
 
 		async function activateProject(projectId) {
@@ -551,16 +534,16 @@ class AkvjMainframe extends HTMLElement {
 					method: 'POST',
 					body: '{}'
 				});
-				mainframeState.activeProjectId = result.project;
+				mainframeState.activeProjectId = result.projectId;
 				await loadMapping();
-				setStatus(projectsStatus, `Active project: ${result.project}`, 'is-ok');
+				setStatus(projectsStatus, `Active project: ${result.projectId}`, 'is-ok');
 			} catch (error) {
 				projectChooser.activeProjectId = mainframeState.activeProjectId;
 				throw error;
 			}
 		}
 
-		async function createProjectFromUi({ name, copyFrom }) {
+		async function createProject({ name, copyFrom }) {
 			setStatus(projectsStatus, 'Creating project…');
 			const body = { name };
 			if (copyFrom === null) {
@@ -587,8 +570,8 @@ class AkvjMainframe extends HTMLElement {
 			setStatus(projectsStatus, `Renamed project ${projectId}`, 'is-ok');
 		}
 
-		async function deleteProjectFromUi(projectId) {
-			if (projectId === 'default') {
+		async function deleteProject(projectId) {
+			if (projectId === DEFAULT_PROJECT_ID) {
 				setStatus(projectsStatus, 'Cannot delete the default project', 'is-err');
 				return;
 			}
@@ -646,7 +629,7 @@ class AkvjMainframe extends HTMLElement {
 			const status = root.querySelector('#mapping-status');
 			setStatus(status, 'Saving…');
 			try {
-				await api(projectKeyMapPath(), { method: 'PUT', body: JSON.stringify({ mapping: mainframeState.mappings }) });
+				await api(projectKeyMapApiPath(), { method: 'PUT', body: JSON.stringify({ mapping: mainframeState.mappings }) });
 				setStatus(status, 'Mapping saved', 'is-ok');
 			} catch (error) {
 				setStatus(status, error.message, 'is-err');

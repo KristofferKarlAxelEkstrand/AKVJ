@@ -4,8 +4,11 @@
  */
 import { resolvePlacement, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
 
-/** Bake-time scale modes (runtime `pattern` is not a bake mode). */
+/** Bake-time scale modes offered as an explicit per-frame choice (runtime `pattern` is not a bake mode; it isn't listed as its own picker option, but a raw `'pattern'` scaleMode is still honored — see `RESOLVABLE_SCALE_MODES` below — so it bakes at native size instead of silently becoming `fit`). */
 export const FRAME_BAKE_SCALE_MODES = Object.freeze(['fit', 'cover', 'stretch', 'none', 'custom']);
+
+/** Scale modes `resolveFrameBakeConfig` accepts as-is, beyond the per-frame picker options. */
+const RESOLVABLE_SCALE_MODES = Object.freeze([...FRAME_BAKE_SCALE_MODES, 'pattern']);
 
 /**
  * @typedef {{ scaleMode: string, placement: { x: number, y: number }, width: number, height: number }} FrameBakeConfig
@@ -19,7 +22,7 @@ export const FRAME_BAKE_SCALE_MODES = Object.freeze(['fit', 'cover', 'stretch', 
  */
 export function resolveFrameBakeConfig(raw, cellWidth = DEFAULT_FRAME_WIDTH, cellHeight = DEFAULT_FRAME_HEIGHT) {
 	const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-	const scaleMode = typeof source.scaleMode === 'string' && FRAME_BAKE_SCALE_MODES.includes(source.scaleMode) ? source.scaleMode : 'fit';
+	const scaleMode = typeof source.scaleMode === 'string' && RESOLVABLE_SCALE_MODES.includes(source.scaleMode) ? source.scaleMode : 'fit';
 	const placement = resolvePlacement(source.placement);
 	const width = Number(source.width);
 	const height = Number(source.height);

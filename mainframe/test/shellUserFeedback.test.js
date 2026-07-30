@@ -24,15 +24,49 @@ describe('shellUserFeedback', () => {
 		expect(texts.at(-1)).toBe('clip gone');
 	});
 
+	test('reportFailedClipOpen falls back for null, string, empty object, and empty message', () => {
+		const spy = vi.spyOn(messages, 'error');
+		const fallback = 'Failed to open clip';
+		for (const error of [null, undefined, 'boom', {}, { message: '' }]) {
+			spy.mockClear();
+			reportFailedClipOpen(error);
+			expect(spy).toHaveBeenCalledWith(fallback);
+		}
+	});
+
 	test('reportFailedClipDelete routes through messages.error', () => {
 		const spy = vi.spyOn(messages, 'error');
 		reportFailedClipDelete('neon-skull', new Error('403'));
 		expect(spy).toHaveBeenCalledWith('Failed to delete clip "neon-skull": 403');
 	});
 
+	test('reportFailedClipDelete includes string detail and Unknown error for nullish', () => {
+		const spy = vi.spyOn(messages, 'error');
+		reportFailedClipDelete('neon-skull', 'disk full');
+		expect(spy).toHaveBeenCalledWith('Failed to delete clip "neon-skull": disk full');
+		spy.mockClear();
+		reportFailedClipDelete('neon-skull', null);
+		expect(spy).toHaveBeenCalledWith('Failed to delete clip "neon-skull": Unknown error');
+		spy.mockClear();
+		reportFailedClipDelete('neon-skull', undefined);
+		expect(spy).toHaveBeenCalledWith('Failed to delete clip "neon-skull": Unknown error');
+	});
+
 	test('reportBootApiError routes through messages.error', () => {
 		const spy = vi.spyOn(messages, 'error');
 		reportBootApiError(new Error('ECONNREFUSED'));
 		expect(spy).toHaveBeenCalledWith('API error: ECONNREFUSED');
+	});
+
+	test('reportBootApiError stringifies non-Error values via String(error ?? Unknown error)', () => {
+		const spy = vi.spyOn(messages, 'error');
+		reportBootApiError('timeout');
+		expect(spy).toHaveBeenCalledWith('API error: timeout');
+		spy.mockClear();
+		reportBootApiError(null);
+		expect(spy).toHaveBeenCalledWith('API error: Unknown error');
+		spy.mockClear();
+		reportBootApiError(undefined);
+		expect(spy).toHaveBeenCalledWith('API error: Unknown error');
 	});
 });

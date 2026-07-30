@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { computeStagingDisplaySize, STAGING_PREVIEW_MAX_DISPLAY_WIDTH } from '../src/js/stagingPreviewDisplay.js';
+import { computeStagingDisplaySize, STAGING_PREVIEW_DISPLAY_SCALE, STAGING_PREVIEW_MAX_DISPLAY_WIDTH } from '../src/js/stagingPreviewDisplay.js';
 
 describe('computeStagingDisplaySize', () => {
-	it('doubles default AKVJ frame size', () => {
+	it('scales default AKVJ frame size by STAGING_PREVIEW_DISPLAY_SCALE', () => {
+		expect(STAGING_PREVIEW_DISPLAY_SCALE).toBe(2);
 		expect(computeStagingDisplaySize(240, 135)).toEqual({
 			displayWidth: 480,
 			displayHeight: 270

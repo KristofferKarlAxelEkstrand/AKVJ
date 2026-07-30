@@ -17,7 +17,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: '20'
+                  node-version: '22'
                   cache: 'npm'
 
             - name: Install dependencies
@@ -28,15 +28,6 @@ jobs:
 
             - name: Lint JavaScript
               run: npm run lint
-
-            - name: ShellCheck workflow bash
-              run: |
-                  sudo apt-get install -y shellcheck
-                  shellcheck -S warning \
-                    .agents/workflows/scripts/run-team \
-                    .agents/workflows/scripts/control-center \
-                    .agents/workflows/scripts/selftest-run-team.sh \
-                    .agents/workflows/scripts/lib/cli-tools.sh
 
             - name: Lint CSS
               run: npx stylelint "**/*.css"

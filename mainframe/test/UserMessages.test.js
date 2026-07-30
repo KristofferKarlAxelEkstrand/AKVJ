@@ -99,14 +99,13 @@ describe('user-messages / user-message', () => {
 		expect(host.querySelector('user-message').textContent).toContain('newer');
 	});
 
-	test('info uses dialog role; warning uses alertdialog', async () => {
-		messages.info('notice');
+	test.each([
+		['info', 'notice', 'dialog'],
+		['warn', 'heads up', 'alertdialog'],
+		['error', 'failed', 'alertdialog']
+	])('%s uses role %s', async (method, text, role) => {
+		messages[method](text);
 		await Promise.resolve();
-		expect(host.querySelector('user-message').getAttribute('role')).toBe('dialog');
-
-		host.querySelector('.user-message-ok').click();
-		messages.warn('heads up');
-		await Promise.resolve();
-		expect(host.querySelector('user-message').getAttribute('role')).toBe('alertdialog');
+		expect(host.querySelector('user-message').getAttribute('role')).toBe(role);
 	});
 });

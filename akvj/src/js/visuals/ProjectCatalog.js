@@ -35,8 +35,10 @@ class ProjectCatalog {
 	async fetchActiveProjectId() {
 		try {
 			const activeProject = await this.#loadJson(settings.performance.activeProjectUrl);
-			if (activeProject && typeof activeProject.project === 'string' && SAFE_ID_PATTERN.test(activeProject.project)) {
-				return activeProject.project;
+			// Prefer projectId (canonical on-disk shape); keep project as legacy fallback.
+			const id = activeProject?.projectId ?? activeProject?.project;
+			if (typeof id === 'string' && SAFE_ID_PATTERN.test(id)) {
+				return id;
 			}
 		} catch {
 			// No active-project.json — fall back to legacy key-map

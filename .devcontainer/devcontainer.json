@@ -31,8 +31,8 @@
 		}
 	},
 
-	// Auto-install dependencies after container creation
-	"postCreateCommand": "npm install",
+	// Auto-install dependencies after container creation (Playwright Chromium + OS libs for test:visual)
+	"postCreateCommand": "npm install && npx playwright install --with-deps chromium",
 
 	// Ensure clips are validated on start (uses sharp for PNG optimization)
 	"postStartCommand": "npm run clips:validate 2>/dev/null || true",

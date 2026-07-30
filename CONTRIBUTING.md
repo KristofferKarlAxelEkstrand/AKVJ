@@ -43,7 +43,7 @@ We recommend using VS Code with the recommended extensions to automatically form
 
 - `editor.formatOnSave` with Prettier as default formatter
 - `editor.codeActionsOnSave` enabled to allow ESLint and Stylelint auto-fix on save
-- Tracked git guard rails live in `.githooks/` (armed by `run-team` via `core.hooksPath`); they do not run lint/format — still run `npm run lint` and `npm run format:prettier` before committing
+- Tracked git guard rails live in `.githooks/`; enable them with `git config core.hooksPath .githooks`. They do not run lint/format — still run `npm run lint` and `npm run format:prettier` before committing
 
 Recommended extensions (install via the VS Code Extensions pane or `code --install-extension`):
 
@@ -92,11 +92,11 @@ npm run akvj           # Test in browser
 
 Run `npm run lint` and `npm run format:prettier` before committing (the hooks do not do this).
 
-Tracked hooks in `.githooks/` are armed when you start the agent team (`run-team` sets `core.hooksPath`). They block agent-unsafe commits/pushes — not formatting:
+Tracked hooks in `.githooks/` block agent-unsafe commits/pushes—not formatting. Enable them with `git config core.hooksPath .githooks`:
 
 | Hook         | Refuses                                                                                                                                                   |
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pre-commit` | `.env` / credential-shaped diffs, supervisor scripts (`run-team`, `await-messages.js`, `control-center`), `.github/workflows/`, binary assets (PNG, etc.) |
+| `pre-commit` | `.env` / credential-shaped diffs, office-space team configuration, `.github/workflows/`, binary assets (PNG, etc.) |
 | `pre-push`   | every push                                                                                                                                                |
 
 Override as the human: `HUMAN=1 git commit …` / `HUMAN=1 git push`. Or set hooks manually: `git config core.hooksPath .githooks`.

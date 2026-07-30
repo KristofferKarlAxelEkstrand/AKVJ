@@ -9,6 +9,7 @@ const NOTES_PER_OCTAVE = 12;
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const MIDI_CONNECTED_COLOR = '#0f0';
 const MIDI_DISCONNECTED_COLOR = '#f00';
+const DEBUG_OVERLAY_ELEMENT_ID = 'debug-overlay';
 
 const OVERLAY_HTML = `
 		<div class="debug-header">DEBUG <span class="debug-hint">(D to toggle)</span></div>
@@ -58,7 +59,7 @@ class DebugOverlay {
 
 	#createOverlay() {
 		this.#element = document.createElement('div');
-		this.#element.id = 'debug-overlay';
+		this.#element.id = DEBUG_OVERLAY_ELEMENT_ID;
 		this.#element.innerHTML = OVERLAY_HTML;
 		this.#cacheDomElements();
 	}
@@ -198,8 +199,8 @@ class DebugOverlay {
 		);
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_CLIP_LOAD_ERROR, event => {
-				const { url, error } = event.detail;
-				this.#updateError(`${error} (${url})`);
+				const { url, errorMessage } = event.detail;
+				this.#updateError(`${errorMessage} (${url})`);
 			})
 		);
 	}
@@ -264,3 +265,4 @@ class DebugOverlay {
 }
 
 export default DebugOverlay;
+export { DEBUG_OVERLAY_ELEMENT_ID };

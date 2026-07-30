@@ -1,13 +1,11 @@
 import { sendJson } from '../httpUtils.js';
 import { handleGetHealth, handlePostPipeline, handleExpandGif } from '../handlers/misc.js';
-import { handleGetClips, handleGetMapping, handlePutMapping, handlePostClips, handleGetClipSprite, handleGetClipFrames, handlePutClipFrames, handleRecompileClip, handleDeleteClip, handlePutClipMeta } from '../handlers/clips.js';
+import { handleGetClips, handlePostClips, handleGetClipSprite, handleGetClipFrames, handlePutClipFrames, handleRecompileClip, handleDeleteClip, handlePutClipMeta } from '../handlers/clips.js';
 import { handleGetProjects, handlePostProjects, handleGetActiveProject, handleGetProject, handlePutProject, handleDeleteProject, handleActivateProject, handleGetProjectKeyMap, handlePutProjectKeyMap } from '../handlers/projects.js';
 
 const EXACT_ROUTES = {
 	'GET /api/health': handleGetHealth,
 	'GET /api/clips': handleGetClips,
-	'GET /api/mapping': handleGetMapping,
-	'PUT /api/mapping': handlePutMapping,
 	'GET /api/projects': handleGetProjects,
 	'POST /api/projects': handlePostProjects,
 	'GET /api/projects/active': handleGetActiveProject,

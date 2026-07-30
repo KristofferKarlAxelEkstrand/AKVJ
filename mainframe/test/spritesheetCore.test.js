@@ -208,18 +208,8 @@ describe('ingest resize kernel policy', () => {
 
 		const fromFit = await fitFrameBuffer(sharp, src, 8, 8, 'stretch');
 		const fitRaw = await sharp(fromFit).ensureAlpha().raw().toBuffer();
-		const lanczosRaw = await sharp(src)
-			.ensureAlpha()
-			.resize(8, 8, { fit: 'fill', kernel: 'lanczos3' })
-			.ensureAlpha()
-			.raw()
-			.toBuffer();
-		const nearestRaw = await sharp(src)
-			.ensureAlpha()
-			.resize(8, 8, { fit: 'fill', kernel: 'nearest' })
-			.ensureAlpha()
-			.raw()
-			.toBuffer();
+		const lanczosRaw = await sharp(src).ensureAlpha().resize(8, 8, { fit: 'fill', kernel: 'lanczos3' }).ensureAlpha().raw().toBuffer();
+		const nearestRaw = await sharp(src).ensureAlpha().resize(8, 8, { fit: 'fill', kernel: 'nearest' }).ensureAlpha().raw().toBuffer();
 
 		expect(Buffer.compare(fitRaw, lanczosRaw)).toBe(0);
 		expect(Buffer.compare(fitRaw, nearestRaw)).not.toBe(0);

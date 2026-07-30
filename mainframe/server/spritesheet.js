@@ -5,6 +5,8 @@ import { clipDir, rawAssetsDir, isValidClipId, DEFAULT_PROJECT_ID } from './path
 import { DEFAULT_TARGET_WIDTH, DEFAULT_TARGET_HEIGHT, DEFAULT_FRAME_RATE, normalizeFrameBuffers, assertReadableFrames, resizeFrames, buildComposites, renderSpriteSheet, resolveCompileOptions, resolveFramesPerRow } from '../shared/spritesheetCore.js';
 import { resolveScaleMode } from '../shared/frameFit.js';
 import { resolvePlacement, DEFAULT_SCALING, SCALING_MODES } from '../shared/clipSchema.js';
+import { durationsMsToFrameRates } from '../shared/frameTiming.js';
+import { validateMetaFields } from '../scripts/clips/lib/validate/meta.js';
 import { writeJsonAtomic } from './writeJsonAtomic.js';
 
 /**
@@ -21,10 +23,11 @@ import { writeJsonAtomic } from './writeJsonAtomic.js';
  * @param {string} [options.name] - Human-readable clip name
  * @param {string} [options.playback='loop'] - Playback mode
  * @param {number} [options.frameRate=12] - Default frame rate (FPS)
- * @param {Record<string, number>} [options.frameRatesForFrames] - Per-frame FPS (from ms durations)
+ * @param {number[]} [options.frameDurationsMs] - Per-frame ms (source of truth when present)
+ * @param {Record<string, number>} [options.frameRatesForFrames] - Per-frame FPS (legacy / derived from ms)
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
+export async function createClipFromFrames({ clipId, frameBuffers, role, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameDurationsMs, frameRatesForFrames, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -50,6 +53,7 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
 			name,
 			playback: resolvedPlayback,
 			frameRate: resolvedFrameRate,
+			frameDurationsMs,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
 			scaling,
@@ -88,7 +92,7 @@ export async function createClipFromFrames({ clipId, frameBuffers, role, targetW
  * @param {string} [options.role]
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, projectId = DEFAULT_PROJECT_ID }) {
+export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameDurationsMs, frameRatesForFrames, role, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -121,6 +125,7 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
 			name,
 			playback: resolvedPlayback,
 			frameRate: resolvedFrameRate,
+			frameDurationsMs,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
 			scaling,
@@ -147,11 +152,12 @@ export async function recompileClip({ clipId, targetWidth, targetHeight, scaleMo
  * @param {string} [options.name]
  * @param {string} [options.playback]
  * @param {number} [options.frameRate]
+ * @param {number[]} [options.frameDurationsMs]
  * @param {Record<string, number>} [options.frameRatesForFrames]
  * @param {string} [options.role]
  * @returns {Promise<{clipId: string, frames: number, framesPerRow: number}>}
  */
-export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
+export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, targetHeight, scaleMode, scaling, name, playback, frameRate, frameDurationsMs, frameRatesForFrames, role, retrigger, triggerType, triggerGroup, bitDepth, sync, syncLength, syncBeats, beatsPerBar, syncOptionalMeta, placement, frameBakeConfigs, projectId = DEFAULT_PROJECT_ID }) {
 	if (!isValidClipId(clipId)) {
 		throw new Error('Invalid clipId');
 	}
@@ -184,6 +190,7 @@ export async function updateClipFromFrames({ clipId, frameBuffers, targetWidth, 
 			name,
 			playback: resolvedPlayback,
 			frameRate: resolvedFrameRate,
+			frameDurationsMs,
 			frameRatesForFrames,
 			scaleMode: resolvedScaleMode,
 			scaling,
@@ -233,6 +240,17 @@ async function replaceRawAssets(clipId, frameBuffers, projectId = DEFAULT_PROJEC
 	await storeRawAssets(clipId, frameBuffers, projectId);
 }
 
+/**
+ * Same gate as meta-only PUT — reject invalid meta before sprite/meta land on disk.
+ * @param {object} meta
+ */
+function assertValidClipMeta(meta) {
+	const validationErrors = validateMetaFields(meta);
+	if (validationErrors.length > 0) {
+		throw new Error(validationErrors[0]);
+	}
+}
+
 async function writeClipFiles(clipId, clipOptions, sheet, frameCount, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
 	const dir = clipDir(clipId, projectId);
 	try {
@@ -243,10 +261,11 @@ async function writeClipFiles(clipId, clipOptions, sheet, frameCount, framesPerR
 			throw error;
 		}
 	}
+	const meta = buildClipMeta(clipOptions, frameCount, framesPerRow);
+	assertValidClipMeta(meta);
+
 	await fs.mkdir(dir, { recursive: true });
 	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
-
-	const meta = buildClipMeta(clipOptions, frameCount, framesPerRow);
 	await writeJsonAtomic(path.join(dir, 'meta.json'), meta);
 }
 
@@ -256,9 +275,6 @@ async function writeClipFiles(clipId, clipOptions, sheet, frameCount, framesPerR
  */
 async function overwriteClipFiles(clipId, clipOptions, sheet, frameCount, framesPerRow, projectId = DEFAULT_PROJECT_ID) {
 	const dir = clipDir(clipId, projectId);
-	await fs.mkdir(dir, { recursive: true });
-	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
-
 	let existingMeta = {};
 	try {
 		existingMeta = JSON.parse(await fs.readFile(path.join(dir, 'meta.json'), 'utf8'));
@@ -267,6 +283,10 @@ async function overwriteClipFiles(clipId, clipOptions, sheet, frameCount, frames
 	}
 	const newMeta = buildClipMeta(clipOptions, frameCount, framesPerRow);
 	const mergedMeta = syncOptionalMetaFields({ ...existingMeta, ...newMeta }, newMeta, clipOptions);
+	assertValidClipMeta(mergedMeta);
+
+	await fs.mkdir(dir, { recursive: true });
+	await fs.writeFile(path.join(dir, 'sprite.png'), sheet);
 	await writeJsonAtomic(path.join(dir, 'meta.json'), mergedMeta);
 }
 
@@ -275,7 +295,12 @@ function resolveScaling(scaling) {
 }
 
 function buildClipMeta(clipOptions, frameCount, framesPerRow) {
-	const frameRatesForFrames = clipOptions.frameRatesForFrames && typeof clipOptions.frameRatesForFrames === 'object' && !Array.isArray(clipOptions.frameRatesForFrames) ? clipOptions.frameRatesForFrames : { 0: clipOptions.frameRate || DEFAULT_FRAME_RATE };
+	const durationsMs = Array.isArray(clipOptions.frameDurationsMs) && clipOptions.frameDurationsMs.length > 0 ? clipOptions.frameDurationsMs.map(ms => Number(ms)) : null;
+	const frameRatesForFrames = durationsMs
+		? durationsMsToFrameRates(durationsMs)
+		: clipOptions.frameRatesForFrames && typeof clipOptions.frameRatesForFrames === 'object' && !Array.isArray(clipOptions.frameRatesForFrames)
+			? clipOptions.frameRatesForFrames
+			: { 0: clipOptions.frameRate || DEFAULT_FRAME_RATE };
 	const meta = {
 		png: 'sprite.png',
 		frames: frameCount,
@@ -288,6 +313,9 @@ function buildClipMeta(clipOptions, frameCount, framesPerRow) {
 		frameHeight: clipOptions.frameHeight || DEFAULT_TARGET_HEIGHT,
 		placement: resolvePlacement(clipOptions.placement)
 	};
+	if (durationsMs) {
+		meta.frameDurationsMs = durationsMs;
+	}
 	if (clipOptions.scaling !== undefined) {
 		meta.scaling = resolveScaling(clipOptions.scaling);
 	}
@@ -328,6 +356,8 @@ function buildClipMeta(clipOptions, frameCount, framesPerRow) {
  */
 function syncOptionalMetaFields(mergedMeta, newMeta, clipOptions) {
 	if (!clipOptions.syncOptionalMeta) {
+		// Rates-only overwrite (e.g. recompile) must not leave stale ms as load source of truth
+		applyFrameDurationFields(mergedMeta, newMeta, clipOptions);
 		return mergedMeta;
 	}
 	mergedMeta.retrigger = newMeta.retrigger;
@@ -342,6 +372,7 @@ function syncOptionalMetaFields(mergedMeta, newMeta, clipOptions) {
 		delete mergedMeta.triggerGroup;
 	}
 	delete mergedMeta.frameDurationBeats;
+	applyFrameDurationFields(mergedMeta, newMeta, clipOptions);
 	applySyncedTimingFields(mergedMeta, newMeta, clipOptions);
 	if (newMeta.role === 'bitmask') {
 		mergedMeta.role = 'bitmask';
@@ -354,6 +385,24 @@ function syncOptionalMetaFields(mergedMeta, newMeta, clipOptions) {
 		mergedMeta.placement = newMeta.placement;
 	}
 	return mergedMeta;
+}
+
+/**
+ * Stamp `frameDurationsMs` when the payload provides ms; clear stale ms when only FPS is written.
+ * @param {object} mergedMeta
+ * @param {object} newMeta
+ * @param {object} clipOptions
+ */
+function applyFrameDurationFields(mergedMeta, newMeta, clipOptions) {
+	if (Array.isArray(newMeta.frameDurationsMs) && newMeta.frameDurationsMs.length > 0) {
+		mergedMeta.frameDurationsMs = newMeta.frameDurationsMs;
+		mergedMeta.frameRatesForFrames = newMeta.frameRatesForFrames;
+		return;
+	}
+	// Explicit rates-only payload — drop stale ms so load cannot prefer old durations
+	if (clipOptions.frameRatesForFrames) {
+		delete mergedMeta.frameDurationsMs;
+	}
 }
 
 /**

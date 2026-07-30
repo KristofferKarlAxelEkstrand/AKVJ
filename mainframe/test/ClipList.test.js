@@ -267,6 +267,17 @@ describe('ClipList — grouped category rendering', () => {
 		expect(element.querySelector('clip-instance').clip.clipId).toBe('b');
 	});
 
+	test('pianorollFilters momentary includes clips with omitted triggerType', () => {
+		element.clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'empty', meta: { triggerType: '' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'latch', meta: { triggerType: 'latch' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { triggerType: 'momentary' };
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId).sort();
+		expect(ids).toEqual(['empty', 'omitted']);
+	});
+
 	test('pianorollFilters role filters clips', () => {
 		element.clips = [
 			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
@@ -275,5 +286,143 @@ describe('ClipList — grouped category rendering', () => {
 		element.pianorollFilters = { role: 'bitmask' };
 		expect(element.querySelectorAll('clip-instance').length).toBe(1);
 		expect(element.querySelector('clip-instance').clip.clipId).toBe('mask');
+	});
+
+	test('library roleFilter clip includes omitted and empty meta.role', () => {
+		element.clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'empty', meta: { role: '' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'explicit', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true }
+		];
+		element.roleFilter = 'clip';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId).sort();
+		expect(ids).toEqual(['empty', 'explicit', 'omitted']);
+	});
+
+	test('pianorollFilters role clip includes omitted and empty meta.role', () => {
+		element.clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'empty', meta: { role: '' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'explicit', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { role: 'clip' };
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId).sort();
+		expect(ids).toEqual(['empty', 'explicit', 'omitted']);
+	});
+
+	test('library roleFilter bitmask includes only bitmask clips', () => {
+		element.clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'explicit', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true }
+		];
+		element.roleFilter = 'bitmask';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['mask']);
+	});
+
+	test('pianorollFilters role bitmask includes only bitmask clips', () => {
+		element.clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'explicit', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true }
+		];
+		element.pianorollFilters = { role: 'bitmask' };
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['mask']);
+	});
+
+	test('library roleFilter and pianorollFilters role agree on membership for omitted meta.role', () => {
+		const clips = [
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'empty', meta: { role: '' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'explicit', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true }
+		];
+
+		element.clips = clips;
+		element.roleFilter = 'clip';
+		const libraryIds = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId).sort();
+
+		element.roleFilter = '';
+		element.pianorollFilters = { role: 'clip' };
+		const pianoRollIds = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId).sort();
+
+		expect(pianoRollIds).toEqual(libraryIds);
+	});
+
+	test('composing library roleFilter, pianorollFilters, and searchQuery narrows to the intersection', () => {
+		element.clips = [
+			{ clipId: 'kick-clip', meta: { name: 'Kick', role: 'clip', triggerType: 'momentary' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'kick-mask', meta: { name: 'Kick Mask', role: 'bitmask', triggerType: 'momentary' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'snare-clip', meta: { name: 'Snare', role: 'clip', triggerType: 'latch' }, hasSprite: false, pipelineReady: true }
+		];
+		element.roleFilter = 'clip';
+		element.pianorollFilters = { triggerType: 'momentary' };
+		element.searchQuery = 'kick';
+
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['kick-clip']);
+	});
+});
+
+describe('ClipList — sortMode', () => {
+	/** @type {import('../src/js/ClipList.js').default} */
+	let element;
+
+	beforeEach(() => {
+		element = document.createElement('akvj-clip-list');
+		document.body.append(element);
+	});
+
+	afterEach(() => {
+		element.remove();
+	});
+
+	test('sortMode name sorts by meta.name, falling back to clipId when name is omitted', () => {
+		element.clips = [
+			{ clipId: 'zebra', meta: { name: 'Zebra' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'alpha', meta: { name: 'Alpha' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mango', meta: {}, hasSprite: false, pipelineReady: true }
+		];
+		element.sortMode = 'name';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['alpha', 'mango', 'zebra']);
+	});
+
+	test('sortMode clipId sorts by clipId', () => {
+		element.clips = [
+			{ clipId: 'zebra', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'alpha', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mango', meta: {}, hasSprite: false, pipelineReady: true }
+		];
+		element.sortMode = 'clipId';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['alpha', 'mango', 'zebra']);
+	});
+
+	test('sortMode role sorts by meta.role', () => {
+		element.clips = [
+			{ clipId: 'explicit-clip', meta: { role: 'clip' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'mask', meta: { role: 'bitmask' }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'omitted', meta: {}, hasSprite: false, pipelineReady: true }
+		];
+		element.sortMode = 'role';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['omitted', 'mask', 'explicit-clip']);
+	});
+
+	test('sortMode frames sorts numerically, treating omitted frames as 0', () => {
+		element.clips = [
+			{ clipId: 'thirty', meta: { frames: 30 }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'missing', meta: {}, hasSprite: false, pipelineReady: true },
+			{ clipId: 'legacy-twenty', meta: { numberOfFrames: 20 }, hasSprite: false, pipelineReady: true },
+			{ clipId: 'ten', meta: { frames: 10 }, hasSprite: false, pipelineReady: true }
+		];
+		element.sortMode = 'frames';
+		const ids = [...element.querySelectorAll('clip-instance')].map(node => node.clip.clipId);
+		expect(ids).toEqual(['missing', 'ten', 'legacy-twenty', 'thirty']);
 	});
 });

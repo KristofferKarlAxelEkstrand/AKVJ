@@ -7,5 +7,6 @@ describe('midiConstants', () => {
 		expect(MAX_MIDI_VELOCITY).toBe(127);
 		expect(MAX_MIDI_VELOCITY).toBe(MAX_MIDI_DATA_BYTE);
 		expect(MAX_MIDI_NOTE).toBe(127);
+		expect(MAX_MIDI_NOTE).toBe(MAX_MIDI_DATA_BYTE);
 	});
 });

@@ -2,11 +2,11 @@ import '../scss/PreviewClip.scss';
 import { advanceFrame, ShuffleState, PingpongState } from './playbackUtils.js';
 import { computeFrameDrawRect } from './frameFit.js';
 import { DEFAULT_FALLBACK_FRAME_DURATION_MS } from './frameTiming.js';
-import { PLAYBACK_MODES, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
+import { PLAYBACK_MODES, DEFAULT_PLAYBACK, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT } from './clipSchema.js';
 import { computeStagingDisplaySize } from './stagingPreviewDisplay.js';
+import { API_BASE_PATH } from './apiClient.js';
 
 const SPEED_OPTIONS = [0.5, 1, 1.5, 2];
-const FALLBACK_MS = DEFAULT_FALLBACK_FRAME_DURATION_MS;
 
 /**
  * PreviewClip — reusable custom element that previews a clip on a canvas,
@@ -21,7 +21,7 @@ class PreviewClip extends HTMLElement {
 	static observedAttributes = ['clip-id', 'playback-mode', 'is-playing', 'current-frame'];
 
 	#clipId = '';
-	#playbackMode = 'loop';
+	#playbackMode = DEFAULT_PLAYBACK;
 	#isPlaying = false;
 	#currentFrame = 0;
 	#totalFrames = 0;
@@ -104,7 +104,7 @@ class PreviewClip extends HTMLElement {
 
 	/** @param {string} value */
 	set playbackMode(value) {
-		const next = PLAYBACK_MODES.includes(value) ? value : 'loop';
+		const next = PLAYBACK_MODES.includes(value) ? value : DEFAULT_PLAYBACK;
 		if (this.#playbackMode === next) {
 			return;
 		}
@@ -245,7 +245,7 @@ class PreviewClip extends HTMLElement {
 		this.#updateProgress();
 
 		try {
-			const response = await fetch(`/api/clips/${encodeURIComponent(this.#clipId)}/frames`);
+			const response = await fetch(`${API_BASE_PATH}/clips/${encodeURIComponent(this.#clipId)}/frames`);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
@@ -293,13 +293,13 @@ class PreviewClip extends HTMLElement {
 	#normalizeDurationsMs(durationsMs, frameCount) {
 		const normalized = [];
 		for (let i = 0; i < frameCount; i++) {
-			normalized.push(Number.isFinite(durationsMs[i]) && durationsMs[i] > 0 ? durationsMs[i] : FALLBACK_MS);
+			normalized.push(Number.isFinite(durationsMs[i]) && durationsMs[i] > 0 ? durationsMs[i] : DEFAULT_FALLBACK_FRAME_DURATION_MS);
 		}
 		return normalized;
 	}
 
 	#getFrameIntervalMs() {
-		return (this.#durationsMs[this.#currentFrame] ?? FALLBACK_MS) / this.#speed;
+		return (this.#durationsMs[this.#currentFrame] ?? DEFAULT_FALLBACK_FRAME_DURATION_MS) / this.#speed;
 	}
 
 	#setPlaying(playing) {

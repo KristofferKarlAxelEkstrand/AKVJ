@@ -60,10 +60,10 @@ export function nestMappingEntries(entries) {
  * Validate one flat mapping entry (throws on failure — API write paths).
  * @param {object} entry
  * @param {number} index
- * @param {Set<string>} readyClips
+ * @param {Set<string>} readyClipIds
  * @param {Set<string>} seenSlots
  */
-export function validateMappingEntry(entry, index, readyClips, seenSlots) {
+export function validateMappingEntry(entry, index, readyClipIds, seenSlots) {
 	const parsed = parseFlatMappingEntry(entry);
 	if (!parsed.ok) {
 		throw new Error(`Mapping[${index}]: ${parsed.error}`);
@@ -75,7 +75,7 @@ export function validateMappingEntry(entry, index, readyClips, seenSlots) {
 	if (overrideErrors.length > 0) {
 		throw new Error(`Mapping[${index}]: ${overrideErrors.join('; ')}`);
 	}
-	if (!readyClips.has(parsed.clipId)) {
+	if (!readyClipIds.has(parsed.clipId)) {
 		throw new Error(`Mapping[${index}]: clipId "${parsed.clipId}" is missing or incomplete (needs meta.json + sprite + frames/framesPerRow)`);
 	}
 	const slotKey = `${entry.channel}/${entry.note}/${entry.velocity}`;
@@ -88,16 +88,16 @@ export function validateMappingEntry(entry, index, readyClips, seenSlots) {
 /**
  * Validate a flat mapping array against ready clip ids (throws).
  * @param {unknown} mapping
- * @param {Set<string>} readyClips
+ * @param {Set<string>} readyClipIds
  * @returns {Array<{channel: number, note: number, velocity: number, clipId: string, overrides?: Record<string, unknown>}>}
  */
-export function assertValidFlatMapping(mapping, readyClips) {
+export function assertValidFlatMapping(mapping, readyClipIds) {
 	if (!Array.isArray(mapping)) {
 		throw new Error('mapping must be a JSON array');
 	}
 	const seenSlots = new Set();
 	mapping.forEach((entry, index) => {
-		validateMappingEntry(entry, index, readyClips, seenSlots);
+		validateMappingEntry(entry, index, readyClipIds, seenSlots);
 	});
 	return mapping;
 }
@@ -105,19 +105,19 @@ export function assertValidFlatMapping(mapping, readyClips) {
 /**
  * Collect pipeline-style validation errors for a nested key-map.
  * @param {Object} keyMap
- * @param {Set<string>} validIds - Clip ids present in the bucket (pipeline-valid)
+ * @param {Set<string>} readyClipIds - Clip ids present in the bucket (pipeline-valid)
  * @returns {{path: string, errors: string[]}[]}
  */
-export function collectNestedKeyMapErrors(keyMap, validIds) {
+export function collectNestedKeyMapErrors(keyMap, readyClipIds) {
 	const errors = [];
 	const seenSlots = new Set();
 	for (const [channel, notes] of Object.entries(keyMap)) {
-		validateNestedChannel(channel, notes, validIds, seenSlots, errors);
+		validateNestedChannel(channel, notes, readyClipIds, seenSlots, errors);
 	}
 	return errors;
 }
 
-function validateNestedChannel(channel, notes, validIds, seenSlots, errors) {
+function validateNestedChannel(channel, notes, readyClipIds, seenSlots, errors) {
 	const channelNum = Number(channel);
 	if (!Number.isInteger(channelNum) || channelNum < 1 || channelNum > 16) {
 		errors.push({ path: `key-map.json[${channel}]`, errors: [`channel must be an integer 1–16, got ${JSON.stringify(channel)}`] });
@@ -128,11 +128,11 @@ function validateNestedChannel(channel, notes, validIds, seenSlots, errors) {
 		return;
 	}
 	for (const [note, velocities] of Object.entries(notes)) {
-		validateNestedNote(channelNum, note, velocities, validIds, seenSlots, errors);
+		validateNestedNote(channelNum, note, velocities, readyClipIds, seenSlots, errors);
 	}
 }
 
-function validateNestedNote(channelNum, note, velocities, validIds, seenSlots, errors) {
+function validateNestedNote(channelNum, note, velocities, readyClipIds, seenSlots, errors) {
 	const noteNum = Number(note);
 	if (!Number.isInteger(noteNum) || noteNum < 0 || noteNum > 127) {
 		errors.push({ path: `key-map.json[${channelNum}][${note}]`, errors: [`note must be an integer 0–127, got ${JSON.stringify(note)}`] });
@@ -143,11 +143,11 @@ function validateNestedNote(channelNum, note, velocities, validIds, seenSlots, e
 		return;
 	}
 	for (const [velocity, leaf] of Object.entries(velocities)) {
-		validateNestedVelocityEntry(channelNum, noteNum, velocity, leaf, validIds, seenSlots, errors);
+		validateNestedVelocityEntry(channelNum, noteNum, velocity, leaf, readyClipIds, seenSlots, errors);
 	}
 }
 
-function validateNestedVelocityEntry(channelNum, noteNum, velocity, leaf, validIds, seenSlots, errors) {
+function validateNestedVelocityEntry(channelNum, noteNum, velocity, leaf, readyClipIds, seenSlots, errors) {
 	const entryPath = `key-map.json[${channelNum}][${noteNum}][${velocity}]`;
 	const entryErrors = [];
 
@@ -161,7 +161,7 @@ function validateNestedVelocityEntry(channelNum, noteNum, velocity, leaf, validI
 		entryErrors.push(parsed.error);
 	} else if (!isValidClipId(parsed.clipId)) {
 		entryErrors.push(`clipId must be a non-numeric clip folder id, got ${JSON.stringify(parsed.clipId)}`);
-	} else if (!validIds.has(parsed.clipId)) {
+	} else if (!readyClipIds.has(parsed.clipId)) {
 		entryErrors.push(`clipId "${parsed.clipId}" not found in clip bucket`);
 	} else {
 		entryErrors.push(...collectMappingOverrideErrors(parsed.overrides));

@@ -72,16 +72,16 @@ class LayerManager {
 			return;
 		}
 
-		const normalizedValue = value / MAX_MIDI_DATA_BYTE;
+		const normalizedPosition = value / MAX_MIDI_DATA_BYTE;
 
-		if (controller === scrub.layerGroupA_CC) {
-			this.#layerGroupA.setScrubPosition(normalizedValue);
-		} else if (controller === scrub.layerGroupB_CC) {
-			this.#layerGroupB.setScrubPosition(normalizedValue);
-		} else if (controller === scrub.layerGroupC_CC) {
-			this.#layerGroupC.setScrubPosition(normalizedValue);
-		} else if (controller === scrub.mixer_CC) {
-			this.#maskManager.setScrubPosition(normalizedValue);
+		if (controller === scrub.layerGroupACc) {
+			this.#layerGroupA.setScrubPosition(normalizedPosition);
+		} else if (controller === scrub.layerGroupBCc) {
+			this.#layerGroupB.setScrubPosition(normalizedPosition);
+		} else if (controller === scrub.layerGroupCCc) {
+			this.#layerGroupC.setScrubPosition(normalizedPosition);
+		} else if (controller === scrub.mixerCc) {
+			this.#maskManager.setScrubPosition(normalizedPosition);
 		}
 	}
 

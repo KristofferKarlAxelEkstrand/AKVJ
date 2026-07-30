@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidClipId, isValidProjectId, deriveProjectId, clipDir, rawAssetsDir, resolveSafeSpritePath, CLIPS_DIR, KEY_MAP_PATH, RAW_ASSETS_DIR, PROJECTS_DIR, PROJECTS_INDEX_PATH, ACTIVE_PROJECT_PATH } from '../server/paths.js';
+import { isValidClipId, isValidProjectId, deriveProjectId, clipDir, rawAssetsDir, resolveSafeSpritePath, projectClipsDir, projectKeyMapPath, projectRawAssetsRoot, resolveProjectsDir, resolveProjectsIndexPath, resolveActiveProjectPath, DEFAULT_PROJECT_ID } from '../server/paths.js';
 import path from 'path';
 
 describe('paths', () => {
@@ -45,7 +45,7 @@ describe('paths', () => {
 	describe('clipDir', () => {
 		it('returns a path under the project clips dir for valid clip IDs', () => {
 			const result = clipDir('c1-n0-v0');
-			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0'));
+			expect(result).toBe(path.join(projectClipsDir(DEFAULT_PROJECT_ID), 'c1-n0-v0'));
 			expect(result).toContain(path.join('projects', 'default', 'clips'));
 		});
 
@@ -57,9 +57,9 @@ describe('paths', () => {
 	});
 
 	describe('rawAssetsDir', () => {
-		it('returns a path under RAW_ASSETS_DIR for valid clip IDs', () => {
+		it('returns a path under the project raw-assets root for valid clip IDs', () => {
 			const result = rawAssetsDir('c1-n0-v0');
-			expect(result).toBe(path.join(RAW_ASSETS_DIR, 'c1-n0-v0'));
+			expect(result).toBe(path.join(projectRawAssetsRoot(DEFAULT_PROJECT_ID), 'c1-n0-v0'));
 		});
 
 		it('throws for invalid clip IDs', () => {
@@ -72,17 +72,17 @@ describe('paths', () => {
 	describe('resolveSafeSpritePath', () => {
 		it('resolves a valid PNG filename under the clip directory', () => {
 			const result = resolveSafeSpritePath('c1-n0-v0', 'sprite.png');
-			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0', 'sprite.png'));
+			expect(result).toBe(path.join(projectClipsDir(DEFAULT_PROJECT_ID), 'c1-n0-v0', 'sprite.png'));
 		});
 
 		it('accepts uppercase PNG extension', () => {
 			const result = resolveSafeSpritePath('c1-n0-v0', 'sprite.PNG');
-			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0', 'sprite.PNG'));
+			expect(result).toBe(path.join(projectClipsDir(DEFAULT_PROJECT_ID), 'c1-n0-v0', 'sprite.PNG'));
 		});
 
 		it('strips path components from pngName using basename', () => {
 			const result = resolveSafeSpritePath('c1-n0-v0', '../../etc/passwd.png');
-			expect(result).toBe(path.join(CLIPS_DIR, 'c1-n0-v0', 'passwd.png'));
+			expect(result).toBe(path.join(projectClipsDir(DEFAULT_PROJECT_ID), 'c1-n0-v0', 'passwd.png'));
 		});
 
 		it('throws for dotted or traversal filenames', () => {
@@ -108,25 +108,17 @@ describe('paths', () => {
 		});
 	});
 
-	describe('exports', () => {
-		it('exports CLIPS_DIR as a string', () => {
-			expect(typeof CLIPS_DIR).toBe('string');
-			expect(CLIPS_DIR.length).toBeGreaterThan(0);
+	describe('project path helpers', () => {
+		it('resolves project clips, key-map, and raw-assets under projects/', () => {
+			expect(projectClipsDir(DEFAULT_PROJECT_ID)).toContain(path.join('projects', 'default', 'clips'));
+			expect(projectKeyMapPath(DEFAULT_PROJECT_ID).endsWith('key-map.json')).toBe(true);
+			expect(projectRawAssetsRoot(DEFAULT_PROJECT_ID)).toContain('.raw-assets');
 		});
 
-		it('exports RAW_ASSETS_DIR as a string', () => {
-			expect(typeof RAW_ASSETS_DIR).toBe('string');
-			expect(RAW_ASSETS_DIR.length).toBeGreaterThan(0);
-		});
-
-		it('exports KEY_MAP_PATH ending with key-map.json', () => {
-			expect(KEY_MAP_PATH.endsWith('key-map.json')).toBe(true);
-		});
-
-		it('exports project path helpers', () => {
-			expect(typeof PROJECTS_DIR).toBe('string');
-			expect(PROJECTS_INDEX_PATH.endsWith('index.json')).toBe(true);
-			expect(typeof ACTIVE_PROJECT_PATH).toBe('string');
+		it('resolves projects dir, index, and active-project paths', () => {
+			expect(typeof resolveProjectsDir()).toBe('string');
+			expect(resolveProjectsIndexPath().endsWith('index.json')).toBe(true);
+			expect(typeof resolveActiveProjectPath()).toBe('string');
 			expect(isValidProjectId('default')).toBe(true);
 			expect(isValidProjectId('123')).toBe(false);
 			expect(deriveProjectId('Gig Show')).toBe('gig-show');

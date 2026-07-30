@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-import { api, API } from '../src/js/apiClient.js';
+import { api, API_BASE_PATH } from '../src/js/apiClient.js';
 
 describe('apiClient', () => {
 	beforeEach(() => {
@@ -21,7 +21,7 @@ describe('apiClient', () => {
 		});
 		await expect(api('/clips')).resolves.toEqual({ clipId: 'neon' });
 		expect(fetch).toHaveBeenCalledWith(
-			`${API}/clips`,
+			`${API_BASE_PATH}/clips`,
 			expect.objectContaining({
 				headers: expect.objectContaining({ 'Content-Type': 'application/json' })
 			})

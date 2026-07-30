@@ -80,7 +80,7 @@ class Renderer {
 		}
 	}
 
-	#clearCanvas(ctx) {
+	#fillCanvasBackground(ctx) {
 		if (!ctx) {
 			return;
 		}
@@ -102,7 +102,7 @@ class Renderer {
 		const layerGroupB = this.#layerManager?.getLayerGroupB();
 		this.#renderLayerGroup(ctxA, layerGroupA, timestamp);
 		this.#renderLayerGroup(ctxB, layerGroupB, timestamp);
-		this.#clearCanvas(this.#displayContext);
+		this.#fillCanvasBackground(this.#displayContext);
 	}
 
 	/**
@@ -171,7 +171,7 @@ class Renderer {
 			return;
 		}
 
-		this.#clearCanvas(this.#displayContext);
+		this.#fillCanvasBackground(this.#displayContext);
 		const layerReferences = this.#collectLayerReferences();
 		if (!layerReferences.layerGroupA || !this.#compositor?.ctxA) {
 			this.#renderFrameId = requestAnimationFrame(this.#renderLoop);
@@ -209,7 +209,6 @@ class Renderer {
 		this.#compositingInput.isLayerGroupAEmpty = !layerGroupA?.hasActiveClips();
 		this.#compositingInput.isLayerGroupBEmpty = !layerGroupB?.hasActiveClips();
 		this.#compositor.mixLayerGroups(this.#compositingInput, timestamp);
-		this.#effectRenderContext.bpm = this.#bpmProvider.bpm;
 	}
 
 	/**
@@ -219,6 +218,7 @@ class Renderer {
 	 * @param {number} timestamp
 	 */
 	#applyEffectsAndOverlay(effectsManager, layerGroupC, timestamp) {
+		this.#effectRenderContext.bpm = this.#bpmProvider.bpm;
 		if (effectsManager?.hasMixedOutputEffects()) {
 			this.#effectsPipeline.apply(this.#compositor.ctxMixed, effectsManager.getActiveMixedOutputEffects(), timestamp, this.#effectRenderContext);
 		}

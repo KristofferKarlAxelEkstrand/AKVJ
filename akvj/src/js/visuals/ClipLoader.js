@@ -10,6 +10,7 @@ import ProjectCatalog from './ProjectCatalog.js';
 
 const DEFAULT_MAX_CONCURRENT_LOADS = 8;
 const DEFAULT_PROJECT_ID = 'default';
+const MAX_CLIP_FILENAME_LENGTH = 255;
 
 /** Allowed key-map leaf override keys (mirrors mainframe/shared/mappingLeaf.js — no cross-package import). */
 const MAPPING_OVERRIDE_KEYS = Object.freeze(['triggerType', 'triggerGroup', 'sync', 'syncLength', 'syncBeats', 'beatsPerBar']);
@@ -44,7 +45,7 @@ class ClipLoader {
 		}
 
 		// Reject excessively long filenames (DoS protection)
-		if (filename.length > 255) {
+		if (filename.length > MAX_CLIP_FILENAME_LENGTH) {
 			console.warn('ClipLoader: invalid file name (exceeds maximum length)', filename);
 			return '';
 		}
@@ -154,7 +155,7 @@ class ClipLoader {
 			const normalized = normalizeClipMetadata(clipMetadata);
 			return new Clip({
 				image,
-				frames: normalized.frames,
+				frameCount: normalized.frames,
 				framesPerRow: normalized.framesPerRow,
 				playback: normalized.playback,
 				frameRatesForFrames: normalized.frameRatesForFrames ?? undefined,

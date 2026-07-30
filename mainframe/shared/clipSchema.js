@@ -36,17 +36,41 @@ export function resolvePlacement(rawPlacement) {
 	};
 }
 
-/** Canonical playback modes supported by the engine. */
-export const PLAYBACK_MODES = Object.freeze(['once', 'loop', 'pingpong', 'random', 'reverse', 'shuffle', 'scrub']);
+/**
+ * Canonical playback modes supported by the engine.
+ * @readonly
+ * @enum {string}
+ */
+export const PLAYBACK_MODE = Object.freeze({
+	ONCE: 'once',
+	LOOP: 'loop',
+	PINGPONG: 'pingpong',
+	RANDOM: 'random',
+	REVERSE: 'reverse',
+	SHUFFLE: 'shuffle',
+	SCRUB: 'scrub'
+});
+
+/** Canonical playback modes as a list, for validation and defaulting. */
+export const PLAYBACK_MODES = Object.freeze(Object.values(PLAYBACK_MODE));
 
 /** Default playback mode when none is specified. */
-export const DEFAULT_PLAYBACK = 'loop';
+export const DEFAULT_PLAYBACK = PLAYBACK_MODE.LOOP;
 
 /** Supported trigger types. */
 export const TRIGGER_TYPES = Object.freeze(['momentary', 'latch', 'one-shot']);
 
 /** Default trigger type when none is specified. */
 export const DEFAULT_TRIGGER_TYPE = 'momentary';
+
+/**
+ * Resolve effective trigger type from raw meta (missing/empty → momentary).
+ * @param {unknown} rawTriggerType
+ * @returns {string}
+ */
+export function resolveTriggerType(rawTriggerType) {
+	return typeof rawTriggerType === 'string' && rawTriggerType ? rawTriggerType : DEFAULT_TRIGGER_TYPE;
+}
 
 /** Default frame rate (FPS). */
 export const DEFAULT_FRAME_RATE = 12;

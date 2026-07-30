@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { redistributeVelocities, insertionIndexForDropVelocity, clipHue, MIN_REGION_VELOCITY } from '../src/js/PianoKey.js';
+import { redistributeVelocities, insertionIndexForDropVelocity, clipHue, MIN_REGION_VELOCITY, MIME_AKVJ_CLIP_ID, MIME_AKVJ_MAPPING_MOVE } from '../src/js/PianoKey.js';
 import '../src/js/PianoRoll.js';
 
 /**
@@ -16,6 +16,27 @@ function press(target) {
  */
 function touchPress(target) {
 	target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'touch', button: 0 }));
+}
+
+/**
+ * MIME-aware DataTransfer mock for clip drops (move MIME returns empty).
+ * @param {string} clipId
+ * @param {string[]} [types]
+ */
+function clipDropDataTransfer(clipId, types = [MIME_AKVJ_CLIP_ID]) {
+	return {
+		types,
+		dropEffect: 'none',
+		getData: type => {
+			if (type === MIME_AKVJ_MAPPING_MOVE) {
+				return '';
+			}
+			if (type === MIME_AKVJ_CLIP_ID || type === 'text/plain') {
+				return clipId;
+			}
+			return '';
+		}
+	};
 }
 
 describe('PianoRoll', () => {
@@ -229,6 +250,29 @@ describe('PianoRoll', () => {
 		expect(softRegion.classList.contains('is-filtered-out')).toBe(true);
 	});
 
+	test('momentary filter keeps regions whose clip omits triggerType', () => {
+		element.mode = 'select';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'omitted', meta: {} },
+			{ clipId: 'latch', meta: { triggerType: 'latch' } }
+		];
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'omitted' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'latch' }
+		];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		element.filters = { triggerType: 'momentary' };
+
+		const regions = key.querySelectorAll('.velocity-region');
+		const omittedRegion = [...regions].find(region => region.dataset.clipId === 'omitted');
+		const latchRegion = [...regions].find(region => region.dataset.clipId === 'latch');
+
+		expect(omittedRegion.classList.contains('is-filtered-out')).toBe(false);
+		expect(latchRegion.classList.contains('is-filtered-out')).toBe(true);
+	});
+
 	test('highlights mapped notes for current channel', () => {
 		element.mode = 'select';
 		element.channel = 1;
@@ -298,6 +342,165 @@ describe('PianoRoll', () => {
 		expect(keys[60].classList.contains('is-active')).toBe(false);
 		expect(keys[64].classList.contains('is-active')).toBe(false);
 		expect(offs).toEqual([60, 64]);
+	});
+
+	test('play mode renders velocity slider and empty preview', () => {
+		element.mode = 'play';
+		const slider = element.querySelector('.piano-roll-velocity-slider');
+		const readout = element.querySelector('.piano-roll-velocity-readout');
+		const preview = element.querySelector('preview-clip');
+		const empty = element.querySelector('.piano-roll-preview-empty');
+		expect(slider).toBeTruthy();
+		expect(slider.min).toBe('0');
+		expect(slider.max).toBe('127');
+		expect(readout.textContent).toBe(slider.value);
+		expect(empty).toBeTruthy();
+		expect(empty.hidden).toBe(false);
+		expect(preview).toBeTruthy();
+		expect(preview.hidden).toBe(true);
+		expect(preview.clipId).toBe('');
+		expect(element.querySelector('.piano-roll-play-view').hidden).toBe(false);
+	});
+
+	test('play mode note-on uses slider velocity when click has no Y', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		vi.spyOn(preview, 'stop').mockImplementation(() => {});
+
+		const slider = element.querySelector('.piano-roll-velocity-slider');
+		slider.value = '90';
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+
+		let detail = null;
+		element.addEventListener('pianoroll:note-on', event => {
+			detail = event.detail;
+		});
+		press(element.querySelectorAll('piano-key')[60]);
+
+		expect(detail.velocity).toBe(90);
+		expect(detail.clipId).toBe('kick');
+		expect(element.querySelector('.piano-roll-velocity-readout').textContent).toBe('90');
+	});
+
+	test('play mode click Y maps velocity and selects clip by floor', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		vi.spyOn(preview, 'stop').mockImplementation(() => {});
+
+		const key = element.querySelectorAll('piano-key')[60];
+		Object.defineProperty(key, 'getBoundingClientRect', {
+			value: () => ({ top: 0, bottom: 100, left: 0, right: 20, width: 20, height: 100 })
+		});
+
+		let detail = null;
+		element.addEventListener('pianoroll:note-on', event => {
+			detail = event.detail;
+		});
+
+		// Near top of key → high velocity → hard clip (threshold 64).
+		key.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse', button: 0, clientY: 10 }));
+
+		expect(detail.velocity).toBeGreaterThanOrEqual(64);
+		expect(detail.clipId).toBe('hard');
+		expect(element.querySelector('.piano-roll-velocity-slider').value).toBe(String(detail.velocity));
+		expect(element.querySelector('.piano-roll-velocity-readout').textContent).toBe(String(detail.velocity));
+		expect(key.classList.contains('is-active')).toBe(true);
+	});
+
+	test('play mode mapped note-on starts preview and release stops it', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
+		const preview = element.querySelector('preview-clip');
+		const empty = element.querySelector('.piano-roll-preview-empty');
+		const playSpy = vi.spyOn(preview, 'play').mockImplementation(() => {});
+		const stopSpy = vi.spyOn(preview, 'stop').mockImplementation(() => {});
+		const key = element.querySelectorAll('piano-key')[60];
+
+		press(key);
+		expect(preview.clipId).toBe('kick');
+		expect(playSpy).toHaveBeenCalled();
+		expect(preview.hidden).toBe(false);
+		expect(empty.hidden).toBe(true);
+		expect(key.classList.contains('is-active')).toBe(true);
+
+		press(key);
+		expect(stopSpy).toHaveBeenCalled();
+		expect(preview.clipId).toBe('');
+		expect(preview.hidden).toBe(true);
+		expect(empty.hidden).toBe(false);
+		expect(key.classList.contains('is-active')).toBe(false);
+	});
+
+	test('play mode playbackended clears active indicator', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		vi.spyOn(preview, 'stop').mockImplementation(() => {});
+		const key = element.querySelectorAll('piano-key')[60];
+		const offs = [];
+		element.addEventListener('pianoroll:note-off', event => offs.push(event.detail.note));
+
+		press(key);
+		expect(key.classList.contains('is-active')).toBe(true);
+
+		preview.dispatchEvent(new CustomEvent('playbackended', { bubbles: true }));
+		expect(key.classList.contains('is-active')).toBe(false);
+		expect(offs).toEqual([60]);
+		expect(preview.clipId).toBe('');
+	});
+
+	test('play mode leaving play, clearSelection, and disconnect stop preview', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'kick' }];
+		const preview = element.querySelector('preview-clip');
+		const empty = element.querySelector('.piano-roll-preview-empty');
+		const playSpy = vi.spyOn(preview, 'play').mockImplementation(() => {});
+		const stopSpy = vi.spyOn(preview, 'stop').mockImplementation(() => {});
+		const key = element.querySelectorAll('piano-key')[60];
+
+		press(key);
+		expect(playSpy).toHaveBeenCalled();
+		expect(preview.clipId).toBe('kick');
+
+		element.clearSelection();
+		expect(stopSpy).toHaveBeenCalled();
+		expect(preview.clipId).toBe('');
+		expect(preview.hidden).toBe(true);
+		expect(empty.hidden).toBe(false);
+		expect(key.classList.contains('is-active')).toBe(false);
+
+		stopSpy.mockClear();
+		playSpy.mockClear();
+		press(key);
+		expect(preview.clipId).toBe('kick');
+
+		element.mode = 'edit';
+		expect(stopSpy).toHaveBeenCalled();
+		expect(preview.clipId).toBe('');
+		expect(key.classList.contains('is-active')).toBe(false);
+
+		element.mode = 'play';
+		const reconnectPreview = element.querySelector('preview-clip');
+		vi.spyOn(reconnectPreview, 'play').mockImplementation(() => {});
+		const disconnectStop = vi.spyOn(reconnectPreview, 'stop').mockImplementation(() => {});
+		press(element.querySelectorAll('piano-key')[60]);
+		expect(reconnectPreview.clipId).toBe('kick');
+
+		element.remove();
+		expect(disconnectStop).toHaveBeenCalled();
 	});
 
 	test('clearSelection removes active highlights in select mode', () => {
@@ -635,10 +838,7 @@ describe('PianoRoll', () => {
 			addFired = true;
 		});
 
-		const dataTransfer = {
-			types: ['application/x-akvj-clip-id'],
-			getData: () => 'new-clip'
-		};
+		const dataTransfer = clipDropDataTransfer('new-clip');
 		const event = new Event('drop', { bubbles: true, cancelable: true });
 		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
 
@@ -665,10 +865,7 @@ describe('PianoRoll', () => {
 			addDetail = event.detail;
 		});
 
-		const dataTransfer = {
-			types: ['application/x-akvj-clip-id'],
-			getData: () => 'new-clip'
-		};
+		const dataTransfer = clipDropDataTransfer('new-clip');
 		const event = new Event('drop', { bubbles: true, cancelable: true });
 		Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
 
@@ -761,11 +958,7 @@ describe('PianoRoll', () => {
 			detail = event.detail;
 		});
 
-		const dataTransfer = {
-			types: ['application/x-akvj-clip-id', 'text/plain'],
-			getData: type => (type === 'application/x-akvj-clip-id' || type === 'text/plain' ? 'hard' : ''),
-			dropEffect: 'none'
-		};
+		const dataTransfer = clipDropDataTransfer('hard', [MIME_AKVJ_CLIP_ID, 'text/plain']);
 		const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
 		Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
 		Object.defineProperty(dropEvent, 'clientY', { value: 16 }); // near top → high-velocity end
@@ -864,12 +1057,31 @@ describe('PianoRoll', () => {
 		region.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 0, clientY: 0 }));
 
 		expect(tooltip.hidden).toBe(false);
-		expect(tooltip.innerHTML).toContain('soft');
-		expect(tooltip.innerHTML).toContain('Soft kick');
-		expect(tooltip.innerHTML).toContain('momentary');
+		expect(tooltip.textContent).toContain('soft');
+		expect(tooltip.textContent).toContain('Soft kick');
+		expect(tooltip.textContent).toContain('momentary');
+		expect(tooltip.querySelectorAll('br').length).toBeGreaterThan(0);
 
 		region.dispatchEvent(new PointerEvent('pointerleave', { bubbles: true }));
 		expect(tooltip.hidden).toBe(true);
+	});
+
+	test('edit mode tooltip renders markup in clipId as text', () => {
+		const maliciousId = '<img src=x onerror=alert(1)>';
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: maliciousId }];
+
+		const key = element.querySelectorAll('piano-key')[60];
+		const region = key.querySelector('.velocity-region');
+		const tooltip = element.querySelector('.piano-roll-tooltip');
+
+		region.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 0, clientY: 0 }));
+
+		expect(tooltip.hidden).toBe(false);
+		expect(tooltip.textContent).toContain(maliciousId);
+		expect(tooltip.querySelector('img')).toBeNull();
+		expect(tooltip.innerHTML).not.toContain('<img');
 	});
 
 	test('filter mode renders filter controls and summary', () => {
@@ -1019,6 +1231,57 @@ describe('PianoRoll', () => {
 		expect(element.querySelector('.piano-roll-filter-summary').textContent).toBe('No active filters');
 	});
 
+	test('filter state persists to localStorage per element id', () => {
+		localStorage.clear();
+		element.id = 'library-piano-roll';
+		element.mode = 'filter';
+		element.filters = {
+			clipId: 'kick',
+			triggerType: 'latch',
+			role: 'bitmask',
+			layerGroup: 'A',
+			showOnlyPopulated: true
+		};
+
+		expect(JSON.parse(localStorage.getItem('akvj:piano-roll:filters:library-piano-roll'))).toEqual({
+			clipId: 'kick',
+			triggerType: 'latch',
+			role: 'bitmask',
+			layerGroup: 'A',
+			showOnlyPopulated: true
+		});
+
+		element.remove();
+		const restored = document.createElement('piano-roll');
+		restored.id = 'library-piano-roll';
+		document.body.append(restored);
+		expect(restored.filters).toEqual({
+			clipId: 'kick',
+			triggerType: 'latch',
+			role: 'bitmask',
+			layerGroup: 'A',
+			showOnlyPopulated: true
+		});
+		expect(restored.querySelector('.piano-roll-filter-clip-id').value).toBe('kick');
+		restored.remove();
+
+		const other = document.createElement('piano-roll');
+		other.id = 'mapping-piano-roll';
+		document.body.append(other);
+		expect(other.filters.clipId).toBe('');
+		other.remove();
+	});
+
+	test('filter-storage-key attribute namespaces persistence independently of id', () => {
+		localStorage.clear();
+		element.setAttribute('filter-storage-key', 'custom-filters');
+		element.mode = 'filter';
+		element.filters = { clipId: 'snare' };
+		expect(localStorage.getItem('akvj:piano-roll:filters:custom-filters')).toContain('snare');
+		element.resetFilters();
+		expect(JSON.parse(localStorage.getItem('akvj:piano-roll:filters:custom-filters')).clipId).toBe('');
+	});
+
 	test('mode switch to filter and back preserves channel and mappings', () => {
 		element.mode = 'edit';
 		element.channel = 3;
@@ -1030,5 +1293,117 @@ describe('PianoRoll', () => {
 
 		element.mode = 'edit';
 		expect(element.channel).toBe(3);
+	});
+
+	test('edit mode shows undo/redo and batch toolbar', () => {
+		element.mode = 'edit';
+		expect(element.querySelector('.piano-roll-edit-controls')).toBeTruthy();
+		expect(element.querySelector('.piano-roll-edit-undo').disabled).toBe(true);
+		expect(element.querySelector('.piano-roll-edit-redo').disabled).toBe(true);
+		element.mode = 'play';
+		expect(element.querySelector('.piano-roll-edit-controls').hidden).toBe(true);
+	});
+
+	test('edit mode undo restores mappings after remove', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+
+		const region = element.querySelectorAll('piano-key')[60].querySelector('[data-clip-id="soft"]');
+		region.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+		expect(element.mappings.filter(entry => entry.note === 60)).toEqual([{ channel: 1, note: 60, velocity: 0, clipId: 'hard' }]);
+
+		element.querySelector('.piano-roll-edit-undo').click();
+		expect(element.mappings).toEqual([
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		]);
+	});
+
+	test('edit mode shift-click selects multiple regions for batch delete', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'a' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'b' },
+			{ channel: 1, note: 64, velocity: 0, clipId: 'c' }
+		];
+
+		const key60 = element.querySelectorAll('piano-key')[60];
+		const key64 = element.querySelectorAll('piano-key')[64];
+		key60.querySelector('[data-clip-id="a"]').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse', button: 0 }));
+		key64.querySelector('[data-clip-id="c"]').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse', button: 0, shiftKey: true }));
+
+		expect(key60.querySelector('[data-clip-id="a"]').classList.contains('is-batch-selected')).toBe(true);
+		expect(key64.querySelector('[data-clip-id="c"]').classList.contains('is-batch-selected')).toBe(true);
+
+		element.querySelector('.piano-roll-edit-delete-selected').click();
+		expect(element.mappings).toEqual([{ channel: 1, note: 60, velocity: 0, clipId: 'b' }]);
+	});
+
+	test('edit mode assign button replaces clipId on selected cells', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'soft' },
+			{ channel: 1, note: 60, velocity: 64, clipId: 'hard' }
+		];
+		const region = element.querySelectorAll('piano-key')[60].querySelector('[data-clip-id="hard"]');
+		region.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerType: 'mouse', button: 0 }));
+
+		const input = element.querySelector('.piano-roll-edit-assign-input');
+		input.value = 'slam';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		element.querySelector('.piano-roll-edit-assign-button').click();
+
+		expect(element.mappings.map(entry => entry.clipId).sort()).toEqual(['slam', 'soft']);
+	});
+
+	test('edit mode region drag-move relocates clip across notes', () => {
+		element.mode = 'edit';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 60, velocity: 0, clipId: 'kick' },
+			{ channel: 1, note: 64, velocity: 0, clipId: 'hat' }
+		];
+
+		const target = element.querySelectorAll('piano-key')[64];
+		vi.spyOn(target, 'getBoundingClientRect').mockReturnValue({
+			top: 0,
+			bottom: 100,
+			left: 0,
+			right: 20,
+			width: 20,
+			height: 100,
+			x: 0,
+			y: 0,
+			toJSON() {
+				return {};
+			}
+		});
+
+		const dataTransfer = {
+			types: [MIME_AKVJ_MAPPING_MOVE, MIME_AKVJ_CLIP_ID],
+			getData: type => {
+				if (type === MIME_AKVJ_MAPPING_MOVE) {
+					return JSON.stringify({ note: 60, velocity: 0, clipId: 'kick' });
+				}
+				if (type === MIME_AKVJ_CLIP_ID) {
+					return 'kick';
+				}
+				return '';
+			},
+			dropEffect: 'none'
+		};
+		const dropEvent = new Event('drop', { bubbles: true, cancelable: true });
+		Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
+		Object.defineProperty(dropEvent, 'clientY', { value: 10 });
+		target.dispatchEvent(dropEvent);
+
+		expect(element.mappings.filter(entry => entry.note === 60)).toEqual([]);
+		expect(element.mappings.filter(entry => entry.note === 64).map(entry => entry.clipId)).toEqual(['hat', 'kick']);
 	});
 });

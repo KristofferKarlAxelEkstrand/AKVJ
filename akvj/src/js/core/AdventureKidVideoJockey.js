@@ -21,7 +21,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 	#unsubscribers = [];
 	#loadingOverlay = null;
 	#userMessages = null;
-	#isSwitchingProject = false;
+	#isProjectSwitching = false;
 
 	constructor() {
 		super();
@@ -45,12 +45,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	/**
-	 * Set up event listeners for MIDI events from app state
+	 * Subscribe to MIDI events from app state
 	 */
-	#setupMIDIEventListeners() {
+	#subscribeMidiEventListeners() {
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_NOTE_ON, event => {
-				if (!this.#layerManager || this.#isSwitchingProject) {
+				if (!this.#layerManager || this.#isProjectSwitching) {
 					return;
 				}
 				const { channel, note, velocity } = event.detail;
@@ -60,7 +60,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_NOTE_OFF, event => {
-				if (!this.#layerManager || this.#isSwitchingProject) {
+				if (!this.#layerManager || this.#isProjectSwitching) {
 					return;
 				}
 				const { channel, note } = event.detail;
@@ -70,7 +70,7 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_MIDI_CONTROL_CHANGE, event => {
-				if (!this.#layerManager || this.#isSwitchingProject) {
+				if (!this.#layerManager || this.#isProjectSwitching) {
 					return;
 				}
 				this.#layerManager.handleControlChange(event);
@@ -79,9 +79,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 	}
 
 	/**
-	 * Set up event listeners for project switching from app state
+	 * Subscribe to project switching events from app state
 	 */
-	#setupProjectEventListeners() {
+	#subscribeProjectEventListeners() {
 		this.#unsubscribers.push(
 			appState.subscribe(EVENT_PROJECT_SWITCH_REQUESTED, event => {
 				this.#handleProjectSwitch(event.detail);
@@ -93,12 +93,19 @@ class AdventureKidVideoJockey extends HTMLElement {
 	 * Handle a project switch request from MIDI.
 	 * The detail may contain either a { projectId } string or a { note } number
 	 * that maps to a project index in the projects index array.
+	 *
+	 * Holds the switch gate before any await so concurrent ch-14 note-ons cannot
+	 * interleave resolve + load (one destroyClips wiping the other's catalog).
 	 * @param {{projectId?: string, note?: number}} detail
 	 */
 	async #handleProjectSwitch(detail) {
-		if (this.#isSwitchingProject) {
+		if (this.#isProjectSwitching) {
 			return;
 		}
+
+		// Gate before resolve/load I/O — not only inside #switchProject
+		this.#isProjectSwitching = true;
+		appState.isProjectSwitching = true;
 
 		let projectId = null;
 		if (typeof detail.projectId === 'string') {
@@ -108,9 +115,13 @@ class AdventureKidVideoJockey extends HTMLElement {
 		}
 
 		if (!projectId || projectId === appState.activeProjectId) {
+			// Failed resolve / same project — release gate held for the note path
+			this.#isProjectSwitching = false;
+			appState.isProjectSwitching = false;
 			return;
 		}
 
+		// #switchProject clears the gate before dispatching complete/error
 		await this.#switchProject(projectId);
 	}
 
@@ -133,12 +144,12 @@ class AdventureKidVideoJockey extends HTMLElement {
 
 	/**
 	 * Switch to a new project: freeze rendering, show overlay, load clips, swap, hide overlay.
+	 * Caller must already hold #isProjectSwitching / appState.isProjectSwitching.
+	 * Clears the gate synchronously before complete/error so listeners (and MIDI)
+	 * see a free path in the same turn as the event — not one microtask later.
 	 * @param {string} projectId
 	 */
 	async #switchProject(projectId) {
-		this.#isSwitchingProject = true;
-		appState.projectSwitching = true;
-
 		// Freeze the renderer — keep showing the last frame
 		this.#renderer?.freeze();
 
@@ -154,6 +165,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 			appState.activeProjectId = projectId;
 
 			this.#renderer?.unfreeze();
+			// Clear before complete: dispatchProjectLoadComplete also clears isProjectSwitching
+			this.#isProjectSwitching = false;
 			appState.dispatchProjectLoadComplete(projectId);
 
 			if (import.meta.env.DEV) {
@@ -162,11 +175,10 @@ class AdventureKidVideoJockey extends HTMLElement {
 		} catch (error) {
 			console.error(`Failed to switch to project "${projectId}":`, error);
 			this.#renderer?.unfreeze();
+			this.#isProjectSwitching = false;
 			appState.dispatchProjectLoadError(projectId, error.message);
-			appState.error(`Failed to switch to project "${projectId}": ${error.message}`);
+			appState.showError(`Failed to switch to project "${projectId}": ${error.message}`);
 		}
-
-		this.#isSwitchingProject = false;
 	}
 
 	/**
@@ -194,8 +206,8 @@ class AdventureKidVideoJockey extends HTMLElement {
 		this.appendChild(this.#userMessages);
 
 		// Safe to register even when visuals are disabled
-		this.#setupMIDIEventListeners();
-		this.#setupProjectEventListeners();
+		this.#subscribeMidiEventListeners();
+		this.#subscribeProjectEventListeners();
 
 		this.#initializeVisuals();
 	}
@@ -263,9 +275,9 @@ class AdventureKidVideoJockey extends HTMLElement {
 			appState.clipsLoaded = true;
 			return this.#loadedClips;
 		} catch (error) {
-			console.error(`Failed to set up clips from ${jsonUrl}:`, error);
+			console.error(`Failed to load clips from ${jsonUrl}:`, error);
 			appState.clipsLoaded = false;
-			appState.error(`Failed to load clips: ${error.message}`);
+			appState.showError(`Failed to load clips: ${error.message}`);
 			appState.dispatchClipLoadError(jsonUrl, error.message);
 			return {};
 		}

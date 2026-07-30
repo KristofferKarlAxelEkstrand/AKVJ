@@ -1,9 +1,13 @@
 import { describe, test, expect } from 'vitest';
-import { MS_PER_MINUTE, msPerBeat } from '../src/js/utils/timing.js';
+import { MS_PER_MINUTE, MS_PER_SECOND, msPerBeat } from '../src/js/utils/timing.js';
 
 describe('timing helpers', () => {
 	test('MS_PER_MINUTE is exactly 60000', () => {
 		expect(MS_PER_MINUTE).toBe(60000);
+	});
+
+	test('MS_PER_SECOND is exactly 1000', () => {
+		expect(MS_PER_SECOND).toBe(1000);
 	});
 
 	test('msPerBeat calculates milliseconds correctly', () => {

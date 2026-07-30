@@ -119,9 +119,7 @@ export async function clearStaleMainframeDevServer() {
 	if (missing.length === 0) {
 		return { action: 'none', reason: 'mainframe module graph matches disk' };
 	}
-	console.warn(
-		`[e2e] Stale mainframe Vite still imports missing modules (${missing.join(', ')}); freeing ports ${MAINFRAME_PORTS.join(', ')}`
-	);
+	console.warn(`[e2e] Stale mainframe Vite still imports missing modules (${missing.join(', ')}); freeing ports ${MAINFRAME_PORTS.join(', ')}`);
 	await freePortsAndWait(MAINFRAME_PORTS);
 	return { action: 'freed', missing };
 }

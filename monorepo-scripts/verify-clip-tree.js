@@ -24,20 +24,9 @@ const PUBLIC_ROOT = path.join(REPO_ROOT, 'akvj', 'src', 'public');
  * Required generated artifacts. The clip pipeline writes both; Vite copies both
  * into `dist/`. Either missing means the pipeline has not run.
  */
-const REQUIRED_PATHS = [
-	path.join(PUBLIC_ROOT, 'projects', 'index.json'),
-	path.join(PUBLIC_ROOT, 'active-project.json')
-];
+const REQUIRED_PATHS = [path.join(PUBLIC_ROOT, 'projects', 'index.json'), path.join(PUBLIC_ROOT, 'active-project.json')];
 
-const FIX_MESSAGE = [
-	'',
-	'The generated clip tree is missing — `npm run build` would produce a clip-less dist/.',
-	'Run one of:',
-	'  npm run clips        # generate the clip tree only',
-	'  npm run build:full   # generate the clip tree, then build',
-	'  npm run build:all    # clips + akvj + mainframe',
-	''
-].join('\n');
+const FIX_MESSAGE = ['', 'The generated clip tree is missing — `npm run build` would produce a clip-less dist/.', 'Run one of:', '  npm run clips        # generate the clip tree only', '  npm run build:full   # generate the clip tree, then build', '  npm run build:all    # clips + akvj + mainframe', ''].join('\n');
 
 /**
  * Return the list of required generated artifacts that are absent.

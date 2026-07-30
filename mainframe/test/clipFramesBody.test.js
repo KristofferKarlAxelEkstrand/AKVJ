@@ -1,22 +1,22 @@
 // @vitest-environment node
 
 import { describe, test, expect } from 'vitest';
-import { decodeFrameDataUrls, parseClipFramesBody } from '../server/clipFramesBody.js';
+import { decodeFrameBase64, parseClipFramesBody } from '../server/clipFramesBody.js';
 
 const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47]).toString('base64');
 const JPEG_B64 = Buffer.from([0xff, 0xd8, 0xff]).toString('base64');
 const GIF_B64 = Buffer.from('GIF89a').toString('base64');
 
-describe('decodeFrameDataUrls', () => {
+describe('decodeFrameBase64', () => {
 	test('decodes raw base64 without a data-URL prefix', () => {
-		const [buf] = decodeFrameDataUrls([PNG_B64]);
+		const [buf] = decodeFrameBase64([PNG_B64]);
 		expect(Buffer.isBuffer(buf)).toBe(true);
 		expect(buf.equals(Buffer.from(PNG_B64, 'base64'))).toBe(true);
 	});
 
 	test('decodes mixed data-URL formats (png, jpeg, gif)', () => {
 		const frames = [`data:image/png;base64,${PNG_B64}`, `data:image/jpeg;base64,${JPEG_B64}`, `data:image/gif;base64,${GIF_B64}`];
-		const buffers = decodeFrameDataUrls(frames);
+		const buffers = decodeFrameBase64(frames);
 		expect(buffers).toHaveLength(3);
 		expect(buffers[0].equals(Buffer.from(PNG_B64, 'base64'))).toBe(true);
 		expect(buffers[1].equals(Buffer.from(JPEG_B64, 'base64'))).toBe(true);
@@ -41,12 +41,13 @@ describe('parseClipFramesBody', () => {
 
 	test('empty frames array yields null frameBuffers', () => {
 		const parsed = parseClipFramesBody({ frames: [] });
-		expect(parsed.frames).toEqual([]);
 		expect(parsed.frameBuffers).toBeNull();
+		expect(parsed.frames).toBeUndefined();
 	});
 
-	test('converts frameDurationsMs to frameRatesForFrames', () => {
+	test('keeps frameDurationsMs and derives frameRatesForFrames', () => {
 		const parsed = parseClipFramesBody({ frameDurationsMs: [500, 250] });
+		expect(parsed.frameDurationsMs).toEqual([500, 250]);
 		expect(parsed.frameRatesForFrames).toEqual({ 0: 2, 1: 4 });
 	});
 

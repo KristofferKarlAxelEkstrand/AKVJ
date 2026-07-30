@@ -1,6 +1,9 @@
 import '../scss/ClipList.scss';
 import { ClipCategory } from './ClipCategory.js';
 import { ClipInstance } from './ClipInstance.js';
+import { resolveTriggerType } from './clipSchema.js';
+import { SORT_MODE, DEFAULT_SORT_MODE } from './sortMode.js';
+import { DEFAULT_CLIP_ROLE } from './clipRole.js';
 
 /**
  * ClipList — custom element encapsulating the clip library list.
@@ -17,7 +20,7 @@ class ClipList extends HTMLElement {
 	#loadedClips = [];
 	#searchQuery = '';
 	#roleFilter = '';
-	#sortMode = 'name';
+	#sortMode = DEFAULT_SORT_MODE;
 	#pianorollFilters = {};
 	#showMapAction = true;
 
@@ -111,7 +114,7 @@ class ClipList extends HTMLElement {
 			return;
 		}
 
-		const filteredClips = this.#filterClips();
+		const filteredClips = this.#filterAndSortClips();
 		if (filteredClips.length === 0) {
 			const noMatch = document.createElement('li');
 			noMatch.textContent = `No clips match "${this.#searchQuery}".`;
@@ -150,23 +153,24 @@ class ClipList extends HTMLElement {
 		return grouped;
 	}
 
-	#filterClips() {
+	#filterAndSortClips() {
 		const filters = this.#pianorollFilters;
 		const clipIdFilter = (filters.clipId || '').toLowerCase();
 		const triggerTypeFilter = filters.triggerType || '';
-		const rolePianoFilter = filters.role || '';
+		const pianoRollRoleFilter = filters.role || '';
 		const filtered = this.#loadedClips.filter(clip => {
-			const clipRole = clip.meta.role || 'clip';
+			const clipRole = clip.meta.role || DEFAULT_CLIP_ROLE;
 			if (this.#roleFilter && clipRole !== this.#roleFilter) {
 				return false;
 			}
 			if (clipIdFilter && !clip.clipId.toLowerCase().includes(clipIdFilter)) {
 				return false;
 			}
-			if (triggerTypeFilter && clip.meta.triggerType !== triggerTypeFilter) {
+			if (triggerTypeFilter && resolveTriggerType(clip.meta.triggerType) !== triggerTypeFilter) {
 				return false;
 			}
-			if (rolePianoFilter && clip.meta.role !== rolePianoFilter) {
+			// Same default as library chip path — omitted/empty role is "clip".
+			if (pianoRollRoleFilter && clipRole !== pianoRollRoleFilter) {
 				return false;
 			}
 			if (!this.#searchQuery) {
@@ -180,13 +184,13 @@ class ClipList extends HTMLElement {
 
 		filtered.sort((clipA, clipB) => {
 			switch (this.#sortMode) {
-				case 'clipId':
+				case SORT_MODE.clipId:
 					return clipA.clipId.localeCompare(clipB.clipId);
-				case 'role':
+				case SORT_MODE.role:
 					return (clipA.meta.role || '').localeCompare(clipB.meta.role || '');
-				case 'frames':
+				case SORT_MODE.frames:
 					return (clipA.meta.frames ?? clipA.meta.numberOfFrames ?? 0) - (clipB.meta.frames ?? clipB.meta.numberOfFrames ?? 0);
-				case 'name':
+				case SORT_MODE.name:
 				default:
 					return (clipA.meta.name || clipA.clipId).localeCompare(clipB.meta.name || clipB.clipId);
 			}

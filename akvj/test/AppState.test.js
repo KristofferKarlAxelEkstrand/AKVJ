@@ -1,6 +1,6 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import defaultSettings from '../src/js/core/settings.js';
-import { createAppState, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_MIDI_CONNECTION_CHANGED, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_CLIP_LOAD_ERROR, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, BPM_SOURCE_CLOCK } from '../src/js/core/AppState.js';
+import { createAppState, EVENT_BPM_CHANGED, EVENT_BPM_SOURCE_CHANGED, EVENT_MIDI_CONTROL_CHANGE, EVENT_MIDI_NOTE_ON, EVENT_MIDI_NOTE_OFF, EVENT_MIDI_DEVICES_CHANGED, EVENT_MIDI_CLOCK, EVENT_MIDI_START, EVENT_MIDI_CONTINUE, EVENT_MIDI_STOP, EVENT_MIDI_CONNECTION_CHANGED, EVENT_PROJECT_SWITCH_REQUESTED, EVENT_PROJECT_CHANGED, EVENT_CLIP_LOAD_ERROR, EVENT_PROJECT_LOAD_START, EVENT_PROJECT_LOAD_COMPLETE, EVENT_PROJECT_LOAD_ERROR, BPM_SOURCE_CLOCK } from '../src/js/core/AppState.js';
 import { MAX_MIDI_DATA_BYTE } from '../src/js/core/midiConstants.js';
 
 /** @returns {typeof defaultSettings} */
@@ -79,7 +79,7 @@ describe('AppState', () => {
 			expect(bpmSpy).toHaveBeenCalled();
 			expect(ccSpy).toHaveBeenCalledWith(
 				expect.objectContaining({
-					detail: { channel: 0, controller: 0, value: 0 }
+					detail: { channel: 0, controller: 0, value: 0, deviceId: null, deviceName: null }
 				})
 			);
 
@@ -277,6 +277,49 @@ describe('AppState', () => {
 			await vi.advanceTimersByTimeAsync(testSettings.bpm.clockTimeoutMs + 50);
 			expect(sourceSpy).not.toHaveBeenCalled();
 		});
+
+		test('after timeout, last clock BPM is preserved (not reset to settings.bpm.default)', async () => {
+			vi.useFakeTimers();
+			// 20ms intervals @ 24 PPQN → 125 BPM (distinct from default 120)
+			const intervalMs = 20;
+			let t = 1000;
+			state.dispatchMIDIClock(t);
+			for (let i = 0; i < 6; i++) {
+				t += intervalMs;
+				state.dispatchMIDIClock(t);
+			}
+			expect(state.bpmSource).toBe('clock');
+			const clockBpm = state.bpm;
+			expect(clockBpm).not.toBe(testSettings.bpm.default);
+
+			await vi.advanceTimersByTimeAsync(testSettings.bpm.clockTimeoutMs);
+			expect(state.bpmSource).toBe('default');
+			expect(state.bpm).toBe(clockBpm);
+			expect(state.bpm).not.toBe(testSettings.bpm.default);
+		});
+
+		test('after timeout, BPM CC reclaims source and updates BPM', async () => {
+			vi.useFakeTimers();
+			const intervalMs = 20;
+			let t = 1000;
+			state.dispatchMIDIClock(t);
+			for (let i = 0; i < 6; i++) {
+				t += intervalMs;
+				state.dispatchMIDIClock(t);
+			}
+			expect(state.bpmSource).toBe('clock');
+			const clockBpm = state.bpm;
+
+			await vi.advanceTimersByTimeAsync(testSettings.bpm.clockTimeoutMs);
+			expect(state.bpmSource).toBe('default');
+			expect(state.bpm).toBe(clockBpm);
+
+			// CC 0 → bpm.min; while source was clock this was ignored
+			state.dispatchMIDIControlChange(testSettings.bpm.controlChannel, testSettings.bpm.controlCC, 0);
+			expect(state.bpmSource).toBe('cc');
+			expect(state.bpm).toBe(testSettings.bpm.min);
+			expect(state.bpm).not.toBe(clockBpm);
+		});
 	});
 
 	describe('transport messages', () => {
@@ -352,25 +395,25 @@ describe('AppState', () => {
 			const spy = vi.fn();
 			state.subscribe(EVENT_CLIP_LOAD_ERROR, spy);
 			state.dispatchClipLoadError('/clips.json', 'network down');
-			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { url: '/clips.json', error: 'network down' } }));
+			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { url: '/clips.json', errorMessage: 'network down' } }));
 		});
 
-		test('dispatchProjectLoadComplete clears projectSwitching and dispatches', () => {
-			state.projectSwitching = true;
-			expect(state.projectSwitching).toBe(true);
+		test('dispatchProjectLoadComplete clears isProjectSwitching and dispatches', () => {
+			state.isProjectSwitching = true;
+			expect(state.isProjectSwitching).toBe(true);
 			const spy = vi.fn();
 			state.subscribe(EVENT_PROJECT_LOAD_COMPLETE, spy);
 			state.dispatchProjectLoadComplete('demo');
-			expect(state.projectSwitching).toBe(false);
+			expect(state.isProjectSwitching).toBe(false);
 			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { projectId: 'demo' } }));
 		});
 
-		test('dispatchProjectLoadError clears projectSwitching and dispatches', () => {
-			state.projectSwitching = true;
+		test('dispatchProjectLoadError clears isProjectSwitching and dispatches', () => {
+			state.isProjectSwitching = true;
 			const spy = vi.fn();
 			state.subscribe(EVENT_PROJECT_LOAD_ERROR, spy);
 			state.dispatchProjectLoadError('demo', 'boom');
-			expect(state.projectSwitching).toBe(false);
+			expect(state.isProjectSwitching).toBe(false);
 			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { projectId: 'demo', errorMessage: 'boom' } }));
 		});
 	});
@@ -401,14 +444,54 @@ describe('AppState', () => {
 			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { projectId: 'a' } }));
 		});
 
-		test('projectSwitching dispatches projectLoadStart only when set true', () => {
+		test('isProjectSwitching dispatches projectLoadStart only when set true', () => {
 			const spy = vi.fn();
 			state.subscribe(EVENT_PROJECT_LOAD_START, spy);
-			state.projectSwitching = true;
+			state.isProjectSwitching = true;
 			expect(spy).toHaveBeenCalledTimes(1);
-			state.projectSwitching = false;
+			state.isProjectSwitching = false;
 			expect(spy).toHaveBeenCalledTimes(1);
-			expect(state.projectSwitching).toBe(false);
+			expect(state.isProjectSwitching).toBe(false);
+		});
+	});
+
+	describe('MIDI channel events device identity', () => {
+		test('note on/off and CC include deviceId/deviceName (null by default)', () => {
+			const noteOnSpy = vi.fn();
+			const noteOffSpy = vi.fn();
+			const ccSpy = vi.fn();
+			state.subscribe(EVENT_MIDI_NOTE_ON, noteOnSpy);
+			state.subscribe(EVENT_MIDI_NOTE_OFF, noteOffSpy);
+			state.subscribe(EVENT_MIDI_CONTROL_CHANGE, ccSpy);
+
+			state.dispatchMIDINoteOn(0, 60, 100);
+			expect(noteOnSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					detail: { channel: 0, note: 60, velocity: 100, deviceId: null, deviceName: null }
+				})
+			);
+
+			state.dispatchMIDINoteOff(1, 61, { deviceId: 'dev-a', deviceName: 'Pad' });
+			expect(noteOffSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					detail: { channel: 1, note: 61, deviceId: 'dev-a', deviceName: 'Pad' }
+				})
+			);
+
+			state.dispatchMIDIControlChange(2, 7, 64, { deviceId: 'dev-b', deviceName: 'Knob' });
+			expect(ccSpy).toHaveBeenCalledWith(
+				expect.objectContaining({
+					detail: { channel: 2, controller: 7, value: 64, deviceId: 'dev-b', deviceName: 'Knob' }
+				})
+			);
+		});
+
+		test('dispatchMIDIDevicesChanged announces device list', () => {
+			const spy = vi.fn();
+			state.subscribe(EVENT_MIDI_DEVICES_CHANGED, spy);
+			const devices = [{ id: 'a', name: 'A', enabled: true }];
+			state.dispatchMIDIDevicesChanged(devices);
+			expect(spy).toHaveBeenCalledWith(expect.objectContaining({ detail: { devices } }));
 		});
 	});
 
@@ -428,7 +511,7 @@ describe('AppState', () => {
 			state.midiConnected = true;
 			state.clipsLoaded = true;
 			state.activeProjectId = 'x';
-			state.projectSwitching = true;
+			state.isProjectSwitching = true;
 			state.bpm = 200;
 
 			let t = 1000;
@@ -442,7 +525,7 @@ describe('AppState', () => {
 			expect(state.midiConnected).toBe(false);
 			expect(state.clipsLoaded).toBe(false);
 			expect(state.activeProjectId).toBeNull();
-			expect(state.projectSwitching).toBe(false);
+			expect(state.isProjectSwitching).toBe(false);
 			expect(state.bpm).toBe(testSettings.bpm.default);
 			expect(state.bpmSource).toBe('default');
 

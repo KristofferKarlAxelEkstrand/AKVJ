@@ -1,6 +1,9 @@
 import '../scss/SortChoices.scss';
 import { ChoiceList } from './ChoiceList.js';
 import { SortChoice } from './SortChoice.js';
+import { DEFAULT_SORT_MODE } from './sortMode.js';
+
+export { DEFAULT_SORT_MODE };
 
 /**
  * SortChoices — horizontal container of SortChoice elements.
@@ -13,7 +16,7 @@ class SortChoices extends ChoiceList {
 	static changeEvent = 'sortchange';
 	static detailKey = 'sortMode';
 	static ariaLabel = 'Sort clips';
-	static defaultValue = 'name';
+	static defaultValue = DEFAULT_SORT_MODE;
 
 	/**
 	 * @param {string} mode - Sort key

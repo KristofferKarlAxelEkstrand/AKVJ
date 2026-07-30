@@ -135,6 +135,94 @@ piano-roll {
 		display: none;
 	}
 
+	.piano-roll-edit-controls {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+		margin-bottom: 0.35rem;
+	}
+
+	.piano-roll-edit-controls button {
+		background: color-mix(in srgb, var(--ink, #e8e6e1) 12%, transparent);
+		border: 1px solid color-mix(in srgb, var(--ink, #e8e6e1) 25%, transparent);
+		color: var(--ink, #e8e6e1);
+		cursor: pointer;
+		font: inherit;
+		font-size: 0.8rem;
+		padding: 0.2rem 0.45rem;
+	}
+
+	.piano-roll-edit-controls button:disabled {
+		cursor: default;
+		opacity: 0.4;
+	}
+
+	.piano-roll-edit-assign {
+		align-items: center;
+		color: var(--muted, #9a968c);
+		display: flex;
+		font-size: 0.8rem;
+		gap: 0.3rem;
+	}
+
+	.piano-roll-edit-assign-input {
+		background: color-mix(in srgb, var(--ink, #e8e6e1) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--ink, #e8e6e1) 25%, transparent);
+		color: var(--ink, #e8e6e1);
+		font: inherit;
+		min-width: 6rem;
+		padding: 0.15rem 0.35rem;
+	}
+
+	.piano-roll-play-controls {
+		align-items: center;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.piano-roll-velocity {
+		align-items: center;
+		color: var(--muted, #9a968c);
+		display: flex;
+		font-size: 0.85rem;
+		gap: 0.4rem;
+	}
+
+	.piano-roll-velocity-slider {
+		width: 10rem;
+	}
+
+	.piano-roll-velocity-readout {
+		color: var(--ink, #e8e6e1);
+		font-variant-numeric: tabular-nums;
+		min-width: 2rem;
+		text-align: right;
+	}
+
+	.piano-roll-preview-wrap {
+		margin-top: 0.4rem;
+		position: relative;
+	}
+
+	.piano-roll-preview-clip {
+		display: inline-block;
+	}
+
+	.piano-roll-preview-clip[hidden] {
+		display: none;
+	}
+
+	.piano-roll-preview-empty {
+		color: var(--muted, #9a968c);
+		font-size: 0.85rem;
+	}
+
+	.piano-roll-preview-empty[hidden] {
+		display: none;
+	}
+
 	piano-key {
 		height: 8rem;
 		width: 1.5rem;
@@ -159,8 +247,20 @@ piano-roll {
 		}
 
 		piano-key.is-active {
+			animation: piano-key-pulse 0.9s ease-in-out infinite;
 			outline: 2px solid var(--accent, #d9773a);
 			outline-offset: -2px;
+		}
+	}
+
+	@keyframes piano-key-pulse {
+		0%,
+		100% {
+			box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent, #d9773a) 65%, transparent);
+		}
+
+		50% {
+			box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent, #d9773a) 25%, transparent);
 		}
 	}
 }
