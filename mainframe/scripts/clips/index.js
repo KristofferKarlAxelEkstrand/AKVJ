@@ -33,6 +33,8 @@ const PROJECTS_DIR = path.join(REPO_ROOT, 'projects');
 const CACHE_ROOT = path.join(REPO_ROOT, '.cache/projects');
 const PUBLIC_ROOT = path.join(REPO_ROOT, 'akvj/src/public');
 const ACTIVE_PROJECT_PATH = path.join(REPO_ROOT, 'active-project.json');
+const REBUILD_DEBOUNCE_MS = 100;
+const POLLING_INTERVAL_MS = 300;
 
 const pipeline = new Pipeline({
 	projectsDir: PROJECTS_DIR,
@@ -55,7 +57,7 @@ function parseArgs() {
 		noOptimize: args.includes('--no-optimize'),
 		clean: args.includes('--clean'),
 		help: args.includes('--help') || args.includes('-h'),
-		project: projectArg ? projectArg.slice('--project='.length) : undefined
+		projectId: projectArg ? projectArg.slice('--project='.length) : undefined
 	};
 }
 
@@ -118,11 +120,11 @@ async function watchMode(options = {}) {
 }
 
 function setupWatcher(chokidar, options) {
-	let timeout;
+	let debounceTimerId;
 	const debounce = (callback, delayMs) => {
 		return () => {
-			clearTimeout(timeout);
-			timeout = setTimeout(callback, delayMs);
+			clearTimeout(debounceTimerId);
+			debounceTimerId = setTimeout(callback, delayMs);
 		};
 	};
 
@@ -133,7 +135,7 @@ function setupWatcher(chokidar, options) {
 		} catch (error) {
 			console.error('Build error:', error.message);
 		}
-	}, 100);
+	}, REBUILD_DEBOUNCE_MS);
 
 	const usePolling = !!(process.env.REMOTE_CONTAINERS || process.env.CODESPACES || process.env.GITPOD_WORKSPACE_ID);
 	const watchPaths = [PROJECTS_DIR, ACTIVE_PROJECT_PATH].filter(existsSync);
@@ -141,7 +143,7 @@ function setupWatcher(chokidar, options) {
 		.watch(watchPaths, {
 			ignoreInitial: true,
 			usePolling,
-			interval: usePolling ? 300 : undefined
+			interval: usePolling ? POLLING_INTERVAL_MS : undefined
 		})
 		.on('all', (event, filePath) => {
 			console.log(`[clips] ${event}: ${filePath}`);

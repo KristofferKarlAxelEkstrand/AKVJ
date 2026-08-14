@@ -4,12 +4,19 @@ import './PreviewClip.js';
 import { EVENT_PIANOROLL_KEY_CLICK_REQUEST, EVENT_PIANOROLL_MAPPING_CHANGE_REQUEST, EVENT_PIANOROLL_MAPPING_REMOVE_REQUEST, EVENT_PIANOROLL_MAPPING_ADD_REQUEST, EVENT_PIANOROLL_MAPPING_MOVE_REQUEST, MIME_AKVJ_CLIP_ID } from './PianoKey.js';
 import { assignCells, cellKey, changedNotes, cloneMappings, deleteCells, movePlacement, noteEntries, replaceNoteMappings } from './pianoRollMappingEdit.js';
 import { resolveTriggerType } from './clipSchema.js';
+import { resolveSyncBeats } from './syncTiming.js';
 
 const VALID_MODES = new Set(['edit', 'select', 'filter', 'play']);
 const UI_MODES = ['edit', 'filter', 'play'];
 const DEFAULT_PREVIEW_VELOCITY = 100;
 const PREVIEW_CLIP_TAG = 'preview-clip';
 const MAX_UNDO = 40;
+const PLAY_SHORTCUT_CODES = ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0'];
+const PLAY_SHORTCUT_PAGE_SIZE = PLAY_SHORTCUT_CODES.length;
+const PLAY_REFERENCE_BPM = 120;
+const PLAY_REFERENCE_MS_PER_MINUTE = 60_000;
+const MIN_PREVIEW_BPM = 20;
+const MAX_PREVIEW_BPM = 300;
 
 /** Public custom events emitted by `<piano-roll>` (namespaced for consistency). */
 export const EVENT_PIANOROLL_KEY_CLICK = 'pianoroll:key-click';
@@ -138,6 +145,8 @@ class PianoRoll extends HTMLElement {
 	#selectedNote = null;
 	/** @type {Set<number>} */
 	#activeNotes = new Set();
+	/** @type {Map<number, {clipId: string|null, velocity: number, mappingVelocity: number|null}>} */
+	#activePlayNotes = new Map();
 	#hasRenderedKeys = false;
 	#keyBed = null;
 	#toolbar = null;
@@ -159,6 +168,13 @@ class PianoRoll extends HTMLElement {
 	#velocityReadout = null;
 	#previewClip = null;
 	#previewEmpty = null;
+	#tempoReference = null;
+	#previewBpm = PLAY_REFERENCE_BPM;
+	#previewBpmInput = null;
+	#tempoReferenceBeats = null;
+	#playShortcutStart = 0;
+	/** @type {Map<string, {note: number, velocity: number}>} */
+	#pressedPlayShortcuts = new Map();
 	/** @type {number|null} */
 	#lastPreviewNote = null;
 	/** @type {Array<Array<{channel: number, note: number, velocity: number, clipId: string}>>} */
@@ -184,7 +200,9 @@ class PianoRoll extends HTMLElement {
 	#boundHandleMappingMove = this.#handleMappingMove.bind(this);
 	#boundHandleMouseMove = this.#handleMouseMove.bind(this);
 	#boundHideTooltip = this.#hideTooltip.bind(this);
-	#boundHandleKeyDown = this.#handleEditKeyDown.bind(this);
+	#boundHandleKeyDown = this.#handleKeyDown.bind(this);
+	#boundHandleKeyUp = this.#handleKeyUp.bind(this);
+	#boundHandleKeyBedScroll = this.#syncPlayShortcutLabels.bind(this);
 	#boundBatchPointerDown = this.#handleBatchPointerDown.bind(this);
 	#boundBatchPointerMove = this.#handleBatchPointerMove.bind(this);
 	#boundBatchPointerUp = this.#handleBatchPointerUp.bind(this);
@@ -208,17 +226,20 @@ class PianoRoll extends HTMLElement {
 			const previousMode = this.#mode;
 			this.#mode = VALID_MODES.has(value) ? value : 'edit';
 			this.#selectedNote = null;
-			this.#activeNotes.clear();
 			this.#clearBatchSelection();
 			if (previousMode === 'play' && this.#mode !== 'play') {
+				this.#releasePressedPlayShortcuts();
 				this.#stopPreview();
 				this.#lastPreviewNote = null;
 			}
+			this.#activeNotes.clear();
+			this.#activePlayNotes.clear();
 			this.#syncModeClasses();
 			this.#updateMappedKeys();
 			this.#updateActiveKeys();
 			this.#syncViewVisibility();
 			this.#syncModeButtons();
+			this.#syncPlayShortcutLabels();
 			this.#syncEditToolbar();
 			if (previousMode !== this.#mode) {
 				this.dispatchEvent(
@@ -286,6 +307,7 @@ class PianoRoll extends HTMLElement {
 		} else {
 			this.#render();
 		}
+		this.#syncPreviewPlaybackConfig();
 	}
 
 	get mappings() {
@@ -297,6 +319,7 @@ class PianoRoll extends HTMLElement {
 	 */
 	set clips(clips) {
 		this.#clips = Array.isArray(clips) ? clips : [];
+		this.#syncPreviewPlaybackConfig();
 	}
 
 	/**
@@ -357,6 +380,7 @@ class PianoRoll extends HTMLElement {
 		this.addEventListener('pointermove', this.#boundHandleMouseMove);
 		this.addEventListener('pointerleave', this.#boundHideTooltip);
 		this.addEventListener('keydown', this.#boundHandleKeyDown);
+		this.addEventListener('keyup', this.#boundHandleKeyUp);
 		this.addEventListener('pointerdown', this.#boundBatchPointerDown);
 		const restored = this.#readPersistedFilters();
 		if (restored) {
@@ -382,9 +406,12 @@ class PianoRoll extends HTMLElement {
 		this.removeEventListener('pointermove', this.#boundHandleMouseMove);
 		this.removeEventListener('pointerleave', this.#boundHideTooltip);
 		this.removeEventListener('keydown', this.#boundHandleKeyDown);
+		this.removeEventListener('keyup', this.#boundHandleKeyUp);
+		this.#keyBed?.removeEventListener('scroll', this.#boundHandleKeyBedScroll);
 		this.removeEventListener('pointerdown', this.#boundBatchPointerDown);
 		window.removeEventListener('pointermove', this.#boundBatchPointerMove);
 		window.removeEventListener('pointerup', this.#boundBatchPointerUp);
+		this.#releasePressedPlayShortcuts();
 		this.#stopPreview();
 		this.replaceChildren();
 		this.#keyBed = null;
@@ -409,9 +436,14 @@ class PianoRoll extends HTMLElement {
 		this.#velocityReadout = null;
 		this.#previewClip = null;
 		this.#previewEmpty = null;
+		this.#tempoReference = null;
+		this.#previewBpmInput = null;
+		this.#playShortcutStart = 0;
 		this.#hasRenderedKeys = false;
 		this.#selectedNote = null;
 		this.#activeNotes.clear();
+		this.#activePlayNotes.clear();
+		this.#pressedPlayShortcuts.clear();
 		this.#selectedCells.clear();
 		this.#undoStack = [];
 		this.#redoStack = [];
@@ -424,6 +456,7 @@ class PianoRoll extends HTMLElement {
 		const notesTurningOff = this.#mode === 'play' ? [...this.#activeNotes] : [];
 		this.#selectedNote = null;
 		this.#activeNotes.clear();
+		this.#activePlayNotes.clear();
 		if (this.#hasRenderedKeys) {
 			this.#updateActiveKeys();
 		}
@@ -472,6 +505,8 @@ class PianoRoll extends HTMLElement {
 		this.#velocityReadout = null;
 		this.#previewClip = null;
 		this.#previewEmpty = null;
+		this.#tempoReference = null;
+		this.#previewBpmInput = null;
 		// Preserve filter state across re-renders so filter changes survive channel/mode switches.
 
 		this.#toolbar = document.createElement('div');
@@ -513,6 +548,7 @@ class PianoRoll extends HTMLElement {
 
 		this.#keyBed = document.createElement('key-bed');
 		this.#keyBed.className = 'piano-roll-edit-grid';
+		this.#keyBed.addEventListener('scroll', this.#boundHandleKeyBedScroll);
 		this.append(this.#keyBed);
 
 		this.#renderViewStack();
@@ -523,6 +559,7 @@ class PianoRoll extends HTMLElement {
 		this.#updateActiveKeys();
 		this.#syncViewVisibility();
 		this.#syncModeButtons();
+		this.#syncPlayShortcutLabels();
 	}
 
 	#renderModeButtons(container) {
@@ -702,6 +739,32 @@ class PianoRoll extends HTMLElement {
 		velocityLabel.append(this.#velocitySlider, this.#velocityReadout);
 		controls.append(velocityLabel);
 
+		const shortcutHint = document.createElement('span');
+		shortcutHint.className = 'piano-roll-play-shortcut-hint';
+		shortcutHint.title = 'Digits 1–0 trigger the ten visible keys. [ and ] page through notes.';
+		shortcutHint.textContent = '1–0: visible keys · [ / ]: page';
+		controls.append(shortcutHint);
+
+		const bpmLabel = document.createElement('label');
+		bpmLabel.className = 'piano-roll-preview-bpm';
+		bpmLabel.textContent = 'Preview BPM';
+		this.#previewBpmInput = document.createElement('input');
+		this.#previewBpmInput.type = 'number';
+		this.#previewBpmInput.className = 'piano-roll-preview-bpm-input';
+		this.#previewBpmInput.min = String(MIN_PREVIEW_BPM);
+		this.#previewBpmInput.max = String(MAX_PREVIEW_BPM);
+		this.#previewBpmInput.step = '1';
+		this.#previewBpmInput.value = String(this.#previewBpm);
+		this.#previewBpmInput.setAttribute('aria-label', 'Preview BPM');
+		this.#previewBpmInput.addEventListener('change', () => this.#setPreviewBpm(this.#previewBpmInput.value));
+		bpmLabel.append(this.#previewBpmInput);
+		controls.append(bpmLabel);
+
+		this.#tempoReference = document.createElement('span');
+		this.#tempoReference.className = 'piano-roll-tempo-reference';
+		this.#tempoReference.hidden = true;
+		controls.append(this.#tempoReference);
+
 		const previewWrap = document.createElement('div');
 		previewWrap.className = 'piano-roll-preview-wrap';
 
@@ -756,13 +819,14 @@ class PianoRoll extends HTMLElement {
 	 *
 	 * @param {string} clipId
 	 */
-	#showPreview(clipId) {
+	#showPreview(clipId, playbackConfig) {
 		if (!this.#previewClip) {
 			return;
 		}
 		// Re-attach in case #stopPreview removed the listener.
 		this.#previewClip.addEventListener('playbackended', this.#boundHandlePreviewEnded);
 		this.#previewClip.hidden = false;
+		this.#previewClip.playbackConfig = playbackConfig;
 		this.#previewClip.clipId = clipId;
 		this.#previewClip.play();
 		this.#syncPreviewVisibility();
@@ -778,25 +842,8 @@ class PianoRoll extends HTMLElement {
 		if (note === null || !this.#activeNotes.has(note)) {
 			return;
 		}
-		this.#activeNotes.delete(note);
-		this.#updateActiveKeys();
-		const noteMappings = this.#mappingsForNote(note);
-		const clipId = this.#clipIdForVelocity(noteMappings, this.#playVelocity);
-		if (this.#activeNotes.size === 0) {
-			this.#stopPreview();
-			this.#lastPreviewNote = null;
-		}
-		this.dispatchEvent(
-			new CustomEvent(EVENT_PIANOROLL_NOTE_OFF, {
-				bubbles: true,
-				detail: {
-					note,
-					clipId,
-					velocity: this.#playVelocity,
-					mappings: noteMappings
-				}
-			})
-		);
+		const activeNote = this.#activePlayNotes.get(note);
+		this.#stopPlayNote(note, activeNote?.velocity ?? this.#playVelocity);
 	}
 
 	/**
@@ -808,15 +855,26 @@ class PianoRoll extends HTMLElement {
 	 * @returns {string|null}
 	 */
 	#clipIdForVelocity(noteMappings, velocity) {
+		return this.#mappingForVelocity(noteMappings, velocity)?.clipId ?? null;
+	}
+
+	#mappingForVelocity(noteMappings, velocity) {
 		let chosen = null;
 		for (const mapping of noteMappings) {
 			if (mapping.velocity <= velocity) {
-				chosen = mapping.clipId;
+				chosen = mapping;
 			} else {
 				break;
 			}
 		}
 		return chosen;
+	}
+
+	#activeMappingFor(note, activeNote) {
+		if (!activeNote?.clipId) {
+			return null;
+		}
+		return this.#mappingsForNote(note).find(mapping => mapping.clipId === activeNote.clipId && mapping.velocity === activeNote.mappingVelocity) ?? { clipId: activeNote.clipId };
 	}
 
 	#renderFilterControls(container) {
@@ -1035,41 +1093,16 @@ class PianoRoll extends HTMLElement {
 			this.#updateActiveKeys();
 		} else if (this.#mode === 'play') {
 			if (this.#activeNotes.has(note)) {
-				this.#activeNotes.delete(note);
+				this.#stopPlayNote(note, this.#playVelocity);
 				isActive = false;
 			} else {
-				this.#activeNotes.add(note);
+				const triggerVelocity = typeof velocity === 'number' && velocity >= 0 ? velocity : this.#playVelocity;
+				this.#startPlayNote(note, triggerVelocity);
 				isActive = true;
 			}
 			// Click Y within the key overrides the slider; fall back to the slider value.
 			const triggerVelocity = typeof velocity === 'number' && velocity >= 0 ? velocity : this.#playVelocity;
 			clipId = eventClipId ?? this.#clipIdForVelocity(noteMappings, triggerVelocity);
-			if (isActive) {
-				this.#playVelocity = triggerVelocity;
-				if (this.#velocitySlider) {
-					this.#velocitySlider.value = String(triggerVelocity);
-				}
-				this.#syncVelocityReadout();
-			}
-			this.#updateActiveKeys();
-			if (isActive && clipId) {
-				this.#lastPreviewNote = note;
-				this.#showPreview(clipId);
-			} else if (this.#activeNotes.size === 0) {
-				this.#stopPreview();
-				this.#lastPreviewNote = null;
-			}
-			this.dispatchEvent(
-				new CustomEvent(isActive ? EVENT_PIANOROLL_NOTE_ON : EVENT_PIANOROLL_NOTE_OFF, {
-					bubbles: true,
-					detail: {
-						note,
-						clipId,
-						velocity: triggerVelocity,
-						mappings: noteMappings
-					}
-				})
-			);
 		}
 
 		this.dispatchEvent(
@@ -1086,6 +1119,202 @@ class PianoRoll extends HTMLElement {
 				}
 			})
 		);
+	}
+
+	#isKeyboardInput(event) {
+		const target = event.target;
+		return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+	}
+
+	/** @param {KeyboardEvent} event */
+	#handleKeyDown(event) {
+		if (this.#mode === 'play') {
+			this.#handlePlayKeyDown(event);
+			return;
+		}
+		this.#handleEditKeyDown(event);
+	}
+
+	/** @param {KeyboardEvent} event */
+	#handleKeyUp(event) {
+		if (this.#mode !== 'play' || this.#isKeyboardInput(event)) {
+			return;
+		}
+		const pressedShortcut = this.#pressedPlayShortcuts.get(event.code);
+		if (!pressedShortcut) {
+			return;
+		}
+		event.preventDefault();
+		this.#pressedPlayShortcuts.delete(event.code);
+		this.#stopPlayNote(pressedShortcut.note, pressedShortcut.velocity);
+	}
+
+	/** Emit note-offs for keyboard notes still held when Play mode ends. */
+	#releasePressedPlayShortcuts() {
+		const pressedShortcuts = [...this.#pressedPlayShortcuts.values()];
+		this.#pressedPlayShortcuts.clear();
+		for (const { note, velocity } of pressedShortcuts) {
+			this.#stopPlayNote(note, velocity);
+		}
+	}
+
+	/** @param {KeyboardEvent} event */
+	#handlePlayKeyDown(event) {
+		if (event.repeat || this.#isKeyboardInput(event)) {
+			return;
+		}
+		if (event.key === '[' || event.key === ']') {
+			event.preventDefault();
+			this.#pagePlayShortcuts(event.key === ']' ? 1 : -1);
+			return;
+		}
+		const shortcutIndex = PLAY_SHORTCUT_CODES.indexOf(event.code);
+		if (shortcutIndex < 0) {
+			return;
+		}
+		const note = this.#playShortcutNotes()[shortcutIndex];
+		if (note === undefined || this.#activeNotes.has(note)) {
+			return;
+		}
+		event.preventDefault();
+		const velocity = this.#playVelocity;
+		this.#pressedPlayShortcuts.set(event.code, { note, velocity });
+		this.#startPlayNote(note, velocity);
+	}
+
+	#playShortcutNotes() {
+		const keys = this.#keys();
+		if (keys.length === 0) {
+			return [];
+		}
+		return keys.slice(this.#playShortcutStart, this.#playShortcutStart + PLAY_SHORTCUT_PAGE_SIZE).map(key => key.note);
+	}
+
+	/** @param {number} direction */
+	#pagePlayShortcuts(direction) {
+		const keys = this.#keys();
+		this.#playShortcutStart = Math.max(0, Math.min(keys.length - PLAY_SHORTCUT_PAGE_SIZE, this.#playShortcutStart + direction * PLAY_SHORTCUT_PAGE_SIZE));
+		const target = keys[this.#playShortcutStart];
+		if (!target || !this.#keyBed) {
+			return;
+		}
+		this.#keyBed.scrollLeft = target.offsetLeft;
+		this.#syncPlayShortcutLabels();
+	}
+
+	#syncPlayShortcutLabels() {
+		if (this.#keyBed) {
+			const keys = this.#keys();
+			if (keys[0]?.offsetWidth > 0) {
+				const firstVisible = keys.findIndex(key => key.offsetLeft + key.offsetWidth > this.#keyBed.scrollLeft);
+				if (firstVisible >= 0) {
+					this.#playShortcutStart = firstVisible;
+				}
+			}
+		}
+		const shortcutNotes = new Map(this.#playShortcutNotes().map((note, index) => [note, String((index + 1) % PLAY_SHORTCUT_PAGE_SIZE)]));
+		for (const key of this.#keys()) {
+			const shortcut = shortcutNotes.get(key.note);
+			key.dataset.playShortcut = this.#mode === 'play' && shortcut ? shortcut : '';
+			key.classList.toggle('has-play-shortcut', this.#mode === 'play' && Boolean(shortcut));
+		}
+	}
+
+	/** @param {number} note @param {number} velocity */
+	#startPlayNote(note, velocity) {
+		const noteMappings = this.#mappingsForNote(note);
+		const mapping = this.#mappingForVelocity(noteMappings, velocity);
+		const clipId = mapping?.clipId ?? null;
+		this.#activeNotes.add(note);
+		this.#activePlayNotes.set(note, { clipId, velocity, mappingVelocity: mapping?.velocity ?? null });
+		this.#playVelocity = velocity;
+		if (this.#velocitySlider) {
+			this.#velocitySlider.value = String(velocity);
+		}
+		this.#syncVelocityReadout();
+		this.#updateActiveKeys();
+		if (clipId) {
+			this.#lastPreviewNote = note;
+			this.#showPreview(clipId, this.#playbackConfigFor(mapping));
+		}
+		this.#syncTempoReference(mapping);
+		this.dispatchEvent(new CustomEvent(EVENT_PIANOROLL_NOTE_ON, { bubbles: true, detail: { note, clipId, velocity, mappings: noteMappings } }));
+	}
+
+	/** @param {number} note @param {number} velocity */
+	#stopPlayNote(note, velocity) {
+		if (!this.#activeNotes.delete(note)) {
+			return;
+		}
+		const activeNote = this.#activePlayNotes.get(note);
+		this.#activePlayNotes.delete(note);
+		const noteMappings = this.#mappingsForNote(note);
+		const clipId = activeNote?.clipId ?? this.#clipIdForVelocity(noteMappings, velocity);
+		const selectedMapping = activeNote ? this.#activeMappingFor(note, activeNote) : this.#mappingForVelocity(noteMappings, velocity);
+		const { syncBeats } = this.#playbackConfigFor(selectedMapping);
+		this.#updateActiveKeys();
+		if (syncBeats !== null) {
+			this.#syncTempoReference(null);
+		}
+		if (this.#activeNotes.size === 0) {
+			this.#stopPreview();
+			this.#lastPreviewNote = null;
+		}
+		this.dispatchEvent(new CustomEvent(EVENT_PIANOROLL_NOTE_OFF, { bubbles: true, detail: { note, clipId, velocity: activeNote?.velocity ?? velocity, mappings: noteMappings } }));
+	}
+
+	#syncTempoReference(mapping) {
+		if (!this.#tempoReference) {
+			return;
+		}
+		const beats = this.#playbackConfigFor(mapping).syncBeats;
+		this.#tempoReferenceBeats = beats;
+		this.#renderTempoReference();
+	}
+
+	#renderTempoReference() {
+		if (!this.#tempoReference) {
+			return;
+		}
+		const beats = this.#tempoReferenceBeats;
+		this.#tempoReference.hidden = beats === null;
+		this.#tempoReference.textContent = beats === null ? '' : `${this.#previewBpm} BPM (preview) · ~${((beats * PLAY_REFERENCE_MS_PER_MINUTE) / this.#previewBpm / 1000).toFixed(1)} s`;
+	}
+
+	#playbackConfigFor(mapping) {
+		const clip = this.#clips.find(entry => entry.clipId === mapping?.clipId);
+		const syncBeats = resolveSyncBeats({ ...clip?.meta, ...mapping?.overrides });
+		return { bpm: this.#previewBpm, syncBeats };
+	}
+
+	#syncPreviewPlaybackConfig() {
+		if (this.#lastPreviewNote === null || !this.#previewClip?.clipId) {
+			return;
+		}
+		const activeNote = this.#activePlayNotes.get(this.#lastPreviewNote);
+		if (!activeNote) {
+			return;
+		}
+		const mapping = this.#activeMappingFor(this.#lastPreviewNote, activeNote);
+		const playbackConfig = this.#playbackConfigFor(mapping);
+		this.#previewClip.playbackConfig = playbackConfig;
+		this.#tempoReferenceBeats = playbackConfig.syncBeats;
+		this.#renderTempoReference();
+	}
+
+	#setPreviewBpm(value) {
+		const bpm = Number(value);
+		if (!Number.isFinite(bpm) || bpm < MIN_PREVIEW_BPM || bpm > MAX_PREVIEW_BPM) {
+			if (this.#previewBpmInput) {
+				this.#previewBpmInput.value = String(this.#previewBpm);
+			}
+			return;
+		}
+		this.#previewBpm = bpm;
+		this.#syncPreviewPlaybackConfig();
+		if (this.#tempoReferenceBeats !== null) {
+			this.#renderTempoReference();
+		}
 	}
 
 	/**

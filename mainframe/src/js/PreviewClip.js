@@ -28,11 +28,12 @@ class PreviewClip extends HTMLElement {
 	#frameImages = [];
 	#durationsMs = [];
 	#speed = 1;
+	#playbackConfig = { bpm: null, syncBeats: null };
 	#animationId = null;
 	#lastTimestamp = null;
 	#shuffleState = null;
 	#pingpongState = null;
-	#isLoading = false;
+	#loadVersion = 0;
 	#isUpdatingAttribute = false;
 
 	#canvas = null;
@@ -50,6 +51,7 @@ class PreviewClip extends HTMLElement {
 	}
 
 	disconnectedCallback() {
+		this.#loadVersion++;
 		this.#stopLoop();
 		this.replaceChildren();
 	}
@@ -177,6 +179,32 @@ class PreviewClip extends HTMLElement {
 		this.dispatchEvent(new CustomEvent('speedchange', { bubbles: true, detail: { speed: next } }));
 	}
 
+	/**
+	 * Sets optional beat-sync playback configuration. A positive `syncBeats`
+	 * makes the loaded clip span that many beats at `bpm`; otherwise its staged
+	 * frame durations are used unchanged.
+	 *
+	 * @param {{bpm?: number, syncBeats?: number}|null} config
+	 */
+	set playbackConfig(config) {
+		const bpm = Number(config?.bpm);
+		const syncBeats = Number(config?.syncBeats);
+		const next = {
+			bpm: Number.isFinite(bpm) && bpm > 0 ? bpm : null,
+			syncBeats: Number.isFinite(syncBeats) && syncBeats > 0 ? syncBeats : null
+		};
+		if (this.#playbackConfig.bpm === next.bpm && this.#playbackConfig.syncBeats === next.syncBeats) {
+			return;
+		}
+		this.#playbackConfig = next;
+		this.#lastTimestamp = null;
+	}
+
+	/** @returns {{bpm: number|null, syncBeats: number|null}} */
+	get playbackConfig() {
+		return { ...this.#playbackConfig };
+	}
+
 	#render() {
 		this.replaceChildren();
 
@@ -233,19 +261,17 @@ class PreviewClip extends HTMLElement {
 	}
 
 	async #loadClip() {
-		if (!this.#clipId || this.#isLoading) {
+		const clipId = this.#clipId;
+		const loadVersion = ++this.#loadVersion;
+		if (!clipId) {
+			this.#clearFrames();
 			return;
 		}
-		this.#isLoading = true;
 		this.#stopLoop();
-		this.#frameImages = [];
-		this.#durationsMs = [];
-		this.#totalFrames = 0;
-		this.#currentFrame = 0;
-		this.#updateProgress();
+		this.#clearFrames();
 
 		try {
-			const response = await fetch(`${API_BASE_PATH}/clips/${encodeURIComponent(this.#clipId)}/frames`);
+			const response = await fetch(`${API_BASE_PATH}/clips/${encodeURIComponent(clipId)}/frames`);
 			if (!response.ok) {
 				throw new Error(`HTTP ${response.status}`);
 			}
@@ -253,6 +279,9 @@ class PreviewClip extends HTMLElement {
 			const frames = Array.isArray(clipData.frames) ? clipData.frames : [];
 			const durationsMs = Array.isArray(clipData.durationsMs) ? clipData.durationsMs : [];
 			const loaded = await this.#loadImages(frames);
+			if (!this.#isCurrentLoad(loadVersion, clipId)) {
+				return;
+			}
 			this.#frameImages = loaded;
 			this.#durationsMs = this.#normalizeDurationsMs(durationsMs, loaded.length);
 			this.#totalFrames = loaded.length;
@@ -263,13 +292,26 @@ class PreviewClip extends HTMLElement {
 				this.#setPlaying(true);
 			}
 		} catch (error) {
-			if (import.meta.env?.DEV) {
+			if (this.#isCurrentLoad(loadVersion, clipId) && import.meta.env?.DEV) {
 				console.warn('PreviewClip failed to load clip:', error);
 			}
 		} finally {
-			this.#isLoading = false;
-			this.#updatePlayButton();
+			if (this.#isCurrentLoad(loadVersion, clipId)) {
+				this.#updatePlayButton();
+			}
 		}
+	}
+
+	#clearFrames() {
+		this.#frameImages = [];
+		this.#durationsMs = [];
+		this.#totalFrames = 0;
+		this.#currentFrame = 0;
+		this.#updateProgress();
+	}
+
+	#isCurrentLoad(loadVersion, clipId) {
+		return this.#loadVersion === loadVersion && this.#clipId === clipId && this.isConnected;
 	}
 
 	#loadImages(sources) {
@@ -299,7 +341,18 @@ class PreviewClip extends HTMLElement {
 	}
 
 	#getFrameIntervalMs() {
-		return (this.#durationsMs[this.#currentFrame] ?? DEFAULT_FALLBACK_FRAME_DURATION_MS) / this.#speed;
+		const durationMs = this.#durationsMs[this.#currentFrame] ?? DEFAULT_FALLBACK_FRAME_DURATION_MS;
+		return durationMs / this.#getPlaybackRate();
+	}
+
+	#getPlaybackRate() {
+		const { bpm, syncBeats } = this.#playbackConfig;
+		if (bpm === null || syncBeats === null) {
+			return this.#speed;
+		}
+		const stagedDurationMs = this.#durationsMs.reduce((total, durationMs) => total + durationMs, 0);
+		const targetDurationMs = (syncBeats * 60_000) / bpm;
+		return (stagedDurationMs / targetDurationMs) * this.#speed;
 	}
 
 	#setPlaying(playing) {

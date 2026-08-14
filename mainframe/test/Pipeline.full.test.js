@@ -93,7 +93,7 @@ describe('Pipeline full build', () => {
 		await fs.writeFile(activeProjectPath, JSON.stringify({ project: 'default' }));
 
 		const pipeline = new Pipeline({ projectsDir, cacheRoot, publicRoot, activeProjectPath });
-		await pipeline.run({ project: 'default' });
+		await pipeline.run({ projectId: 'default' });
 
 		await expect(fs.access(path.join(publicRoot, 'projects', 'default', 'clips', 'clips.json'))).resolves.toBeUndefined();
 		await expect(fs.access(path.join(publicRoot, 'projects', 'other', 'clips', 'clips.json'))).rejects.toMatchObject({ code: 'ENOENT' });

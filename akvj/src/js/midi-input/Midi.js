@@ -4,7 +4,7 @@ import { DEFAULT_MAX_MIDI_MESSAGE_LENGTH, MAX_MIDI_MESSAGE_BYTE } from '../core/
 
 const SYSTEM_REAL_TIME_THRESHOLD = 0xf8;
 const CHANNEL_NIBBLE_MASK = 0xf;
-const UNCHECKED_DEVICES_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
+const DISABLED_DEVICE_IDS_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
 
 /**
  * MIDI module - Handles Web MIDI API and device management only
@@ -14,7 +14,7 @@ const UNCHECKED_DEVICES_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
 class Midi {
 	#midiAccess = null;
 	#connectedInputs = new Map();
-	#uncheckedDeviceIds = new Set();
+	#disabledDeviceIds = new Set();
 	#boundHandleMIDIMessage = this.#handleMIDIMessage.bind(this);
 	#boundHandleStateChange = this.#handleStateChange.bind(this);
 	#initializationPromise = Promise.resolve();
@@ -27,7 +27,7 @@ class Midi {
 		this.#appState = appState;
 		this.#settings = settings;
 		this.#storage = storage;
-		this.#loadUncheckedDeviceIds();
+		this.#loadDisabledDeviceIds();
 		this.#initializeMIDIAccess();
 	}
 
@@ -196,13 +196,13 @@ class Midi {
 		}
 	}
 
-	#loadUncheckedDeviceIds() {
-		this.#uncheckedDeviceIds = new Set();
+	#loadDisabledDeviceIds() {
+		this.#disabledDeviceIds = new Set();
 		if (!this.#storage || typeof this.#storage.getItem !== 'function') {
 			return;
 		}
 		try {
-			const raw = this.#storage.getItem(UNCHECKED_DEVICES_STORAGE_KEY);
+			const raw = this.#storage.getItem(DISABLED_DEVICE_IDS_STORAGE_KEY);
 			if (raw === null || raw === '') {
 				return;
 			}
@@ -212,23 +212,23 @@ class Midi {
 			}
 			for (const id of parsed) {
 				if (typeof id === 'string' && id.length > 0) {
-					this.#uncheckedDeviceIds.add(id);
+					this.#disabledDeviceIds.add(id);
 				}
 			}
 		} catch (error) {
-			console.warn('Midi: failed to read unchecked device ids from storage, fail-open:', error);
-			this.#uncheckedDeviceIds = new Set();
+			console.warn('Midi: failed to read disabled device ids from storage, fail-open:', error);
+			this.#disabledDeviceIds = new Set();
 		}
 	}
 
-	#persistUncheckedDeviceIds() {
+	#persistDisabledDeviceIds() {
 		if (!this.#storage || typeof this.#storage.setItem !== 'function') {
 			return;
 		}
 		try {
-			this.#storage.setItem(UNCHECKED_DEVICES_STORAGE_KEY, JSON.stringify([...this.#uncheckedDeviceIds]));
+			this.#storage.setItem(DISABLED_DEVICE_IDS_STORAGE_KEY, JSON.stringify([...this.#disabledDeviceIds]));
 		} catch (error) {
-			console.warn('Midi: failed to persist unchecked device ids:', error);
+			console.warn('Midi: failed to persist disabled device ids:', error);
 		}
 	}
 
@@ -236,7 +236,7 @@ class Midi {
 		if (deviceId === null || deviceId === undefined || deviceId === '') {
 			return true;
 		}
-		return !this.#uncheckedDeviceIds.has(deviceId);
+		return !this.#disabledDeviceIds.has(deviceId);
 	}
 
 	#resolveDeviceDisplayName(input) {
@@ -262,7 +262,7 @@ class Midi {
 
 	/**
 	 * Enable or disable a connected MIDI input by id.
-	 * Disabled ids are persisted as the unchecked set (fail-open).
+	 * Disabled ids are persisted as the disabled set (fail-open).
 	 *
 	 * @public
 	 * @param {string} deviceId
@@ -273,11 +273,11 @@ class Midi {
 			return;
 		}
 		if (enabled) {
-			this.#uncheckedDeviceIds.delete(deviceId);
+			this.#disabledDeviceIds.delete(deviceId);
 		} else {
-			this.#uncheckedDeviceIds.add(deviceId);
+			this.#disabledDeviceIds.add(deviceId);
 		}
-		this.#persistUncheckedDeviceIds();
+		this.#persistDisabledDeviceIds();
 		this.#notifyDevicesChanged();
 	}
 
@@ -439,4 +439,4 @@ class Midi {
 }
 
 export default Midi;
-export { UNCHECKED_DEVICES_STORAGE_KEY };
+export { DISABLED_DEVICE_IDS_STORAGE_KEY };

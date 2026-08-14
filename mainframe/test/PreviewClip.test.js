@@ -110,6 +110,28 @@ describe('PreviewClip', () => {
 		expect(playButton.disabled).toBe(false);
 	});
 
+	test('keeps the newest clip when an earlier frame request finishes later', async () => {
+		let resolveFirst;
+		const firstResponse = new Promise(resolve => {
+			resolveFirst = resolve;
+		});
+		vi.spyOn(global, 'fetch').mockImplementation(url => {
+			if (url.includes('first-clip')) {
+				return firstResponse;
+			}
+			return Promise.resolve({ ok: true, json: async () => ({ frames: [FRAME_DATA_URL], durationsMs: [100] }) });
+		});
+
+		element.clipId = 'first-clip';
+		element.clipId = 'second-clip';
+		await flushPromises();
+		resolveFirst({ ok: true, json: async () => ({ frames: [FRAME_DATA_URL, FRAME_DATA_URL], durationsMs: [100, 100] }) });
+		await flushPromises();
+
+		expect(element.clipId).toBe('second-clip');
+		expect(element.totalFrames).toBe(1);
+	});
+
 	test('play(), pause(), and stop() toggle playback state and button text', async () => {
 		mockFetch([FRAME_DATA_URL, FRAME_DATA_URL]);
 		vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(1);
@@ -466,6 +488,50 @@ describe('PreviewClip', () => {
 		expect(element.currentFrame).toBe(0);
 
 		pump(Math.ceil(FALLBACK_MS / 2));
+		expect(element.currentFrame).toBe(1);
+	});
+
+	test('beat playback config derives frame timing from BPM and preserves the speed multiplier', async () => {
+		mockFetch([FRAME_DATA_URL, FRAME_DATA_URL], [100, 100]);
+		const rafQueue = [];
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+			rafQueue.push(cb);
+			return rafQueue.length;
+		});
+
+		element.playbackConfig = { bpm: 120, syncBeats: 4 };
+		element.clipId = 'beat-clip';
+		await flushPromises();
+		element.setSpeed(2);
+		element.play();
+
+		const pump = timestamp => rafQueue.shift()?.(timestamp);
+		pump(0);
+		pump(499);
+		expect(element.currentFrame).toBe(0);
+		pump(500);
+		expect(element.currentFrame).toBe(1);
+		expect(element.playbackConfig).toEqual({ bpm: 120, syncBeats: 4 });
+	});
+
+	test('free playback ignores BPM-only playback configuration', async () => {
+		mockFetch([FRAME_DATA_URL, FRAME_DATA_URL], [100, 100]);
+		const rafQueue = [];
+		vi.spyOn(window, 'requestAnimationFrame').mockImplementation(cb => {
+			rafQueue.push(cb);
+			return rafQueue.length;
+		});
+
+		element.playbackConfig = { bpm: 300, syncBeats: null };
+		element.clipId = 'free-clip';
+		await flushPromises();
+		element.play();
+
+		const pump = timestamp => rafQueue.shift()?.(timestamp);
+		pump(0);
+		pump(99);
+		expect(element.currentFrame).toBe(0);
+		pump(100);
 		expect(element.currentFrame).toBe(1);
 	});
 

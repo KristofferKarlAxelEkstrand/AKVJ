@@ -34,14 +34,14 @@ async function collectFilesFromEntries(entries, dir, base, files) {
 
 /**
  * Check if two files have the same content.
- * @param {string} file1 - First file path
- * @param {string} file2 - Second file path
+ * @param {string} leftPath - First file path
+ * @param {string} rightPath - Second file path
  * @returns {Promise<boolean>} True if contents match
  */
-async function filesMatch(file1, file2) {
+async function filesMatch(leftPath, rightPath) {
 	try {
-		const [content1, content2] = await Promise.all([fs.readFile(file1), fs.readFile(file2)]);
-		return content1.equals(content2);
+		const [leftBytes, rightBytes] = await Promise.all([fs.readFile(leftPath), fs.readFile(rightPath)]);
+		return leftBytes.equals(rightBytes);
 	} catch {
 		return false;
 	}

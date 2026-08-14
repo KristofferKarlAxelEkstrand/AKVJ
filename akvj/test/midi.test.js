@@ -4,8 +4,8 @@ import { getListeners, invokeListeners } from './utils/invokeListeners.js';
 import { useFakeMIDIFixture } from './utils/midiFixture.js';
 import { dispatchMidiMessage } from './utils/fakeMidi.js';
 
-// Must match Midi.js UNCHECKED_DEVICES_STORAGE_KEY (avoid static Midi import before resetModules).
-const UNCHECKED_DEVICES_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
+// Must match Midi.js DISABLED_DEVICE_IDS_STORAGE_KEY (avoid static Midi import before resetModules).
+const DISABLED_DEVICE_IDS_STORAGE_KEY = 'akvj.midi.uncheckedDeviceIds';
 
 // Global requestMIDIAccess is now handled by `useFakeMIDIFixture()` fixture
 
@@ -501,7 +501,7 @@ describe('MIDI', () => {
 			{ id: 'keep-on', name: 'Keep On', enabled: true },
 			{ id: 'mute-me', name: 'Mute Me', enabled: false }
 		]);
-		expect(JSON.parse(storage.getItem(UNCHECKED_DEVICES_STORAGE_KEY))).toEqual(['mute-me']);
+		expect(JSON.parse(storage.getItem(DISABLED_DEVICE_IDS_STORAGE_KEY))).toEqual(['mute-me']);
 
 		dispatchMidiMessage(env.getInputById('mute-me'), [0x90, 60, 100]);
 		expect(noteOnSpy).not.toHaveBeenCalled();
@@ -512,13 +512,13 @@ describe('MIDI', () => {
 		midi.setDeviceEnabled('mute-me', true);
 		dispatchMidiMessage(env.getInputById('mute-me'), [0x90, 62, 120]);
 		expect(noteOnSpy).toHaveBeenCalledWith(0, 62, 120, { deviceId: 'mute-me', deviceName: 'Mute Me' });
-		expect(JSON.parse(storage.getItem(UNCHECKED_DEVICES_STORAGE_KEY))).toEqual([]);
+		expect(JSON.parse(storage.getItem(DISABLED_DEVICE_IDS_STORAGE_KEY))).toEqual([]);
 
 		noteOnSpy.mockRestore();
 		midi.destroy();
 	});
 
-	test('persistence fail-open: missing, empty, invalid, or unmatched unchecked ids enable all', async () => {
+	test('persistence fail-open: missing, empty, invalid, or unmatched disabled ids enable all', async () => {
 		const env = recreateEnv([{ id: 'live-1', name: 'Live One' }]);
 
 		vi.resetModules();
@@ -531,28 +531,28 @@ describe('MIDI', () => {
 		missingStorageMidi.destroy();
 
 		const emptyStorageMidi = new Midi({
-			storage: createMemoryStorage({ [UNCHECKED_DEVICES_STORAGE_KEY]: '[]' })
+			storage: createMemoryStorage({ [DISABLED_DEVICE_IDS_STORAGE_KEY]: '[]' })
 		});
 		await emptyStorageMidi.ready;
 		expect(emptyStorageMidi.getConnectedDevices()[0].enabled).toBe(true);
 		emptyStorageMidi.destroy();
 
 		const invalidStorageMidi = new Midi({
-			storage: createMemoryStorage({ [UNCHECKED_DEVICES_STORAGE_KEY]: '{not-json' })
+			storage: createMemoryStorage({ [DISABLED_DEVICE_IDS_STORAGE_KEY]: '{not-json' })
 		});
 		await invalidStorageMidi.ready;
 		expect(invalidStorageMidi.getConnectedDevices()[0].enabled).toBe(true);
 		invalidStorageMidi.destroy();
 
 		const staleIdsMidi = new Midi({
-			storage: createMemoryStorage({ [UNCHECKED_DEVICES_STORAGE_KEY]: JSON.stringify(['gone-device']) })
+			storage: createMemoryStorage({ [DISABLED_DEVICE_IDS_STORAGE_KEY]: JSON.stringify(['gone-device']) })
 		});
 		await staleIdsMidi.ready;
 		expect(staleIdsMidi.getConnectedDevices()).toEqual([{ id: 'live-1', name: 'Live One', enabled: true }]);
 		staleIdsMidi.destroy();
 
 		const matchedMuteMidi = new Midi({
-			storage: createMemoryStorage({ [UNCHECKED_DEVICES_STORAGE_KEY]: JSON.stringify(['live-1']) })
+			storage: createMemoryStorage({ [DISABLED_DEVICE_IDS_STORAGE_KEY]: JSON.stringify(['live-1']) })
 		});
 		await matchedMuteMidi.ready;
 		expect(matchedMuteMidi.getConnectedDevices()).toEqual([{ id: 'live-1', name: 'Live One', enabled: false }]);

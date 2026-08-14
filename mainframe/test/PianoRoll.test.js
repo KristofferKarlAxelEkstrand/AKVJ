@@ -385,6 +385,209 @@ describe('PianoRoll', () => {
 		expect(element.querySelector('.piano-roll-velocity-readout').textContent).toBe('90');
 	});
 
+	test('play-mode digit shortcuts send note-on and note-off for the visible keys', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'kick', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'kick', overrides: { syncLength: 'custom', syncBeats: 6 } }];
+		const events = [];
+		element.addEventListener('pianoroll:note-on', event => events.push(['on', event.detail]));
+		element.addEventListener('pianoroll:note-off', event => events.push(['off', event.detail]));
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1' }));
+		expect(preview.clipId).toBe('kick');
+		expect(preview.playbackConfig).toEqual({ bpm: 120, syncBeats: 6 });
+		element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, code: 'Digit1', key: '1' }));
+
+		expect(events).toEqual([
+			['on', expect.objectContaining({ note: 0, clipId: 'kick', velocity: 100 })],
+			['off', expect.objectContaining({ note: 0, clipId: 'kick', velocity: 100 })]
+		]);
+		expect(element.querySelectorAll('piano-key')[0].dataset.playShortcut).toBe('1');
+	});
+
+	test('play-mode digit shortcut releases the note captured at keydown after paging', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [
+			{ channel: 1, note: 0, velocity: 0, clipId: 'first' },
+			{ channel: 1, note: 10, velocity: 0, clipId: 'second' }
+		];
+		const events = [];
+		element.addEventListener('pianoroll:note-on', event => events.push(['on', event.detail]));
+		element.addEventListener('pianoroll:note-off', event => events.push(['off', event.detail]));
+
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1' }));
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: ']' }));
+		element.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, code: 'Digit1', key: '1' }));
+
+		expect(events).toEqual([
+			['on', expect.objectContaining({ note: 0, clipId: 'first', velocity: 100 })],
+			['off', expect.objectContaining({ note: 0, clipId: 'first', velocity: 100 })]
+		]);
+		expect(element.querySelectorAll('piano-key')[0].classList.contains('is-active')).toBe(false);
+	});
+
+	test('play-mode shortcuts release held notes when Play mode ends or the element disconnects', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'kick' }];
+		const offs = [];
+		element.addEventListener('pianoroll:note-off', event => offs.push(event.detail.note));
+
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1' }));
+		element.mode = 'edit';
+		expect(offs).toEqual([0]);
+
+		element.mode = 'play';
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1' }));
+		element.remove();
+		expect(offs).toEqual([0, 0]);
+	});
+
+	test('play-mode shortcuts ignore repeats and form controls, while brackets page visible labels', () => {
+		element.mode = 'play';
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1', repeat: true }));
+		expect(element.querySelectorAll('piano-key')[0].classList.contains('is-active')).toBe(false);
+
+		const slider = element.querySelector('.piano-roll-velocity-slider');
+		slider.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, code: 'Digit1', key: '1' }));
+		expect(element.querySelectorAll('piano-key')[0].classList.contains('is-active')).toBe(false);
+
+		element.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: ']' }));
+		expect(element.querySelectorAll('piano-key')[10].dataset.playShortcut).toBe('1');
+	});
+
+	test('play mode shows a preview BPM reference only for the selected beat-synced clip', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'free', meta: {} },
+			{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar', beatsPerBar: 4 } }
+		];
+		element.mappings = [
+			{ channel: 1, note: 0, velocity: 0, clipId: 'free' },
+			{ channel: 1, note: 1, velocity: 0, clipId: 'beat' }
+		];
+		const keys = element.querySelectorAll('piano-key');
+		const reference = element.querySelector('.piano-roll-tempo-reference');
+
+		press(keys[0]);
+		expect(reference.hidden).toBe(true);
+		press(keys[1]);
+		expect(reference.hidden).toBe(false);
+		expect(reference.textContent).toBe('120 BPM (preview) · ~2.0 s');
+	});
+
+	test('play mode beat reference resolves a selected mapping override', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'beat', overrides: { syncLength: 'custom', syncBeats: 6 } }];
+
+		press(element.querySelectorAll('piano-key')[0]);
+
+		expect(element.querySelector('.piano-roll-tempo-reference').textContent).toBe('120 BPM (preview) · ~3.0 s');
+	});
+
+	test('play mode validates local preview BPM and configures beat playback from mapping overrides', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'beat', overrides: { syncLength: 'custom', syncBeats: 6 } }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		const bpmInput = element.querySelector('.piano-roll-preview-bpm-input');
+
+		bpmInput.value = '100';
+		bpmInput.dispatchEvent(new Event('change', { bubbles: true }));
+		press(element.querySelectorAll('piano-key')[0]);
+		expect(preview.playbackConfig).toEqual({ bpm: 100, syncBeats: 6 });
+		expect(element.querySelector('.piano-roll-tempo-reference').textContent).toBe('100 BPM (preview) · ~3.6 s');
+
+		bpmInput.value = '301';
+		bpmInput.dispatchEvent(new Event('change', { bubbles: true }));
+		expect(bpmInput.value).toBe('100');
+		expect(preview.playbackConfig).toEqual({ bpm: 100, syncBeats: 6 });
+	});
+
+	test('free clips keep free preview timing when Preview BPM changes', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'free', meta: {} }];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'free' }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		const bpmInput = element.querySelector('.piano-roll-preview-bpm-input');
+
+		bpmInput.value = '180';
+		bpmInput.dispatchEvent(new Event('change', { bubbles: true }));
+		press(element.querySelectorAll('piano-key')[0]);
+
+		expect(preview.playbackConfig).toEqual({ bpm: 180, syncBeats: null });
+		expect(element.querySelector('.piano-roll-tempo-reference').hidden).toBe(true);
+	});
+
+	test('updating a mapping override recomputes the active preview configuration', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'beat' }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+
+		press(element.querySelectorAll('piano-key')[0]);
+		expect(preview.playbackConfig).toEqual({ bpm: 120, syncBeats: 4 });
+		element.mappings = [{ channel: 1, note: 0, velocity: 0, clipId: 'beat', overrides: { syncLength: 'custom', syncBeats: 6 } }];
+		expect(preview.playbackConfig).toEqual({ bpm: 120, syncBeats: 6 });
+	});
+
+	test('recomputes an active preview from its captured velocity after another note changes the slider', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [
+			{ channel: 1, note: 0, velocity: 0, clipId: 'beat' },
+			{ channel: 1, note: 0, velocity: 64, clipId: 'beat', overrides: { syncLength: 'custom', syncBeats: 6 } }
+		];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		const slider = element.querySelector('.piano-roll-velocity-slider');
+		const bpmInput = element.querySelector('.piano-roll-preview-bpm-input');
+
+		press(element.querySelectorAll('piano-key')[0]);
+		slider.value = '20';
+		slider.dispatchEvent(new Event('input', { bubbles: true }));
+		press(element.querySelectorAll('piano-key')[1]);
+		bpmInput.value = '140';
+		bpmInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+		expect(preview.playbackConfig).toEqual({ bpm: 140, syncBeats: 6 });
+	});
+
+	test('releasing a beat clip clears its reference while a free clip remains active', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [
+			{ clipId: 'free', meta: {} },
+			{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }
+		];
+		element.mappings = [
+			{ channel: 1, note: 0, velocity: 0, clipId: 'free' },
+			{ channel: 1, note: 1, velocity: 0, clipId: 'beat' }
+		];
+		const keys = element.querySelectorAll('piano-key');
+
+		press(keys[0]);
+		press(keys[1]);
+		press(keys[1]);
+
+		expect(element.querySelector('.piano-roll-tempo-reference').textContent).toBe('');
+		expect(element.querySelector('.piano-roll-tempo-reference').hidden).toBe(true);
+	});
+
 	test('play mode click Y maps velocity and selects clip by floor', () => {
 		element.mode = 'play';
 		element.channel = 1;
@@ -459,6 +662,25 @@ describe('PianoRoll', () => {
 		expect(key.classList.contains('is-active')).toBe(false);
 		expect(offs).toEqual([60]);
 		expect(preview.clipId).toBe('');
+	});
+
+	test('play mode playbackended clears a beat preview BPM reference', () => {
+		element.mode = 'play';
+		element.channel = 1;
+		element.clips = [{ clipId: 'beat', meta: { sync: 'beat', syncLength: '1 bar' } }];
+		element.mappings = [{ channel: 1, note: 60, velocity: 0, clipId: 'beat' }];
+		const preview = element.querySelector('preview-clip');
+		vi.spyOn(preview, 'play').mockImplementation(() => {});
+		vi.spyOn(preview, 'stop').mockImplementation(() => {});
+		const key = element.querySelectorAll('piano-key')[60];
+		const reference = element.querySelector('.piano-roll-tempo-reference');
+
+		press(key);
+		expect(reference.hidden).toBe(false);
+
+		preview.dispatchEvent(new CustomEvent('playbackended', { bubbles: true }));
+		expect(reference.hidden).toBe(true);
+		expect(reference.textContent).toBe('');
 	});
 
 	test('play mode leaving play, clearSelection, and disconnect stop preview', () => {

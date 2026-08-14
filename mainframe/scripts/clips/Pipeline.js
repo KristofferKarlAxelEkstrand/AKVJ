@@ -47,7 +47,7 @@ export class Pipeline {
 	 * @param {boolean} [options.fix] - Migrate deprecated source metadata before validating
 	 * @param {boolean} [options.noOptimize] - Skip PNG optimization
 	 * @param {string} [options.sourceDir] - Override: single clips dir (fixture tests)
-	 * @param {string} [options.project] - Build only this project id
+	 * @param {string} [options.projectId] - Build only this project id
 	 * @returns {Promise<void>}
 	 * @throws {Error} When validation fails
 	 */
@@ -61,7 +61,7 @@ export class Pipeline {
 			return;
 		}
 
-		const projectIds = await this.#listProjectIds(options.project);
+		const projectIds = await this.#listProjectIds(options.projectId);
 		if (projectIds.length === 0) {
 			throw new Error('No projects found to build');
 		}

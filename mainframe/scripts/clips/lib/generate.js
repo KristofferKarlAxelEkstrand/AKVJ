@@ -54,9 +54,9 @@ async function buildClipCatalogEntry(sourceDir, clipId) {
 
 	const pngFile = pngFiles[0];
 	const jsonFile = jsonFiles.find(filename => filename === 'meta.json') || jsonFiles[0];
-	const metadata = jsonFile ? await parseJsonFile(path.join(clipFolder, jsonFile)) : {};
-	const finalPng = metadata.png ?? pngFile ?? `${clipId}.png`;
-	const entry = { ...metadata };
+	const meta = jsonFile ? await parseJsonFile(path.join(clipFolder, jsonFile)) : {};
+	const finalPng = meta.png ?? pngFile ?? `${clipId}.png`;
+	const entry = { ...meta };
 	if (finalPng) {
 		entry.png = finalPng;
 	}

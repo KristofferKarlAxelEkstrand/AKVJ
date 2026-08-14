@@ -269,18 +269,18 @@ export async function fitNone(sharpLib, buf, targetWidth, targetHeight, placemen
 /**
  * Build composite layer descriptors for a spritesheet from frame buffers.
  * @param {Buffer[]} frameBuffers
- * @param {number} width - Frame width in pixels
- * @param {number} height - Frame height in pixels
- * @param {number} [maxFramesPerRow=16] - Maximum frames per row
+ * @param {number} frameWidth - Frame width in pixels
+ * @param {number} frameHeight - Frame height in pixels
+ * @param {number} [maxFramesPerRow=DEFAULT_FRAMES_PER_ROW] - Maximum frames per row
  * @returns {Array<{input: Buffer, left: number, top: number}>}
  */
-export function buildComposites(frameBuffers, width, height, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
+export function buildComposites(frameBuffers, frameWidth, frameHeight, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
 	const framesPerRow = Math.min(frameBuffers.length, maxFramesPerRow);
 	const composites = [];
 	for (let i = 0; i < frameBuffers.length; i++) {
 		const col = i % framesPerRow;
 		const row = Math.floor(i / framesPerRow);
-		composites.push({ input: frameBuffers[i], left: col * width, top: row * height });
+		composites.push({ input: frameBuffers[i], left: col * frameWidth, top: row * frameHeight });
 	}
 	return composites;
 }
@@ -289,19 +289,19 @@ export function buildComposites(frameBuffers, width, height, maxFramesPerRow = D
  * Render a spritesheet PNG buffer from composite descriptors.
  * @param {import('sharp').Sharp} sharpLib
  * @param {Array<{input: Buffer, left: number, top: number}>} composites
- * @param {number} width - Frame width in pixels
- * @param {number} height - Frame height in pixels
+ * @param {number} frameWidth - Frame width in pixels
+ * @param {number} frameHeight - Frame height in pixels
  * @param {number} frameCount - Total frames
- * @param {number} [maxFramesPerRow=16] - Maximum frames per row
+ * @param {number} [maxFramesPerRow=DEFAULT_FRAMES_PER_ROW] - Maximum frames per row
  * @returns {Promise<Buffer>}
  */
-export function renderSpriteSheet(sharpLib, composites, width, height, frameCount, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
+export function renderSpriteSheet(sharpLib, composites, frameWidth, frameHeight, frameCount, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {
 	const framesPerRow = Math.min(frameCount, maxFramesPerRow);
 	const rows = Math.ceil(frameCount / framesPerRow);
 	return sharpLib({
 		create: {
-			width: width * framesPerRow,
-			height: height * rows,
+			width: frameWidth * framesPerRow,
+			height: frameHeight * rows,
 			channels: 4,
 			background: TRANSPARENT
 		}
@@ -364,7 +364,7 @@ export function resolveCompileOptions({ targetWidth, targetHeight, scaleMode, fr
 /**
  * Resolve frames per row with default and cap.
  * @param {number} [frameCount] - Total frames (used to cap)
- * @param {number} [maxFramesPerRow=16]
+ * @param {number} [maxFramesPerRow=DEFAULT_FRAMES_PER_ROW]
  * @returns {number}
  */
 export function resolveFramesPerRow(frameCount, maxFramesPerRow = DEFAULT_FRAMES_PER_ROW) {

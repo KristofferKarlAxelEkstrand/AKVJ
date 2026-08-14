@@ -50,7 +50,7 @@ describe('scripts/clips/index.js pipeline', () => {
 		await fs.mkdir(path.join(invalidProjectDir, 'clips'), { recursive: true });
 
 		// Pipeline should reject the invalid project ID
-		await expect(run({ projectsDir, project: '123' })).rejects.toThrow('Invalid project id: 123');
+		await expect(run({ projectsDir, projectId: '123' })).rejects.toThrow('Invalid project id: 123');
 
 		// Cleanup
 		await fs.rm(projectsDir, { recursive: true, force: true });

@@ -5,6 +5,9 @@ describe('slugifyPathSegment', () => {
 	it('slugifies with hyphens and folds diacritics', () => {
 		expect(slugifyPathSegment('My really nice clip')).toBe('my-really-nice-clip');
 		expect(slugifyPathSegment('Jag \u00e4r b\u00e4st')).toBe('jag-ar-bast');
+		expect(slugifyPathSegment('København Æblegrød straße')).toBe(
+			'kobenhavn-aeblegrod-strasse',
+		);
 		expect(slugifyPathSegment('Neon Skull!')).toBe('neon-skull');
 	});
 

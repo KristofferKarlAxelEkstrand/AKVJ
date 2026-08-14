@@ -7,7 +7,7 @@ import { DEFAULT_FRAME_RATE } from './clipSchema.js';
 
 const MS_PER_SECOND = 1000;
 
-export const DEFAULT_FRAME_DURATION_MS = 1000;
+export const DEFAULT_FRAME_DURATION_MS = MS_PER_SECOND;
 export const DEFAULT_FALLBACK_FRAME_DURATION_MS = MS_PER_SECOND / DEFAULT_FRAME_RATE;
 /** Default FPS used when converting missing rates/delays to milliseconds. */
 export const DEFAULT_FALLBACK_FPS = DEFAULT_FRAME_RATE;

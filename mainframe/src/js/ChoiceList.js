@@ -85,20 +85,20 @@ class ChoiceList extends HTMLElement {
 		this.replaceChildren();
 	}
 
-	#items() {
+	#choiceItems() {
 		const ItemClass = this.constructor.ItemClass;
 		return [...this.children].filter(child => child instanceof ItemClass);
 	}
 
 	#updateSelection() {
-		for (const item of this.#items()) {
+		for (const item of this.#choiceItems()) {
 			item.selected = item.choiceValue === this.#value;
 		}
 		this.#syncTabIndex();
 	}
 
 	#syncTabIndex() {
-		const items = this.#items();
+		const items = this.#choiceItems();
 		if (items.length === 0) {
 			return;
 		}
@@ -123,7 +123,7 @@ class ChoiceList extends HTMLElement {
 			return;
 		}
 
-		const items = this.#items();
+		const items = this.#choiceItems();
 		const index = items.indexOf(event.target);
 		if (index < 0 || items.length === 0) {
 			return;
